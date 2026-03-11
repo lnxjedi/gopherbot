@@ -10,10 +10,14 @@ Config:
   DrawMessages:
   - "working on an image"
   - "rendering now"
+  CompactionTriggerTokens: 6144
+  MaxRecentExchanges: 12
+  SummaryBudgetTokens: 768
+  EnableModelCompaction: false
   Profiles:
     "default":
       "params":
-        "model": "gpt-4o-mini"
+        "model": "gpt-5.2-chat-latest"
         "temperature": 0.7
       "SystemPrompt":
         "Standard": |

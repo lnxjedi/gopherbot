@@ -50,6 +50,7 @@ For v3, we will try to support:
 * Zulip
 
 In addition, Gopherbot will implement a new default outgoing message format for use by custom extensions, `BasicMarkdown` (see devdocs/BasicMarkdown.md).
+* Slack Variable and Fixed support should be updated to use BlockKit it possible
 
 ### Reduce Dependence on External Tools and Interpreters
 
@@ -108,9 +109,10 @@ Environment model note:
 Desired workflow note:
 - Keep an admin-friendly branch-switch workflow for fast development/testing rollback (switch to a test branch, verify behavior, and quickly switch back).
 
-### Make Sure Robots have Brains
+### Make Robots Easy to Set Up with New Brains, Connectors, etc.
 
-Since we're getting rid of the default backup/restore to git for the file brain, we need good documentation/process for helping the user establish a persistent brain, maybe via CloudFlare KV.
+* Initial setup should end with a robot repo in git deployable with a deployment key encoded in environment, and a robot accessible via local ssh protocol
+* Additional setup-focused plugins should make it simple to add additional connectors, a brain, etc. - need to determine structure for this
 
 ### Improve Robustness and Security by running Multi-Process
 In Gopherbot v3, compiled-in plugins and jobs will continue to run in in-process threads, but extensions loaded from file will run in separate gopherbot child processes. This isolates the main engine from any panics or freezes for most of the work a robot does, and also makes for a cleaner means of implementing privilege separation. It also paves the way for better support of the working directory method(s).

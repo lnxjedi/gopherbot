@@ -51,6 +51,10 @@ ExternalJobs:
 #     Description: Example scheduled job for testing
 #     Path: jobs/your-job.sh
 #     Privileged: true
+#   "go-openai-prune":
+#     Description: Prune stale go-openai-fallback conversation datums
+#     Path: jobs/go-openai-prune/go_openai_prune_job.go
+#     Homed: true
 #     Parameters:
 #     - Name: NONCE
 #       Value: "No way, Jack!"
@@ -68,6 +72,9 @@ ScheduledJobs:
 ## If your robot is logging to a file, this job will rotate logs
 # - Name: logrotate
 #   Schedule: "5 0 0 * * *"
+## If using go-openai-fallback, prune stale chat contexts daily.
+# - Name: go-openai-prune
+#   Schedule: "0 15 3 * * *"
 ## Example with arguments
 # - Name: hello
 #   Schedule: "@every 30s"

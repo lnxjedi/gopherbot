@@ -1,6 +1,6 @@
 # Makefile - just builds the binary, for dev mainly
 
-.PHONY: clean test fulltest unit integration integration-full generate testbot static dist containers debug mcp
+.PHONY: clean test fulltest unit integration integration-full generate testbot static dist containers debug mcp docs-check
 
 commit := -X main.Commit=$(shell git rev-parse --short HEAD)
 version := $(shell ./get-version.sh)
@@ -60,6 +60,9 @@ integration-full:
 test: unit integration
 
 fulltest: unit integration-full
+
+docs-check:
+	./helpers/check-docs-hygiene.sh
 
 # Generate Stringer methods
 generate:

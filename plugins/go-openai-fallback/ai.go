@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/sha1"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -26,10 +25,11 @@ const (
 	maxPendingMessages         = 24
 	maxProcessedMessages       = 48
 	maxStoredExchanges         = 48
+	defaultMaxRecentExchanges  = 12
+	defaultSummaryBudgetTokens = 768
 	openAIChatCompletionsURL   = "https://api.openai.com/v1/chat/completions"
 	defaultChunkSoftLimit      = 420
 	defaultChunkHardLimit      = 620
-	delayedWaitNoticeDelay     = 900 * time.Millisecond
 	streamProgressNoticeDelay  = 1300 * time.Millisecond
 )
 
@@ -40,7 +40,11 @@ Use these prefixes to identify who is speaking.
 When replying to a specific person, address them as "@username" naturally.
 If users are mainly talking to each other and no bot response is needed, keep your response minimal and non-intrusive, or reply with "(no response)".
 Do not echo speaker prefixes unless it helps clarity.`
-	defaultCustomSystemPrompt = "You are helpful, concise, and collaborative."
+	defaultCustomSystemPrompt         = "You are helpful, concise, and collaborative."
+	defaultMultipartStartNotice       = "_(replying in parts...)_"
+	defaultMultipartContinueNotice    = "_(continuing...)_"
+	defaultMultipartEndNotice         = "_(end reply)_"
+	defaultMultipartInterruptedNotice = "_(reply interrupted)_"
 	// See OpenAI reasoning best practices: "Formatting re-enabled" should be the first
 	// line when markdown formatting is desired from reasoning-capable models.
 	basicMarkdownSystemPrefix = "Formatting re-enabled\n" +
@@ -61,6 +65,16 @@ Commands:
   Keywords: [ "ai", "debug" ]
   Usage: "(bot), debug-ai"
   Summary: "enable debug output during AI interactions"
+- Command: "compact-model"
+  Regex: '(?i:(?:compact|summarize)[ -]ai[ -](?:model|api))'
+  Keywords: [ "ai", "compact", "model" ]
+  Usage: "(bot), compact-ai-model"
+  Summary: "admin-only: force deterministic + model-assisted compaction for this AI context"
+- Command: "compact"
+  Regex: '(?i:(?:compact|summarize)[ -]ai)'
+  Keywords: [ "ai", "compact" ]
+  Usage: "(bot), compact-ai"
+  Summary: "admin-only: force deterministic compaction for this AI context"
 - Command: "close"
   Regex: '(?i:(?:dismiss|banish|close|stop|deactivate|disengage|dispel|reset)[ -]ai)'
   Keywords: [ "ai", "stop" ]
@@ -76,16 +90,23 @@ Commands:
   Keywords: [ "ai", "status" ]
   Usage: "(bot), ai-status"
   Summary: "show AI conversation status in thread"
+AdminCommands:
+- compact
+- compact-model
 Config:
-  WaitMessages:
-  - "hold on a moment while I think this through"
-  - "working on that now"
-  - "thinking through the details"
-  - "just a moment while I work on a response"
+  HeardNotice: "_(working on a reply...)_"
   DrawMessages:
   - "working on an image"
   - "drawing now"
   - "rendering your request"
+  MultipartStartNotice: "_(replying in parts...)_"
+  MultipartContinueNotice: "_(continuing...)_"
+  MultipartEndNotice: "_(end reply)_"
+  MultipartInterruptedNotice: "_(reply interrupted)_"
+  CompactionTriggerTokens: 6144
+  MaxRecentExchanges: 12
+  SummaryBudgetTokens: 768
+  EnableModelCompaction: false
   Profiles:
     "default":
       "params":
@@ -116,9 +137,18 @@ type aiProfile struct {
 }
 
 type aiConfig struct {
-	WaitMessages []string             `json:"WaitMessages"`
-	DrawMessages []string             `json:"DrawMessages"`
-	Profiles     map[string]aiProfile `json:"Profiles"`
+	WaitMessages               []string             `json:"WaitMessages"`
+	HeardNotice                string               `json:"HeardNotice"`
+	DrawMessages               []string             `json:"DrawMessages"`
+	MultipartStartNotice       string               `json:"MultipartStartNotice"`
+	MultipartContinueNotice    string               `json:"MultipartContinueNotice"`
+	MultipartEndNotice         string               `json:"MultipartEndNotice"`
+	MultipartInterruptedNotice string               `json:"MultipartInterruptedNotice"`
+	Profiles                   map[string]aiProfile `json:"Profiles"`
+	CompactionTriggerTokens    int                  `json:"CompactionTriggerTokens"`
+	MaxRecentExchanges         int                  `json:"MaxRecentExchanges"`
+	SummaryBudgetTokens        int                  `json:"SummaryBudgetTokens"`
+	EnableModelCompaction      bool                 `json:"EnableModelCompaction"`
 }
 
 type conversationExchange struct {
@@ -127,16 +157,23 @@ type conversationExchange struct {
 }
 
 type streamUIHints struct {
-	WaitNotice      string
-	WaitNoticeReply bool
-	QueuedNotice    string
+	HeardNotice             string
+	QueuedNotice            string
+	MultipartStartNotice    string
+	MultipartContinueNotice string
+	MultipartEndNotice      string
+	MultipartInterrupted    string
 }
 
 type streamProgressState struct {
-	startedAt      time.Time
 	lastOutputAt   time.Time
 	firstOutputSet bool
-	waitShown      bool
+	heardShown     bool
+}
+
+type streamEnvelopeState struct {
+	heldFirstChunk string
+	multipart      bool
 }
 
 type pendingMessage struct {
@@ -150,11 +187,17 @@ type conversationState struct {
 	Profile    string                 `json:"profile"`
 	Tokens     int                    `json:"tokens"`
 	Owner      string                 `json:"owner"`
+	Summary    string                 `json:"summary,omitempty"`
 	Exchanges  []conversationExchange `json:"exchanges"`
 	Pending    []pendingMessage       `json:"pending"`
 	Processed  []string               `json:"processed"`
 	InProgress bool                   `json:"in_progress"`
 	UpdatedAt  string                 `json:"updated_at"`
+}
+
+type compactionResult struct {
+	State conversationState
+	Older []conversationExchange
 }
 
 type conversationContext struct {
@@ -167,7 +210,6 @@ type conversationContext struct {
 	Prompt          string
 	ConversationID  string
 	ConversationKey string
-	LegacyMemoryKey string
 	DebugKey        string
 	ExclusiveTag    string
 }
@@ -192,6 +234,10 @@ func PluginHandler(r robot.Robot, command string, args ...string) robot.TaskRetV
 		return robot.Normal
 	case "debug":
 		return handleDebug(r)
+	case "compact":
+		return handleManualCompaction(r, false)
+	case "compact-model":
+		return handleManualCompaction(r, true)
 	case "close":
 		return handleClose(r)
 	case "status":
@@ -208,6 +254,7 @@ func PluginHandler(r robot.Robot, command string, args ...string) robot.TaskRetV
 func handleConversationEntry(r robot.Robot, command string, args ...string) robot.TaskRetVal {
 	cmdMode := strings.TrimSpace(r.GetParameter("GOPHER_CMDMODE"))
 	ctx := makeConversationContext(r, args...)
+	cfg := loadConfig(r)
 	direct := ctx.Direct
 	botAlias := strings.TrimSpace(r.GetBotAttribute("alias").Attribute)
 	channel := ctx.Channel
@@ -220,6 +267,18 @@ func handleConversationEntry(r robot.Robot, command string, args ...string) robo
 			r.SayThread("No command matched in channel '%s'; try '%shelp'", channel, botAlias)
 		}
 		return robot.Normal
+	}
+
+	heardSent := false
+	if strings.TrimSpace(ctx.Prompt) != "" {
+		if heard := strings.TrimSpace(cfg.HeardNotice); heard != "" {
+			heardBot := r
+			if !ctx.Direct {
+				heardBot = r.Threaded()
+			}
+			heardBot.Reply(heard)
+			heardSent = true
+		}
 	}
 
 	state, _ := loadConversationState(r, ctx)
@@ -243,6 +302,7 @@ func handleConversationEntry(r robot.Robot, command string, args ...string) robo
 
 	state.Pending = removePendingMessage(state.Pending, ctx.MessageID)
 	state.Processed = appendProcessed(state.Processed, ctx.MessageID)
+	state = maybeCompactConversationDeterministic(state, cfg)
 	state.InProgress = true
 	state.UpdatedAt = nowString()
 	saveConversationState(r, ctx, state)
@@ -255,12 +315,15 @@ func handleConversationEntry(r robot.Robot, command string, args ...string) robo
 		r.Subscribe()
 	}
 
-	uiHints := makeStreamUIHints(r, state)
+	uiHints := makeStreamUIHints(state, cfg)
+	if heardSent {
+		uiHints.HeardNotice = ""
+	}
 
 	reply := ""
 	if strings.TrimSpace(ctx.Prompt) != "" {
 		var err error
-		reply, err = queryOpenAI(tbot.MessageFormat(robot.BasicMarkdown), r, ctx, state, loadConfig(r), uiHints)
+		reply, err = queryOpenAI(tbot.MessageFormat(robot.BasicMarkdown), r, ctx, state, cfg, uiHints)
 		if err != nil {
 			tbot.Say("Sorry, there was an error contacting the AI: %s", err)
 			state.InProgress = false
@@ -275,10 +338,11 @@ func handleConversationEntry(r robot.Robot, command string, args ...string) robo
 		if len(state.Exchanges) > maxStoredExchanges {
 			state.Exchanges = state.Exchanges[len(state.Exchanges)-maxStoredExchanges:]
 		}
-		state.Tokens = estimateConversationTokens(state.Exchanges)
+		state.Tokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
 		if len(state.Pending) > 0 {
 			state.Pending = nil
 		}
+		state = maybeCompactConversationWithModel(r, state, cfg)
 	}
 	state.InProgress = false
 	state.UpdatedAt = nowString()
@@ -294,26 +358,30 @@ func handleStatus(r robot.Robot) robot.TaskRetVal {
 	}
 
 	state, ok := loadConversationState(r, ctx)
-	if !ok || len(state.Exchanges) == 0 {
+	if !ok || (len(state.Exchanges) == 0 && strings.TrimSpace(state.Summary) == "") {
 		r.Reply("I hear you, but I have no memory of a conversation in this context.")
 		return robot.Normal
 	}
 	tokens := state.Tokens
 	if tokens <= 0 {
-		tokens = estimateConversationTokens(state.Exchanges)
+		tokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
+	}
+	summaryPart := ""
+	if strings.TrimSpace(state.Summary) != "" {
+		summaryPart = ", compact summary present"
 	}
 	if state.InProgress {
-		r.Reply("I hear you and remember an AI conversation in progress (%d exchanges, ~%d tokens, %d queued).", len(state.Exchanges), tokens, len(state.Pending))
+		r.Reply("I hear you and remember an AI conversation in progress (%d exchanges, ~%d tokens, %d queued%s).", len(state.Exchanges), tokens, len(state.Pending), summaryPart)
 		return robot.Normal
 	}
-	r.Reply("I hear you and remember an AI conversation (%d exchanges, ~%d tokens, %d queued).", len(state.Exchanges), tokens, len(state.Pending))
+	r.Reply("I hear you and remember an AI conversation (%d exchanges, ~%d tokens, %d queued%s).", len(state.Exchanges), tokens, len(state.Pending), summaryPart)
 	return robot.Normal
 }
 
 func handleClose(r robot.Robot) robot.TaskRetVal {
 	ctx := makeConversationContext(r)
 	state, ok := loadConversationState(r, ctx)
-	if ok && len(state.Exchanges) > 0 {
+	if ok && (len(state.Exchanges) > 0 || strings.TrimSpace(state.Summary) != "") {
 		deleteConversationState(r, ctx)
 		if !ctx.Direct {
 			r.Unsubscribe()
@@ -344,6 +412,92 @@ func handleDebug(r robot.Robot) robot.TaskRetVal {
 	return robot.Normal
 }
 
+func handleManualCompaction(r robot.Robot, withModel bool) robot.TaskRetVal {
+	ctx := makeConversationContext(r)
+	if !ctx.Direct && !ctx.Threaded {
+		r.Reply("This command only applies in a direct message or conversation thread.")
+		return robot.Normal
+	}
+
+	state, ok := loadConversationState(r, ctx)
+	if !ok || (len(state.Exchanges) == 0 && strings.TrimSpace(state.Summary) == "") {
+		r.Reply("I have no AI conversation memory to compact in this context.")
+		return robot.Normal
+	}
+	cfg := loadConfig(r)
+
+	beforeExchanges := len(state.Exchanges)
+	beforeSummary := strings.TrimSpace(state.Summary)
+	beforeTokens := state.Tokens
+	if beforeTokens <= 0 {
+		beforeTokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
+	}
+
+	result := forceCompactConversationDeterministic(state, cfg)
+	compacted := result.State
+	older := result.Older
+	deterministicApplied := len(older) > 0
+	modelApplied := false
+	var modelErr error
+
+	if withModel && deterministicApplied {
+		refined, err := modelAssistSummary(r, compacted.Profile, compacted.Summary, older, cfg)
+		if err != nil {
+			modelErr = err
+			r.Log(robot.Warn, "openai-fallback: manual model compaction failed conversation=%s older=%d: %v", ctx.ConversationID, len(older), err)
+		} else if trimmed := strings.TrimSpace(refined); trimmed != "" {
+			compacted.Summary = clipText(trimmed, summaryBudgetChars(cfg.SummaryBudgetTokens))
+			compacted.Tokens = estimateConversationTokens(compacted.Exchanges) + estimateTokens(compacted.Summary)
+			modelApplied = true
+		}
+	}
+
+	changed := deterministicApplied || (compacted.Summary != beforeSummary)
+	if changed {
+		compacted.UpdatedAt = nowString()
+		saveConversationState(r, ctx, compacted)
+	}
+
+	afterTokens := compacted.Tokens
+	if afterTokens <= 0 {
+		afterTokens = estimateConversationTokens(compacted.Exchanges) + estimateTokens(compacted.Summary)
+	}
+	r.Log(robot.Info, "openai-fallback: manual compaction mode=%s conversation=%s deterministic=%t model=%t older=%d exchanges=%d->%d tokens=%d->%d",
+		manualCompactionMode(withModel), ctx.ConversationID, deterministicApplied, modelApplied, len(older), beforeExchanges, len(compacted.Exchanges), beforeTokens, afterTokens)
+
+	if !deterministicApplied {
+		r.Reply("No compaction was needed in this context (%d exchanges currently stored).", len(compacted.Exchanges))
+		return robot.Normal
+	}
+
+	if withModel && modelErr != nil {
+		r.Reply("Model-assisted compaction failed (%s), but deterministic compaction succeeded (%d -> %d exchanges).", modelErr.Error(), beforeExchanges, len(compacted.Exchanges))
+		return robot.Normal
+	}
+
+	if withModel {
+		r.Reply("Model-assisted compaction succeeded (%d -> %d exchanges, summary %s).", beforeExchanges, len(compacted.Exchanges), compactSummaryState(compacted.Summary))
+		return robot.Normal
+	}
+
+	r.Reply("Deterministic compaction succeeded (%d -> %d exchanges, summary %s).", beforeExchanges, len(compacted.Exchanges), compactSummaryState(compacted.Summary))
+	return robot.Normal
+}
+
+func manualCompactionMode(withModel bool) string {
+	if withModel {
+		return "api"
+	}
+	return "deterministic"
+}
+
+func compactSummaryState(summary string) string {
+	if strings.TrimSpace(summary) == "" {
+		return "absent"
+	}
+	return "present"
+}
+
 func handleImage(r robot.Robot, args ...string) robot.TaskRetVal {
 	r.SayThread("Image generation is not wired yet for openai-fallback.")
 	return robot.Normal
@@ -357,29 +511,23 @@ func isDirectMessage(r robot.Robot) bool {
 	return strings.TrimSpace(msg.Channel) == ""
 }
 
-func randomWaitMessage(r robot.Robot) string {
-	cfg := loadConfig(r)
-	if len(cfg.WaitMessages) == 0 {
-		return ""
+func resolveNotice(value, fallback string) string {
+	if trimmed := strings.TrimSpace(value); trimmed != "" {
+		return trimmed
 	}
-	return r.RandomString(cfg.WaitMessages)
+	return fallback
 }
 
-func makeStreamUIHints(r robot.Robot, state conversationState) streamUIHints {
+func makeStreamUIHints(state conversationState, cfg aiConfig) streamUIHints {
 	hints := streamUIHints{}
-	hold := randomWaitMessage(r)
-	if hold != "" && len(state.Exchanges) == 0 {
-		hints.WaitNotice = fmt.Sprintf("( %s )", hold)
-		hints.WaitNoticeReply = true
-	} else if len(state.Exchanges) > 0 {
-		hints.WaitNotice = fmt.Sprintf("(%s)", r.RandomString([]string{"pondering", "working", "thinking", "cogitating", "processing", "analyzing"}))
-	} else {
-		hints.WaitNotice = "(thinking...)"
-		hints.WaitNoticeReply = true
-	}
+	hints.HeardNotice = strings.TrimSpace(cfg.HeardNotice)
 	if len(state.Pending) > 0 {
 		hints.QueuedNotice = fmt.Sprintf("(I picked up %d queued messages for context)", len(state.Pending))
 	}
+	hints.MultipartStartNotice = resolveNotice(cfg.MultipartStartNotice, defaultMultipartStartNotice)
+	hints.MultipartContinueNotice = resolveNotice(cfg.MultipartContinueNotice, defaultMultipartContinueNotice)
+	hints.MultipartEndNotice = resolveNotice(cfg.MultipartEndNotice, defaultMultipartEndNotice)
+	hints.MultipartInterrupted = resolveNotice(cfg.MultipartInterruptedNotice, defaultMultipartInterruptedNotice)
 	return hints
 }
 
@@ -413,6 +561,13 @@ func makeConversationContext(r robot.Robot, args ...string) conversationContext 
 	if user == "" {
 		user = "unknown"
 	}
+	protocol = strings.ToLower(protocol)
+	user = strings.ToLower(user)
+	if messageID != "" {
+		// Message IDs are only guaranteed unique within a connector, so namespace
+		// with protocol before we store dedupe/process markers.
+		messageID = protocol + ":" + messageID
+	}
 	if channel == "" {
 		channel = "default"
 	}
@@ -438,15 +593,16 @@ func makeConversationContext(r robot.Robot, args ...string) conversationContext 
 	}
 
 	if direct {
-		ctx.ConversationID = fmt.Sprintf("dm:%s:%s", strings.ToLower(protocol), strings.ToLower(user))
-		ctx.LegacyMemoryKey = fmt.Sprintf("%s:%s:dm:%s", shortTermMemoryPrefix, strings.ToLower(protocol), strings.ToLower(user))
-		ctx.DebugKey = fmt.Sprintf("%s:%s:dm:%s", shortTermMemoryDebugPrefix, strings.ToLower(protocol), strings.ToLower(user))
-		ctx.ExclusiveTag = fmt.Sprintf("%s:%s:dm:%s", shortTermMemoryPrefix, strings.ToLower(protocol), strings.ToLower(user))
+		// Direct conversations are intentionally keyed by username (not protocol)
+		// so a user carries one DM context across connectors.
+		ctx.ConversationID = fmt.Sprintf("dm:%s", user)
+		ctx.DebugKey = fmt.Sprintf("%s:%s:dm:%s", shortTermMemoryDebugPrefix, protocol, user)
+		ctx.ExclusiveTag = fmt.Sprintf("%s:dm:%s", shortTermMemoryPrefix, user)
 	} else {
-		ctx.ConversationID = fmt.Sprintf("thread:%s:%s:%s", strings.ToLower(protocol), strings.ToLower(channel), threadID)
-		ctx.LegacyMemoryKey = fmt.Sprintf("%s:%s:%s:%s", shortTermMemoryPrefix, strings.ToLower(protocol), strings.ToLower(channel), threadID)
-		ctx.DebugKey = fmt.Sprintf("%s:%s:%s:%s", shortTermMemoryDebugPrefix, strings.ToLower(protocol), strings.ToLower(channel), threadID)
-		ctx.ExclusiveTag = fmt.Sprintf("%s:%s:%s:%s", shortTermMemoryPrefix, strings.ToLower(protocol), strings.ToLower(channel), threadID)
+		// Thread IDs are connector-opaque, so thread conversations remain protocol-scoped.
+		ctx.ConversationID = fmt.Sprintf("thread:%s:%s:%s", protocol, strings.ToLower(channel), threadID)
+		ctx.DebugKey = fmt.Sprintf("%s:%s:%s:%s", shortTermMemoryDebugPrefix, protocol, strings.ToLower(channel), threadID)
+		ctx.ExclusiveTag = fmt.Sprintf("%s:%s:%s:%s", shortTermMemoryPrefix, protocol, strings.ToLower(channel), threadID)
 	}
 	ctx.ConversationKey = conversationDatumKey(ctx.ConversationID)
 
@@ -457,23 +613,81 @@ func makeConversationContext(r robot.Robot, args ...string) conversationContext 
 }
 
 func loadConversationState(r robot.Robot, ctx conversationContext) (conversationState, bool) {
-	state := conversationState{}
-	_, exists, ret := r.CheckoutDatum(ctx.ConversationKey, &state, false)
+	_, raw, exists, ret, panicErr := checkoutDatumRaw(r, ctx.ConversationKey, false)
+	if panicErr != nil {
+		r.Log(robot.Warn, "openai-fallback: panic reading conversation datum id=%s key=%s; will attempt fallback: %v", ctx.ConversationID, ctx.ConversationKey, panicErr)
+	}
 	if ret == robot.Ok && exists {
-		return state, true
+		if state, ok := decodeConversationStateFromRaw(raw); ok {
+			ensureConversationDefaults(&state, ctx)
+			if state.Tokens <= 0 {
+				state.Tokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
+			}
+			return state, true
+		}
+		r.Log(robot.Warn, "openai-fallback: unsupported long-term conversation format id=%s key=%s type=%T", ctx.ConversationID, ctx.ConversationKey, raw)
+		// Strict schema mode: malformed conversation payloads are discarded.
+		r.DeleteDatum(ctx.ConversationKey)
+		removeConversationIndex(r, ctx.ConversationID)
+	}
+	return conversationState{}, false
+}
+
+func checkoutDatumRaw(r robot.Robot, key string, rw bool) (locktoken string, raw interface{}, exists bool, ret robot.RetVal, panicErr interface{}) {
+	defer func() {
+		if p := recover(); p != nil {
+			panicErr = p
+			locktoken = ""
+			raw = nil
+			exists = false
+			ret = robot.DataFormatError
+		}
+	}()
+	var payload json.RawMessage
+	locktoken, exists, ret = r.CheckoutDatum(key, &payload, rw)
+	raw = []byte(payload)
+	return locktoken, raw, exists, ret, nil
+}
+
+func decodeConversationStateFromRaw(raw interface{}) (conversationState, bool) {
+	if raw == nil {
+		return conversationState{}, false
+	}
+	blob, ok := rawJSONBytes(raw)
+	if !ok {
+		return conversationState{}, false
 	}
 
-	encoded := strings.TrimSpace(r.Recall(ctx.LegacyMemoryKey, true))
-	if encoded == "" {
-		return conversationState{}, false
+	state := conversationState{}
+	if err := json.Unmarshal(blob, &state); err == nil {
+		return state, true
 	}
-	state, err := decodeConversationState(encoded)
-	if err != nil {
-		return conversationState{}, false
+	return conversationState{}, false
+}
+
+func rawJSONBytes(raw interface{}) ([]byte, bool) {
+	if raw == nil {
+		return nil, false
 	}
-	saveConversationState(r, ctx, state)
-	r.Remember(ctx.LegacyMemoryKey, "", true)
-	return state, true
+	var blob []byte
+	switch v := raw.(type) {
+	case json.RawMessage:
+		blob = append([]byte(nil), v...)
+	case []byte:
+		blob = append([]byte(nil), v...)
+	case string:
+		blob = []byte(v)
+	default:
+		encoded, err := json.Marshal(raw)
+		if err != nil {
+			return nil, false
+		}
+		blob = encoded
+	}
+	if len(strings.TrimSpace(string(blob))) == 0 {
+		return nil, false
+	}
+	return blob, true
 }
 
 func saveConversationState(r robot.Robot, ctx conversationContext, state conversationState) {
@@ -481,29 +695,15 @@ func saveConversationState(r robot.Robot, ctx conversationContext, state convers
 	if !storeConversationStateDatum(r, ctx.ConversationKey, state) {
 		return
 	}
+	// Maintain an index for background maintenance jobs (prune/compact tooling).
 	upsertConversationIndex(r, ctx.ConversationID, ctx.ConversationKey, state.UpdatedAt)
 }
 
-func decodeConversationState(encoded string) (conversationState, error) {
-	state := conversationState{}
-	// Support raw JSON state.
-	if err := json.Unmarshal([]byte(encoded), &state); err == nil {
-		return state, nil
-	}
-	// Support legacy base64(JSON) state.
-	decoded, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil {
-		return conversationState{}, err
-	}
-	if err := json.Unmarshal(decoded, &state); err != nil {
-		return conversationState{}, err
-	}
-	return state, nil
-}
-
 func storeConversationStateDatum(r robot.Robot, key string, state conversationState) bool {
-	existing := conversationState{}
-	locktoken, _, ret := r.CheckoutDatum(key, &existing, true)
+	locktoken, _, _, ret, panicErr := checkoutDatumRaw(r, key, true)
+	if panicErr != nil {
+		r.Log(robot.Warn, "openai-fallback: panic checking out conversation datum for write key=%s: %v", key, panicErr)
+	}
 	if ret != robot.Ok {
 		return false
 	}
@@ -539,11 +739,23 @@ func deleteConversationIndexEntry(idx *conversationIndex, conversationID string)
 }
 
 func upsertConversationIndex(r robot.Robot, conversationID, key, updatedAt string) {
-	idx := conversationIndex{}
-	locktoken, _, ret := r.CheckoutDatum(conversationIndexDatumKey, &idx, true)
+	locktoken, raw, exists, ret, panicErr := checkoutDatumRaw(r, conversationIndexDatumKey, true)
+	if panicErr != nil {
+		r.Log(robot.Warn, "openai-fallback: panic reading conversation index for write key=%s: %v", conversationIndexDatumKey, panicErr)
+	}
 	if ret != robot.Ok {
 		return
 	}
+	idx := conversationIndex{}
+	if exists {
+		decoded, ok := decodeConversationIndexFromRaw(raw)
+		if ok {
+			idx = decoded
+		} else {
+			r.Log(robot.Warn, "openai-fallback: unsupported conversation index format key=%s type=%T; resetting index", conversationIndexDatumKey, raw)
+		}
+	}
+	ensureConversationIndexDefaults(&idx)
 	upsertConversationIndexEntry(&idx, conversationID, key, updatedAt)
 	if ret = r.UpdateDatum(conversationIndexDatumKey, locktoken, idx); ret != robot.Ok {
 		r.CheckinDatum(conversationIndexDatumKey, locktoken)
@@ -551,12 +763,20 @@ func upsertConversationIndex(r robot.Robot, conversationID, key, updatedAt strin
 }
 
 func removeConversationIndex(r robot.Robot, conversationID string) {
-	idx := conversationIndex{}
-	locktoken, exists, ret := r.CheckoutDatum(conversationIndexDatumKey, &idx, true)
+	locktoken, raw, exists, ret, panicErr := checkoutDatumRaw(r, conversationIndexDatumKey, true)
+	if panicErr != nil {
+		r.Log(robot.Warn, "openai-fallback: panic reading conversation index for delete key=%s: %v", conversationIndexDatumKey, panicErr)
+	}
 	if ret != robot.Ok {
 		return
 	}
 	if !exists {
+		r.CheckinDatum(conversationIndexDatumKey, locktoken)
+		return
+	}
+	idx, ok := decodeConversationIndexFromRaw(raw)
+	if !ok {
+		r.Log(robot.Warn, "openai-fallback: unsupported conversation index format key=%s type=%T; skipping index delete", conversationIndexDatumKey, raw)
 		r.CheckinDatum(conversationIndexDatumKey, locktoken)
 		return
 	}
@@ -566,13 +786,25 @@ func removeConversationIndex(r robot.Robot, conversationID string) {
 	}
 }
 
+func decodeConversationIndexFromRaw(raw interface{}) (conversationIndex, bool) {
+	blob, ok := rawJSONBytes(raw)
+	if !ok {
+		return conversationIndex{}, false
+	}
+	idx := conversationIndex{}
+	if err := json.Unmarshal(blob, &idx); err != nil {
+		return conversationIndex{}, false
+	}
+	ensureConversationIndexDefaults(&idx)
+	return idx, true
+}
+
 func deleteConversationState(r robot.Robot, ctx conversationContext) {
 	r.DeleteDatum(ctx.ConversationKey)
 	removeConversationIndex(r, ctx.ConversationID)
-	if ctx.LegacyMemoryKey != "" {
-		r.Remember(ctx.LegacyMemoryKey, "", true)
+	if ctx.DebugKey != "" {
+		r.Remember(ctx.DebugKey, "", true)
 	}
-	r.Remember(ctx.DebugKey, "", true)
 }
 
 func conversationDatumKey(conversationID string) string {
@@ -629,6 +861,7 @@ func appendProcessed(processed []string, messageID string) []string {
 		return processed
 	}
 	processed = append(processed, messageID)
+	// Keep a bounded dedupe window so state does not grow forever.
 	if len(processed) > maxProcessedMessages {
 		return processed[len(processed)-maxProcessedMessages:]
 	}
@@ -664,6 +897,205 @@ func estimateConversationTokens(exchanges []conversationExchange) int {
 	return total
 }
 
+func maybeCompactConversationDeterministic(state conversationState, cfg aiConfig) conversationState {
+	return compactConversationDeterministic(state, cfg).State
+}
+
+func forceCompactConversationDeterministic(state conversationState, cfg aiConfig) compactionResult {
+	return compactConversationDeterministicInternal(state, cfg, true)
+}
+
+func maybeCompactConversationWithModel(r robot.Robot, state conversationState, cfg aiConfig) conversationState {
+	result := compactConversationDeterministic(state, cfg)
+	compacted := result.State
+	older := result.Older
+	if len(older) == 0 {
+		return compacted
+	}
+
+	r.Log(robot.Info, "openai-fallback: automatic deterministic compaction applied older=%d exchanges_now=%d", len(older), len(compacted.Exchanges))
+	if !cfg.EnableModelCompaction {
+		return compacted
+	}
+
+	refined, err := modelAssistSummary(r, state.Profile, compacted.Summary, older, cfg)
+	if err != nil {
+		r.Log(robot.Warn, "openai-fallback: automatic model-assisted compaction failed; keeping deterministic summary: %v", err)
+		return compacted
+	}
+	refined = strings.TrimSpace(refined)
+	if refined == "" {
+		r.Log(robot.Warn, "openai-fallback: automatic model-assisted compaction returned empty summary; keeping deterministic summary")
+		return compacted
+	}
+	compacted.Summary = clipText(refined, summaryBudgetChars(cfg.SummaryBudgetTokens))
+	compacted.Tokens = estimateConversationTokens(compacted.Exchanges) + estimateTokens(compacted.Summary)
+	r.Log(robot.Info, "openai-fallback: automatic model-assisted compaction applied exchanges_now=%d", len(compacted.Exchanges))
+	return compacted
+}
+
+type summaryRefiner func(existing string, older []conversationExchange, cfg aiConfig) (string, error)
+
+func maybeCompactConversationWithRefiner(state conversationState, cfg aiConfig, refiner summaryRefiner) conversationState {
+	result := compactConversationDeterministic(state, cfg)
+	compacted := result.State
+	older := result.Older
+	if len(older) == 0 || !cfg.EnableModelCompaction || refiner == nil {
+		return compacted
+	}
+	refined, err := refiner(compacted.Summary, older, cfg)
+	if err != nil {
+		return compacted
+	}
+	refined = strings.TrimSpace(refined)
+	if refined == "" {
+		return compacted
+	}
+	compacted.Summary = clipText(refined, summaryBudgetChars(cfg.SummaryBudgetTokens))
+	compacted.Tokens = estimateConversationTokens(compacted.Exchanges) + estimateTokens(compacted.Summary)
+	return compacted
+}
+
+func compactConversationDeterministic(state conversationState, cfg aiConfig) compactionResult {
+	return compactConversationDeterministicInternal(state, cfg, false)
+}
+
+func compactConversationDeterministicInternal(state conversationState, cfg aiConfig, force bool) compactionResult {
+	maxRecent := cfg.MaxRecentExchanges
+	if maxRecent <= 0 {
+		maxRecent = defaultMaxRecentExchanges
+	}
+	keepRecent := maxRecent
+	if keepRecent > len(state.Exchanges) {
+		keepRecent = len(state.Exchanges)
+	}
+	// Manual/admin force should still compact when possible, even if the
+	// conversation has not yet exceeded the steady-state recent window.
+	if force && len(state.Exchanges) > 1 && keepRecent == len(state.Exchanges) {
+		keepRecent = len(state.Exchanges) - 1
+	}
+	if len(state.Exchanges) <= keepRecent {
+		if state.Tokens <= 0 {
+			state.Tokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
+		}
+		return compactionResult{State: state}
+	}
+
+	trigger := cfg.CompactionTriggerTokens
+	if trigger <= 0 {
+		trigger = resolveCompactionTriggerTokens(resolveProfile(state.Profile, cfg))
+	}
+	if trigger <= 0 {
+		trigger = 6144
+	}
+
+	if state.Tokens <= 0 {
+		state.Tokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
+	}
+	// Automatic mode waits until near context pressure; manual mode can force compaction.
+	if !force && state.Tokens < trigger {
+		return compactionResult{State: state}
+	}
+
+	split := len(state.Exchanges) - keepRecent
+	older := state.Exchanges[:split]
+	recent := state.Exchanges[split:]
+	state.Summary = mergeDeterministicSummary(state.Summary, older, cfg.SummaryBudgetTokens)
+	state.Exchanges = append([]conversationExchange(nil), recent...)
+	state.Tokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
+	// Yaegi/RPC execution has been observed to panic on multi-return assignment
+	// for this state/slice pair, so compaction returns one wrapper struct.
+	return compactionResult{
+		State: state,
+		Older: append([]conversationExchange(nil), older...),
+	}
+}
+
+func resolveCompactionTriggerTokens(profile aiProfile) int {
+	if profile.MaxContext <= 0 {
+		return 6144
+	}
+	trigger := profile.MaxContext - 1024
+	if trigger < 1024 {
+		return profile.MaxContext
+	}
+	return trigger
+}
+
+func mergeDeterministicSummary(existing string, older []conversationExchange, summaryBudgetTokens int) string {
+	if len(older) == 0 {
+		return strings.TrimSpace(existing)
+	}
+	if summaryBudgetTokens <= 0 {
+		summaryBudgetTokens = defaultSummaryBudgetTokens
+	}
+	maxChars := summaryBudgetChars(summaryBudgetTokens)
+
+	lines := make([]string, 0, 8)
+	if prior := strings.TrimSpace(existing); prior != "" {
+		lines = append(lines, "Previous summary:")
+		lines = append(lines, clipText(prior, maxChars/2))
+	}
+	// Deterministic summary keeps compaction available even if API calls fail.
+	lines = append(lines, fmt.Sprintf("Compacted %d earlier exchange(s):", len(older)))
+
+	firstIntent := ""
+	for _, item := range older {
+		if text := strings.TrimSpace(item.Human); text != "" {
+			firstIntent = text
+			break
+		}
+	}
+	if firstIntent != "" {
+		lines = append(lines, "Initial intent: "+clipText(firstIntent, 180))
+	}
+
+	tail := older
+	if len(tail) > 4 {
+		tail = tail[len(tail)-4:]
+	}
+	for _, item := range tail {
+		h := clipText(strings.TrimSpace(item.Human), 140)
+		a := clipText(strings.TrimSpace(item.AI), 180)
+		switch {
+		case h != "" && a != "":
+			lines = append(lines, fmt.Sprintf("- %s -> %s", h, a))
+		case h != "":
+			lines = append(lines, fmt.Sprintf("- %s", h))
+		case a != "":
+			lines = append(lines, fmt.Sprintf("- AI: %s", a))
+		}
+	}
+
+	return clipText(strings.Join(lines, "\n"), maxChars)
+}
+
+func summaryBudgetChars(summaryBudgetTokens int) int {
+	if summaryBudgetTokens <= 0 {
+		summaryBudgetTokens = defaultSummaryBudgetTokens
+	}
+	maxChars := summaryBudgetTokens * 4
+	if maxChars < 400 {
+		maxChars = 400
+	}
+	return maxChars
+}
+
+func clipText(text string, maxChars int) string {
+	text = strings.TrimSpace(text)
+	if maxChars <= 0 || len([]rune(text)) <= maxChars {
+		return text
+	}
+	runes := []rune(text)
+	if maxChars <= 1 {
+		return string(runes[:maxChars])
+	}
+	if maxChars <= 3 {
+		return string(runes[:maxChars])
+	}
+	return strings.TrimSpace(string(runes[:maxChars-3])) + "..."
+}
+
 func pendingForContext(pending []pendingMessage, currentMessageID string, processed []string) []pendingMessage {
 	if len(pending) == 0 {
 		return nil
@@ -684,14 +1116,14 @@ func pendingForContext(pending []pendingMessage, currentMessageID string, proces
 	return out
 }
 
-func trimExchangesForContext(system string, exchanges []conversationExchange, pending []pendingMessage, prompt string, maxContext int) []conversationExchange {
+func trimExchangesForContext(system, summary string, exchanges []conversationExchange, pending []pendingMessage, prompt string, maxContext int) []conversationExchange {
 	if len(exchanges) == 0 {
 		return nil
 	}
 	if maxContext <= 0 {
 		maxContext = 4096
 	}
-	budget := maxContext - estimateTokens(system) - estimateTokens(prompt) - 64
+	budget := maxContext - estimateTokens(system) - estimateTokens(summary) - estimateTokens(prompt) - 64
 	for _, item := range pending {
 		budget -= estimateTokens(fmt.Sprintf("%s says: %s", item.User, item.Text)) + 4
 	}
@@ -719,6 +1151,137 @@ func nowString() string {
 	return time.Now().UTC().Format(time.RFC3339)
 }
 
+func modelAssistSummary(r robot.Robot, profileName, deterministic string, older []conversationExchange, cfg aiConfig) (string, error) {
+	token := strings.TrimSpace(r.GetParameter("OPENAI_KEY"))
+	if token == "" {
+		return "", fmt.Errorf("OPENAI_KEY not set")
+	}
+
+	profile := resolveProfile(profileName, cfg)
+	model := "gpt-5.2-chat-latest"
+	if raw, ok := profile.Params["model"]; ok {
+		if asString := strings.TrimSpace(fmt.Sprintf("%v", raw)); asString != "" {
+			model = asString
+		}
+	}
+
+	payload := map[string]interface{}{
+		"model":  model,
+		"stream": false,
+		"messages": []map[string]string{
+			{
+				"role": "system",
+				"content": "You condense older chat history into a concise, factual summary for future context. " +
+					"Keep key user goals, decisions, constraints, and unresolved questions. " +
+					"Avoid headings and tables. Keep output compact and actionable.",
+			},
+			{
+				"role":    "user",
+				"content": modelCompactionSource(deterministic, older, cfg.SummaryBudgetTokens),
+			},
+		},
+	}
+	if cfg.SummaryBudgetTokens > 0 {
+		payload["max_completion_tokens"] = cfg.SummaryBudgetTokens
+	}
+	if userID := strings.TrimSpace(r.GetParameter("GOPHER_USER_ID")); userID != "" {
+		payload["user"] = sha1String(userID)
+	}
+	normalizeChatCompletionPayload(payload)
+
+	reqBody, err := json.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, openAIChatCompletionsURL, bytes.NewReader(reqBody))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	if org := strings.TrimSpace(r.GetParameter("OPENAI_ORGANIZATION_ID")); org != "" {
+		req.Header.Set("OpenAI-Organization", org)
+	}
+
+	client := &http.Client{Timeout: 12 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode >= 400 {
+		return "", fmt.Errorf("%s", friendlyOpenAIError(resp.StatusCode, resp.Status, body))
+	}
+
+	var parsed struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+	}
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return "", err
+	}
+	if len(parsed.Choices) == 0 {
+		return "", fmt.Errorf("no choices returned for model-assisted compaction")
+	}
+	content := strings.TrimSpace(parsed.Choices[0].Message.Content)
+	if content == "" {
+		return "", fmt.Errorf("empty model-assisted compaction summary")
+	}
+	return clipText(normalizeChunkText(content), summaryBudgetChars(cfg.SummaryBudgetTokens)), nil
+}
+
+func modelCompactionSource(deterministic string, older []conversationExchange, summaryBudgetTokens int) string {
+	maxChars := summaryBudgetChars(summaryBudgetTokens)
+	sample := older
+	if len(sample) > 12 {
+		sample = sample[len(sample)-12:]
+	}
+	var b strings.Builder
+	if prior := strings.TrimSpace(deterministic); prior != "" {
+		b.WriteString("Current deterministic summary:\n")
+		b.WriteString(clipText(prior, maxChars/2))
+		b.WriteString("\n\n")
+	}
+	b.WriteString(fmt.Sprintf("Older exchanges to compact (%d shown):\n", len(sample)))
+	for i, item := range sample {
+		h := clipText(strings.TrimSpace(item.Human), 220)
+		a := clipText(strings.TrimSpace(item.AI), 220)
+		b.WriteString(fmt.Sprintf("%d. Human: %s\n", i+1, h))
+		b.WriteString(fmt.Sprintf("   AI: %s\n", a))
+	}
+	return clipText(strings.TrimSpace(b.String()), maxChars*2)
+}
+
+func normalizeChatCompletionPayload(payload map[string]interface{}) {
+	if payload == nil {
+		return
+	}
+	if maxCompletionTokens, ok := payload["max_completion_tokens"]; ok {
+		if maxCompletionTokens == nil {
+			delete(payload, "max_completion_tokens")
+		}
+		delete(payload, "max_tokens")
+		return
+	}
+	if maxTokens, ok := payload["max_tokens"]; ok {
+		if maxTokens == nil {
+			delete(payload, "max_tokens")
+			return
+		}
+		payload["max_completion_tokens"] = maxTokens
+		delete(payload, "max_tokens")
+	}
+}
+
 func queryOpenAI(outBot robot.Robot, r robot.Robot, ctx conversationContext, state conversationState, cfg aiConfig, uiHints streamUIHints) (string, error) {
 	token := strings.TrimSpace(r.GetParameter("OPENAI_KEY"))
 	if token == "" {
@@ -728,8 +1291,8 @@ func queryOpenAI(outBot robot.Robot, r robot.Robot, ctx conversationContext, sta
 	profile := resolveProfile(state.Profile, cfg)
 	systemPrompt := buildSystemPrompt(profile)
 	queued := pendingForContext(state.Pending, ctx.MessageID, state.Processed)
-	trimmedExchanges := trimExchangesForContext(systemPrompt, state.Exchanges, queued, ctx.Prompt, profile.MaxContext)
-	messages := buildMessages(systemPrompt, trimmedExchanges, queued, ctx)
+	trimmedExchanges := trimExchangesForContext(systemPrompt, state.Summary, state.Exchanges, queued, ctx.Prompt, profile.MaxContext)
+	messages := buildMessages(systemPrompt, state.Summary, trimmedExchanges, queued, ctx)
 	payload := map[string]interface{}{
 		"messages": messages,
 		"stream":   true,
@@ -740,7 +1303,9 @@ func queryOpenAI(outBot robot.Robot, r robot.Robot, ctx conversationContext, sta
 	if _, ok := payload["model"]; !ok {
 		payload["model"] = "gpt-5.2-chat-latest"
 	}
+	normalizeChatCompletionPayload(payload)
 	if userID := strings.TrimSpace(r.GetParameter("GOPHER_USER_ID")); userID != "" {
+		// Pass a hashed stable user id to OpenAI telemetry field without exposing raw ids.
 		payload["user"] = sha1String(userID)
 	}
 	if strings.TrimSpace(r.Recall(ctx.DebugKey, true)) != "" {
@@ -833,7 +1398,7 @@ func buildSystemPrompt(profile aiProfile) string {
 	return strings.TrimSpace(basicMarkdownSystemPrefix + "\n\n" + standard + "\n\n" + custom)
 }
 
-func buildMessages(system string, exchanges []conversationExchange, pending []pendingMessage, ctx conversationContext) []map[string]string {
+func buildMessages(system, summary string, exchanges []conversationExchange, pending []pendingMessage, ctx conversationContext) []map[string]string {
 	if strings.TrimSpace(system) == "" {
 		system = strings.TrimSpace(defaultStandardSystemPrompt + "\n\n" + defaultCustomSystemPrompt)
 	}
@@ -842,6 +1407,12 @@ func buildMessages(system string, exchanges []conversationExchange, pending []pe
 			"role":    "system",
 			"content": system,
 		},
+	}
+	if summary = strings.TrimSpace(summary); summary != "" {
+		messages = append(messages, map[string]string{
+			"role":    "system",
+			"content": "Conversation summary (older context):\n" + summary,
+		})
 	}
 	for _, exchange := range exchanges {
 		if strings.TrimSpace(exchange.Human) != "" {
@@ -884,11 +1455,15 @@ func consumeSSEAndEmit(outBot robot.Robot, body io.Reader, uiHints streamUIHints
 	reader := bufio.NewReader(body)
 	var pending strings.Builder
 	var full strings.Builder
-	progress := &streamProgressState{startedAt: time.Now()}
+	progress := &streamProgressState{}
+	envelope := &streamEnvelopeState{}
+	var streamErr error
+	emitHeardNoticeIfNeeded(outBot, progress, uiHints)
 
 	for {
 		line, err := reader.ReadString('\n')
 		if err != nil && err != io.EOF {
+			streamErr = err
 			break
 		}
 		line = strings.TrimSpace(line)
@@ -899,12 +1474,22 @@ func consumeSSEAndEmit(outBot robot.Robot, body io.Reader, uiHints streamUIHints
 			}
 			chunk, payloadError := extractDeltaContent(payload)
 			if payloadError != "" {
-				return strings.TrimSpace(full.String()), fmt.Errorf("%s", payloadError)
+				flushStreamTail(outBot, progress, uiHints, envelope, pending.String(), true)
+				return strings.TrimSpace(normalizeChunkText(full.String())), fmt.Errorf("%s", payloadError)
 			}
 			if chunk != "" {
 				full.WriteString(chunk)
 				pending.WriteString(chunk)
-				emitAvailableChunks(outBot, &pending, progress, uiHints)
+				// Emit readable chunks as punctuation/paragraph boundaries appear while
+				// keeping fenced code blocks intact.
+				for _, ready := range extractAvailableChunks(&pending) {
+					queuePreparedChunk(outBot, progress, uiHints, envelope, ready)
+				}
+				// As soon as any second-chunk content appears, announce multipart and
+				// emit the held first chunk so users can see that more is coming.
+				if !envelope.multipart && strings.TrimSpace(envelope.heldFirstChunk) != "" && strings.TrimSpace(pending.String()) != "" {
+					activateMultipartEnvelope(outBot, progress, uiHints, envelope)
+				}
 			}
 		}
 		if err == io.EOF {
@@ -912,11 +1497,71 @@ func consumeSSEAndEmit(outBot robot.Robot, body io.Reader, uiHints streamUIHints
 		}
 	}
 
-	rest := strings.TrimSpace(normalizeChunkText(pending.String()))
-	if rest != "" {
-		emitStreamChunk(outBot, progress, uiHints, rest)
+	flushStreamTail(outBot, progress, uiHints, envelope, pending.String(), streamErr != nil)
+	if streamErr != nil {
+		return strings.TrimSpace(normalizeChunkText(full.String())), fmt.Errorf("stream read failed: %w", streamErr)
 	}
 	return strings.TrimSpace(normalizeChunkText(full.String())), nil
+}
+
+func emitHeardNoticeIfNeeded(outBot robot.Robot, progress *streamProgressState, uiHints streamUIHints) {
+	if progress.heardShown {
+		return
+	}
+	heard := strings.TrimSpace(uiHints.HeardNotice)
+	if heard != "" {
+		outBot.Reply(heard)
+	}
+	if uiHints.QueuedNotice != "" {
+		outBot.Say(uiHints.QueuedNotice)
+	}
+	if heard != "" || uiHints.QueuedNotice != "" {
+		progress.heardShown = true
+	}
+}
+
+func flushStreamTail(outBot robot.Robot, progress *streamProgressState, uiHints streamUIHints, envelope *streamEnvelopeState, remainder string, interrupted bool) {
+	rest := strings.TrimSpace(normalizeChunkText(remainder))
+
+	if envelope.multipart {
+		if strings.TrimSpace(envelope.heldFirstChunk) != "" {
+			emitStreamChunk(outBot, progress, uiHints, envelope.heldFirstChunk, true)
+			envelope.heldFirstChunk = ""
+		}
+		if rest != "" {
+			emitStreamChunk(outBot, progress, uiHints, rest, true)
+		}
+		if interrupted {
+			if uiHints.MultipartInterrupted != "" {
+				outBot.Say(uiHints.MultipartInterrupted)
+			}
+		} else if uiHints.MultipartEndNotice != "" {
+			outBot.Say(uiHints.MultipartEndNotice)
+		}
+		return
+	}
+
+	if strings.TrimSpace(envelope.heldFirstChunk) != "" && rest != "" {
+		activateMultipartEnvelope(outBot, progress, uiHints, envelope)
+		emitStreamChunk(outBot, progress, uiHints, rest, true)
+		if interrupted {
+			if uiHints.MultipartInterrupted != "" {
+				outBot.Say(uiHints.MultipartInterrupted)
+			}
+		} else if uiHints.MultipartEndNotice != "" {
+			outBot.Say(uiHints.MultipartEndNotice)
+		}
+		return
+	}
+
+	if strings.TrimSpace(envelope.heldFirstChunk) != "" {
+		emitStreamChunk(outBot, progress, uiHints, envelope.heldFirstChunk, false)
+		envelope.heldFirstChunk = ""
+		return
+	}
+	if rest != "" {
+		emitStreamChunk(outBot, progress, uiHints, rest, false)
+	}
 }
 
 func extractDeltaContent(payload string) (string, string) {
@@ -951,7 +1596,8 @@ func extractDeltaContent(payload string) (string, string) {
 	return content, ""
 }
 
-func emitAvailableChunks(outBot robot.Robot, pending *strings.Builder, progress *streamProgressState, uiHints streamUIHints) {
+func extractAvailableChunks(pending *strings.Builder) []string {
+	ready := make([]string, 0, 2)
 	text := pending.String()
 	for {
 		cut := chunkBoundary(text)
@@ -963,37 +1609,56 @@ func emitAvailableChunks(outBot robot.Robot, pending *strings.Builder, progress 
 		}
 		chunk := strings.TrimSpace(normalizeChunkText(text[:cut]))
 		if chunk != "" {
-			emitStreamChunk(outBot, progress, uiHints, chunk)
+			ready = append(ready, chunk)
 		}
 		text = text[cut:]
 	}
 	pending.Reset()
 	pending.WriteString(text)
+	return ready
 }
 
-func emitStreamChunk(outBot robot.Robot, progress *streamProgressState, uiHints streamUIHints, chunk string) {
+func queuePreparedChunk(outBot robot.Robot, progress *streamProgressState, uiHints streamUIHints, envelope *streamEnvelopeState, chunk string) {
+	chunk = strings.TrimSpace(chunk)
+	if chunk == "" {
+		return
+	}
+	if envelope.multipart {
+		emitStreamChunk(outBot, progress, uiHints, chunk, true)
+		return
+	}
+	if strings.TrimSpace(envelope.heldFirstChunk) == "" {
+		envelope.heldFirstChunk = chunk
+		return
+	}
+	activateMultipartEnvelope(outBot, progress, uiHints, envelope)
+	emitStreamChunk(outBot, progress, uiHints, chunk, true)
+}
+
+func activateMultipartEnvelope(outBot robot.Robot, progress *streamProgressState, uiHints streamUIHints, envelope *streamEnvelopeState) {
+	if envelope.multipart || strings.TrimSpace(envelope.heldFirstChunk) == "" {
+		return
+	}
+	if uiHints.MultipartStartNotice != "" {
+		outBot.Say(uiHints.MultipartStartNotice)
+	}
+	envelope.multipart = true
+	emitStreamChunk(outBot, progress, uiHints, envelope.heldFirstChunk, true)
+	envelope.heldFirstChunk = ""
+}
+
+func emitStreamChunk(outBot robot.Robot, progress *streamProgressState, uiHints streamUIHints, chunk string, multipart bool) {
 	chunk = strings.TrimSpace(chunk)
 	if chunk == "" {
 		return
 	}
 
+	emitHeardNoticeIfNeeded(outBot, progress, uiHints)
 	now := time.Now()
-	if !progress.firstOutputSet {
-		if !progress.waitShown && now.Sub(progress.startedAt) >= delayedWaitNoticeDelay {
-			if uiHints.WaitNotice != "" {
-				if uiHints.WaitNoticeReply {
-					outBot.Reply(uiHints.WaitNotice)
-				} else {
-					outBot.Say(uiHints.WaitNotice)
-				}
-			}
-			if uiHints.QueuedNotice != "" {
-				outBot.Say(uiHints.QueuedNotice)
-			}
-			progress.waitShown = true
+	if progress.firstOutputSet && multipart && now.Sub(progress.lastOutputAt) >= streamProgressNoticeDelay {
+		if uiHints.MultipartContinueNotice != "" {
+			outBot.Say(uiHints.MultipartContinueNotice)
 		}
-	} else if now.Sub(progress.lastOutputAt) >= streamProgressNoticeDelay {
-		outBot.Say("(...)")
 	}
 
 	outBot.Say(chunk)
@@ -1092,6 +1757,7 @@ func normalizeAIResponseToBasicMarkdown(text string) string {
 			continue
 		}
 		if inFence {
+			// Do not rewrite markdown inside fenced blocks.
 			out = append(out, line)
 			continue
 		}

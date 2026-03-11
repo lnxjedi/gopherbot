@@ -171,18 +171,18 @@ func handlePipelineRPCGoGetConfig(enc *json.Encoder, msg pipelineRPCMessage) err
 }
 
 type pipelineRPCGoRobotClient struct {
-	*pipelineRPCLuaRobotClient
+	*pipelineRPCInterpreterRobotClient
 }
 
 func newPipelineRPCGoRobotClient(dec *json.Decoder, enc *json.Encoder) *pipelineRPCGoRobotClient {
 	return &pipelineRPCGoRobotClient{
-		pipelineRPCLuaRobotClient: newPipelineRPCLuaRobotClient(dec, enc, map[string]string{}),
+		pipelineRPCInterpreterRobotClient: newPipelineRPCInterpreterRobotClient(dec, enc, map[string]string{}),
 	}
 }
 
 func (c *pipelineRPCGoRobotClient) cloneGo() *pipelineRPCGoRobotClient {
 	return &pipelineRPCGoRobotClient{
-		pipelineRPCLuaRobotClient: c.pipelineRPCLuaRobotClient.clone(),
+		pipelineRPCInterpreterRobotClient: c.pipelineRPCInterpreterRobotClient.clone(),
 	}
 }
 
