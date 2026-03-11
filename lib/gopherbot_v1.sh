@@ -269,6 +269,34 @@ EOF
 	echo -n "$RETVAL"
 }
 
+GetHelpMetadata() {
+	local QUERY=$(base64_encode "$1")
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Query": "$QUERY",
+	"Base64": true
+}
+EOF
+)
+	local GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
+	local RETVAL=$(echo "$GB_RET" | jq -r .StrVal)
+	echo -n "$RETVAL"
+}
+
+GetFallbackAdvice() {
+	local QUERY=$(base64_encode "$1")
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Query": "$QUERY",
+	"Base64": true
+}
+EOF
+)
+	local GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
+	local RETVAL=$(echo "$GB_RET" | jq -r .StrVal)
+	echo -n "$RETVAL"
+}
+
 SetParameter() {
 	local NAME=$(base64_encode "$1")
 	local VALUE=$(base64_encode "$2")

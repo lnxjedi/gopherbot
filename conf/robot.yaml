@@ -219,6 +219,12 @@ ExternalPlugins:
       Value: ""
     - Name: OPENAI_ORGANIZATION_ID
       Value: ""
+  "ai-fallback-help":
+    Description: AI-assisted alias fallback for unmatched command-style input
+    Path: plugins/go-ai-fallback-help/ai_fallback_help.go
+    Homed: true
+    ParameterSets:
+    - openai
 {{- if eq $mode "demo" }}
   {{- if or (eq $proto "terminal") (eq $proto "ssh") }}
   "welcome":

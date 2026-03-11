@@ -31,6 +31,7 @@ func init() {
 func defaultHelp() []string {
 	return []string{
 		"(alias) help <keyword> - get help for the provided <keyword>",
+		"(alias) help <keyword> brief - compact help for a likely command",
 		"(alias) commands - browse command groups available in this channel",
 		"(alias) help-all - help for all commands available in this channel, including global commands",
 	}
@@ -43,57 +44,19 @@ func fallback(m robot.Robot, command string, args ...string) (retval robot.TaskR
 	if command == "init" {
 		return // ignore init
 	}
-	botAlias := r.GetBotAttribute("alias").String()
 	if command == "catchall" {
-		channelName := r.GetMessage().Channel
 		term := ""
 		if len(args) > 0 {
 			term = strings.TrimSpace(args[0])
 		}
-		term = normalizeFallbackTerm(term, botAlias, r.GetBotAttribute("name").String())
-
-		entries := r.collectHelpCommandMetadata(true)
-		matches := rankHelpMatches(entries, term)
-		if len(matches) > 0 {
-			limit := 4
-			display := matches
-			if len(display) > limit {
-				display = display[:limit]
-			}
-			lines := make([]string, 0, len(display)*3+4)
-			if len(channelName) > 0 {
-				lines = append(lines, fmt.Sprintf("No command matched in channel '%s'.", channelName))
-			} else {
-				lines = append(lines, "Command not found.")
-			}
-			if len(term) > 0 {
-				lines = append(lines, fmt.Sprintf("Closest matches for \"%s\":", term))
-			} else {
-				lines = append(lines, "Closest command matches:")
-			}
-			for i, match := range display {
-				entry := match.Entry
-				lines = append(lines, fmt.Sprintf("%d) [%s] %s", i+1, entry.PluginName, entry.Command))
-				if len(entry.Usage) > 0 {
-					lines = append(lines, "   Usage: "+r.formatHelpLine(stripHelpAddressPrefix(entry.Usage)))
-				}
-				if len(entry.Summary) > 0 {
-					lines = append(lines, "   Summary: "+entry.Summary)
-				}
-			}
-			top := display[0].Entry
-			lines = append(lines, "Try: "+r.formatHelpLine("(alias) help "+top.PluginName))
-			if len(channelName) > 0 {
-				r.SayThread(strings.Join(lines, "\n"))
-			} else {
-				r.Say(strings.Join(lines, "\n"))
-			}
-			return
+		reply := strings.TrimSpace(r.collectFallbackAdvice(term).DeterministicReply)
+		if reply == "" {
+			reply = "I couldn't match that command."
 		}
-		if len(channelName) > 0 {
-			r.SayThread("No command matched in channel '%s'; try '%shelp'", channelName, botAlias)
+		if msg := r.GetMessage(); msg != nil && len(strings.TrimSpace(msg.Channel)) == 0 {
+			r.Say(reply)
 		} else {
-			r.Say("Command not found; try your command in a channel, or use '%shelp'", botAlias)
+			r.SayThread(reply)
 		}
 	}
 	return
@@ -209,6 +172,7 @@ func collectHelpSearchTokens(entry helpCommandMetadata) []string {
 		strings.Join(entry.Keywords, " "),
 		entry.Usage,
 		entry.Summary,
+		strings.Join(entry.Examples, " "),
 	}, " ")
 	parsed := helpTokenRegex.FindAllString(normalizeHelpPhrase(haystack), -1)
 	unique := make([]string, 0, len(parsed))
@@ -428,11 +392,15 @@ func scoreHelpCommandMatch(entry helpCommandMetadata, term string) int {
 
 	usage := normalizeHelpPhrase(entry.Usage)
 	summary := normalizeHelpPhrase(entry.Summary)
+	examples := normalizeHelpPhrase(strings.Join(entry.Examples, " "))
 	if strings.Contains(usage, termPhrase) && score < 65 {
 		score = 65
 	}
 	if strings.Contains(summary, termPhrase) && score < 62 {
 		score = 62
+	}
+	if strings.Contains(examples, termPhrase) && score < 74 {
+		score = 74
 	}
 
 	termTokens := helpTokenRegex.FindAllString(termPhrase, -1)
@@ -461,6 +429,49 @@ func scoreHelpCommandMatch(entry helpCommandMetadata, term string) int {
 		candidate := 40 + hits
 		if candidate > score {
 			score = candidate
+		}
+	}
+	meaningfulTokens := fallbackMeaningfulTokens(termPhrase)
+	if len(meaningfulTokens) > 0 {
+		meaningfulHits := 0
+		firstHit := false
+		commandTokens := helpTokenRegex.FindAllString(commandPhrase, -1)
+		commandFirstHit := false
+		if len(commandTokens) > 0 {
+			commandFirstHit = helpTokenEquivalent(meaningfulTokens[0], commandTokens[0]) || strings.HasPrefix(commandTokens[0], meaningfulTokens[0])
+		}
+		for _, token := range meaningfulTokens {
+			if _, ok := tokenSet[token]; ok {
+				meaningfulHits++
+				if token == meaningfulTokens[0] {
+					firstHit = true
+				}
+				continue
+			}
+			if _, ok := tokenSet[singularizeHelpToken(token)]; ok {
+				meaningfulHits++
+				if token == meaningfulTokens[0] {
+					firstHit = true
+				}
+			}
+		}
+		if meaningfulHits > 0 && (firstHit || commandFirstHit || meaningfulHits == len(meaningfulTokens)) {
+			candidate := 60 + meaningfulHits*4
+			if firstHit {
+				candidate += 8
+			}
+			if commandFirstHit {
+				candidate += 8
+			}
+			if meaningfulHits == len(meaningfulTokens) {
+				candidate += 4
+			}
+			if candidate > 89 {
+				candidate = 89
+			}
+			if candidate > score {
+				score = candidate
+			}
 		}
 	}
 	return score
@@ -529,6 +540,27 @@ func (r Robot) renderHelpEntry(entry helpCommandMetadata, includeExamples, inclu
 		lines = append(lines, "Availability: "+entry.Scope)
 	}
 	return strings.Join(lines, "\n")
+}
+
+func parseHelpQueryMode(args []string) (term string, brief bool) {
+	parts := make([]string, 0, len(args))
+	for _, arg := range args {
+		for _, piece := range strings.Fields(arg) {
+			trimmed := strings.TrimSpace(piece)
+			if trimmed == "" {
+				continue
+			}
+			parts = append(parts, trimmed)
+		}
+	}
+	if len(parts) == 0 {
+		return "", false
+	}
+	if strings.EqualFold(parts[len(parts)-1], "brief") {
+		brief = true
+		parts = parts[:len(parts)-1]
+	}
+	return strings.TrimSpace(strings.Join(parts, " ")), brief
 }
 
 func (r Robot) renderCommandsOverview(entries []helpCommandMetadata) string {
@@ -624,10 +656,7 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 	}
 	if command == "help" || command == "help-all" || command == "commands" {
 		lineSeparator := "\n\n"
-		term := ""
-		if len(args) > 0 {
-			term = strings.TrimSpace(args[0])
-		}
+		term, brief := parseHelpQueryMode(args)
 		hasKeyword := command == "help" && len(term) > 0
 		sendOutput := func(message string) {
 			if r.Incoming.ThreadedMessage {
@@ -690,15 +719,25 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 			}
 
 			limit := 12
+			if brief {
+				limit = 3
+			}
 			display := matches
 			if len(display) > limit {
 				display = display[:limit]
 			}
 			helpLines := make([]string, 0, len(display))
 			for _, match := range display {
-				helpLines = append(helpLines, r.renderHelpEntry(match.Entry, true, true, 2))
+				exampleLimit := 2
+				if brief {
+					exampleLimit = 1
+				}
+				helpLines = append(helpLines, r.renderHelpEntry(match.Entry, true, true, exampleLimit))
 			}
 			header := fmt.Sprintf("Command matches for keyword: %s", strings.ToLower(term))
+			if brief {
+				header = fmt.Sprintf("Brief help for keyword: %s", strings.ToLower(term))
+			}
 			if len(matches) > len(display) {
 				header = fmt.Sprintf("%s (showing top %d of %d)", header, len(display), len(matches))
 			}

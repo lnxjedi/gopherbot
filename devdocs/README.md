@@ -12,3 +12,5 @@ Documentation here is meant for human consumption, as opposed to `aidocs/`, mean
 - `devdocs/connector-identity-contract.md` - connector/engine identity contract for username-authoritative multi-protocol behavior
 - `devdocs/security_proof.md` - security-control coverage and manual validation notes
 - `devdocs/ssh_connector.md` - human-facing SSH connector notes
+- `devdocs/proposal1-slice0-baseline.md` - early baseline notes for proposal1 help/fallback exploration
+- `devdocs/proposal1-help-metadata-coding-handoff.md` - coding handoff for the help metadata / AI fallback proposal

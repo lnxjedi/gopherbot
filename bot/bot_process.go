@@ -303,13 +303,7 @@ func enforceEncryptedKeyFilePermissions(keyFile string) error {
 
 func initCrypt() bool {
 	// Initialize encryption (new style for v2)
-	keyFileName := encryptedKeyFile
-
-	if deployEnvironment != "production" {
-		Log(robot.Info, "Initializing encryption for the '%s' environment", deployEnvironment)
-		keyFileName += "." + deployEnvironment
-	}
-	keyFile := filepath.Join(configPath, keyFileName)
+	keyFile := filepath.Join(configPath, encryptedKeyFile)
 	encryptionInitialized := false
 	if ek, ok := lookupEnv(keyEnv); ok {
 		ik := []byte(ek)[0:32]

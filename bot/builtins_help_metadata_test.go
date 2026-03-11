@@ -149,6 +149,35 @@ func TestRankHelpMatchesRegressionTable(t *testing.T) {
 	}
 }
 
+func TestRankHelpMatchesPrefersFirstMeaningfulTokenStem(t *testing.T) {
+	entries := []helpCommandMetadata{
+		{
+			PluginName: "sidetrack",
+			Command:    "sidetrack-story",
+			Usage:      "(alias) sidetrack-story <name>",
+			Summary:    "Recall a named sidetrack story.",
+			Keywords:   []string{"sidetrack", "story"},
+			Examples:   []string{"(alias) sidetrack story foo"},
+		},
+		{
+			PluginName: "stories",
+			Command:    "story-info",
+			Usage:      "(alias) story-info <name>",
+			Summary:    "Show metadata about a story.",
+			Keywords:   []string{"story", "info"},
+			Examples:   []string{"(alias) story info foo"},
+		},
+	}
+
+	matches := rankHelpMatches(entries, "sidetrack story foo")
+	if len(matches) == 0 {
+		t.Fatal("rankHelpMatches() returned no matches")
+	}
+	if got := matches[0].Entry; got.PluginName != "sidetrack" || got.Command != "sidetrack-story" {
+		t.Fatalf("top match = [%s] %s, want [sidetrack] sidetrack-story", got.PluginName, got.Command)
+	}
+}
+
 func TestStripHelpAddressPrefix(t *testing.T) {
 	cases := []struct {
 		in   string
@@ -180,6 +209,23 @@ func TestHiddenSlashBotExample(t *testing.T) {
 		if got := hiddenSlashBotExample(tc.in); got != tc.want {
 			t.Fatalf("hiddenSlashBotExample(%q) = %q, want %q", tc.in, got, tc.want)
 		}
+	}
+}
+
+func TestParseHelpQueryMode(t *testing.T) {
+	term, brief := parseHelpQueryMode([]string{"knock", "brief"})
+	if term != "knock" || !brief {
+		t.Fatalf("parseHelpQueryMode(knock brief) = (%q, %t), want (%q, %t)", term, brief, "knock", true)
+	}
+
+	term, brief = parseHelpQueryMode([]string{"knock brief"})
+	if term != "knock" || !brief {
+		t.Fatalf("parseHelpQueryMode(single arg knock brief) = (%q, %t), want (%q, %t)", term, brief, "knock", true)
+	}
+
+	term, brief = parseHelpQueryMode([]string{"sidetrack", "story", "foo"})
+	if term != "sidetrack story foo" || brief {
+		t.Fatalf("parseHelpQueryMode(sidetrack story foo) = (%q, %t), want (%q, %t)", term, brief, "sidetrack story foo", false)
 	}
 }
 

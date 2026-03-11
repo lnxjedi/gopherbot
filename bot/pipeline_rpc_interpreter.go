@@ -1,5 +1,7 @@
 package bot
 
+// Shared interpreter RPC plumbing used by Lua, JavaScript, and interpreted Go.
+
 import (
 	"bytes"
 	"context"
@@ -509,6 +511,18 @@ func handlePipelineRPCRobotCall(paramsRaw json.RawMessage, base robot.Robot) (ma
 			}
 		}
 		return map[string]interface{}{"ret_val": int(ret), "config": nil}, nil
+	case "GetHelpMetadata":
+		query, err := pipelineRPCArgString(args, 0)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]interface{}{"string": r.GetHelpMetadata(query)}, nil
+	case "GetFallbackAdvice":
+		query, err := pipelineRPCArgString(args, 0)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]interface{}{"string": r.GetFallbackAdvice(query)}, nil
 	case "GetMessage":
 		msg := r.GetMessage()
 		if msg == nil {
@@ -1194,6 +1208,22 @@ func (c *pipelineRPCInterpreterRobotClient) GetTaskConfig(cfgptr interface{}) ro
 		return robot.ConfigUnmarshalError
 	}
 	return ret
+}
+
+func (c *pipelineRPCInterpreterRobotClient) GetHelpMetadata(query string) string {
+	res, err := c.call("GetHelpMetadata", query)
+	if err != nil {
+		return ""
+	}
+	return pipelineRPCMapString(res, "string")
+}
+
+func (c *pipelineRPCInterpreterRobotClient) GetFallbackAdvice(query string) string {
+	res, err := c.call("GetFallbackAdvice", query)
+	if err != nil {
+		return ""
+	}
+	return pipelineRPCMapString(res, "string")
 }
 
 func (c *pipelineRPCInterpreterRobotClient) GetParameter(name string) string {

@@ -85,6 +85,15 @@ Notes:
 - Lists plugin behavior: `test/lists_integration_test.go`.
 - External yaegi Go full coverage: `test/go_full_test.go`.
 
+## Focused routing/help metadata checks
+
+- `go test ./bot ./plugins/go-ai-fallback-help ./modules/yaegi-dynamic-go`
+- This focused set currently covers:
+  - catch-all mode routing and selection in `bot/help_metadata_api_test.go`
+  - engine-side help metadata filtering, ranking inputs, and deterministic fallback advice in `bot/help_metadata_api_test.go`
+  - Yaegi symbol/runtime coverage for new Robot API methods in `modules/yaegi-dynamic-go/yaegi_dynamic_test.go`
+  - deterministic fast-path behavior of the alias recovery plugin in `plugins/go-ai-fallback-help/ai_fallback_help_test.go`
+
 ## Targeted Yaegi runtime repros
 
 - `modules/yaegi-dynamic-go/yaegi_dynamic_test.go` contains a narrow repro for an interpreted-Go panic that surfaced in `plugins/go-openai-fallback` compaction work.

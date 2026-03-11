@@ -293,35 +293,24 @@ func (w *worker) handleMessage() {
 			w.messageHeard()
 			Log(robot.Debug, "Unmatched command sent to robot, calling catchalls: %s", w.msg)
 			emit(CatchAllsRan) // for testing, otherwise noop
-			var specificCatchAll, fallbackCatchAll interface{}
-			var multipleCatchallMatched, multipleFallbackMatched bool
-			for _, t := range w.tasks.t[1:] {
-				task, plugin, _ := getTask(t)
-				if plugin == nil || !plugin.CatchAll {
-					Log(robot.Trace, "Checking plugin %s for catch-all (false)", task.name)
-					continue
+			specificCatchAll, fallbackCatchAll, multipleCatchallMatched, multipleFallbackMatched := selectCatchAllTarget(w.tasks.t[1:], w.cmdMode, func(task *Task, plugin *Plugin) (bool, bool) {
+				if plugin == nil || task == nil {
+					return false, false
 				}
 				available, specific := w.pluginAvailable(task, false, false)
 				if !available {
-					continue
+					Log(robot.Trace, "Checking plugin %s for catch-all (false)", task.name)
+					return false, false
 				}
-				if specific {
+				if len(plugin.CatchAllModes) > 0 {
+					Log(robot.Trace, "Checking plugin %s for catch-all (true, specific, mode %s)", task.name, w.cmdMode)
+				} else if specific {
 					Log(robot.Trace, "Checking plugin %s for catch-all (true, specific)", task.name)
-					if specificCatchAll == nil {
-						specificCatchAll = t
-					} else {
-						multipleCatchallMatched = true
-						break
-					}
 				} else {
 					Log(robot.Trace, "Checking plugin %s for catch-all (true, non-specific)", task.name)
-					if fallbackCatchAll == nil {
-						fallbackCatchAll = t
-					} else {
-						multipleFallbackMatched = true
-					}
 				}
-			}
+				return true, specific
+			})
 			if multipleCatchallMatched {
 				Log(robot.Error, "More than one specific catch-all matched, none will be called")
 			} else {

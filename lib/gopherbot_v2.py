@@ -140,6 +140,9 @@ class Robot:
     def GetTaskConfig(self):
         return self.Call(sys._getframe().f_code.co_name, {})
 
+    def GetFallbackAdvice(self, query):
+        return self.Call(sys._getframe().f_code.co_name, { "Query": query })["String"]
+
     def CheckoutDatum(self, key, rw):
         ret = self.Call(sys._getframe().f_code.co_name, { "Key": key, "RW": rw })
         return Memory(key, ret)
@@ -173,6 +176,10 @@ class Robot:
 
     def GetParameter(self, name):
         ret = self.Call(sys._getframe().f_code.co_name, { "Parameter": name })
+        return ret["StrVal"]
+
+    def GetHelpMetadata(self, query):
+        ret = self.Call(sys._getframe().f_code.co_name, { "Query": query })
         return ret["StrVal"]
 
     def Exclusive(self, tag, queue_task=False):

@@ -1,0 +1,18 @@
+---
+## Default configuration for the optional ai-fallback-help plugin.
+## This plugin only handles alias-style catchalls and uses engine-filtered
+## help metadata to provide better recovery suggestions.
+Config:
+  HeardNotice: "_(looking for the closest command...)_"
+  MaxVisibleMatches: 4
+  MaxBrowseableMatches: 6
+  OpenAIModel: "gpt-5.2-chat-latest"
+  Temperature: 1
+  MaxCompletionTokens: 240
+  SystemPrompt: |
+    You are a command-recovery assistant for Gopherbot.
+    Help the user recover from an unmatched alias command by suggesting the most likely next step.
+    Prefer concrete, deterministic guidance over speculation.
+    Never invent commands or channels that are not present in the provided metadata.
+    If the user is probably in the wrong channel, say so plainly and point them to the likely channel or DM context.
+    Respond using BasicMarkdown v1-compatible output only.
