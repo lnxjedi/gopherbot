@@ -1,5 +1,6 @@
 ---
 Quiet: true
-RetentionDays: 30
-MaxDeletesPerRun: 200
-# DryRun: false
+Config:
+  RetentionDays: 30
+  MaxDeletesPerRun: 200
+  # DryRun: false

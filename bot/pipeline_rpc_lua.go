@@ -417,7 +417,7 @@ func handlePipelineRPCLuaRun(dec *json.Decoder, enc *json.Encoder, msg pipelineR
 	if err := json.Unmarshal(msg.Params, &req); err != nil {
 		return writePipelineRPCError(enc, msg.ID, "invalid_params", fmt.Sprintf("invalid lua_run params: %v", err))
 	}
-	client := newPipelineRPCLuaRobotClient(dec, enc, req.Bot)
+	client := newPipelineRPCInterpreterRobotClient(dec, enc, req.Bot)
 	ret, err := luamod.CallExtension(req.ExecPath, req.TaskPath, req.TaskName, req.PkgPath, client, req.Bot, client, req.Args)
 	res := pipelineRPCLuaRunResponse{RetVal: int(ret)}
 	if err != nil {
@@ -1068,7 +1068,7 @@ func applyPipelineRPCRobotOptions(base robot.Robot, opts pipelineRPCRobotOptions
 	return r
 }
 
-type pipelineRPCLuaRobotClient struct {
+type pipelineRPCInterpreterRobotClient struct {
 	dec  *json.Decoder
 	enc  *json.Encoder
 	seq  int
@@ -1076,15 +1076,15 @@ type pipelineRPCLuaRobotClient struct {
 	opts pipelineRPCRobotOptions
 }
 
-func newPipelineRPCLuaRobotClient(dec *json.Decoder, enc *json.Encoder, bot map[string]string) *pipelineRPCLuaRobotClient {
+func newPipelineRPCInterpreterRobotClient(dec *json.Decoder, enc *json.Encoder, bot map[string]string) *pipelineRPCInterpreterRobotClient {
 	cpy := make(map[string]string, len(bot))
 	for k, v := range bot {
 		cpy[k] = v
 	}
-	return &pipelineRPCLuaRobotClient{dec: dec, enc: enc, bot: cpy}
+	return &pipelineRPCInterpreterRobotClient{dec: dec, enc: enc, bot: cpy}
 }
 
-func (c *pipelineRPCLuaRobotClient) clone() *pipelineRPCLuaRobotClient {
+func (c *pipelineRPCInterpreterRobotClient) clone() *pipelineRPCInterpreterRobotClient {
 	clone := *c
 	clone.bot = make(map[string]string, len(c.bot))
 	for k, v := range c.bot {
@@ -1093,7 +1093,7 @@ func (c *pipelineRPCLuaRobotClient) clone() *pipelineRPCLuaRobotClient {
 	return &clone
 }
 
-func (c *pipelineRPCLuaRobotClient) call(method string, args ...interface{}) (map[string]interface{}, error) {
+func (c *pipelineRPCInterpreterRobotClient) call(method string, args ...interface{}) (map[string]interface{}, error) {
 	c.seq++
 	id := fmt.Sprintf("robot-%d", c.seq)
 	params := pipelineRPCRobotCallRequest{Method: method, Options: c.opts, Args: args}
@@ -1136,7 +1136,7 @@ func (c *pipelineRPCLuaRobotClient) call(method string, args ...interface{}) (ma
 	}
 }
 
-func (c *pipelineRPCLuaRobotClient) CheckAdmin() bool {
+func (c *pipelineRPCInterpreterRobotClient) CheckAdmin() bool {
 	res, err := c.call("CheckAdmin")
 	if err != nil {
 		return false
@@ -1144,7 +1144,7 @@ func (c *pipelineRPCLuaRobotClient) CheckAdmin() bool {
 	return pipelineRPCMapBool(res, "bool")
 }
 
-func (c *pipelineRPCLuaRobotClient) Elevate(immediate bool) bool {
+func (c *pipelineRPCInterpreterRobotClient) Elevate(immediate bool) bool {
 	res, err := c.call("Elevate", immediate)
 	if err != nil {
 		return false
@@ -1152,7 +1152,7 @@ func (c *pipelineRPCLuaRobotClient) Elevate(immediate bool) bool {
 	return pipelineRPCMapBool(res, "bool")
 }
 
-func (c *pipelineRPCLuaRobotClient) GetBotAttribute(a string) *robot.AttrRet {
+func (c *pipelineRPCInterpreterRobotClient) GetBotAttribute(a string) *robot.AttrRet {
 	res, err := c.call("GetBotAttribute", a)
 	if err != nil {
 		return &robot.AttrRet{RetVal: robot.AttributeNotFound}
@@ -1160,7 +1160,7 @@ func (c *pipelineRPCLuaRobotClient) GetBotAttribute(a string) *robot.AttrRet {
 	return &robot.AttrRet{Attribute: pipelineRPCMapString(res, "attribute"), RetVal: robot.RetVal(pipelineRPCMapInt(res, "ret_val"))}
 }
 
-func (c *pipelineRPCLuaRobotClient) GetUserAttribute(u, a string) *robot.AttrRet {
+func (c *pipelineRPCInterpreterRobotClient) GetUserAttribute(u, a string) *robot.AttrRet {
 	res, err := c.call("GetUserAttribute", u, a)
 	if err != nil {
 		return &robot.AttrRet{RetVal: robot.AttributeNotFound}
@@ -1168,7 +1168,7 @@ func (c *pipelineRPCLuaRobotClient) GetUserAttribute(u, a string) *robot.AttrRet
 	return &robot.AttrRet{Attribute: pipelineRPCMapString(res, "attribute"), RetVal: robot.RetVal(pipelineRPCMapInt(res, "ret_val"))}
 }
 
-func (c *pipelineRPCLuaRobotClient) GetSenderAttribute(a string) *robot.AttrRet {
+func (c *pipelineRPCInterpreterRobotClient) GetSenderAttribute(a string) *robot.AttrRet {
 	res, err := c.call("GetSenderAttribute", a)
 	if err != nil {
 		return &robot.AttrRet{RetVal: robot.AttributeNotFound}
@@ -1176,7 +1176,7 @@ func (c *pipelineRPCLuaRobotClient) GetSenderAttribute(a string) *robot.AttrRet 
 	return &robot.AttrRet{Attribute: pipelineRPCMapString(res, "attribute"), RetVal: robot.RetVal(pipelineRPCMapInt(res, "ret_val"))}
 }
 
-func (c *pipelineRPCLuaRobotClient) GetTaskConfig(cfgptr interface{}) robot.RetVal {
+func (c *pipelineRPCInterpreterRobotClient) GetTaskConfig(cfgptr interface{}) robot.RetVal {
 	res, err := c.call("GetTaskConfig")
 	if err != nil {
 		return robot.Failed
@@ -1196,7 +1196,7 @@ func (c *pipelineRPCLuaRobotClient) GetTaskConfig(cfgptr interface{}) robot.RetV
 	return ret
 }
 
-func (c *pipelineRPCLuaRobotClient) GetParameter(name string) string {
+func (c *pipelineRPCInterpreterRobotClient) GetParameter(name string) string {
 	res, err := c.call("GetParameter", name)
 	if err != nil {
 		return ""
@@ -1204,7 +1204,7 @@ func (c *pipelineRPCLuaRobotClient) GetParameter(name string) string {
 	return pipelineRPCMapString(res, "string")
 }
 
-func (c *pipelineRPCLuaRobotClient) Exclusive(tag string, queueTask bool) bool {
+func (c *pipelineRPCInterpreterRobotClient) Exclusive(tag string, queueTask bool) bool {
 	res, err := c.call("Exclusive", tag, queueTask)
 	if err != nil {
 		return false
@@ -1212,33 +1212,33 @@ func (c *pipelineRPCLuaRobotClient) Exclusive(tag string, queueTask bool) bool {
 	return pipelineRPCMapBool(res, "bool")
 }
 
-func (c *pipelineRPCLuaRobotClient) Fixed() luamod.BotAPI {
+func (c *pipelineRPCInterpreterRobotClient) Fixed() luamod.BotAPI {
 	clone := c.clone()
 	f := int(robot.Fixed)
 	clone.opts.Format = &f
 	return clone
 }
 
-func (c *pipelineRPCLuaRobotClient) MessageFormat(f robot.MessageFormat) luamod.BotAPI {
+func (c *pipelineRPCInterpreterRobotClient) MessageFormat(f robot.MessageFormat) luamod.BotAPI {
 	clone := c.clone()
 	fi := int(f)
 	clone.opts.Format = &fi
 	return clone
 }
 
-func (c *pipelineRPCLuaRobotClient) Direct() luamod.BotAPI {
+func (c *pipelineRPCInterpreterRobotClient) Direct() luamod.BotAPI {
 	clone := c.clone()
 	clone.opts.Direct = true
 	return clone
 }
 
-func (c *pipelineRPCLuaRobotClient) Threaded() luamod.BotAPI {
+func (c *pipelineRPCInterpreterRobotClient) Threaded() luamod.BotAPI {
 	clone := c.clone()
 	clone.opts.Threaded = true
 	return clone
 }
 
-func (c *pipelineRPCLuaRobotClient) Log(l robot.LogLevel, m string, v ...interface{}) bool {
+func (c *pipelineRPCInterpreterRobotClient) Log(l robot.LogLevel, m string, v ...interface{}) bool {
 	msg := pipelineRPCFormatMessage(m, v...)
 	res, err := c.call("Log", int(l), msg)
 	if err != nil {
@@ -1247,7 +1247,7 @@ func (c *pipelineRPCLuaRobotClient) Log(l robot.LogLevel, m string, v ...interfa
 	return pipelineRPCMapBool(res, "bool")
 }
 
-func (c *pipelineRPCLuaRobotClient) SendChannelMessage(ch, msg string, v ...interface{}) robot.RetVal {
+func (c *pipelineRPCInterpreterRobotClient) SendChannelMessage(ch, msg string, v ...interface{}) robot.RetVal {
 	res, err := c.call("SendChannelMessage", ch, pipelineRPCFormatMessage(msg, v...))
 	if err != nil {
 		return robot.Failed
@@ -1255,7 +1255,7 @@ func (c *pipelineRPCLuaRobotClient) SendChannelMessage(ch, msg string, v ...inte
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) robot.RetVal {
+func (c *pipelineRPCInterpreterRobotClient) SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) robot.RetVal {
 	res, err := c.call("SendChannelThreadMessage", ch, thr, pipelineRPCFormatMessage(msg, v...))
 	if err != nil {
 		return robot.Failed
@@ -1263,7 +1263,7 @@ func (c *pipelineRPCLuaRobotClient) SendChannelThreadMessage(ch, thr, msg string
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) SendUserChannelMessage(u, ch, msg string, v ...interface{}) robot.RetVal {
+func (c *pipelineRPCInterpreterRobotClient) SendUserChannelMessage(u, ch, msg string, v ...interface{}) robot.RetVal {
 	res, err := c.call("SendUserChannelMessage", u, ch, pipelineRPCFormatMessage(msg, v...))
 	if err != nil {
 		return robot.Failed
@@ -1271,7 +1271,7 @@ func (c *pipelineRPCLuaRobotClient) SendUserChannelMessage(u, ch, msg string, v 
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) SendProtocolUserChannelMessage(protocol, u, ch, msg string, v ...interface{}) robot.RetVal {
+func (c *pipelineRPCInterpreterRobotClient) SendProtocolUserChannelMessage(protocol, u, ch, msg string, v ...interface{}) robot.RetVal {
 	res, err := c.call("SendProtocolUserChannelMessage", protocol, u, ch, pipelineRPCFormatMessage(msg, v...))
 	if err != nil {
 		return robot.Failed
@@ -1279,7 +1279,7 @@ func (c *pipelineRPCLuaRobotClient) SendProtocolUserChannelMessage(protocol, u, 
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interface{}) robot.RetVal {
+func (c *pipelineRPCInterpreterRobotClient) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interface{}) robot.RetVal {
 	res, err := c.call("SendUserChannelThreadMessage", u, ch, thr, pipelineRPCFormatMessage(msg, v...))
 	if err != nil {
 		return robot.Failed
@@ -1287,7 +1287,7 @@ func (c *pipelineRPCLuaRobotClient) SendUserChannelThreadMessage(u, ch, thr, msg
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) SendUserMessage(u, msg string, v ...interface{}) robot.RetVal {
+func (c *pipelineRPCInterpreterRobotClient) SendUserMessage(u, msg string, v ...interface{}) robot.RetVal {
 	res, err := c.call("SendUserMessage", u, pipelineRPCFormatMessage(msg, v...))
 	if err != nil {
 		return robot.Failed
@@ -1295,7 +1295,7 @@ func (c *pipelineRPCLuaRobotClient) SendUserMessage(u, msg string, v ...interfac
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) Reply(msg string, v ...interface{}) robot.RetVal {
+func (c *pipelineRPCInterpreterRobotClient) Reply(msg string, v ...interface{}) robot.RetVal {
 	res, err := c.call("Reply", pipelineRPCFormatMessage(msg, v...))
 	if err != nil {
 		return robot.Failed
@@ -1303,7 +1303,7 @@ func (c *pipelineRPCLuaRobotClient) Reply(msg string, v ...interface{}) robot.Re
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) ReplyThread(msg string, v ...interface{}) robot.RetVal {
+func (c *pipelineRPCInterpreterRobotClient) ReplyThread(msg string, v ...interface{}) robot.RetVal {
 	res, err := c.call("ReplyThread", pipelineRPCFormatMessage(msg, v...))
 	if err != nil {
 		return robot.Failed
@@ -1311,7 +1311,7 @@ func (c *pipelineRPCLuaRobotClient) ReplyThread(msg string, v ...interface{}) ro
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) Say(msg string, v ...interface{}) robot.RetVal {
+func (c *pipelineRPCInterpreterRobotClient) Say(msg string, v ...interface{}) robot.RetVal {
 	res, err := c.call("Say", pipelineRPCFormatMessage(msg, v...))
 	if err != nil {
 		return robot.Failed
@@ -1319,7 +1319,7 @@ func (c *pipelineRPCLuaRobotClient) Say(msg string, v ...interface{}) robot.RetV
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) SayThread(msg string, v ...interface{}) robot.RetVal {
+func (c *pipelineRPCInterpreterRobotClient) SayThread(msg string, v ...interface{}) robot.RetVal {
 	res, err := c.call("SayThread", pipelineRPCFormatMessage(msg, v...))
 	if err != nil {
 		return robot.Failed
@@ -1327,7 +1327,7 @@ func (c *pipelineRPCLuaRobotClient) SayThread(msg string, v ...interface{}) robo
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) RandomInt(n int) int {
+func (c *pipelineRPCInterpreterRobotClient) RandomInt(n int) int {
 	res, err := c.call("RandomInt", n)
 	if err != nil {
 		return 0
@@ -1335,7 +1335,7 @@ func (c *pipelineRPCLuaRobotClient) RandomInt(n int) int {
 	return pipelineRPCMapInt(res, "int")
 }
 
-func (c *pipelineRPCLuaRobotClient) RandomString(s []string) string {
+func (c *pipelineRPCInterpreterRobotClient) RandomString(s []string) string {
 	res, err := c.call("RandomString", s)
 	if err != nil {
 		return ""
@@ -1343,11 +1343,11 @@ func (c *pipelineRPCLuaRobotClient) RandomString(s []string) string {
 	return pipelineRPCMapString(res, "string")
 }
 
-func (c *pipelineRPCLuaRobotClient) Pause(s float64) {
+func (c *pipelineRPCInterpreterRobotClient) Pause(s float64) {
 	_, _ = c.call("Pause", s)
 }
 
-func (c *pipelineRPCLuaRobotClient) PromptForReply(regexID string, prompt string, v ...interface{}) (string, robot.RetVal) {
+func (c *pipelineRPCInterpreterRobotClient) PromptForReply(regexID string, prompt string, v ...interface{}) (string, robot.RetVal) {
 	res, err := c.call("PromptForReply", regexID, pipelineRPCFormatMessage(prompt, v...))
 	if err != nil {
 		return "", robot.Failed
@@ -1355,7 +1355,7 @@ func (c *pipelineRPCLuaRobotClient) PromptForReply(regexID string, prompt string
 	return pipelineRPCMapString(res, "reply"), robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) PromptThreadForReply(regexID string, prompt string, v ...interface{}) (string, robot.RetVal) {
+func (c *pipelineRPCInterpreterRobotClient) PromptThreadForReply(regexID string, prompt string, v ...interface{}) (string, robot.RetVal) {
 	res, err := c.call("PromptThreadForReply", regexID, pipelineRPCFormatMessage(prompt, v...))
 	if err != nil {
 		return "", robot.Failed
@@ -1363,7 +1363,7 @@ func (c *pipelineRPCLuaRobotClient) PromptThreadForReply(regexID string, prompt 
 	return pipelineRPCMapString(res, "reply"), robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) PromptUserForReply(regexID string, user string, prompt string, v ...interface{}) (string, robot.RetVal) {
+func (c *pipelineRPCInterpreterRobotClient) PromptUserForReply(regexID string, user string, prompt string, v ...interface{}) (string, robot.RetVal) {
 	res, err := c.call("PromptUserForReply", regexID, user, pipelineRPCFormatMessage(prompt, v...))
 	if err != nil {
 		return "", robot.Failed
@@ -1371,7 +1371,7 @@ func (c *pipelineRPCLuaRobotClient) PromptUserForReply(regexID string, user stri
 	return pipelineRPCMapString(res, "reply"), robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) PromptUserChannelForReply(regexID string, user, channel string, prompt string, v ...interface{}) (string, robot.RetVal) {
+func (c *pipelineRPCInterpreterRobotClient) PromptUserChannelForReply(regexID string, user, channel string, prompt string, v ...interface{}) (string, robot.RetVal) {
 	res, err := c.call("PromptUserChannelForReply", regexID, user, channel, pipelineRPCFormatMessage(prompt, v...))
 	if err != nil {
 		return "", robot.Failed
@@ -1379,7 +1379,7 @@ func (c *pipelineRPCLuaRobotClient) PromptUserChannelForReply(regexID string, us
 	return pipelineRPCMapString(res, "reply"), robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) PromptUserChannelThreadForReply(regexID string, user, channel, thread string, prompt string, v ...interface{}) (string, robot.RetVal) {
+func (c *pipelineRPCInterpreterRobotClient) PromptUserChannelThreadForReply(regexID string, user, channel, thread string, prompt string, v ...interface{}) (string, robot.RetVal) {
 	res, err := c.call("PromptUserChannelThreadForReply", regexID, user, channel, thread, pipelineRPCFormatMessage(prompt, v...))
 	if err != nil {
 		return "", robot.Failed
@@ -1387,7 +1387,7 @@ func (c *pipelineRPCLuaRobotClient) PromptUserChannelThreadForReply(regexID stri
 	return pipelineRPCMapString(res, "reply"), robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret robot.RetVal) {
+func (c *pipelineRPCInterpreterRobotClient) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret robot.RetVal) {
 	res, err := c.call("CheckoutDatum", key, rw)
 	if err != nil {
 		return "", false, robot.Failed
@@ -1406,11 +1406,11 @@ func (c *pipelineRPCLuaRobotClient) CheckoutDatum(key string, datum interface{},
 	return locktoken, exists, ret
 }
 
-func (c *pipelineRPCLuaRobotClient) CheckinDatum(key, locktoken string) {
+func (c *pipelineRPCInterpreterRobotClient) CheckinDatum(key, locktoken string) {
 	_, _ = c.call("CheckinDatum", key, locktoken)
 }
 
-func (c *pipelineRPCLuaRobotClient) UpdateDatum(key, locktoken string, datum interface{}) (ret robot.RetVal) {
+func (c *pipelineRPCInterpreterRobotClient) UpdateDatum(key, locktoken string, datum interface{}) (ret robot.RetVal) {
 	res, err := c.call("UpdateDatum", key, locktoken, datum)
 	if err != nil {
 		return robot.Failed
@@ -1418,7 +1418,7 @@ func (c *pipelineRPCLuaRobotClient) UpdateDatum(key, locktoken string, datum int
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) DeleteDatum(key string) (ret robot.RetVal) {
+func (c *pipelineRPCInterpreterRobotClient) DeleteDatum(key string) (ret robot.RetVal) {
 	res, err := c.call("DeleteDatum", key)
 	if err != nil {
 		return robot.Failed
@@ -1426,23 +1426,23 @@ func (c *pipelineRPCLuaRobotClient) DeleteDatum(key string) (ret robot.RetVal) {
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) Remember(key, value string, shared bool) {
+func (c *pipelineRPCInterpreterRobotClient) Remember(key, value string, shared bool) {
 	_, _ = c.call("Remember", key, value, shared)
 }
 
-func (c *pipelineRPCLuaRobotClient) RememberThread(key, value string, shared bool) {
+func (c *pipelineRPCInterpreterRobotClient) RememberThread(key, value string, shared bool) {
 	_, _ = c.call("RememberThread", key, value, shared)
 }
 
-func (c *pipelineRPCLuaRobotClient) RememberContext(context, value string) {
+func (c *pipelineRPCInterpreterRobotClient) RememberContext(context, value string) {
 	_, _ = c.call("RememberContext", context, value)
 }
 
-func (c *pipelineRPCLuaRobotClient) RememberContextThread(context, value string) {
+func (c *pipelineRPCInterpreterRobotClient) RememberContextThread(context, value string) {
 	_, _ = c.call("RememberContextThread", context, value)
 }
 
-func (c *pipelineRPCLuaRobotClient) Recall(key string, shared bool) string {
+func (c *pipelineRPCInterpreterRobotClient) Recall(key string, shared bool) string {
 	res, err := c.call("Recall", key, shared)
 	if err != nil {
 		return ""
@@ -1450,11 +1450,11 @@ func (c *pipelineRPCLuaRobotClient) Recall(key string, shared bool) string {
 	return pipelineRPCMapString(res, "string")
 }
 
-func (c *pipelineRPCLuaRobotClient) DeleteMemory(key string, shared bool) {
+func (c *pipelineRPCInterpreterRobotClient) DeleteMemory(key string, shared bool) {
 	_, _ = c.call("DeleteMemory", key, shared)
 }
 
-func (c *pipelineRPCLuaRobotClient) SpawnJob(name string, args ...string) robot.RetVal {
+func (c *pipelineRPCInterpreterRobotClient) SpawnJob(name string, args ...string) robot.RetVal {
 	payload := []interface{}{name}
 	for _, s := range args {
 		payload = append(payload, s)
@@ -1466,7 +1466,7 @@ func (c *pipelineRPCLuaRobotClient) SpawnJob(name string, args ...string) robot.
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) AddTask(name string, args ...string) robot.RetVal {
+func (c *pipelineRPCInterpreterRobotClient) AddTask(name string, args ...string) robot.RetVal {
 	payload := []interface{}{name}
 	for _, s := range args {
 		payload = append(payload, s)
@@ -1478,7 +1478,7 @@ func (c *pipelineRPCLuaRobotClient) AddTask(name string, args ...string) robot.R
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) FinalTask(name string, args ...string) robot.RetVal {
+func (c *pipelineRPCInterpreterRobotClient) FinalTask(name string, args ...string) robot.RetVal {
 	payload := []interface{}{name}
 	for _, s := range args {
 		payload = append(payload, s)
@@ -1490,7 +1490,7 @@ func (c *pipelineRPCLuaRobotClient) FinalTask(name string, args ...string) robot
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) FailTask(name string, args ...string) robot.RetVal {
+func (c *pipelineRPCInterpreterRobotClient) FailTask(name string, args ...string) robot.RetVal {
 	payload := []interface{}{name}
 	for _, s := range args {
 		payload = append(payload, s)
@@ -1502,7 +1502,7 @@ func (c *pipelineRPCLuaRobotClient) FailTask(name string, args ...string) robot.
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) AddJob(name string, args ...string) robot.RetVal {
+func (c *pipelineRPCInterpreterRobotClient) AddJob(name string, args ...string) robot.RetVal {
 	payload := []interface{}{name}
 	for _, s := range args {
 		payload = append(payload, s)
@@ -1514,7 +1514,7 @@ func (c *pipelineRPCLuaRobotClient) AddJob(name string, args ...string) robot.Re
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) AddCommand(plugin, command string) robot.RetVal {
+func (c *pipelineRPCInterpreterRobotClient) AddCommand(plugin, command string) robot.RetVal {
 	res, err := c.call("AddCommand", plugin, command)
 	if err != nil {
 		return robot.Failed
@@ -1522,7 +1522,7 @@ func (c *pipelineRPCLuaRobotClient) AddCommand(plugin, command string) robot.Ret
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) FinalCommand(plugin, command string) robot.RetVal {
+func (c *pipelineRPCInterpreterRobotClient) FinalCommand(plugin, command string) robot.RetVal {
 	res, err := c.call("FinalCommand", plugin, command)
 	if err != nil {
 		return robot.Failed
@@ -1530,7 +1530,7 @@ func (c *pipelineRPCLuaRobotClient) FinalCommand(plugin, command string) robot.R
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) FailCommand(plugin, command string) robot.RetVal {
+func (c *pipelineRPCInterpreterRobotClient) FailCommand(plugin, command string) robot.RetVal {
 	res, err := c.call("FailCommand", plugin, command)
 	if err != nil {
 		return robot.Failed
@@ -1538,7 +1538,7 @@ func (c *pipelineRPCLuaRobotClient) FailCommand(plugin, command string) robot.Re
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCLuaRobotClient) SetParameter(name, value string) bool {
+func (c *pipelineRPCInterpreterRobotClient) SetParameter(name, value string) bool {
 	res, err := c.call("SetParameter", name, value)
 	if err != nil {
 		return false
@@ -1546,7 +1546,7 @@ func (c *pipelineRPCLuaRobotClient) SetParameter(name, value string) bool {
 	return pipelineRPCMapBool(res, "bool")
 }
 
-func (c *pipelineRPCLuaRobotClient) Subscribe() bool {
+func (c *pipelineRPCInterpreterRobotClient) Subscribe() bool {
 	res, err := c.call("Subscribe")
 	if err != nil {
 		return false
@@ -1554,7 +1554,7 @@ func (c *pipelineRPCLuaRobotClient) Subscribe() bool {
 	return pipelineRPCMapBool(res, "bool")
 }
 
-func (c *pipelineRPCLuaRobotClient) Unsubscribe() bool {
+func (c *pipelineRPCInterpreterRobotClient) Unsubscribe() bool {
 	res, err := c.call("Unsubscribe")
 	if err != nil {
 		return false
@@ -1713,5 +1713,5 @@ func pipelineRPCFormatMessage(msg string, v ...interface{}) string {
 	return fmt.Sprintf(msg, v...)
 }
 
-var _ luamod.BotAPI = (*pipelineRPCLuaRobotClient)(nil)
-var _ robot.Logger = (*pipelineRPCLuaRobotClient)(nil)
+var _ luamod.BotAPI = (*pipelineRPCInterpreterRobotClient)(nil)
+var _ robot.Logger = (*pipelineRPCInterpreterRobotClient)(nil)

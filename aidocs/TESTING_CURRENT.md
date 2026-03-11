@@ -85,6 +85,12 @@ Notes:
 - Lists plugin behavior: `test/lists_integration_test.go`.
 - External yaegi Go full coverage: `test/go_full_test.go`.
 
+## Targeted Yaegi runtime repros
+
+- `modules/yaegi-dynamic-go/yaegi_dynamic_test.go` contains a narrow repro for an interpreted-Go panic that surfaced in `plugins/go-openai-fallback` compaction work.
+- Run the focused repro with: `env GOTELEMETRY=off GOCACHE=/tmp/gocache go test ./modules/yaegi-dynamic-go -run 'Test(CompiledGoMultiReturnStateAndSliceWorks|RunPluginHandlerYaegiMultiReturnPanics|RunPluginHandlerYaegiWrappedReturnWorks)$'`
+- The test establishes three facts: compiled Go accepts the multi-return state/slice helper pattern, Yaegi `RunPluginHandler` panics on the same shape with `reflect.Set ... not assignable`, and a single wrapper-struct return succeeds under the same runner.
+
 ## Test Harness Scope
 
 All test files (`*_test.go`) within the `test/` directory are gated by the `integration` build tag and leverage the single test harness defined in `test/common_test.go`. No other test harnesses have been identified in the codebase.

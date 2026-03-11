@@ -116,15 +116,15 @@ func handlePipelineRPCJSGetConfig(enc *json.Encoder, msg pipelineRPCMessage) err
 }
 
 type pipelineRPCJSRobotClient struct {
-	*pipelineRPCLuaRobotClient
+	*pipelineRPCInterpreterRobotClient
 }
 
 func newPipelineRPCJSRobotClient(dec *json.Decoder, enc *json.Encoder, bot map[string]string) *pipelineRPCJSRobotClient {
-	return &pipelineRPCJSRobotClient{pipelineRPCLuaRobotClient: newPipelineRPCLuaRobotClient(dec, enc, bot)}
+	return &pipelineRPCJSRobotClient{pipelineRPCInterpreterRobotClient: newPipelineRPCInterpreterRobotClient(dec, enc, bot)}
 }
 
 func (c *pipelineRPCJSRobotClient) cloneJS() *pipelineRPCJSRobotClient {
-	return &pipelineRPCJSRobotClient{pipelineRPCLuaRobotClient: c.pipelineRPCLuaRobotClient.clone()}
+	return &pipelineRPCJSRobotClient{pipelineRPCInterpreterRobotClient: c.pipelineRPCInterpreterRobotClient.clone()}
 }
 
 func (c *pipelineRPCJSRobotClient) Fixed() jsmod.BotAPI {

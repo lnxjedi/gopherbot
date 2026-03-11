@@ -45,6 +45,39 @@ func TestNormalizeChunkTextUnderscoreWordNotItalic(t *testing.T) {
 	}
 }
 
+func TestNormalizeChatCompletionPayloadConvertsMaxTokens(t *testing.T) {
+	payload := map[string]interface{}{
+		"model":      "gpt-5.2-chat-latest",
+		"max_tokens": 321,
+	}
+
+	normalizeChatCompletionPayload(payload)
+
+	if _, ok := payload["max_tokens"]; ok {
+		t.Fatalf("expected deprecated max_tokens to be removed, payload=%v", payload)
+	}
+	if got := payload["max_completion_tokens"]; got != 321 {
+		t.Fatalf("max_completion_tokens = %v, want 321", got)
+	}
+}
+
+func TestNormalizeChatCompletionPayloadPrefersExistingMaxCompletionTokens(t *testing.T) {
+	payload := map[string]interface{}{
+		"model":                 "gpt-5.2-chat-latest",
+		"max_tokens":            321,
+		"max_completion_tokens": 654,
+	}
+
+	normalizeChatCompletionPayload(payload)
+
+	if _, ok := payload["max_tokens"]; ok {
+		t.Fatalf("expected deprecated max_tokens to be removed, payload=%v", payload)
+	}
+	if got := payload["max_completion_tokens"]; got != 654 {
+		t.Fatalf("max_completion_tokens = %v, want 654", got)
+	}
+}
+
 func TestHasUnbalancedFences(t *testing.T) {
 	if !hasUnbalancedFences("```go\nfmt.Println(\"x\")") {
 		t.Fatal("expected unbalanced fence to be detected")
@@ -290,7 +323,9 @@ func TestForceDeterministicCompactionIgnoresTrigger(t *testing.T) {
 	if len(normal.Exchanges) != 3 {
 		t.Fatalf("normal deterministic compaction should be noop, got exchanges=%d", len(normal.Exchanges))
 	}
-	forced, older := forceCompactConversationDeterministic(state, cfg)
+	result := forceCompactConversationDeterministic(state, cfg)
+	forced := result.State
+	older := result.Older
 	if len(older) != 2 {
 		t.Fatalf("forced compaction older size=%d, want 2", len(older))
 	}
@@ -324,7 +359,9 @@ func TestForceDeterministicCompactionCompactsWhenBelowRecentWindow(t *testing.T)
 		t.Fatalf("normal deterministic compaction should be noop, got exchanges=%d", len(normal.Exchanges))
 	}
 
-	forced, older := forceCompactConversationDeterministic(state, cfg)
+	result := forceCompactConversationDeterministic(state, cfg)
+	forced := result.State
+	older := result.Older
 	if len(older) != 1 {
 		t.Fatalf("forced compaction older size=%d, want 1", len(older))
 	}

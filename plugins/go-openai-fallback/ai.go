@@ -195,6 +195,11 @@ type conversationState struct {
 	UpdatedAt  string                 `json:"updated_at"`
 }
 
+type compactionResult struct {
+	State conversationState
+	Older []conversationExchange
+}
+
 type conversationContext struct {
 	Direct          bool
 	Threaded        bool
@@ -428,7 +433,9 @@ func handleManualCompaction(r robot.Robot, withModel bool) robot.TaskRetVal {
 		beforeTokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
 	}
 
-	compacted, older := forceCompactConversationDeterministic(state, cfg)
+	result := forceCompactConversationDeterministic(state, cfg)
+	compacted := result.State
+	older := result.Older
 	deterministicApplied := len(older) > 0
 	modelApplied := false
 	var modelErr error
@@ -891,16 +898,17 @@ func estimateConversationTokens(exchanges []conversationExchange) int {
 }
 
 func maybeCompactConversationDeterministic(state conversationState, cfg aiConfig) conversationState {
-	compacted, _ := compactConversationDeterministic(state, cfg)
-	return compacted
+	return compactConversationDeterministic(state, cfg).State
 }
 
-func forceCompactConversationDeterministic(state conversationState, cfg aiConfig) (conversationState, []conversationExchange) {
+func forceCompactConversationDeterministic(state conversationState, cfg aiConfig) compactionResult {
 	return compactConversationDeterministicInternal(state, cfg, true)
 }
 
 func maybeCompactConversationWithModel(r robot.Robot, state conversationState, cfg aiConfig) conversationState {
-	compacted, older := compactConversationDeterministic(state, cfg)
+	result := compactConversationDeterministic(state, cfg)
+	compacted := result.State
+	older := result.Older
 	if len(older) == 0 {
 		return compacted
 	}
@@ -929,7 +937,9 @@ func maybeCompactConversationWithModel(r robot.Robot, state conversationState, c
 type summaryRefiner func(existing string, older []conversationExchange, cfg aiConfig) (string, error)
 
 func maybeCompactConversationWithRefiner(state conversationState, cfg aiConfig, refiner summaryRefiner) conversationState {
-	compacted, older := compactConversationDeterministic(state, cfg)
+	result := compactConversationDeterministic(state, cfg)
+	compacted := result.State
+	older := result.Older
 	if len(older) == 0 || !cfg.EnableModelCompaction || refiner == nil {
 		return compacted
 	}
@@ -946,11 +956,11 @@ func maybeCompactConversationWithRefiner(state conversationState, cfg aiConfig, 
 	return compacted
 }
 
-func compactConversationDeterministic(state conversationState, cfg aiConfig) (conversationState, []conversationExchange) {
+func compactConversationDeterministic(state conversationState, cfg aiConfig) compactionResult {
 	return compactConversationDeterministicInternal(state, cfg, false)
 }
 
-func compactConversationDeterministicInternal(state conversationState, cfg aiConfig, force bool) (conversationState, []conversationExchange) {
+func compactConversationDeterministicInternal(state conversationState, cfg aiConfig, force bool) compactionResult {
 	maxRecent := cfg.MaxRecentExchanges
 	if maxRecent <= 0 {
 		maxRecent = defaultMaxRecentExchanges
@@ -968,7 +978,7 @@ func compactConversationDeterministicInternal(state conversationState, cfg aiCon
 		if state.Tokens <= 0 {
 			state.Tokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
 		}
-		return state, nil
+		return compactionResult{State: state}
 	}
 
 	trigger := cfg.CompactionTriggerTokens
@@ -984,7 +994,7 @@ func compactConversationDeterministicInternal(state conversationState, cfg aiCon
 	}
 	// Automatic mode waits until near context pressure; manual mode can force compaction.
 	if !force && state.Tokens < trigger {
-		return state, nil
+		return compactionResult{State: state}
 	}
 
 	split := len(state.Exchanges) - keepRecent
@@ -993,7 +1003,12 @@ func compactConversationDeterministicInternal(state conversationState, cfg aiCon
 	state.Summary = mergeDeterministicSummary(state.Summary, older, cfg.SummaryBudgetTokens)
 	state.Exchanges = append([]conversationExchange(nil), recent...)
 	state.Tokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
-	return state, append([]conversationExchange(nil), older...)
+	// Yaegi/RPC execution has been observed to panic on multi-return assignment
+	// for this state/slice pair, so compaction returns one wrapper struct.
+	return compactionResult{
+		State: state,
+		Older: append([]conversationExchange(nil), older...),
+	}
 }
 
 func resolveCompactionTriggerTokens(profile aiProfile) int {
@@ -1167,11 +1182,12 @@ func modelAssistSummary(r robot.Robot, profileName, deterministic string, older 
 		},
 	}
 	if cfg.SummaryBudgetTokens > 0 {
-		payload["max_tokens"] = cfg.SummaryBudgetTokens
+		payload["max_completion_tokens"] = cfg.SummaryBudgetTokens
 	}
 	if userID := strings.TrimSpace(r.GetParameter("GOPHER_USER_ID")); userID != "" {
 		payload["user"] = sha1String(userID)
 	}
+	normalizeChatCompletionPayload(payload)
 
 	reqBody, err := json.Marshal(payload)
 	if err != nil {
@@ -1245,6 +1261,27 @@ func modelCompactionSource(deterministic string, older []conversationExchange, s
 	return clipText(strings.TrimSpace(b.String()), maxChars*2)
 }
 
+func normalizeChatCompletionPayload(payload map[string]interface{}) {
+	if payload == nil {
+		return
+	}
+	if maxCompletionTokens, ok := payload["max_completion_tokens"]; ok {
+		if maxCompletionTokens == nil {
+			delete(payload, "max_completion_tokens")
+		}
+		delete(payload, "max_tokens")
+		return
+	}
+	if maxTokens, ok := payload["max_tokens"]; ok {
+		if maxTokens == nil {
+			delete(payload, "max_tokens")
+			return
+		}
+		payload["max_completion_tokens"] = maxTokens
+		delete(payload, "max_tokens")
+	}
+}
+
 func queryOpenAI(outBot robot.Robot, r robot.Robot, ctx conversationContext, state conversationState, cfg aiConfig, uiHints streamUIHints) (string, error) {
 	token := strings.TrimSpace(r.GetParameter("OPENAI_KEY"))
 	if token == "" {
@@ -1266,6 +1303,7 @@ func queryOpenAI(outBot robot.Robot, r robot.Robot, ctx conversationContext, sta
 	if _, ok := payload["model"]; !ok {
 		payload["model"] = "gpt-5.2-chat-latest"
 	}
+	normalizeChatCompletionPayload(payload)
 	if userID := strings.TrimSpace(r.GetParameter("GOPHER_USER_ID")); userID != "" {
 		// Pass a hashed stable user id to OpenAI telemetry field without exposing raw ids.
 		payload["user"] = sha1String(userID)
