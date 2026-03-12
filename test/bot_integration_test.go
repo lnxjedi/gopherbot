@@ -132,8 +132,10 @@ func TestVisibility(t *testing.T) {
 	done, conn := setup("test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
-		{aliceID, general, "help ruby, bender", false, []TestMessage{{null, general, `bender, ruby .*random\)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, "ruby me, bender", false, []TestMessage{{null, general, "No command matched in channel.*", true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
+		{aliceID, general, "help ruby, bender", false, []TestMessage{{null, general, `(?s:Command matches for keyword: ruby.*Availability: channels: random)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, "ruby me, bender", false, []TestMessage{{null, general, "rubydemo/ruby not available in #general, try #random", true}}, []Event{}, 0},
+		{aliceID, deadzone, "bender: echo hello world", false, []TestMessage{{null, deadzone, "echo/echo not available in #deadzone, try one of: #general, #random", true}}, []Event{}, 0},
+		{aliceID, null, "hear me out", false, []TestMessage{{alice, null, "bashdemo/hear not available in direct messages, try it in any regular channel", false}}, []Event{BotDirectMessage}, 0},
 		{bobID, general, ";ping", false, []TestMessage{{null, general, "No command matched in channel.*", true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
 		{bobID, general, ";reload", false, []TestMessage{{null, general, "No command matched in channel.*", true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
 	}
@@ -152,7 +154,7 @@ func TestBuiltins(t *testing.T) {
 		{aliceID, general, ";help info", false, []TestMessage{{null, general, `(?s:Command matches for keyword: info.*Summary: .*admins.*)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, random, ";help ruby", false, []TestMessage{{null, random, `(?s:Command matches for keyword: ruby.*Availability: channels: random)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "help", false, []TestMessage{{null, general, "Hi,.*", true}}, []Event{AmbientTaskRan, GoPluginRan}, 0},
-		{aliceID, general, ";whoami", false, []TestMessage{{null, general, "you are 'test' user 'alice/u0001', speaking in channel 'general/#general', email address: alice@example.com", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";whoami", false, []TestMessage{{null, general, "you are 'test' user 'alice/alice', speaking in channel 'general/#general', email address: alice@example.com", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		// NOTE: Dumps are all format = Fixed, which for the test connector is ALL CAPS
 		{aliceID, null, "dump robot", false, []TestMessage{{alice, null, "HERE'S HOW I'VE BEEN CONFIGURED.*", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, "dump plugin echo", false, []TestMessage{{alice, null, "ALLCHANNELS.*", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
@@ -219,9 +221,9 @@ func TestHelp(t *testing.T) {
 
 	tests := []testItem{
 		{aliceID, deadzone, ";help", false, []TestMessage{{null, deadzone, `(?s:Quick help:\n;help <keyword> - get help for the provided <keyword>\n;commands - browse command groups available in this channel\n;help-all - help for all commands available in this channel, including global commands)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, deadzone, ";commands", false, []TestMessage{{null, deadzone, `(?s:Command groups available in this channel:.*Try: ;help <plugin\|command\|keyword>)`, true}}, []Event{CommandTaskRan, GoPluginRan, GoPluginRan}, 0},
-		{aliceID, deadzone, ";help-all", false, []TestMessage{{null, deadzone, `(?s:Commands available in this channel \(including global\):.*\[builtin-help\] help.*Usage: help <keyword>)`, true}}, []Event{CommandTaskRan, GoPluginRan, GoPluginRan}, 0},
-		{aliceID, deadzone, ";help help", false, []TestMessage{{null, deadzone, `(?s:Command matches for keyword: help.*\[builtin-help\] help.*Usage: help <keyword>)`, true}}, []Event{CommandTaskRan, GoPluginRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";commands", false, []TestMessage{{null, deadzone, `(?s:Command groups available in this channel:.*Try: ;help <plugin\|command\|keyword>)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";help-all", false, []TestMessage{{null, deadzone, `(?s:Commands available in this channel \(including global\):.*\[builtin-help\] help.*Usage: help <keyword>)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";help help", false, []TestMessage{{null, deadzone, `(?s:Command matches for keyword: help.*\[builtin-help\] help.*Usage: help <keyword>)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 

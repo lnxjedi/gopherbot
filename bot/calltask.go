@@ -251,6 +251,7 @@ type taskReturn struct {
 
 type taskCallOptions struct {
 	externalExecutableProcess bool
+	suppressEmit              bool
 }
 
 // Maps populated by callTaskThread, so external tasks can get their Robot
@@ -403,7 +404,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 			}
 		}
 		if isPlugin {
-			if command != "init" {
+			if command != "init" && !opts.suppressEmit {
 				emit(GoPluginRan)
 			}
 			Log(robot.Debug, "Calling go plugin: '%s' with args: %q", task.name, args)
@@ -500,7 +501,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 			}
 		}
 		if isPlugin {
-			if command != "init" {
+			if command != "init" && !opts.suppressEmit {
 				emit(GoPluginRan)
 			}
 			ret, err := runGoPluginViaRPC(taskPath, task.name, env, task.Privileged, w, r, append([]string{command}, args...))
@@ -547,7 +548,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 		}
 		if isPlugin {
 			// "init" usually doesn't count as an actual plugin invocation for stats
-			if command != "init" {
+			if command != "init" && !opts.suppressEmit {
 				emit(ExternalTaskRan)
 			}
 			// Prepend the command to args, so Lua sees args[1] == <command>
@@ -598,7 +599,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 		}
 		if isPlugin {
 			// "init" usually doesn't count as an actual plugin invocation for stats
-			if command != "init" {
+			if command != "init" && !opts.suppressEmit {
 				emit(ExternalTaskRan)
 			}
 			// Prepend the command to args, so JavaScript sees args[1] == <command>
@@ -680,7 +681,7 @@ func (w *worker) runExternalExecutableTask(task *Task, plugin *Plugin, command, 
 		}
 		cmd.Dir = childTaskDir
 		Log(robot.Debug, "Calling child runner for '%s' with args: %q", taskPath, externalArgs)
-		return w.runExternalCommand(cmd, nil, "", task, plugin, command, taskPath, keys, logger, privileged)
+		return w.runExternalCommand(cmd, nil, "", task, plugin, command, taskPath, keys, logger, privileged, opts)
 	}
 	Log(robot.Debug, "Calling '%s' with args: %q", taskPath, externalArgs)
 	cmd := exec.Command(taskPath, externalArgs...)
@@ -703,11 +704,11 @@ func (w *worker) runExternalExecutableTask(task *Task, plugin *Plugin, command, 
 	if !nullConn {
 		scriptInput = stdinPipe
 	}
-	retvalErrString, retval := w.runExternalCommand(cmd, scriptInput, eid, task, plugin, command, taskPath, keys, logger, privileged)
+	retvalErrString, retval := w.runExternalCommand(cmd, scriptInput, eid, task, plugin, command, taskPath, keys, logger, privileged, opts)
 	return retvalErrString, retval
 }
 
-func (w *worker) runExternalCommand(cmd *exec.Cmd, stdinPipe io.WriteCloser, eid string, task *Task, plugin *Plugin, command, taskPath string, keys []string, logger robot.HistoryLogger, privileged bool) (string, robot.TaskRetVal) {
+func (w *worker) runExternalCommand(cmd *exec.Cmd, stdinPipe io.WriteCloser, eid string, task *Task, plugin *Plugin, command, taskPath string, keys []string, logger robot.HistoryLogger, privileged bool, opts taskCallOptions) (string, robot.TaskRetVal) {
 	const failFmt = "Pipeline failed in external task '%s', writing fail log in GOPHER_HOME"
 	errString := ""
 	retval := robot.Normal
@@ -758,7 +759,7 @@ func (w *worker) runExternalCommand(cmd *exec.Cmd, stdinPipe io.WriteCloser, eid
 		w.osCmd = nil
 		w.Unlock()
 	}()
-	if command != "init" {
+	if command != "init" && !opts.suppressEmit {
 		emit(ExternalTaskRan)
 	}
 	closed := make(chan struct{})

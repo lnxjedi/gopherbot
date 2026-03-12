@@ -107,7 +107,7 @@ func (r Robot) getAuthorizerUserGroups(w *worker, authorizer, user string) (grou
 	delete(c.parameters, paramKey)
 	w.Unlock()
 
-	_, authRet := w.callTask(authPlug, "usergroups", user, paramKey)
+	_, authRet := w.callTaskWithOptions(taskCallOptions{suppressEmit: true}, authPlug, "usergroups", user, paramKey)
 	w.currentTask = r.currentTask
 	if authRet != robot.Success {
 		return nil, false
