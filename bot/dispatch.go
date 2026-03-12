@@ -186,6 +186,68 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 	return
 }
 
+func (w *worker) checkWrongLocationCommandMatch() bool {
+	if !w.isCommand || w.Incoming.SelfMessage || w.BotUser {
+		return false
+	}
+
+	matchMsg := w.msg
+	matchChannelOnly := len(w.Channel) > 0 && !w.Incoming.ThreadedMessage
+	candidates := make(map[string]commandLocationHint)
+	for _, t := range w.tasks.t[1:] {
+		task, plugin, _ := getTask(t)
+		if plugin == nil || task == nil || task.Disabled || len(plugin.Commands) == 0 {
+			continue
+		}
+		cmsg := spaceRe.ReplaceAllString(matchMsg, " ")
+		for _, matcher := range plugin.Commands {
+			if matcher.ChannelOnly && !matchChannelOnly {
+				continue
+			}
+			matches := matcher.re.FindStringSubmatch(matchMsg)
+			if matches == nil {
+				matches = matcher.re.FindStringSubmatch(cmsg)
+			}
+			if matches == nil {
+				continue
+			}
+			hint, ok := w.commandLocationHint(task, plugin, matcher.Command)
+			if !ok {
+				continue
+			}
+			key := hint.PluginName + "|" + hint.Command
+			if existing, found := candidates[key]; found {
+				existing.Channels = appendUniquePreserveOrder(existing.Channels, hint.Channels...)
+				existing.AnyRegularChannel = existing.AnyRegularChannel || hint.AnyRegularChannel
+				existing.DirectMessageOnly = existing.DirectMessageOnly || hint.DirectMessageOnly
+				candidates[key] = existing
+				continue
+			}
+			candidates[key] = hint
+		}
+	}
+
+	if len(candidates) != 1 {
+		return false
+	}
+
+	var hint commandLocationHint
+	for _, candidate := range candidates {
+		hint = candidate
+	}
+	msg := hint.format(w.Channel, w.Incoming.DirectMessage)
+	if msg == "" {
+		return false
+	}
+	r := w.makeRobot()
+	if w.Incoming.DirectMessage {
+		r.Say(msg)
+	} else {
+		r.SayThread(msg)
+	}
+	return true
+}
+
 // handleMessage checks the message against plugin commands and full-message
 // matches, then dispatches it to the applicable plugin. If the robot was
 // addressed directly but nothing matched, any registered CatchAll plugins are
@@ -284,6 +346,9 @@ func (w *worker) handleMessage() {
 	// Check for job commands
 	if !messageMatched {
 		messageMatched = w.checkJobMatchersAndRun()
+	}
+	if !messageMatched {
+		messageMatched = w.checkWrongLocationCommandMatch()
 	}
 	catchAllMatched := false
 	if w.isCommand && !messageMatched && !w.Incoming.SelfMessage && !w.BotUser { // the robot was spoken to, but nothing matched - call catchAlls
