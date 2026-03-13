@@ -27,11 +27,11 @@ The following points describe limitations of the current v2 architecture. They a
 ## Early Enabling Goals
 
 These goals are intended to unblock and accelerate later v3 work. Changes that advance these goals are generally preferred unless a task explicitly states otherwise.
-* Create and maintain high-quality AI-oriented context documentation to reduce repeated onboarding costs and improve development velocity.
-* Update project dependencies to modern, supported versions.
-* Restore and fix the development and test workflow, including making `make test` reliable and meaningful.
-* Remove the git-based file brain backup/restore scripts and other related code
-* Expand extension-language integration tests (JS/Lua) to cover messaging, config, HTTP, and core Robot API surface.
+* Create and maintain high-quality AI-oriented context documentation to reduce repeated onboarding costs and improve development velocity. (DONE)
+* Update project dependencies to modern, supported versions. (DONE)
+* Restore and fix the development and test workflow, including making `make test` reliable and meaningful. (DONE)
+* Remove the git-based file brain backup/restore scripts and other related code (DONE)
+* Expand extension-language integration tests (JS/Lua) to cover messaging, config, HTTP, and core Robot API surface. (DONE)
 
 ## Core v3 Goals
 
@@ -47,10 +47,11 @@ For v3, we will try to support:
 * SSH
 * Mattermost
 * Rocket.Chat
-* Zulip
 
 In addition, Gopherbot will implement a new default outgoing message format for use by custom extensions, `BasicMarkdown` (see devdocs/BasicMarkdown.md).
 * Slack Variable and Fixed support should be updated to use BlockKit it possible
+
+Status: MOSTLY DONE, but so far just Slack and SSH connectors
 
 ### Reduce Dependence on External Tools and Interpreters
 
@@ -91,6 +92,8 @@ Help and discovery mechanisms should be group-aware and provide clear, contextua
 * When users ask for help, they should only be shown commands which they are able to run
 * Stretch direction: help output should be generated from command-linked help metadata (rather than loose text blocks), so help content and executable commands stay naturally aligned
 * Stretch direction: extend the authorizer plugin contract with a `usergroups` command (for example `usergroups david`) that returns a JSON array of groups for that user; help rendering can then filter command visibility to only commands available to that user
+
+Status: IN PROGRESS
 
 ### Improve Configuration Clarity and Bootstrapping
 

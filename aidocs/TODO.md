@@ -9,3 +9,4 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
   This affects long-running AI thread continuity after inactivity when using subscription-based routing.
   Candidate direction:
   add a config value in `robot.yaml` for thread subscription TTL (and possibly a separate TTL for ephemeral thread memories), defaulting to current behavior.
+- Evaluate the multiple locations where `binary-encryption-key` are created and if necessary remove duplication.
