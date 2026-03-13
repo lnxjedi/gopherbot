@@ -26,6 +26,14 @@ AI‑onboarding view: entrypoints, decision points, and data flow for message‑
 - Catch‑alls (only when directly addressed and nothing matched): `bot/dispatch.go:handleMessage`.
 - Thread subscriptions last (`Subscribe`/`Unsubscribe`) keyed by `protocol/channel/thread`, with legacy fallback for restored pre-protocol keys: `bot/dispatch.go:handleMessage`, `bot/subscribe_thread.go`.
 
+Catch-all mode scoping:
+- Plugins may optionally set `CatchAllModes` to any subset of `alias`, `name`, `direct`.
+- `alias` means the robot was addressed through its alias prefix.
+- `name` means the robot was addressed by name/mention form.
+- `direct` means the command arrived in a DM context.
+- During unmatched-command routing, dispatch only considers catch-all plugins whose `CatchAllModes` include the current `cmdMode`.
+- Mode-scoped catchalls are treated as "specific" catchalls for precedence, so an alias-only recovery plugin can coexist with a name/direct fallback without colliding with generic fallback behavior.
+
 ## Hidden Command Policy (routing + safety guard)
 
 - Hidden-command policy check runs at pipeline-start time: `bot/run_pipelines.go` calls `Robot.checkHiddenCommands` in `bot/allow_hidden.go`.

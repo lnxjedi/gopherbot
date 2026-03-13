@@ -190,6 +190,7 @@ type Plugin struct {
 	MessageMatchers          []InputMatcher `yaml:"MessageMatchers"`          // Input matchers for messages the bot hears even when it’s not being spoken to
 	AmbientMatchCommand      bool           `yaml:"AmbientMatchCommand"`      // Whether message matchers should also match when isCommand is true
 	CatchAll                 bool           `yaml:"CatchAll"`                 // Plugins with CatchAll=true get called with command="catchall" and argument=<full message text to robot>
+	CatchAllModes            []string       `yaml:"CatchAllModes"`            // Optional command modes for catchall matching: alias, name, direct
 	MatchUnlisted            bool           `yaml:"MatchUnlisted"`            // Set to true if ambient message matches should be checked for users not listed in the UserRoster
 	*Task                    `yaml:",inline"`
 }

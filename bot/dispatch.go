@@ -186,6 +186,22 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 	return
 }
 
+func catchAllModeMatches(plugin *Plugin, mode string) bool {
+	if plugin == nil {
+		return false
+	}
+	if len(plugin.CatchAllModes) == 0 {
+		return true
+	}
+	mode = strings.TrimSpace(strings.ToLower(mode))
+	for _, configured := range plugin.CatchAllModes {
+		if strings.TrimSpace(strings.ToLower(configured)) == mode {
+			return true
+		}
+	}
+	return false
+}
+
 // handleMessage checks the message against plugin commands and full-message
 // matches, then dispatches it to the applicable plugin. If the robot was
 // addressed directly but nothing matched, any registered CatchAll plugins are
@@ -297,13 +313,16 @@ func (w *worker) handleMessage() {
 			var multipleCatchallMatched, multipleFallbackMatched bool
 			for _, t := range w.tasks.t[1:] {
 				task, plugin, _ := getTask(t)
-				if plugin == nil || !plugin.CatchAll {
+				if plugin == nil || !plugin.CatchAll || !catchAllModeMatches(plugin, w.cmdMode) {
 					Log(robot.Trace, "Checking plugin %s for catch-all (false)", task.name)
 					continue
 				}
 				available, specific := w.pluginAvailable(task, false, false)
 				if !available {
 					continue
+				}
+				if len(plugin.CatchAllModes) > 0 {
+					specific = true
 				}
 				if specific {
 					Log(robot.Trace, "Checking plugin %s for catch-all (true, specific)", task.name)
