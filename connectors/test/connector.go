@@ -128,6 +128,10 @@ func (tc *TestConnector) sendMessage(msg *BotMessage) (ret robot.RetVal) {
 		spoken.Message = strings.ToLower(msg.Message)
 	case robot.Raw:
 		spoken.Message = msg.Message
+	case robot.BasicMarkdown:
+		spoken.Message = msg.Message
+	default:
+		spoken.Message = msg.Message
 	}
 	if hidden {
 		spoken.Message = "(" + spoken.Message + ")"

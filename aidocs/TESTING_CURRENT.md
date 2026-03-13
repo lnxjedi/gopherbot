@@ -36,6 +36,14 @@ When `make test` fails in the `integration` target, check these first:
 
 Log file paths are passed explicitly by integration tests through `setup(..., logfile, ...)` in `test/common_test.go`.
 
+Required triage rule:
+
+- Every integration failure must be classified before changing code or test expectations:
+  - real regression / newly introduced bug
+  - intentional behavior change with outdated test expectations
+- Do not update assertions blindly just to make `make test` pass.
+- The expected end state for a task is that applicable integration tests run cleanly after this classification work.
+
 Common symptom:
 
 - `Fatal: Listening on tcp4 port 127.0.0.1:0 ... operation not permitted`

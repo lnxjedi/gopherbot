@@ -140,3 +140,10 @@ After implementation:
 3. confirm startup sequence integrity
 4. confirm connector isolation and ordering guarantees
 5. run applicable tests and docs hygiene checks
+
+For any task where integration tests are applicable:
+6. run the applicable integration suite before closing out work
+7. classify every integration failure as either:
+   - a real regression / newly introduced bug
+   - an intentional behavior change with outdated test expectations
+8. do not update test expectations until that classification is explicit
