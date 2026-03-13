@@ -35,8 +35,10 @@ This file captures Slack connector behavior relevant to routing, hidden commands
 ## Outgoing Format Behavior
 
 - `Raw` keeps legacy Slack-native behavior (including connector-local `@username` handling outside fenced blocks).
-- `Variable` disables Slack markdown parsing and escapes reserved text characters.
-- `Fixed` wraps output in fenced code blocks.
+- `Variable` sends a Block Kit `section` block with `plain_text` so the visible body preserves the exact message text without Slack markdown/mention/link interpretation.
+- `Fixed` sends a Block Kit `rich_text` block using `rich_text_preformatted` so fixed-width output renders as native Slack preformatted content instead of literal triple-backtick fences.
+- Block-backed `Variable` / `Fixed` sends still include top-level fallback text for notifications/accessibility and legacy RTM fallback behavior.
+- Targeted user-in-channel sends use a readable literal prefix in block-backed output (for example `@alice: ...`) instead of exposing Slack internal mention tokens in the visible body.
 - `BasicMarkdown` is rendered with connector-local translation rules:
   - Markdown links `[label](https://...)` are converted to Slack link tokens.
   - `@username` mention tokens are resolved against connector user maps when unambiguous.
@@ -55,6 +57,7 @@ This file captures Slack connector behavior relevant to routing, hidden commands
 
 - `api.GetBotInfo` requires `slack.GetBotInfoParameters` (bot + team ID).
 - `slackevents.MessageEvent` no longer exposes attachments/timestamps directly; use embedded `Message` payload (`*slack.Msg`) for attachments and timestamps.
+- Current library version supports Block Kit send options (`MsgOptionBlocks`) plus `rich_text` / `rich_text_preformatted` block types used by Slack fixed-width output.
 
 ## Runtime Lifecycle Notes
 

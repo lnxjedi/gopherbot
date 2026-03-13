@@ -58,9 +58,10 @@ func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string,
 }
 
 type sendMessage struct {
-	message, user, channel, thread string
-	format                         robot.MessageFormat
-	mtype                          msgType
+	message, legacyText, user, channel, thread string
+	blocks                                     []slack.Block
+	format                                     robot.MessageFormat
+	mtype                                      msgType
 }
 
 const sendQueueSize = 256
@@ -149,6 +150,9 @@ func (s *slackConnector) startSendLoop(stop <-chan struct{}) {
 			slack.MsgOptionAsUser(true),
 			slack.MsgOptionDisableLinkUnfurl(),
 		}
+		if len(send.blocks) > 0 {
+			opts = append(opts, slack.MsgOptionBlocks(send.blocks...))
+		}
 		// Slash commands are hidden, so we respond with an ephemeral message
 		if len(send.user) > 0 && send.mtype == msgSlashCmd {
 			opts = append(opts, slack.MsgOptionPostEphemeral(send.user))
@@ -156,7 +160,7 @@ func (s *slackConnector) startSendLoop(stop <-chan struct{}) {
 		if len(send.thread) > 0 {
 			opts = append(opts, slack.MsgOptionTS(send.thread))
 		}
-		if send.format == robot.Variable {
+		if send.format == robot.Variable || len(send.blocks) > 0 {
 			opts = append(opts, slack.MsgOptionDisableMarkdown(), slack.MsgOptionParse(false))
 		}
 		s.Log(robot.Trace, "Bot message in slack send loop for channel %s, size: %d", send.channel, len(send.message))
@@ -186,7 +190,11 @@ func (s *slackConnector) startSendLoop(stop <-chan struct{}) {
 				if conn == nil {
 					s.Log(robot.Error, "Slack RTM fallback unavailable: no active RTM client")
 				} else {
-					conn.SendMessage(conn.NewOutgoingMessage(send.message, send.channel))
+					fallback := send.legacyText
+					if fallback == "" {
+						fallback = send.message
+					}
+					conn.SendMessage(conn.NewOutgoingMessage(fallback, send.channel))
 				}
 			}
 		}
@@ -203,7 +211,7 @@ func (s *slackConnector) startSendLoop(stop <-chan struct{}) {
 	}
 }
 
-func (s *slackConnector) sendMessages(msgs []string, userID, chanID, threadID string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) {
+func (s *slackConnector) sendMessages(msgs []slackOutgoingPayload, userID, chanID, threadID string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) {
 	mtype := getMsgType(msgObject)
 	if mtype == msgSlashCmd { // could also check msgObject.Hidden
 		slashCmd := msgObject.MessageObject.(*slack.SlashCommand)
@@ -218,19 +226,21 @@ func (s *slackConnector) sendMessages(msgs []string, userID, chanID, threadID st
 	}
 	for _, msg := range msgs {
 		s.queueSendMessage(&sendMessage{
-			message: msg,
-			user:    userID,
-			channel: chanID,
-			thread:  threadID,
-			format:  f,
-			mtype:   mtype,
+			message:    msg.text,
+			legacyText: msg.legacyText,
+			blocks:     msg.blocks,
+			user:       userID,
+			channel:    chanID,
+			thread:     threadID,
+			format:     f,
+			mtype:      mtype,
 		})
 	}
 }
 
 // SendProtocolChannelMessage sends a message to a channel
 func (s *slackConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
-	msgs := s.slackifyMessage("", "", msg, f, msgObject)
+	msgs := s.slackifyMessage("", "", "", msg, f, msgObject)
 	if chanID, ok := s.ExtractID(ch); ok {
 		s.sendMessages(msgs, "", chanID, thr, f, msgObject)
 		return
@@ -259,9 +269,10 @@ func (s *slackConnector) SendProtocolUserChannelThreadMessage(u, ch, thr, msg st
 		s.Log(robot.Error, "Slack user ID not found for username: %s", u)
 		return robot.UserNotFound
 	}
-	// This gets converted to <@userID> in slackifyMessage
-	prefix := "<@" + userID + ">: "
-	msgs := s.slackifyMessage(userID, prefix, msg, f, msgObject)
+	// Block-backed sends use a readable literal prefix instead of exposing Slack's internal mention token.
+	legacyPrefix := "<@" + userID + ">: "
+	blockPrefix := "@" + u + ": "
+	msgs := s.slackifyMessage(userID, legacyPrefix, blockPrefix, msg, f, msgObject)
 	s.sendMessages(msgs, userID, chanID, thr, f, msgObject)
 	return robot.Ok
 }
@@ -295,7 +306,7 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.M
 		}
 		userIMchanstr = userIMchan.Conversation.ID
 	}
-	msgs := s.slackifyMessage(userID, "", msg, f, msgObject)
+	msgs := s.slackifyMessage(userID, "", "", msg, f, msgObject)
 	s.sendMessages(msgs, "", userIMchanstr, "", f, msgObject)
 	return robot.Ok
 }

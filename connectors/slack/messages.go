@@ -19,11 +19,20 @@ type userlast struct {
 	user, channel string
 }
 
+type slackOutgoingPayload struct {
+	text       string
+	legacyText string
+	blocks     []slack.Block
+}
+
 // If we get back an edited message from a user in a channel within the
 // ignorewindow ... well, we ignore it. The problem is, the Slack service will
 // on occasion edit a user message, and the robot was seeing this as the user
 // sending the same command twice in short order.
 const ignorewindow = 3 * time.Second
+const slackFormattedMaxSize = slack.MaxMessageTextLength - 490
+const slackBlockTextLimit = 3000
+const slackTruncatedMessage = "(message too long, truncated)"
 
 var mentionMatch = `[0-9A-Za-z](?:[-_0-9A-Za-z.]{0,19}[_0-9A-Za-z])?`
 var mentionRe = regexp.MustCompile(`@` + mentionMatch + `\b`)
@@ -122,11 +131,15 @@ func (s *slackConnector) processRawMessage(msg string) string {
 	return result.String()
 }
 
-// slackifyMessage replaces @username with the slack-internal representation, handles escaping,
-// takes care of formatting, and segments the message if needed.
-func (s *slackConnector) slackifyMessage(targetUserID, prefix, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) []string {
-	maxSize := slack.MaxMessageTextLength - 490
+func (s *slackConnector) applySlackPrefix(targetUserID, prefix, msg string, msgObject *robot.ConnectorMessage) string {
+	mtype := getMsgType(msgObject)
+	if len(prefix) > 0 && (mtype != msgSlashCmd || (targetUserID != msgObject.UserID)) {
+		return prefix + msg
+	}
+	return msg
+}
 
+func (s *slackConnector) formatSlackMessage(msg string, f robot.MessageFormat) string {
 	if f == robot.Raw {
 		msg = normalizeBackticks(msg)
 		msg = s.processRawMessage(msg)
@@ -144,10 +157,6 @@ func (s *slackConnector) slackifyMessage(targetUserID, prefix, msg string, f rob
 			msg = strings.Replace(msg, padChar, paddedString, -1)
 		}
 	}
-	mtype := getMsgType(msgObject)
-	if len(prefix) > 0 && (mtype != msgSlashCmd || (targetUserID != msgObject.UserID)) {
-		msg = prefix + msg
-	}
 	if f == robot.Fixed {
 		f_prefix := "```\n"
 		if strings.HasPrefix(msg, "\n") {
@@ -159,9 +168,12 @@ func (s *slackConnector) slackifyMessage(targetUserID, prefix, msg string, f rob
 		}
 		msg = f_prefix + msg + f_suffix
 	}
+	return msg
+}
 
+func (s *slackConnector) segmentFormattedSlackMessage(msg string) []string {
 	msgLen := len(msg)
-	if msgLen <= maxSize {
+	if msgLen <= slackFormattedMaxSize {
 		return []string{msg}
 	}
 	// It's too big, gotta chop it up. We will send at most maxMessageSplit
@@ -171,11 +183,11 @@ func (s *slackConnector) slackifyMessage(targetUserID, prefix, msg string, f rob
 	// Chop it up into <=maxSize pieces
 	var chunk string
 	inside_block := false
-	for len(msg) > maxSize && len(msgs) < s.maxMessageSplit {
-		lineEnd := strings.LastIndexByte(msg[:maxSize], '\n')
-		if lineEnd == -1 { // no newline in this chunk
-			chunk = msg[:maxSize]
-			msg = msg[maxSize:]
+	for len(msg) > slackFormattedMaxSize && len(msgs) < s.maxMessageSplit {
+		lineEnd := strings.LastIndexByte(msg[:slackFormattedMaxSize], '\n')
+		if lineEnd <= 0 { // no usable newline in this chunk
+			chunk = msg[:slackFormattedMaxSize]
+			msg = msg[slackFormattedMaxSize:]
 		} else {
 			chunk = msg[:lineEnd]
 			msg = msg[lineEnd+1:] // skip over the newline
@@ -185,13 +197,108 @@ func (s *slackConnector) slackifyMessage(targetUserID, prefix, msg string, f rob
 	}
 	if len(msgs) == s.maxMessageSplit { // we've maxed out
 		if len(msg) > 0 { // if there's anything left, we've truncated
-			msgs = append(msgs, "(message too long, truncated)")
+			msgs = append(msgs, slackTruncatedMessage)
 		}
 	} else { // the last chunk fits
 		_, chunk = optAddBlockDelimeters(inside_block, msg)
 		msgs = append(msgs, chunk)
 	}
 	return msgs
+}
+
+func splitSlackBlockText(msg string, maxChunkSize, maxMessageSplit int) []string {
+	if len(msg) <= maxChunkSize {
+		return []string{msg}
+	}
+	msgs := make([]string, 0, maxMessageSplit+1)
+	for len(msg) > maxChunkSize && len(msgs) < maxMessageSplit {
+		lineEnd := strings.LastIndexByte(msg[:maxChunkSize], '\n')
+		var chunk string
+		if lineEnd <= 0 {
+			chunk = msg[:maxChunkSize]
+			msg = msg[maxChunkSize:]
+		} else {
+			chunk = msg[:lineEnd]
+			msg = msg[lineEnd+1:]
+		}
+		msgs = append(msgs, chunk)
+	}
+	if len(msgs) == maxMessageSplit {
+		if len(msg) > 0 {
+			msgs = append(msgs, slackTruncatedMessage)
+		}
+	} else {
+		msgs = append(msgs, msg)
+	}
+	return msgs
+}
+
+func buildSlackVariableBlocks(text string) []slack.Block {
+	return []slack.Block{
+		slack.NewSectionBlock(slack.NewTextBlockObject(slack.PlainTextType, text, false, false), nil, nil),
+	}
+}
+
+func buildSlackFixedBlocks(text string) []slack.Block {
+	preformatted := &slack.RichTextPreformatted{
+		RichTextSection: slack.RichTextSection{
+			Type: slack.RTEPreformatted,
+			Elements: []slack.RichTextSectionElement{
+				slack.NewRichTextSectionTextElement(text, nil),
+			},
+		},
+	}
+	return []slack.Block{
+		slack.NewRichTextBlock("", preformatted),
+	}
+}
+
+func buildSlackTruncationBlocks(text string) []slack.Block {
+	return []slack.Block{
+		slack.NewSectionBlock(slack.NewTextBlockObject(slack.PlainTextType, text, false, false), nil, nil),
+	}
+}
+
+func (s *slackConnector) slackifyLegacyMessage(targetUserID, prefix, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) []string {
+	msg = s.applySlackPrefix(targetUserID, prefix, msg, msgObject)
+	msg = s.formatSlackMessage(msg, f)
+	return s.segmentFormattedSlackMessage(msg)
+}
+
+// slackifyMessage replaces @username with the slack-internal representation, handles escaping,
+// and returns either text-only or block-backed outbound payloads.
+func (s *slackConnector) slackifyMessage(targetUserID, legacyPrefix, blockPrefix, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) []slackOutgoingPayload {
+	if f != robot.Variable && f != robot.Fixed {
+		msgs := s.slackifyLegacyMessage(targetUserID, legacyPrefix, msg, f, msgObject)
+		payloads := make([]slackOutgoingPayload, 0, len(msgs))
+		for _, formatted := range msgs {
+			payloads = append(payloads, slackOutgoingPayload{
+				text:       formatted,
+				legacyText: formatted,
+			})
+		}
+		return payloads
+	}
+
+	blockText := s.applySlackPrefix(targetUserID, blockPrefix, msg, msgObject)
+	chunks := splitSlackBlockText(blockText, slackBlockTextLimit, s.maxMessageSplit)
+	payloads := make([]slackOutgoingPayload, 0, len(chunks))
+	for _, chunk := range chunks {
+		payload := slackOutgoingPayload{
+			text:       chunk,
+			legacyText: s.formatSlackMessage(chunk, f),
+		}
+		switch {
+		case chunk == slackTruncatedMessage:
+			payload.blocks = buildSlackTruncationBlocks(chunk)
+		case f == robot.Variable:
+			payload.blocks = buildSlackVariableBlocks(chunk)
+		default:
+			payload.blocks = buildSlackFixedBlocks(chunk)
+		}
+		payloads = append(payloads, payload)
+	}
+	return payloads
 }
 
 var reAddedLinks = regexp.MustCompile(`<https?://[\w-./]+\|([\w-./]+)>`) // match a slack-inserted link
