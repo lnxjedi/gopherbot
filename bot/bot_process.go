@@ -7,6 +7,7 @@ package bot
 import (
 	crand "crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -301,19 +302,54 @@ func enforceEncryptedKeyFilePermissions(keyFile string) error {
 	return nil
 }
 
+func encryptedKeyFilePaths() (preferred string, fallback string) {
+	preferred = filepath.Join(configPath, encryptedKeyFile)
+	if deployEnvironment == "" || deployEnvironment == "production" {
+		return preferred, ""
+	}
+	fallback = preferred
+	preferred = filepath.Join(configPath, encryptedKeyFile+"."+deployEnvironment)
+	return preferred, fallback
+}
+
+func resolveEncryptedKeyFile() (loadPath string, createPath string, usedFallback bool, err error) {
+	preferred, fallback := encryptedKeyFilePaths()
+
+	if _, statErr := os.Stat(preferred); statErr == nil {
+		return preferred, preferred, false, nil
+	} else if !errors.Is(statErr, os.ErrNotExist) {
+		return "", "", false, statErr
+	}
+
+	if fallback != "" {
+		if _, statErr := os.Stat(fallback); statErr == nil {
+			return fallback, fallback, true, nil
+		} else if !errors.Is(statErr, os.ErrNotExist) {
+			return "", "", false, statErr
+		}
+		return "", fallback, true, nil
+	}
+
+	return "", preferred, false, nil
+}
+
 func initCrypt() bool {
 	// Initialize encryption (new style for v2)
-	keyFileName := encryptedKeyFile
-
-	if deployEnvironment != "production" {
+	if deployEnvironment != "" && deployEnvironment != "production" {
 		Log(robot.Info, "Initializing encryption for the '%s' environment", deployEnvironment)
-		keyFileName += "." + deployEnvironment
 	}
-	keyFile := filepath.Join(configPath, keyFileName)
+	keyFile, createKeyFile, usedFallback, err := resolveEncryptedKeyFile()
+	if err != nil {
+		Log(robot.Error, "Resolving binary encryption key file path: %v", err)
+		return false
+	}
+	if usedFallback && keyFile != "" {
+		Log(robot.Info, "Environment-specific binary encryption key not found, falling back to '%s'", keyFile)
+	}
 	encryptionInitialized := false
 	if ek, ok := lookupEnv(keyEnv); ok {
 		ik := []byte(ek)[0:32]
-		if _, err := os.Stat(keyFile); err == nil {
+		if keyFile != "" {
 			if err := enforceEncryptedKeyFilePermissions(keyFile); err != nil {
 				Log(robot.Error, "Securing encrypted key file '%s': %v", keyFile, err)
 				return false
@@ -337,7 +373,7 @@ func initCrypt() bool {
 				Log(robot.Error, "Reading binary encryption key '%s': %v", keyFile, err)
 			}
 		} else {
-			Log(robot.Warn, "Binary encryption key not loaded from '%s': %v", keyFile, err)
+			Log(robot.Warn, "Binary encryption key file not found, will create '%s'", createKeyFile)
 			if len(currentCfg.encryptionKey) == 0 {
 				// No encryptionKey in config, create new-style key
 				bk := make([]byte, 32)
@@ -353,16 +389,16 @@ func initCrypt() bool {
 				}
 				beks := base64.StdEncoding.EncodeToString(bek)
 				raiseThreadPriv("writing generated encrypted key")
-				err = os.WriteFile(keyFile, []byte(beks), encryptedKeyFileMode)
+				err = os.WriteFile(createKeyFile, []byte(beks), encryptedKeyFileMode)
 				if err != nil {
 					Log(robot.Error, "Writing out generated key: %v", err)
 					return false
 				}
-				if err := enforceEncryptedKeyFilePermissions(keyFile); err != nil {
-					Log(robot.Error, "Securing generated encrypted key file '%s': %v", keyFile, err)
+				if err := enforceEncryptedKeyFilePermissions(createKeyFile); err != nil {
+					Log(robot.Error, "Securing generated encrypted key file '%s': %v", createKeyFile, err)
 					return false
 				}
-				Log(robot.Info, "Successfully wrote new binary encryption key to '%s'", keyFile)
+				Log(robot.Info, "Successfully wrote new binary encryption key to '%s'", createKeyFile)
 				cryptKey.Lock()
 				cryptKey.key = bk
 				cryptKey.initialized = true

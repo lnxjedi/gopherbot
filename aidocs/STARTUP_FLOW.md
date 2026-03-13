@@ -312,8 +312,10 @@ if encryptionInitialized {
 ### `initCrypt()` Flow — `bot/bot_process.go` (func `initCrypt`)
 
 1. Look for `GOPHER_ENCRYPTION_KEY` in environment
-2. If found, try to decrypt the binary key file (`binary-encrypted-key[.environment]`)
-3. If key file does not exist but env key does, generate a new binary key
+2. If found, resolve the binary key file path:
+   - prefer `binary-encrypted-key.<environment>` when `GOPHER_ENVIRONMENT` is non-production and that file exists
+   - otherwise fall back to `binary-encrypted-key`
+3. If neither candidate file exists but env key does, generate a new binary key at the base path `binary-encrypted-key`
 4. If no env key exists, `initCrypt` finishes. A final check for a legacy `EncryptionKey` in `robot.yaml` is performed by `initBot()` after `initCrypt()` returns.
 
 ## Configuration Loading

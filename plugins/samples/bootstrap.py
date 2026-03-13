@@ -77,12 +77,13 @@ else:
 # Set SSH_OPTIONS and GIT_SSH_COMMAND 
 bot.AddTask("ssh-git-helper", ["publishenv"])
 
-tmp_key_name = "binary-encrypted-key"
+tmp_key_names = ["binary-encrypted-key"]
 deploy_env = os.getenv("GOPHER_ENVIRONMENT")
-if deploy_env != "production":
-    tmp_key_name += "." + deploy_env
-tkey = os.path.join(cfgdir, tmp_key_name)
-bot.AddTask("exec", ["rm", "-f", tkey])
+if deploy_env and deploy_env != "production":
+    tmp_key_names.append(f"binary-encrypted-key.{deploy_env}")
+for tmp_key_name in tmp_key_names:
+    tkey = os.path.join(cfgdir, tmp_key_name)
+    bot.AddTask("exec", ["rm", "-f", tkey])
 # touch restore even if GOPHER_BRAIN != file;
 # backup and restore will check and exit
 bot.AddTask("exec", ["touch", ".restore"])
