@@ -10,5 +10,7 @@ Documentation here is meant for human consumption, as opposed to `aidocs/`, mean
 - root `UPGRADING-v3.md` - migration notes for existing robots moving to v3 multi-protocol behavior
 - `devdocs/new-robot-onboarding-epic.md` - planning slices and guardrails for the v3 onboarding epic
 - `devdocs/connector-identity-contract.md` - connector/engine identity contract for username-authoritative multi-protocol behavior
+- `devdocs/proposal1-slice0-baseline.md` - baseline notes for the proposal1 help-metadata / command-recovery work
+- `devdocs/proposal1-help-metadata-coding-handoff.md` - coding handoff notes for proposal1 help metadata and recovery flows
 - `devdocs/security_proof.md` - security-control coverage and manual validation notes
 - `devdocs/ssh_connector.md` - human-facing SSH connector notes

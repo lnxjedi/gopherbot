@@ -32,7 +32,7 @@ func TestJSFull(t *testing.T) {
 			{null, general, "Sending to channel 'general' in thread: 0xDEADBEEF", true},
 			{alice, general, "Sending to user 'alice' in channel 'general' in thread: 0xDEADBEEF", true}},
 			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
-		{aliceID, general, "/;say everything", false, []TestMessage{
+		{aliceID, general, "/bender say everything", false, []TestMessage{
 			{null, general, "(Regular Say)", false},
 			{null, general, "(SayThread, yeah)", true},
 			{alice, general, "(Regular Reply)", false},
@@ -205,9 +205,9 @@ func TestJSFullSecurity(t *testing.T) {
 		{aliceID, general, "123456", false, []TestMessage{
 			{null, general, "There were technical issues validating your code.*", false},
 			{null, general, "Sorry, elevation failed due to a problem with the elevation service", false}}, nil, 0},
-		{aliceID, general, "/;js-sec-hidden-ok", false, []TestMessage{
+		{aliceID, general, "/bender js-sec-hidden-ok", false, []TestMessage{
 			{null, general, "\\(SECURITY CHECK: sechiddenok\\)", false}}, nil, 0},
-		{aliceID, general, "/;js-sec-hidden-denied", false, []TestMessage{
+		{aliceID, general, "/bender js-sec-hidden-denied", false, []TestMessage{
 			{alice, general, "\\(?Sorry, 'jssec/sechiddendenied' cannot be run as a hidden command - use the robot's name or alias\\)?", false}}, nil, 0},
 		{aliceID, general, ";js-sec-adminonly", false, []TestMessage{
 			{null, general, "SECURITY CHECK: secadminonly", false}}, nil, 0},

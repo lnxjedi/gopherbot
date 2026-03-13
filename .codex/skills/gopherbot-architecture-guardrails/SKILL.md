@@ -85,6 +85,10 @@ Prefer multiple coherent PRs over one monolithic refactor.
 - Update `aidocs/COMPONENT_MAP.md` for connector/module movement.
 - Update connector-specific docs (`aidocs/SSH_CONNECTOR.md`, `aidocs/SLACK_CONNECTOR.md`, etc.) when semantics change.
 - For test harness assumptions, verify with `aidocs/TESTING_CURRENT.md`.
+- When integration tests are applicable, finish by running them and classifying each failure as either:
+  - real regression / newly introduced bug
+  - intentional behavior change with outdated test expectations
+- Do not "fix" failing integration tests by updating assertions until that classification is explicit.
 
 ## MCP Note
 

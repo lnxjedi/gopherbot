@@ -23,8 +23,17 @@ AI‑onboarding view: entrypoints, decision points, and data flow for message‑
 - Direct commands → `Commands`: `bot/dispatch.go:handleMessage`, `bot/dispatch.go:checkPluginMatchersAndRun`.
 - Ambient messages → `MessageMatchers`: `bot/dispatch.go:handleMessage`, `bot/dispatch.go:checkPluginMatchersAndRun`.
 - Job triggers / `run job`: `bot/dispatch.go:handleMessage`, `bot/jobrun.go:checkJobMatchersAndRun`.
+- Unmatched directed-command location diagnostics next: when no command/message/job matched, the engine may emit a first-class "wrong location" response if the text regex-matches exactly one plugin command that is available to the same user in a different channel or only via DM. This runs before catch-alls and suppresses hints for command-level authorization when user visibility cannot be determined confidently (for example, authorizers without `usergroups` support).
 - Catch‑alls (only when directly addressed and nothing matched): `bot/dispatch.go:handleMessage`.
 - Thread subscriptions last (`Subscribe`/`Unsubscribe`) keyed by `protocol/channel/thread`, with legacy fallback for restored pre-protocol keys: `bot/dispatch.go:handleMessage`, `bot/subscribe_thread.go`.
+
+Catch-all mode scoping:
+- Plugins may optionally set `CatchAllModes` to any subset of `alias`, `name`, `direct`.
+- `alias` means the robot was addressed through its alias prefix.
+- `name` means the robot was addressed by name/mention form.
+- `direct` means the command arrived in a DM context.
+- During unmatched-command routing, dispatch only considers catch-all plugins whose `CatchAllModes` include the current `cmdMode`.
+- Mode-scoped catchalls are treated as "specific" catchalls for precedence, so an alias-only recovery plugin can coexist with a name/direct fallback without colliding with generic fallback behavior.
 
 ## Hidden Command Policy (routing + safety guard)
 

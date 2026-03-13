@@ -324,7 +324,7 @@ LoadLoop:
 				skip = true
 			case "AllowDirect", "AmbientMatchCommand", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll", "MatchUnlisted", "Quiet":
 				val = &boolval
-			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AllowedHiddenCommands", "AdminCommands", "ParameterSets":
+			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AllowedHiddenCommands", "AdminCommands", "ParameterSets", "CatchAllModes":
 				val = &sarrval
 			case "Commands", "ReplyMatchers", "MessageMatchers", "Arguments":
 				val = &mval
@@ -414,6 +414,12 @@ LoadLoop:
 			case "AllowedHiddenCommands":
 				if isPlugin {
 					plugin.AllowedHiddenCommands = *(val.(*[]string))
+				} else {
+					mismatch = true
+				}
+			case "CatchAllModes":
+				if isPlugin {
+					plugin.CatchAllModes = *(val.(*[]string))
 				} else {
 					mismatch = true
 				}
@@ -671,6 +677,20 @@ LoadLoop:
 		// Make sure all security-related command lists resolve to actual
 		// commands to guard against typos.
 		if isPlugin {
+			if len(plugin.CatchAllModes) > 0 {
+				for _, mode := range plugin.CatchAllModes {
+					switch strings.TrimSpace(strings.ToLower(mode)) {
+					case "alias", "name", "direct":
+					default:
+						msg := fmt.Sprintf("Disabling %s, invalid CatchAllModes value '%s' (expected alias, name, or direct)", task.name, mode)
+						Log(robot.Error, msg)
+						task.Disabled = true
+						task.reason = msg
+						continue LoadLoop
+					}
+				}
+			}
+
 			cmdlist := []struct {
 				ctype string
 				clist []string

@@ -32,7 +32,7 @@ func TestLuaFull(t *testing.T) {
 			{null, general, "Sending to channel 'general' in thread: 0xDEADBEEF", true},
 			{alice, general, "Sending to user 'alice' in channel 'general' in thread: 0xDEADBEEF", true}},
 			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
-		{aliceID, general, "/;say everything", false, []TestMessage{
+		{aliceID, general, "/bender say everything", false, []TestMessage{
 			{null, general, "(Regular Say)", false},
 			{null, general, "(SayThread, yeah)", true},
 			{alice, general, "(Regular Reply)", false},
@@ -205,9 +205,9 @@ func TestLuaFullSecurity(t *testing.T) {
 		{aliceID, general, "123456", false, []TestMessage{
 			{null, general, "There were technical issues validating your code.*", false},
 			{null, general, "Sorry, elevation failed due to a problem with the elevation service", false}}, nil, 0},
-		{aliceID, general, "/;lua-sec-hidden-ok", false, []TestMessage{
+		{aliceID, general, "/bender lua-sec-hidden-ok", false, []TestMessage{
 			{null, general, "\\(SECURITY CHECK: sechiddenok\\)", false}}, nil, 0},
-		{aliceID, general, "/;lua-sec-hidden-denied", false, []TestMessage{
+		{aliceID, general, "/bender lua-sec-hidden-denied", false, []TestMessage{
 			{alice, general, "\\(?Sorry, 'luasec/sechiddendenied' cannot be run as a hidden command - use the robot's name or alias\\)?", false}}, nil, 0},
 		{aliceID, general, ";lua-sec-adminonly", false, []TestMessage{
 			{null, general, "SECURITY CHECK: secadminonly", false}}, nil, 0},
