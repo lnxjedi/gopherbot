@@ -110,6 +110,9 @@ func setup(cfgdir, logfile string, t *testing.T) (<-chan bool, *testc.TestConnec
 }
 
 func teardown(t *testing.T, done <-chan bool, conn *testc.TestConnector) {
+	WaitForBackgroundInitsForTesting()
+	GetEvents()
+
 	// Alice is a bot admin who can order the bot to quit in #general
 	conn.SendBotMessage(&testc.TestMessage{aliceID, null, "quit", false, false})
 
@@ -147,6 +150,7 @@ func teardown(t *testing.T, done <-chan bool, conn *testc.TestConnector) {
 
 func testcases(t *testing.T, conn *testc.TestConnector, tests []testItem) {
 	for _, test := range tests {
+		WaitForBackgroundInitsForTesting()
 		// Clear out start-up events
 		GetEvents()
 		hidden := false
@@ -199,12 +203,15 @@ func testcases(t *testing.T, conn *testc.TestConnector, tests []testItem) {
 		if test.pause > 0 {
 			time.Sleep(time.Millisecond * time.Duration(test.pause))
 		}
+		WaitForBackgroundInitsForTesting()
+		GetEvents()
 	}
 }
 
 // testcaseRepliesOnly is for cases where asynchronous behavior makes
 // event ordering intentionally non-deterministic (e.g. SpawnJob).
 func testcaseRepliesOnly(t *testing.T, conn *testc.TestConnector, test testItem) {
+	WaitForBackgroundInitsForTesting()
 	// Clear any emitted events from the previous step.
 	GetEvents()
 
@@ -238,6 +245,7 @@ func testcaseRepliesOnly(t *testing.T, conn *testc.TestConnector, test testItem)
 		time.Sleep(time.Millisecond * time.Duration(test.pause))
 	}
 
+	WaitForBackgroundInitsForTesting()
 	// Clear events from this step so teardown sees only quit-path events.
 	GetEvents()
 }

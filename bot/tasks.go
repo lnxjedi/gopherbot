@@ -212,6 +212,8 @@ func initializePlugins() {
 		protocol = currentCfg.protocol
 	}
 	currentCfg.RUnlock()
+	batch := newPluginInitBatch()
+	setCurrentPluginInitBatch(batch)
 	state.Lock()
 	if !state.shuttingDown {
 		state.Unlock()
@@ -232,9 +234,15 @@ func initializePlugins() {
 				id:            getWorkerID(),
 			}
 			Log(robot.Info, "Initializing plugin: %s", task.name)
-			go w.startPipeline(nil, t, plugCommand, "init")
+			batch.add()
+			go func(w *worker, t interface{}) {
+				defer batch.complete()
+				w.startPipeline(nil, t, plugCommand, "init")
+			}(w, t)
 		}
+		batch.seal()
 	} else {
 		state.Unlock()
+		batch.seal()
 	}
 }

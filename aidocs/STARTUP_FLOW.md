@@ -26,6 +26,10 @@ Internal exception:
 * `main.go` → `bot.Start()` in `bot/start.go`
 * `bot.Start()` → `initBot()` → `run()` in `bot/bot_process.go`
 
+Test harness note:
+
+- `StartTest()` in `bot/start_t.go` follows the same `initBot()` → `run()` path, then waits for the current async plugin-init batch to reach quiescence before returning to the integration harness. This test-only barrier does not change production startup behavior.
+
 CLI note:
 
 - `--aidev <token>` enables AI development mode for the process (used by MCP automation flows).

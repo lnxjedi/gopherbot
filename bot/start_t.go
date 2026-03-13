@@ -81,6 +81,8 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (chan bool, 
 	}
 
 	run()
+	waitForPluginInitQuiescence()
+	GetEvents()
 
 	bk := filepath.Join(installPath, cfgdir, "binary-encrypted-key")
 	if err := os.Remove(bk); err != nil {

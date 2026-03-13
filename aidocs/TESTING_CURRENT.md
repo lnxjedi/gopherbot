@@ -11,7 +11,7 @@ Focus: integration test harness under `test/` and how tests are executed.
 ## Harness entrypoints
 
 - `setup()` in `test/common_test.go` starts the bot via `StartTest()` and relies on the test configs to choose the `test` protocol.
-- `StartTest()` is defined in `bot/start_t.go` (only built with `test` tag). It locates the repo root by walking up until `conf/robot.yaml` is found, `chdir`s there so startup mode resolves to `test-dev`, initializes connector runtime via `initializeConnectorRuntime`, and then runs `run()` (see also `bot/bot_process.go` and `bot/connector_runtime.go`).
+- `StartTest()` is defined in `bot/start_t.go` (only built with `test` tag). It locates the repo root by walking up until `conf/robot.yaml` is found, `chdir`s there so startup mode resolves to `test-dev`, initializes connector runtime via `initializeConnectorRuntime`, runs `run()`, then waits for the current async plugin-init batch to drain before clearing startup events and returning control to the harness (see also `bot/bot_process.go`, `bot/tasks.go`, and `bot/connector_runtime.go`).
 - The test connector is registered in `connectors/test/init.go` (`bot.RegisterConnector("test", Initialize)`), and its runtime loop lives in `connectors/test/connector.go` (`(*TestConnector).Run`).
 
 ## setup / teardown / testcases flow
@@ -19,10 +19,10 @@ Focus: integration test harness under `test/` and how tests are executed.
 - `setup(cfgdir, logfile, t)` sets `GOPHER_ENCRYPTION_KEY`, wires `testc.ExportTest.Test`, and calls `StartTest()` (see `test/common_test.go`).
 - `teardown(t, done, conn)` sends a `quit` message and waits on `done`, then checks emitted events from `GetEvents()` (see `test/common_test.go` and `bot/emit_testing.go`).
 - `testcases(t, conn, tests)` drives each test by:
-  - Clearing startup events with `GetEvents()` before sending the message (see `test/common_test.go`).
+  - Waiting for any in-flight async plugin-init batch to finish, then clearing startup/background-init events with `GetEvents()` before sending the message (see `test/common_test.go`).
   - Sending the message through `conn.SendBotMessage` (type `testc.TestMessage` in `connectors/test/connector.go`).
   - Matching expected replies using regex on `TestMessage.Message` and strict equality on user/channel/threaded fields (see `test/common_test.go`).
-  - Comparing observed `[]Event` from `GetEvents()` with expected events (event type `Event` in `bot/events.go`).
+  - Comparing observed `[]Event` from `GetEvents()` with expected events (event type `Event` in `bot/events.go`), then waiting/draining again so late init events from reload-like flows do not leak into later cases or teardown.
 
 ## Integration Failure Triage
 
