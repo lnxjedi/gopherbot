@@ -308,11 +308,20 @@ if encryptionInitialized {
 ### `initCrypt()` Flow — `bot/bot_process.go` (func `initCrypt`)
 
 1. Look for `GOPHER_ENCRYPTION_KEY` in environment
-2. If found, try to decrypt the shared binary key file (`binary-encrypted-key`)
-3. If key file does not exist but env key does, generate a new binary key
-4. If no env key exists, `initCrypt` finishes. A final check for a legacy `EncryptionKey` in `robot.yaml` is performed by `initBot()` after `initCrypt()` returns.
+2. Choose the binary key file:
+   - prefer `binary-encrypted-key.<GOPHER_ENVIRONMENT>` when that file exists
+   - if the environment-specific file is missing, log a warning and fall back to the shared `binary-encrypted-key`
+3. If the selected key file exists, try to decrypt it
+4. If the selected key file does not exist but the shared file was selected directly, generate a new binary key there
+5. If no env key exists, `initCrypt` finishes. A final check for a legacy `EncryptionKey` in `robot.yaml` is performed by `initBot()` after `initCrypt()` returns.
 
-`GOPHER_ENVIRONMENT` does not select a separate encryption key file. Its custom-robot meaning is environment-file selection in `custom/conf/environments/`, not decryption-domain switching for shared encrypted config.
+`GOPHER_ENVIRONMENT` therefore has two related startup roles:
+- selecting custom robot environment files under `custom/conf/environments/`
+- optionally selecting a separate encrypted binary key file when an environment-specific key file is intentionally present
+
+Operational note:
+- this preserves easy reuse of the shared encrypted-secret domain in development by default
+- operators can still opt into separate encrypted credentials for a given environment by creating `binary-encrypted-key.<environment>`
 
 ## Configuration Loading
 

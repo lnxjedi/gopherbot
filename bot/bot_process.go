@@ -301,9 +301,26 @@ func enforceEncryptedKeyFilePermissions(keyFile string) error {
 	return nil
 }
 
+func encryptedKeyFileForEnvironment() string {
+	keyFile := filepath.Join(configPath, encryptedKeyFile)
+	environment := strings.TrimSpace(getEnv("GOPHER_ENVIRONMENT"))
+	if environment == "" {
+		return keyFile
+	}
+	envSpecific := keyFile + "." + environment
+	if _, err := os.Stat(envSpecific); err == nil {
+		return envSpecific
+	} else if !os.IsNotExist(err) {
+		Log(robot.Warn, "Unable to inspect environment-specific encrypted key '%s': %v; falling back to '%s'", envSpecific, err, keyFile)
+		return keyFile
+	}
+	Log(robot.Warn, "Environment-specific encrypted key '%s' not found; falling back to '%s'", envSpecific, keyFile)
+	return keyFile
+}
+
 func initCrypt() bool {
 	// Initialize encryption (new style for v2)
-	keyFile := filepath.Join(configPath, encryptedKeyFile)
+	keyFile := encryptedKeyFileForEnvironment()
 	encryptionInitialized := false
 	if ek, ok := lookupEnv(keyEnv); ok {
 		ik := []byte(ek)[0:32]
