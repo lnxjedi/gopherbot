@@ -1,11 +1,11 @@
-[mcp_servers.gopherbot-mcp]
-command = "gopherbot-mcp"
-
 sandbox_mode = "workspace-write"
 
 [sandbox_workspace_write]
 writable_roots = [
   ".",
-  "../gopherbot-doc",
-  "../clu/custom",
+  "../../gopherbot-doc",
+  "../../clu/custom",
 ]
+
+[mcp_servers.gopherbot-mcp]
+command = "gopherbot-mcp"
