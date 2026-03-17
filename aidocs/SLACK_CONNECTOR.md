@@ -35,7 +35,7 @@ This file captures Slack connector behavior relevant to routing, hidden commands
 ## Outgoing Format Behavior
 
 - `Raw` keeps legacy Slack-native behavior (including connector-local `@username` handling outside fenced blocks).
-- `Variable` sends a Block Kit `section` block with `plain_text` so the visible body preserves the exact message text without Slack markdown/mention/link interpretation.
+- `Variable` sends a Block Kit `rich_text` block with a plain `rich_text_section` so the visible body preserves the exact message text without relying on Slack markdown parsing.
 - `Fixed` sends a Block Kit `rich_text` block using `rich_text_preformatted` so fixed-width output renders as native Slack preformatted content instead of literal triple-backtick fences.
 - Block-backed `Variable` / `Fixed` sends still include top-level fallback text for notifications/accessibility and legacy RTM fallback behavior.
 - Targeted user-in-channel sends use a readable literal prefix in block-backed output (for example `@alice: ...`) instead of exposing Slack internal mention tokens in the visible body.

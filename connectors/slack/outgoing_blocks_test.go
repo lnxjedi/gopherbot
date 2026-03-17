@@ -8,7 +8,7 @@ import (
 	"github.com/slack-go/slack"
 )
 
-func TestSlackifyMessageVariableUsesPlainTextBlocks(t *testing.T) {
+func TestSlackifyMessageVariableUsesRichTextBlocks(t *testing.T) {
 	s := &slackConnector{maxMessageSplit: 1}
 
 	msgs := s.slackifyMessage("", "", "", "literal @here and https://example.com", robot.Variable, &robot.ConnectorMessage{})
@@ -19,21 +19,31 @@ func TestSlackifyMessageVariableUsesPlainTextBlocks(t *testing.T) {
 		t.Fatalf("payload text = %q", got)
 	}
 
-	block, ok := msgs[0].blocks[0].(*slack.SectionBlock)
+	block, ok := msgs[0].blocks[0].(*slack.RichTextBlock)
 	if !ok {
-		t.Fatalf("expected SectionBlock, got %T", msgs[0].blocks[0])
+		t.Fatalf("expected RichTextBlock, got %T", msgs[0].blocks[0])
 	}
-	if block.Text == nil {
-		t.Fatalf("expected text object on section block")
+	if len(block.Elements) != 1 {
+		t.Fatalf("expected 1 rich text element, got %d", len(block.Elements))
 	}
-	if block.Text.Type != slack.PlainTextType {
-		t.Fatalf("expected plain_text block, got %q", block.Text.Type)
+
+	section, ok := block.Elements[0].(*slack.RichTextSection)
+	if !ok {
+		t.Fatalf("expected RichTextSection, got %T", block.Elements[0])
 	}
-	if block.Text.Text != "literal @here and https://example.com" {
-		t.Fatalf("section text = %q", block.Text.Text)
+	if section.Type != slack.RTESection {
+		t.Fatalf("expected rich text section type, got %q", section.Type)
 	}
-	if block.Text.Verbatim {
-		t.Fatalf("plain_text block should not set verbatim")
+	if len(section.Elements) != 1 {
+		t.Fatalf("expected 1 section element, got %d", len(section.Elements))
+	}
+
+	textElem, ok := section.Elements[0].(*slack.RichTextSectionTextElement)
+	if !ok {
+		t.Fatalf("expected text element, got %T", section.Elements[0])
+	}
+	if textElem.Text != "literal @here and https://example.com" {
+		t.Fatalf("rich text section text = %q", textElem.Text)
 	}
 }
 
@@ -84,11 +94,19 @@ func TestSlackifyMessageVariableUsesReadableBlockPrefix(t *testing.T) {
 		t.Fatalf("expected 1 message, got %d", len(msgs))
 	}
 
-	block, ok := msgs[0].blocks[0].(*slack.SectionBlock)
+	block, ok := msgs[0].blocks[0].(*slack.RichTextBlock)
 	if !ok {
-		t.Fatalf("expected SectionBlock, got %T", msgs[0].blocks[0])
+		t.Fatalf("expected RichTextBlock, got %T", msgs[0].blocks[0])
 	}
-	if got := block.Text.Text; got != "@alice: hello" {
+	section, ok := block.Elements[0].(*slack.RichTextSection)
+	if !ok {
+		t.Fatalf("expected RichTextSection, got %T", block.Elements[0])
+	}
+	textElem, ok := section.Elements[0].(*slack.RichTextSectionTextElement)
+	if !ok {
+		t.Fatalf("expected text element, got %T", section.Elements[0])
+	}
+	if got := textElem.Text; got != "@alice: hello" {
 		t.Fatalf("section text = %q", got)
 	}
 	if !strings.Contains(msgs[0].legacyText, "@alice") {
@@ -104,18 +122,34 @@ func TestSlackifyMessageVariableSplitsToBlockLimit(t *testing.T) {
 	if len(msgs) != 2 {
 		t.Fatalf("expected 2 messages, got %d", len(msgs))
 	}
-	first, ok := msgs[0].blocks[0].(*slack.SectionBlock)
+	first, ok := msgs[0].blocks[0].(*slack.RichTextBlock)
 	if !ok {
-		t.Fatalf("expected SectionBlock, got %T", msgs[0].blocks[0])
+		t.Fatalf("expected RichTextBlock, got %T", msgs[0].blocks[0])
 	}
-	if len(first.Text.Text) != slackBlockTextLimit {
-		t.Fatalf("expected first block chunk length %d, got %d", slackBlockTextLimit, len(first.Text.Text))
-	}
-	second, ok := msgs[1].blocks[0].(*slack.SectionBlock)
+	firstSection, ok := first.Elements[0].(*slack.RichTextSection)
 	if !ok {
-		t.Fatalf("expected SectionBlock, got %T", msgs[1].blocks[0])
+		t.Fatalf("expected RichTextSection, got %T", first.Elements[0])
 	}
-	if len(second.Text.Text) != 10 {
-		t.Fatalf("expected second block chunk length 10, got %d", len(second.Text.Text))
+	firstText, ok := firstSection.Elements[0].(*slack.RichTextSectionTextElement)
+	if !ok {
+		t.Fatalf("expected text element, got %T", firstSection.Elements[0])
+	}
+	if len(firstText.Text) != slackBlockTextLimit {
+		t.Fatalf("expected first block chunk length %d, got %d", slackBlockTextLimit, len(firstText.Text))
+	}
+	second, ok := msgs[1].blocks[0].(*slack.RichTextBlock)
+	if !ok {
+		t.Fatalf("expected RichTextBlock, got %T", msgs[1].blocks[0])
+	}
+	secondSection, ok := second.Elements[0].(*slack.RichTextSection)
+	if !ok {
+		t.Fatalf("expected RichTextSection, got %T", second.Elements[0])
+	}
+	secondText, ok := secondSection.Elements[0].(*slack.RichTextSectionTextElement)
+	if !ok {
+		t.Fatalf("expected text element, got %T", secondSection.Elements[0])
+	}
+	if len(secondText.Text) != 10 {
+		t.Fatalf("expected second block chunk length 10, got %d", len(secondText.Text))
 	}
 }

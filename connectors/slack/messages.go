@@ -235,7 +235,9 @@ func splitSlackBlockText(msg string, maxChunkSize, maxMessageSplit int) []string
 
 func buildSlackVariableBlocks(text string) []slack.Block {
 	return []slack.Block{
-		slack.NewSectionBlock(slack.NewTextBlockObject(slack.PlainTextType, text, false, false), nil, nil),
+		slack.NewRichTextBlock("", slack.NewRichTextSection(
+			slack.NewRichTextSectionTextElement(text, nil),
+		)),
 	}
 }
 
