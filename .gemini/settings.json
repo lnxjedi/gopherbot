@@ -1,0 +1,21 @@
+{
+  "general": {
+    "defaultApprovalMode": "auto_edit"
+  },
+  "context": {
+    "includeDirectories": [
+      "../gopherbot-doc",
+      "../clu/custom"
+    ]
+  },
+  "tools": {
+    "sandbox": false,
+    "allowTerminal": true,
+    "allowFileWrite": true
+  },
+  "mcpServers": {
+    "gopherbot-mcp": {
+      "command": "gopherbot-mcp"
+    }
+  }
+}
