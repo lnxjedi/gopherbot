@@ -2,6 +2,19 @@ package ssh
 
 import "strings"
 
+var basicMarkdownCoreEmoji = map[string]string{
+	"white_check_mark": "\u2705",
+	"warning":          "\u26a0\ufe0f",
+	"x":                "\u274c",
+	"rocket":           "\U0001f680",
+	"fire":             "\U0001f525",
+	"joy":              "\U0001f602",
+	"thinking_face":    "\U0001f914",
+	"eyes":             "\U0001f440",
+	"thumbsup":         "\U0001f44d",
+	"thumbsdown":       "\U0001f44e",
+}
+
 func renderBasicMarkdownPlain(msg string) string {
 	var out strings.Builder
 	inFence := false
@@ -89,6 +102,7 @@ func isEscapedAt(msg string, idx int) bool {
 func renderBasicMarkdownPlainChunk(msg string) string {
 	msg, escapedLiterals := protectBasicMarkdownEscapes(msg)
 	msg = replaceBasicMarkdownLinks(msg)
+	msg = replaceBasicMarkdownEmoji(msg)
 	msg = removeBasicMarkdownEmphasis(msg)
 	msg = restoreEscapedLiterals(msg, escapedLiterals)
 	return msg
@@ -177,6 +191,77 @@ func isBasicMarkdownLinkURL(url string) bool {
 		return false
 	}
 	return strings.HasPrefix(url, "https://") || strings.HasPrefix(url, "http://")
+}
+
+func replaceBasicMarkdownEmoji(msg string) string {
+	var out strings.Builder
+
+	for i := 0; i < len(msg); {
+		if msg[i] != ':' {
+			out.WriteByte(msg[i])
+			i++
+			continue
+		}
+
+		end := findBasicMarkdownEmojiEnd(msg, i)
+		if end == -1 {
+			out.WriteByte(msg[i])
+			i++
+			continue
+		}
+
+		name := msg[i+1 : end]
+		if emoji, ok := basicMarkdownCoreEmoji[name]; ok {
+			out.WriteString(emoji)
+		} else {
+			out.WriteString(msg[i : end+1])
+		}
+		i = end + 1
+	}
+
+	return out.String()
+}
+
+func findBasicMarkdownEmojiEnd(msg string, start int) int {
+	if start < 0 || start >= len(msg) || msg[start] != ':' {
+		return -1
+	}
+	if start > 0 && isBasicMarkdownEmojiNameChar(msg[start-1]) {
+		return -1
+	}
+	nameStart := start + 1
+	if nameStart >= len(msg) || !isBasicMarkdownEmojiNameChar(msg[nameStart]) {
+		return -1
+	}
+	for i := nameStart; i < len(msg); i++ {
+		switch {
+		case msg[i] == ':':
+			if i+1 < len(msg) && isBasicMarkdownEmojiNameChar(msg[i+1]) {
+				return -1
+			}
+			return i
+		case isBasicMarkdownEmojiNameChar(msg[i]):
+			continue
+		default:
+			return -1
+		}
+	}
+	return -1
+}
+
+func isBasicMarkdownEmojiNameChar(ch byte) bool {
+	switch {
+	case ch >= 'a' && ch <= 'z':
+		return true
+	case ch >= 'A' && ch <= 'Z':
+		return true
+	case ch >= '0' && ch <= '9':
+		return true
+	case ch == '_' || ch == '+' || ch == '-':
+		return true
+	default:
+		return false
+	}
 }
 
 func removeBasicMarkdownEmphasis(msg string) string {

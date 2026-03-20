@@ -141,7 +141,8 @@ Message format behavior:
   - fenced code fences removed (including optional language hint), preserving code lines
   - markdown links degraded to `label (https://...)`
   - escaped literals (for example `\*`, ``\` ``, `\@`) unescaped
-  - mentions and emoji pass through as literal text
+  - mentions pass through as literal text
+  - core emoji shortcodes (for example `:white_check_mark:`, `:rocket:`) are expanded to Unicode outside inline/fenced code; unknown shortcodes remain literal
 
 ### User input
 
