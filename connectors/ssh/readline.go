@@ -314,33 +314,19 @@ func (c *sshClient) dmLabel(evt bufferMsg) string {
 }
 
 func (c *sshClient) formatMessageBodyWithHeader(header, headerColored string, evt bufferMsg) string {
-	body := " " + evt.text
-	wrapped := c.wrapLine(header + body)
-	if !c.color || headerColored == "" {
-		return wrapped
-	}
-
 	bodyKind := "user"
 	if evt.isBot {
 		bodyKind = "bot"
 	}
-
-	lines := strings.Split(wrapped, "\n")
-	if len(lines) == 0 {
-		return wrapped
+	bodyText := evt.text
+	if c.color && evt.basicMarkdownSource != "" {
+		bodyText = renderBasicMarkdownStyled(evt.basicMarkdownSource)
 	}
-	if strings.HasPrefix(lines[0], header) {
-		remainder := lines[0][len(header):]
-		lines[0] = headerColored + c.colorize(bodyKind, remainder)
-		for i := 1; i < len(lines); i++ {
-			lines[i] = c.colorize(bodyKind, lines[i])
-		}
-		return strings.Join(lines, "\n")
+	body := " " + bodyText
+	if !c.color || headerColored == "" {
+		return c.wrapLine(header + body)
 	}
-	for i := 0; i < len(lines); i++ {
-		lines[i] = c.colorize(bodyKind, lines[i])
-	}
-	return strings.Join(lines, "\n")
+	return c.wrapLine(headerColored + c.colorize(bodyKind, body))
 }
 
 func (c *sshClient) colorizeLines(kind, s string) string {

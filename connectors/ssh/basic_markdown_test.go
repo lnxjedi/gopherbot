@@ -1,7 +1,9 @@
 package ssh
 
 import (
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
@@ -60,6 +62,24 @@ func TestRenderBasicMarkdownPlainEmojiMalformedToken(t *testing.T) {
 	}
 }
 
+func TestRenderBasicMarkdownStyled(t *testing.T) {
+	in := "**Deploy status:** *rollback in progress* `kubectl get pods` :rocket:\nSee [runbook](https://example.com/runbook)"
+	got := renderBasicMarkdownStyled(in)
+	want := "\x1b[1mDeploy status:\x1b[22m \x1b[3mrollback in progress\x1b[23m kubectl get pods \U0001f680\nSee runbook (https://example.com/runbook)"
+	if got != want {
+		t.Fatalf("renderBasicMarkdownStyled() = %q, want %q", got, want)
+	}
+}
+
+func TestRenderBasicMarkdownStyledDoesNotParseCode(t *testing.T) {
+	in := "Inline `**stay** :joy:`\n```txt\n*still literal* :rocket:\n```\nDone *now*"
+	got := renderBasicMarkdownStyled(in)
+	want := "Inline **stay** :joy:\n\n*still literal* :rocket:\n\nDone \x1b[3mnow\x1b[23m"
+	if got != want {
+		t.Fatalf("renderBasicMarkdownStyled() = %q, want %q", got, want)
+	}
+}
+
 func TestSendProtocolChannelThreadMessageBasicMarkdown(t *testing.T) {
 	sc := &sshConnector{
 		cfg:     sshConfig{DefaultChannel: "general"},
@@ -82,6 +102,41 @@ func TestSendProtocolChannelThreadMessageBasicMarkdown(t *testing.T) {
 	}
 	if snap[0].text != "Deploy status: rollback in progress \u2705" {
 		t.Fatalf("buffered text = %q", snap[0].text)
+	}
+}
+
+func TestFormatMessageBasicMarkdownUsesStyledDisplaySource(t *testing.T) {
+	client := &sshClient{
+		userName: "alice",
+		channel:  "general",
+		width:    200,
+		color:    true,
+		colorScheme: map[string]int{
+			"prompt":    39,
+			"timestamp": 244,
+			"bot":       81,
+			"user":      114,
+		},
+	}
+	evt := bufferMsg{
+		timestamp:           time.Date(2026, time.March, 20, 9, 15, 45, 0, time.UTC),
+		userName:            "floyd",
+		userID:              "botid",
+		isBot:               true,
+		channel:             "general",
+		text:                "Deploy status: rollback in progress",
+		basicMarkdownSource: "**Deploy status:** *rollback in progress*",
+	}
+
+	got := client.formatMessage(evt, false, false)
+	if !strings.Contains(got, "\x1b[1mDeploy status:\x1b[22m") {
+		t.Fatalf("formatted message missing bold ANSI: %q", got)
+	}
+	if !strings.Contains(got, "\x1b[3mrollback in progress\x1b[23m") {
+		t.Fatalf("formatted message missing italic ANSI: %q", got)
+	}
+	if !strings.Contains(got, "09:15:45") {
+		t.Fatalf("formatted message missing timestamp: %q", got)
 	}
 }
 

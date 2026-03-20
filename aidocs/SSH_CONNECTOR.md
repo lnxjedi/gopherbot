@@ -136,7 +136,7 @@ Message format behavior:
 
 - `Raw` / `Fixed` / `Variable`: preserved as-is (same connector behavior as before).
 - `BasicMarkdown`: rendered to plain-text-safe output for SSH:
-  - bold/italic markers removed
+  - when `Color` is enabled, bold and italics use ANSI SGR in live SSH output; otherwise markers are removed
   - inline code/backticks removed, keeping inner text
   - fenced code fences removed (including optional language hint), preserving code lines
   - markdown links degraded to `label (https://...)`

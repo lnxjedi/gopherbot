@@ -61,6 +61,8 @@ type bufferMsg struct {
 	dmPeerID  string
 	hidden    bool
 	visibleTo string
+
+	basicMarkdownSource string
 }
 
 type sshConfig struct {
@@ -656,49 +658,57 @@ func (sc *sshConnector) JoinChannel(c string) (ret robot.RetVal) {
 }
 
 func (sc *sshConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+	plain, markdownSource := prepareSSHDisplayMessage(msg, f)
 	if f == robot.BasicMarkdown {
-		msg = renderBasicMarkdownPlain(msg)
+		msg = plain
 	}
 	ch = sc.normalizeChannel(ch)
 	threaded := len(thr) > 0
 	evt := bufferMsg{
-		timestamp: time.Now(),
-		userName:  sc.botName,
-		userID:    sc.botID,
-		isBot:     true,
-		channel:   ch,
-		threadID:  thr,
-		threaded:  threaded,
-		text:      msg,
+		timestamp:           time.Now(),
+		userName:            sc.botName,
+		userID:              sc.botID,
+		isBot:               true,
+		channel:             ch,
+		threadID:            thr,
+		threaded:            threaded,
+		text:                msg,
+		basicMarkdownSource: markdownSource,
 	}
 	sc.broadcast(evt, msgObject)
 	return robot.Ok
 }
 
 func (sc *sshConnector) SendProtocolUserChannelThreadMessage(uname, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+	plain, markdownSource := prepareSSHDisplayMessage(msg, f)
 	if f == robot.BasicMarkdown {
-		msg = renderBasicMarkdownPlain(msg)
+		msg = plain
 	}
 	ch = sc.normalizeChannel(ch)
 	formatted := "@" + uname + " " + msg
+	if markdownSource != "" {
+		markdownSource = "@" + uname + " " + markdownSource
+	}
 	threaded := len(thr) > 0
 	evt := bufferMsg{
-		timestamp: time.Now(),
-		userName:  sc.botName,
-		userID:    sc.botID,
-		isBot:     true,
-		channel:   ch,
-		threadID:  thr,
-		threaded:  threaded,
-		text:      formatted,
+		timestamp:           time.Now(),
+		userName:            sc.botName,
+		userID:              sc.botID,
+		isBot:               true,
+		channel:             ch,
+		threadID:            thr,
+		threaded:            threaded,
+		text:                formatted,
+		basicMarkdownSource: markdownSource,
 	}
 	sc.broadcast(evt, msgObject)
 	return robot.Ok
 }
 
 func (sc *sshConnector) SendProtocolUserMessage(u string, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+	plain, markdownSource := prepareSSHDisplayMessage(msg, f)
 	if f == robot.BasicMarkdown {
-		msg = renderBasicMarkdownPlain(msg)
+		msg = plain
 	}
 	info, ok := sc.resolveUser(sc.normalizeUser(u))
 	if !ok {
@@ -710,6 +720,7 @@ func (sc *sshConnector) SendProtocolUserMessage(u string, msg string, f robot.Me
 	}
 
 	evt := sc.directEvent(sc.botName, sc.botID, true, info.userName, info.userID, msg, time.Now())
+	evt.basicMarkdownSource = markdownSource
 	sc.appendBuffer(evt)
 	for _, client := range clients {
 		client.writeMessageAsync(evt, false, false)
@@ -890,6 +901,7 @@ func (sc *sshConnector) appendBuffer(evt bufferMsg) uint64 {
 	msg := evt.text
 	if len(msg) > maxBufferBytes {
 		msg = msg[:maxBufferBytes]
+		evt.basicMarkdownSource = ""
 	}
 	evt.text = msg
 
@@ -909,6 +921,13 @@ func (sc *sshConnector) appendBuffer(evt bufferMsg) uint64 {
 	}
 	sc.mu.Unlock()
 	return evt.seq
+}
+
+func prepareSSHDisplayMessage(msg string, f robot.MessageFormat) (plain string, basicMarkdownSource string) {
+	if f != robot.BasicMarkdown {
+		return msg, ""
+	}
+	return renderBasicMarkdownPlain(msg), msg
 }
 
 func (sc *sshConnector) replayBuffer(client *sshClient) int {

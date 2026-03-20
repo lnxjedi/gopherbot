@@ -96,7 +96,7 @@ func (w Wrapper) Wrap(s string, limit int) string {
 	// Subtract the length of the prefix and suffix from the limit
 	// so we don't break length limits when using them.
 	if w.LimitIncludesPrefixSuffix {
-		limit -= utf8.RuneCountInString(w.OutputLinePrefix) + utf8.RuneCountInString(w.OutputLineSuffix)
+		limit -= visibleRuneCount(w.OutputLinePrefix) + visibleRuneCount(w.OutputLineSuffix)
 	}
 
 	var ret string
@@ -115,16 +115,17 @@ func (w Wrapper) Wrap(s string, limit int) string {
 // line will wrap a single line of text at the given length.
 // If limit is less than 1, the string remains unwrapped.
 func (w Wrapper) line(s string, limit int) string {
-	if limit < 1 || utf8.RuneCountInString(s) < limit+1 {
+	tokens := tokenizeWrapLine(s, w.Breakpoints)
+	if limit < 1 || visibleTokenCount(tokens) < limit+1 {
 		return w.OutputLinePrefix + s + w.OutputLineSuffix
 	}
 
 	// Find the index of the last breakpoint within the limit.
-	i := strings.LastIndexAny(s[:limit+1], w.Breakpoints)
+	i := lastVisibleBreakpoint(tokens, limit+1)
 
 	// Can't wrap within the limit, wrap at the next breakpoint instead.
 	if i < 0 {
-		i = strings.IndexAny(s, w.Breakpoints)
+		i = firstVisibleBreakpoint(tokens)
 		// Nothing left to do!
 		if i < 0 {
 			return w.OutputLinePrefix + s + w.OutputLineSuffix
@@ -132,5 +133,90 @@ func (w Wrapper) line(s string, limit int) string {
 	}
 
 	// Recurse until we have nothing left to do.
-	return w.OutputLinePrefix + s[:i] + w.OutputLineSuffix + w.Newline + w.line(s[i+1:], limit)
+	return w.OutputLinePrefix + joinWrapTokens(tokens[:i]) + w.OutputLineSuffix + w.Newline + w.line(joinWrapTokens(tokens[i+1:]), limit)
+}
+
+type wrapToken struct {
+	text       string
+	visible    bool
+	breakpoint bool
+}
+
+func tokenizeWrapLine(s, breakpoints string) []wrapToken {
+	tokens := make([]wrapToken, 0, len(s))
+	for i := 0; i < len(s); {
+		if seq, n := readANSISequence(s[i:]); n > 0 {
+			tokens = append(tokens, wrapToken{text: seq})
+			i += n
+			continue
+		}
+		r, size := utf8.DecodeRuneInString(s[i:])
+		if size <= 0 {
+			break
+		}
+		tokens = append(tokens, wrapToken{
+			text:       s[i : i+size],
+			visible:    true,
+			breakpoint: strings.ContainsRune(breakpoints, r),
+		})
+		i += size
+	}
+	return tokens
+}
+
+func readANSISequence(s string) (string, int) {
+	if len(s) < 2 || s[0] != '\x1b' || s[1] != '[' {
+		return "", 0
+	}
+	for i := 2; i < len(s); i++ {
+		if s[i] >= 0x40 && s[i] <= 0x7e {
+			return s[:i+1], i + 1
+		}
+	}
+	return "", 0
+}
+
+func visibleRuneCount(s string) int {
+	return visibleTokenCount(tokenizeWrapLine(s, defaultBreakpoints))
+}
+
+func visibleTokenCount(tokens []wrapToken) int {
+	count := 0
+	for _, token := range tokens {
+		if token.visible {
+			count++
+		}
+	}
+	return count
+}
+
+func lastVisibleBreakpoint(tokens []wrapToken, limit int) int {
+	visible := 0
+	last := -1
+	for i, token := range tokens {
+		if token.visible {
+			visible++
+		}
+		if token.breakpoint && visible <= limit {
+			last = i
+		}
+	}
+	return last
+}
+
+func firstVisibleBreakpoint(tokens []wrapToken) int {
+	for i, token := range tokens {
+		if token.breakpoint {
+			return i
+		}
+	}
+	return -1
+}
+
+func joinWrapTokens(tokens []wrapToken) string {
+	var b strings.Builder
+	for _, token := range tokens {
+		b.WriteString(token.text)
+	}
+	return b.String()
 }
