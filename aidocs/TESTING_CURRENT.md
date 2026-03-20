@@ -32,7 +32,7 @@ When `make test` fails in the `integration` target, check these first:
 2. The bot runtime log file used by the harness:
    - usually `/tmp/bottest.log`
    - builtins suite uses `/tmp/bottest-builtins.log`
-3. The config path printed by `StartTest()` (for example `test/membrain`, `test/jsfull`, `test/luafull`, `test/gofull`).
+3. The config path printed by `StartTest()` (for example `test/membrain`, `test/jsfull`, `test/luafull`, `test/shfull`, `test/gofull`).
 
 Log file paths are passed explicitly by integration tests through `setup(..., logfile, ...)` in `test/common_test.go`.
 
@@ -92,6 +92,7 @@ Notes:
 - Memory tests: `test/memory_integration_test.go`.
 - Lists plugin behavior: `test/lists_integration_test.go`.
 - External yaegi Go full coverage: `test/go_full_test.go`.
+- Gopherbot shell full coverage: `test/sh_full_test.go` plus `plugins/test/shfull.gsh`.
 
 ## Targeted Yaegi runtime repros
 
@@ -103,15 +104,17 @@ Notes:
 
 All test files (`*_test.go`) within the `test/` directory are gated by the `integration` build tag and leverage the single test harness defined in `test/common_test.go`. No other test harnesses have been identified in the codebase.
 
-## Full Test Gating (JS/Lua/Go)
+## Full Test Gating (JS/Lua/Sh/Go)
 
 Large language-specific suites are gated by `RUN_FULL` so they do not run in the default `make test` path.
 
 - To run a full suite: `RUN_FULL=js make test`, `RUN_FULL=lua make test` (or `RUN_FULL=all` to allow all full suites).
+- To run the Gopherbot shell suite: `RUN_FULL=sh make test` or `TEST=ShFull make test`.
 - To run Go full coverage: `RUN_FULL=go make test` or `TEST=GoFull make test`.
 - `make test` sets `-run Test.*Full` when `RUN_FULL` is present to avoid running the entire suite.
 - `TEST=JSFull make test` runs the JS full test without needing `RUN_FULL`.
 - `TEST=LuaFull make test` runs the Lua full test without needing `RUN_FULL`.
+- `TEST=ShFull make test` runs the Gopherbot shell full test without needing `RUN_FULL`.
 
 ## Local HTTP test server
 

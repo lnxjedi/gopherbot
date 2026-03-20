@@ -55,11 +55,11 @@ Concise map of extension types, where they live, and how they register/discover.
 - Registration: `robot/registrations.go` (func `RegisterJob`) called in job `init()` (e.g., `gojobs/go-bootstrap/go_bootstrap_job.go`), collected by `bot/registrations.go` (func `ProcessRegistrations`) and initialized from `main.go` (func `main`).
 - Examples: `gojobs/go-bootstrap/go_bootstrap_job.go` (func `init`).
 
-## Built-in interpreter-based extensions (Lua/JS/Go)
+## Built-in interpreter-based extensions (Lua/JS/Gsh/Go)
 
-- Where: interpreter modules live under `modules/lua/`, `modules/javascript/`, and `modules/yaegi-dynamic-go/`; example script sources live under `plugins/` (e.g., `plugins/samples/hello.lua`, `plugins/samples/hello.js`, `plugins/go-lists/lists.go`).
-- Dispatch: `bot/calltask.go` selects interpreter by file extension (`.lua`, `.js`, `.go`) and calls `modules/lua/call_extension.go` (func `CallExtension`), `modules/javascript/call_extension.go` (func `CallExtension`), or `modules/yaegi-dynamic-go/yaegi_dynamic.go` (funcs `RunPluginHandler`, `RunJobHandler`, `RunTaskHandler`).
-- Examples: Lua `plugins/samples/hello.lua`, JavaScript `plugins/samples/hello.js`, dynamic Go `plugins/go-lists/lists.go` (funcs `Configure`, `PluginHandler`).
+- Where: interpreter modules live under `modules/lua/`, `modules/javascript/`, `modules/gsh/`, and `modules/yaegi-dynamic-go/`; example script sources live under `plugins/` (e.g., `plugins/samples/hello.lua`, `plugins/samples/hello.js`, `plugins/samples/hello.gsh`, `plugins/go-lists/lists.go`).
+- Dispatch: `bot/calltask.go` selects interpreter by file extension (`.lua`, `.js`, `.gsh`, `.go`) and routes through `modules/lua/call_extension.go` (func `CallExtension`), `modules/javascript/call_extension.go` (func `CallExtension`), `modules/gsh/call_extension.go` (func `CallExtension`), or `modules/yaegi-dynamic-go/yaegi_dynamic.go` (funcs `RunPluginHandler`, `RunJobHandler`, `RunTaskHandler`).
+- Examples: Lua `plugins/samples/hello.lua`, JavaScript `plugins/samples/hello.js`, Gopherbot shell `plugins/samples/hello.gsh`, dynamic Go `plugins/go-lists/lists.go` (funcs `Configure`, `PluginHandler`).
 - See also: `aidocs/INTERPRETERS.md`.
 
 ## Build Mechanics Note

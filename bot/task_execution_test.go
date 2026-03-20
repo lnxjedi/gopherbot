@@ -57,6 +57,7 @@ func TestSelectTaskExecutionRunnerKeepsInterpretersInProcess(t *testing.T) {
 	luaTask := &Task{name: "lua-task", taskType: taskExternal, Path: "plugins/thing.lua"}
 	jsTask := &Task{name: "js-task", taskType: taskExternal, Path: "plugins/thing.js"}
 	goTask := &Task{name: "yaegi-task", taskType: taskExternal, Path: "plugins/thing.go"}
+	gshTask := &Task{name: "gsh-task", taskType: taskExternal, Path: "plugins/thing.gsh"}
 
 	cases := []struct {
 		name string
@@ -65,6 +66,7 @@ func TestSelectTaskExecutionRunnerKeepsInterpretersInProcess(t *testing.T) {
 		{name: "lua", task: luaTask},
 		{name: "js", task: jsTask},
 		{name: "go", task: goTask},
+		{name: "gsh", task: gshTask},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

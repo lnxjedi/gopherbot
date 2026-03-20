@@ -6,23 +6,24 @@ This document describes how Gopherbot supports plugins, jobs, and tasks written 
 
 Gopherbot supports scripts in two fundamentally different ways:
 
-### 1. Built-in Interpreters (Direct Calls)
+### 1. Built-in Interpreters (Engine-managed runtimes)
 
-Scripts are executed within the Go process using embedded interpreters. Robot API calls are **direct function calls** - no network overhead.
+Scripts are executed by Gopherbot-managed runtimes rather than by user-installed language helpers. In the current multiprocess execution model, interpreter-backed extensions run through `gopherbot pipeline-child-rpc`; Robot API calls go back to the parent engine over internal JSON RPC instead of the legacy HTTP helper path.
 
-| Language | Interpreter | Module Path | Library |
-|----------|-------------|-------------|---------|
-| **Lua** | [gopher-lua](https://github.com/yuin/gopher-lua) | `modules/lua/` | `lib/gopherbot_v1.lua` |
-| **JavaScript** | [goja](https://github.com/dop251/goja) | `modules/javascript/` | `lib/gopherbot_v1.js` |
-| **Go** | [yaegi](https://github.com/traefik/yaegi) | `modules/yaegi-dynamic-go/` | N/A (uses robot package) |
+| Language | Runtime | Module Path | Child RPC methods | Notes |
+|----------|---------|-------------|-------------------|-------|
+| **Lua** | [gopher-lua](https://github.com/yuin/gopher-lua) | `modules/lua/` | `lua_run`, `lua_get_config` | Uses `lib/gopherbot_v1.lua` wrapper |
+| **JavaScript** | [goja](https://github.com/dop251/goja) | `modules/javascript/` | `js_run`, `js_get_config` | Uses `lib/gopherbot_v1.js` wrapper |
+| **Gopherbot shell** | [mvdan/sh](https://mvdan.cc/sh/) | `modules/gsh/` | `gsh_run`, `gsh_get_config` | Uses embedded `gopherbot_v1.gsh`; shell utilities stay inside the child |
+| **Go** | [yaegi](https://github.com/traefik/yaegi) | `modules/yaegi-dynamic-go/` | `go_plugin_run`, `go_job_run`, `go_task_run`, `go_get_config` | Uses the Go `robot.Robot` API via RPC bridge |
 
 **Advantages:**
-- No process spawning overhead
-- No JSON serialization/deserialization
-- Direct access to robot.Robot interface
-- Faster execution
+- No user-managed external interpreter dependency
+- Engine-controlled configure/init lifecycle
+- Parent keeps authorization/routing/identity authority
+- `.gsh` can expose a shell-style builtin utility surface without HTTP helper scripts
 
-**File extensions:** `.lua`, `.js`, `.go`
+**File extensions:** `.lua`, `.js`, `.gsh`, `.go`
 
 See `aidocs/EXTENSION_API.md` for the per-language Robot method surface and parity notes.
 
@@ -62,6 +63,9 @@ callTask()
     │
     ├─> Is .js file?
     │     └─> js.CallExtension()
+    │
+    ├─> Is .gsh file?
+    │     └─> gsh.CallExtension()
     │
     └─> Otherwise (external script)
           └─> exec.Command() with GOPHER_HTTP_POST in environment
@@ -196,6 +200,43 @@ func PluginHandler(r robot.Robot, command string, args ...string) robot.TaskRetV
 - Direct access to `robot.Robot` interface
 
 **See:** `plugins/go-knock/knock.go`, `plugins/go-lists/lists.go`
+
+### Gopherbot Shell Plugins
+
+**Entry point:** First argument is the dispatched command, just like a shell script, but Robot methods and common shell utilities are builtin commands provided by the integrated `.gsh` runtime.
+
+```sh
+#!/bin/sh
+
+default_config() {
+cat <<'EOF'
+---
+Commands:
+- Regex: (?i:hello gsh)
+  Command: hello
+EOF
+}
+
+command=$1
+shift
+
+case "$command" in
+  configure)
+    default_config
+    ;;
+  hello)
+    say "Hello, Gopherbot shell World!"
+    ;;
+esac
+```
+
+**Key points:**
+- `$1` is the command (`configure`, `init`, or the configured command name).
+- Robot methods such as `say`, `Reply`, `PromptForReply`, `AddTask`, and `GetTaskConfig` are builtin shell commands, not HTTP wrappers.
+- Common shell utilities are also builtin (`cat`, `cp`, `find`, `grep`, `jq`, `ls`, `mktemp`, `mv`, `sort`, `tar`, `touch`, `tr`, `uniq`, `wc`, `xargs`, and more).
+- Command lookup is case-insensitive across Robot builtins, so `say` and `Say` are equivalent.
+
+**See:** `plugins/samples/hello.gsh`, `plugins/test/shfull.gsh`
 
 ### External Scripts (Bash, Python, Ruby)
 

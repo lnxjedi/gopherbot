@@ -1,0 +1,8 @@
+---
+AllChannels: true
+AllowDirect: true
+Users:
+- alice
+Commands:
+- Regex: (?i:sh-sec-usersonly)
+  Command: secusersonly

@@ -44,6 +44,12 @@ func TestPromptTimeoutForContext(t *testing.T) {
 			task:     &Task{taskType: taskExternal, Path: "plugin.JS"},
 			want:     interactivePromptTimeout,
 		},
+		{
+			name:     "extended timeout for terminal gsh task",
+			protocol: "terminal",
+			task:     &Task{taskType: taskExternal, Path: "plugin.gsh"},
+			want:     interactivePromptTimeout,
+		},
 	}
 
 	for _, tc := range tests {

@@ -1,0 +1,8 @@
+---
+AllChannels: true
+AllowDirect: true
+AuthorizeAllCommands: true
+AuthRequire: Helpdesk
+Commands:
+- Regex: (?i:sh-sec-authall)
+  Command: secauthall

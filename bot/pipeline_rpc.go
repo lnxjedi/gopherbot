@@ -97,6 +97,14 @@ func runPipelineChildRPCWithIO(r io.Reader, w io.Writer) int {
 			if err := handlePipelineRPCJSGetConfig(enc, msg); err != nil {
 				return 2
 			}
+		case "gsh_run":
+			if err := handlePipelineRPCGSHRun(dec, enc, msg); err != nil {
+				return 2
+			}
+		case "gsh_get_config":
+			if err := handlePipelineRPCGSHGetConfig(enc, msg); err != nil {
+				return 2
+			}
 		case "go_plugin_run":
 			if err := handlePipelineRPCGoPluginRun(dec, enc, msg); err != nil {
 				return 2

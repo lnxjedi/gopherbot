@@ -140,7 +140,23 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 	isExternalGoTask := strings.HasSuffix(task.Path, ".go")
 	isExternalLuaTask := strings.HasSuffix(task.Path, ".lua")
 	isExternalJSTask := strings.HasSuffix(task.Path, ".js")
-	isExternalInterpreterTask := isExternalGoTask || isExternalLuaTask || isExternalJSTask
+	isExternalGSHTask := strings.HasSuffix(task.Path, ".gsh")
+	isExternalInterpreterTask := isExternalGoTask || isExternalLuaTask || isExternalJSTask || isExternalGSHTask
+	configureEnv := []string{
+		fmt.Sprintf("GOPHER_INSTALLDIR=%s", installPath),
+		fmt.Sprintf("RUBYLIB=%s/lib:%s/custom/lib", installPath, homePath),
+		fmt.Sprintf("GEM_HOME=%s/.local", homePath),
+		// empty entry at the end for JULIA, see: https://docs.julialang.org/en/v1/manual/environment-variables/
+		fmt.Sprintf("JULIA_LOAD_PATH=%s/lib:%s/custom/lib:", installPath, homePath),
+		fmt.Sprintf("PYTHONPATH=%s/lib:%s/custom/lib", installPath, homePath),
+		fmt.Sprintf("GOPHER_CONFIGDIR=%s", configFull),
+		fmt.Sprintf("HOME=%s", homePath),
+	}
+	for _, p := range envPassThrough {
+		if value, ok := lookupEnv(p); ok {
+			configureEnv = append(configureEnv, fmt.Sprintf("%s=%s", p, value))
+		}
+	}
 	if taskPath, err = getTaskPath(task, "."); err != nil {
 		if !isExternalInterpreterTask && taskPath == "" {
 			cchan <- getCfgReturn{nil, err}
@@ -180,6 +196,16 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 				cchan <- getCfgReturn{defConfig, nil}
 				return
 			}
+		} else if isExternalGSHTask {
+			Log(robot.Info, "getting default configuration for external Gopherbot shell plugin '"+task.name+"'")
+			if defConfig, err := runGSHGetConfigViaRPC(taskPath, task.name, configureEnv); err != nil {
+				Log(robot.Warn, "unable to retrieve plugin default configuration for '%s': %s", task.name, err.Error())
+				cchan <- getCfgReturn{&cfg, nil}
+				return
+			} else {
+				cchan <- getCfgReturn{defConfig, nil}
+				return
+			}
 		}
 	}
 
@@ -202,26 +228,11 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 		childTaskDir = absDir
 	}
 	Log(robot.Debug, "Calling '%s' with arg: configure (child runner)", taskPath)
-	env := []string{
-		fmt.Sprintf("GOPHER_INSTALLDIR=%s", installPath),
-		fmt.Sprintf("RUBYLIB=%s/lib:%s/custom/lib", installPath, homePath),
-		fmt.Sprintf("GEM_HOME=%s/.local", homePath),
-		// empty entry at the end for JULIA, see: https://docs.julialang.org/en/v1/manual/environment-variables/
-		fmt.Sprintf("JULIA_LOAD_PATH=%s/lib:%s/custom/lib:", installPath, homePath),
-		fmt.Sprintf("PYTHONPATH=%s/lib:%s/custom/lib", installPath, homePath),
-		fmt.Sprintf("GOPHER_CONFIGDIR=%s", configFull),
-		fmt.Sprintf("HOME=%s", homePath),
-	}
-	for _, p := range envPassThrough {
-		if value, ok := lookupEnv(p); ok {
-			env = append(env, fmt.Sprintf("%s=%s", p, value))
-		}
-	}
 	req := pipelineChildExecRequest{
 		TaskPath: taskPath,
 		Dir:      childTaskDir,
 		Args:     []string{"configure"},
-		Env:      env,
+		Env:      configureEnv,
 		NullConn: true,
 	}
 	cmd, cmdErr := newPipelineChildExecCommand(req)
@@ -441,7 +452,8 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 	isExternalGoTask := strings.HasSuffix(task.Path, ".go")
 	isExternalLuaTask := strings.HasSuffix(task.Path, ".lua")
 	isExternalJSTask := strings.HasSuffix(task.Path, ".js")
-	isExternalInterpreterTask := isExternalGoTask || isExternalJSTask || isExternalLuaTask
+	isExternalGSHTask := strings.HasSuffix(task.Path, ".gsh")
+	isExternalInterpreterTask := isExternalGoTask || isExternalJSTask || isExternalLuaTask || isExternalGSHTask
 	var err error
 	if task.Homed || isExternalInterpreterTask {
 		taskPath, err = getTaskPath(task, ".")
@@ -638,6 +650,50 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 			rchan <- taskReturn{"", ret}
 			return
 		}
+	}
+
+	if isExternalGSHTask {
+		if privSep {
+			if privileged {
+				raiseThreadPrivExternal(fmt.Sprintf("privileged external Gopherbot shell task \"%s\"", task.name))
+			} else {
+				dropThreadPriv(fmt.Sprintf("unprivileged external Gopherbot shell task \"%s\"", task.name))
+			}
+		}
+		if isPlugin {
+			if command != "init" && !opts.suppressEmit {
+				emit(ExternalTaskRan)
+			}
+			allArgs := append([]string{command}, args...)
+			ret, err := runGSHExtensionViaRPC(taskPath, task.name, env, w, r, allArgs)
+			if err != nil {
+				emit(ExternalTaskBadInterpreter)
+				rchan <- taskReturn{fmt.Sprintf("Running Gopherbot shell plugin %s: %v", task.name, err), robot.MechanismFail}
+				return
+			}
+			deregisterWorker(r.tid)
+			rchan <- taskReturn{"", ret}
+			return
+		}
+
+		ret, err := runGSHExtensionViaRPC(taskPath, task.name, env, w, r, args)
+		if err != nil {
+			emit(ExternalTaskBadInterpreter)
+			label := "task"
+			if isJob {
+				label = "job"
+			}
+			rchan <- taskReturn{fmt.Sprintf("Running Gopherbot shell %s %s: %v", label, task.name, err), robot.MechanismFail}
+			return
+		}
+		if isJob {
+			w.Log(robot.Debug, "External Gopherbot shell job '%s' executed with args: %q", task.name, args)
+		} else {
+			w.Log(robot.Debug, "External Gopherbot shell task '%s' executed with args: %q", task.name, args)
+		}
+		deregisterWorker(r.tid)
+		rchan <- taskReturn{"", ret}
+		return
 	}
 
 	var externalArgs []string

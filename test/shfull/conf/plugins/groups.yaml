@@ -1,0 +1,18 @@
+---
+Disabled: false
+Config:
+  Groups:
+    Helpdesk:
+      Administrators:
+      - carol
+      Users:
+      - bob
+    SysAdmins:
+      Users:
+      - david
+    NetAdmins:
+      Administrators:
+      - erin
+    Peons:
+      Administrators:
+      - carol
