@@ -22,19 +22,20 @@ type helpMetadataContext struct {
 }
 
 type helpMetadataEntry struct {
-	PluginName  string   `json:"plugin"`
-	Command     string   `json:"command"`
-	Usage       string   `json:"usage,omitempty"`
-	Summary     string   `json:"summary,omitempty"`
-	Examples    []string `json:"examples,omitempty"`
-	Keywords    []string `json:"keywords,omitempty"`
-	Scope       string   `json:"scope,omitempty"`
-	HiddenOK    bool     `json:"hidden_ok,omitempty"`
-	VisibleHere bool     `json:"visible_here"`
-	Channels    []string `json:"channels,omitempty"`
-	AllChannels bool     `json:"all_channels,omitempty"`
-	AllowDirect bool     `json:"allow_direct,omitempty"`
-	DirectOnly  bool     `json:"direct_only,omitempty"`
+	PluginName    string   `json:"plugin"`
+	Command       string   `json:"command"`
+	Usage         string   `json:"usage,omitempty"`
+	Summary       string   `json:"summary,omitempty"`
+	Examples      []string `json:"examples,omitempty"`
+	Keywords      []string `json:"keywords,omitempty"`
+	Scope         string   `json:"scope,omitempty"`
+	HiddenOK      bool     `json:"hidden_ok,omitempty"`
+	VisibleHere   bool     `json:"visible_here"`
+	Channels      []string `json:"channels,omitempty"`
+	AllChannels   bool     `json:"all_channels,omitempty"`
+	AllowDirect   bool     `json:"allow_direct,omitempty"`
+	DirectOnly    bool     `json:"direct_only,omitempty"`
+	PluginSummary string   `json:"plugin_summary,omitempty"`
 }
 
 type helpMetadataMatch struct {
@@ -53,16 +54,18 @@ type helpMetadataResponse struct {
 }
 
 type fallbackAdviceEntry struct {
-	PluginName  string   `json:"plugin"`
-	Command     string   `json:"command"`
-	Usage       string   `json:"usage,omitempty"`
-	Summary     string   `json:"summary,omitempty"`
-	Keywords    []string `json:"keywords,omitempty"`
-	Channels    []string `json:"channels,omitempty"`
-	DirectOnly  bool     `json:"direct_only,omitempty"`
-	AllowDirect bool     `json:"allow_direct,omitempty"`
-	VisibleHere bool     `json:"visible_here,omitempty"`
-	Score       int      `json:"score,omitempty"`
+	PluginName    string   `json:"plugin"`
+	Command       string   `json:"command"`
+	Usage         string   `json:"usage,omitempty"`
+	Summary       string   `json:"summary,omitempty"`
+	Examples      []string `json:"examples,omitempty"`
+	Keywords      []string `json:"keywords,omitempty"`
+	Channels      []string `json:"channels,omitempty"`
+	DirectOnly    bool     `json:"direct_only,omitempty"`
+	AllowDirect   bool     `json:"allow_direct,omitempty"`
+	VisibleHere   bool     `json:"visible_here,omitempty"`
+	Score         int      `json:"score,omitempty"`
+	PluginSummary string   `json:"plugin_summary,omitempty"`
 }
 
 type fallbackAdviceResponse struct {
@@ -104,14 +107,15 @@ type fallbackMatchSignal struct {
 
 func (e helpMetadataEntry) toHelpCommandMetadata() helpCommandMetadata {
 	return helpCommandMetadata{
-		PluginName: e.PluginName,
-		Command:    e.Command,
-		Usage:      e.Usage,
-		Summary:    e.Summary,
-		Examples:   append([]string(nil), e.Examples...),
-		Keywords:   append([]string(nil), e.Keywords...),
-		Scope:      e.Scope,
-		HiddenOK:   e.HiddenOK,
+		PluginName:    e.PluginName,
+		Command:       e.Command,
+		Usage:         e.Usage,
+		Summary:       e.Summary,
+		Examples:      append([]string(nil), e.Examples...),
+		Keywords:      append([]string(nil), e.Keywords...),
+		Scope:         e.Scope,
+		HiddenOK:      e.HiddenOK,
+		PluginSummary: e.PluginSummary,
 	}
 }
 
@@ -167,16 +171,6 @@ func (r Robot) GetHelpMetadata(query string) string {
 	blob, err := json.Marshal(payload)
 	if err != nil {
 		r.Log(robot.Error, "GetHelpMetadata marshal failed: %v", err)
-		return `{}`
-	}
-	return string(blob)
-}
-
-func (r Robot) GetFallbackAdvice(query string) string {
-	payload := r.collectFallbackAdvice(query)
-	blob, err := json.Marshal(payload)
-	if err != nil {
-		r.Log(robot.Error, "GetFallbackAdvice marshal failed: %v", err)
 		return `{}`
 	}
 	return string(blob)
@@ -244,14 +238,15 @@ func (r Robot) collectHelpMetadata(query string) helpMetadataResponse {
 			entry, ok := byCommand[key]
 			if !ok {
 				entry = &helpMetadataEntry{
-					PluginName:  task.name,
-					Command:     command,
-					Scope:       helpScopeText(task),
-					VisibleHere: visibleHere,
-					Channels:    append([]string(nil), task.Channels...),
-					AllChannels: task.AllChannels,
-					AllowDirect: task.AllowDirect,
-					DirectOnly:  task.DirectOnly,
+					PluginName:    task.name,
+					Command:       command,
+					Scope:         helpScopeText(task),
+					VisibleHere:   visibleHere,
+					Channels:      append([]string(nil), task.Channels...),
+					AllChannels:   task.AllChannels,
+					AllowDirect:   task.AllowDirect,
+					DirectOnly:    task.DirectOnly,
+					PluginSummary: helpPluginSummary(task),
 				}
 				byCommand[key] = entry
 			}
@@ -263,6 +258,9 @@ func (r Robot) collectHelpMetadata(query string) helpMetadataResponse {
 			}
 			if len(entry.Summary) == 0 && len(strings.TrimSpace(matcher.Summary)) > 0 {
 				entry.Summary = strings.TrimSpace(matcher.Summary)
+			}
+			if entry.PluginSummary == "" {
+				entry.PluginSummary = helpPluginSummary(task, matcher.Summary)
 			}
 			if commandAllowsHidden(plugin, command) {
 				entry.HiddenOK = true
@@ -383,22 +381,24 @@ func (r Robot) collectFallbackAdvice(query string) fallbackAdviceResponse {
 		}
 	}
 
-	advice.DeterministicReply = buildDeterministicFallbackReply(advice)
+	advice.DeterministicReply = r.buildDeterministicFallbackReply(advice)
 	return advice
 }
 
 func toFallbackAdviceEntry(entry helpMetadataEntry, score int) fallbackAdviceEntry {
 	return fallbackAdviceEntry{
-		PluginName:  entry.PluginName,
-		Command:     entry.Command,
-		Usage:       entry.Usage,
-		Summary:     entry.Summary,
-		Keywords:    append([]string(nil), entry.Keywords...),
-		Channels:    append([]string(nil), entry.Channels...),
-		DirectOnly:  entry.DirectOnly,
-		AllowDirect: entry.AllowDirect,
-		VisibleHere: entry.VisibleHere,
-		Score:       score,
+		PluginName:    entry.PluginName,
+		Command:       entry.Command,
+		Usage:         entry.Usage,
+		Summary:       entry.Summary,
+		Examples:      append([]string(nil), entry.Examples...),
+		Keywords:      append([]string(nil), entry.Keywords...),
+		Channels:      append([]string(nil), entry.Channels...),
+		DirectOnly:    entry.DirectOnly,
+		AllowDirect:   entry.AllowDirect,
+		VisibleHere:   entry.VisibleHere,
+		Score:         score,
+		PluginSummary: entry.PluginSummary,
 	}
 }
 
@@ -529,7 +529,7 @@ func describeFallbackContext(entry helpMetadataEntry) string {
 	return ""
 }
 
-func buildDeterministicFallbackReply(advice fallbackAdviceResponse) string {
+func (r Robot) buildDeterministicFallbackReply(advice fallbackAdviceResponse) string {
 	attempted := advice.Context.NormalizedQuery
 	if attempted == "" {
 		attempted = advice.Context.RawQuery
@@ -537,6 +537,14 @@ func buildDeterministicFallbackReply(advice fallbackAdviceResponse) string {
 	alias := strings.TrimSpace(advice.Context.BotAlias)
 	if alias == "" {
 		alias = "!"
+	}
+	generalGuidance := "If not, try `" + alias + "commands`, `" + alias + "help <keyword>`, or `" + alias + "help <plugin>/<command>`."
+	bestGuessLine := func(entry fallbackAdviceEntry, prefix string) string {
+		line := prefix + " [" + entry.PluginName + "] `" + entry.Command + "`?"
+		if summary := strings.TrimSpace(entry.Summary); summary != "" {
+			line += " " + summary
+		}
+		return line
 	}
 
 	switch advice.Advice {
@@ -547,22 +555,32 @@ func buildDeterministicFallbackReply(advice fallbackAdviceResponse) string {
 			if advice.WrongChannelHint != "" {
 				line += " " + advice.WrongChannelHint
 			}
-			return strings.TrimSpace(line + " " + formatFallbackNextStep(alias, top))
+			line += " " + bestGuessLine(top, "Did you mean")
+			return strings.TrimSpace(line + " " + r.formatFallbackNextStep(alias, top) + " " + generalGuidance)
 		}
 	case fallbackAdviceCloseHere:
-		lines := []string{
-			"I couldn't match `" + attempted + "`, but these look close:",
+		if len(advice.Here) == 1 {
+			top := advice.Here[0]
+			line := "I couldn't match `" + attempted + "`."
+			line += " " + bestGuessLine(top, "Did you mean")
+			return strings.TrimSpace(line + " " + r.formatFallbackNextStep(alias, top) + " " + generalGuidance)
 		}
+		lines := []string{
+			"I couldn't match `" + attempted + "`.",
+		}
+		if top, ok := fallbackConfidentSuggestion(advice.Here); ok {
+			lines = append(lines, bestGuessLine(top, "Best guess:"))
+			lines = append(lines, r.formatFallbackNextStep(alias, top))
+		}
+		lines = append(lines, "Other likely matches:")
 		for _, entry := range advice.Here {
-			line := "- [" + entry.PluginName + "] `" + entry.Command + "`"
+			line := "- `" + entry.PluginName + "/" + entry.Command + "`"
 			if strings.TrimSpace(entry.Summary) != "" {
 				line += " - " + strings.TrimSpace(entry.Summary)
 			}
 			lines = append(lines, line)
 		}
-		if len(advice.Here) > 0 {
-			lines = append(lines, "Try `"+alias+"help "+advice.Here[0].Command+"` or `"+alias+"commands`.")
-		}
+		lines = append(lines, generalGuidance)
 		return strings.Join(lines, "\n")
 	}
 
@@ -576,29 +594,70 @@ func buildDeterministicFallbackReply(advice fallbackAdviceResponse) string {
 		if contextHint != "" {
 			line += " " + contextHint
 		}
-		return strings.TrimSpace(line + " " + formatFallbackNextStep(alias, top))
+		line += " " + bestGuessLine(top, "Did you mean")
+		return strings.TrimSpace(line + " " + r.formatFallbackNextStep(alias, top) + " " + generalGuidance)
 	}
 
 	if strings.TrimSpace(attempted) == "" {
 		if channel := strings.TrimSpace(advice.Context.Channel); channel != "" && !advice.Context.Direct {
-			return "I couldn't match that command in #" + channel + ". Try `" + alias + "commands` or `" + alias + "help <keyword>`."
+			return "I couldn't match that command in #" + channel + ". " + generalGuidance
 		}
-		return "I couldn't match that command. Try `" + alias + "commands` or `" + alias + "help <keyword>`."
+		return "I couldn't match that command. " + generalGuidance
 	}
 	if channel := strings.TrimSpace(advice.Context.Channel); channel != "" && !advice.Context.Direct {
-		return "I couldn't match `" + attempted + "` in #" + channel + ". Try `" + alias + "commands` or `" + alias + "help <keyword>`."
+		return "I couldn't match `" + attempted + "` in #" + channel + ". " + generalGuidance
 	}
-	return "I couldn't match `" + attempted + "`. Try `" + alias + "commands` or `" + alias + "help <keyword>`."
+	return "I couldn't match `" + attempted + "`. " + generalGuidance
 }
 
-func formatFallbackNextStep(alias string, entry fallbackAdviceEntry) string {
+func fallbackConfidentSuggestion(entries []fallbackAdviceEntry) (fallbackAdviceEntry, bool) {
+	if len(entries) == 0 {
+		return fallbackAdviceEntry{}, false
+	}
+	top := entries[0]
+	if top.Score < fallbackAdviceLikelyScore {
+		return fallbackAdviceEntry{}, false
+	}
+	if len(entries) == 1 {
+		return top, true
+	}
+	if top.Score >= fallbackAdviceStrongScore && top.Score >= entries[1].Score+fallbackAdviceScoreMargin {
+		return top, true
+	}
+	return fallbackAdviceEntry{}, false
+}
+
+func (r Robot) formatFallbackNextStep(alias string, entry fallbackAdviceEntry) string {
+	helpPath := alias + "help " + entry.PluginName + "/" + entry.Command
+	if example := r.formatFallbackExample(entry); example != "" {
+		if len(entry.Channels) > 0 {
+			return "Try `" + helpPath + "` in " + joinFallbackChannels(entry.Channels) + ", or run `" + example + "` there."
+		}
+		if entry.DirectOnly {
+			return "Try `" + helpPath + "` in a direct message, or run `" + example + "` there."
+		}
+		return "Try `" + helpPath + "` or run `" + example + "`."
+	}
 	if len(entry.Channels) > 0 {
-		return "Try `" + alias + "help " + entry.Command + "` in " + joinFallbackChannels(entry.Channels) + "."
+		return "Try `" + helpPath + "` in " + joinFallbackChannels(entry.Channels) + "."
 	}
 	if entry.DirectOnly {
-		return "Try `" + alias + "help " + entry.Command + "` in a direct message."
+		return "Try `" + helpPath + "` in a direct message."
 	}
-	return "Try `" + alias + "help " + entry.Command + "`."
+	return "Try `" + helpPath + "`."
+}
+
+func (r Robot) formatFallbackExample(entry fallbackAdviceEntry) string {
+	if len(entry.Examples) == 0 {
+		return ""
+	}
+	meta := helpCommandMetadata{
+		PluginName: entry.PluginName,
+		Command:    entry.Command,
+		Examples:   append([]string(nil), entry.Examples...),
+		HiddenOK:   false,
+	}
+	return strings.TrimSpace(r.formatHelpExample(meta, entry.Examples[0]))
 }
 
 func fallbackContextFromAdviceEntry(entry fallbackAdviceEntry) string {
@@ -618,9 +677,13 @@ func joinFallbackChannels(channels []string) string {
 	if len(channels) == 0 {
 		return ""
 	}
+	sort.Strings(channels)
 	quoted := make([]string, 0, len(channels))
 	for _, ch := range channels {
 		quoted = append(quoted, "#"+ch)
+	}
+	if len(quoted) > 3 {
+		return strings.Join(quoted[:3], ", ") + ", or other configured channels"
 	}
 	if len(quoted) == 1 {
 		return quoted[0]

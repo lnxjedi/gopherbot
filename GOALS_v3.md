@@ -35,6 +35,9 @@ These goals are intended to unblock and accelerate later v3 work. Changes that a
 
 ## Core v3 Goals
 
+### Stretch Goal: Add a shell-like built-in interpreter to mostly obviate system "bash"
+Deep research uncovered [mvdan.cc/sh](https://github.com/mvdan/sh) as a possibility for an embedded interpreter that could be used for most cases where plugins/extensions are currently written in bash with jq. We could wrap gojq for a "jq" built-in, as well as find implementations for most of the common shell utilities ala *busybox*. This would make gopherbot plugins more portable and easier to test, as well as allow for removing the system shell for system hardening.
+
 ### Backward Compatibility with v2 Custom Extensions, but Not Configuration
 To the greatest extent possible, custom extensions written to the robot API from v2 should continue to function unmodified. To support greater functionality, `robot.yaml` and other configuration will be changed, no longer supporting v2 configuration syntax. `UPGRADING-v3.md` will be the definitely guide for upgrading v2 robots to v3 robots.
 

@@ -66,8 +66,20 @@ Catch-all mode scoping:
 
 - YAML source: `conf/plugins/*.yaml` (example `conf/plugins/ping.yaml`).
 - Directed command matcher key: `Commands`.
+- Directed `Commands` may now specify exactly one of:
+  - `Regex` — raw Go regex, preserving legacy behavior
+  - `SimpleMatcher` — simplified command syntax compiled to regex during config load (`bot/simple_matcher.go`)
 - `CommandMatchers` and top-level `Help` are rejected in v3 plugin config validation.
-- Ambient matchers continue to load from `MessageMatchers`.
+- `SimpleMatcher` semantics for directed commands:
+  - case-insensitive by default
+  - leading/trailing whitespace tolerated through the normal command compile wrapper
+  - runs of whitespace are still collapsed during dispatch retry, preserving existing whitespace-forgiveness
+  - spaces in the spec act as command separators and match either spaces or dashes in input
+  - optional segments use `[ ... ]`
+  - literal alternatives use `(a|b|c)`
+  - typed captures use `<name:type>` or `<type>` and still arrive positionally in the task handler
+- Ambient matchers continue to load from `MessageMatchers` and remain regex-only.
+- Reply matchers and job argument matchers remain regex-based.
 
 ## Pipeline Start (what gets called)
 

@@ -268,6 +268,10 @@ When `--aidev <token>` is supplied at startup:
 
 This mode is additive: connector startup and config merge ordering are unchanged.
 
+Test harness note:
+
+- integration startup in `bot/start_t.go` waits for the current async plugin-init batch to quiesce before returning control to the harness, so startup `init` events do not bleed into the first assertion
+
 ### Template Functions
 
 | Function             | Purpose                        | Example                             |

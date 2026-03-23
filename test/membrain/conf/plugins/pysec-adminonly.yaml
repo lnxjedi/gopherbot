@@ -10,5 +10,6 @@ ElevatedCommands: []
 ElevateImmediateCommands: []
 AllowedHiddenCommands: []
 Commands:
-- Regex: (?i:python-sec-adminonly)
+- # Regex: (?i:python-sec-adminonly)
+  SimpleMatcher: python-sec-adminonly
   Command: secadminonly

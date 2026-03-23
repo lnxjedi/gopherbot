@@ -19,7 +19,7 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
   Build a concise, decision-oriented list of what changed on this branch so we can separate "definitely merge", "maybe keep", and "back out or rethink".
   Current inventory:
   - wrong-channel detection moved into the engine, with improved availability/location hints and updated tests
-  - alias fallback/help work added engine help metadata + fallback advice, plus the external `go-ai-fallback-help` plugin and Robot API surface for help metadata
+  - alias fallback/help work added engine help metadata and deterministic built-in fallback ranking
   - builtin help/fallback UX changed, including `help <keyword> brief` and smarter deterministic recovery behavior
   - OpenAI fallback fixes landed for compaction, `max_completion_tokens`, and a Yaegi multi-return workaround/repro
   - multiprocess/interpreter cleanup landed, including more generic interpreter RPC naming and related docs/tests
@@ -33,3 +33,10 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
 
 - [ ] Take a hard look at help-system UX:
   Re-evaluate quick help, `help <keyword>`, brief help, channel/context guidance, and how fallback/help should compose so the user gets the most useful next step with the least noise.
+
+- [ ] Define connector capability semantics for hidden-command help/examples:
+  The redesigned help UX can surface hidden-command examples, but we still need a clean connector contract for:
+  - whether a connector supports hidden commands at all
+  - what the canonical user-facing hidden-command syntax is for that connector
+  Candidate direction:
+  keep policy in the engine, but let connectors expose explicit capability metadata and connector-owned hidden-command example formatting so help/fallback only teaches hidden syntax when it is actually supported and correctly rendered.

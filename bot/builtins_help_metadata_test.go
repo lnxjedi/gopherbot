@@ -64,6 +64,19 @@ func TestScoreHelpCommandMatchKeywordOutranksSummaryToken(t *testing.T) {
 	}
 }
 
+func TestScoreHelpCommandMatchRecoversSingleTypo(t *testing.T) {
+	entry := helpCommandMetadata{
+		PluginName: "knock",
+		Command:    "knock",
+		Usage:      "tell me a knock-knock joke",
+		Summary:    "Starts an interactive knock-knock joke.",
+		Keywords:   []string{"joke", "knock"},
+	}
+	if got := scoreHelpCommandMatch(entry, "knok"); got < 80 {
+		t.Fatalf("scoreHelpCommandMatch() expected strong typo score for knok, got %d", got)
+	}
+}
+
 func TestNormalizeFallbackTerm(t *testing.T) {
 	got := normalizeFallbackTerm(";create a new grocery list", ";", "bender")
 	if got != "create a new grocery list" {
@@ -226,6 +239,23 @@ func TestParseHelpQueryMode(t *testing.T) {
 	term, brief = parseHelpQueryMode([]string{"sidetrack", "story", "foo"})
 	if term != "sidetrack story foo" || brief {
 		t.Fatalf("parseHelpQueryMode(sidetrack story foo) = (%q, %t), want (%q, %t)", term, brief, "sidetrack story foo", false)
+	}
+}
+
+func TestParseHelpQuery(t *testing.T) {
+	parsed := parseHelpQuery([]string{"knock/knock"})
+	if !parsed.HasPath || parsed.PluginName != "knock" || parsed.Command != "knock" || parsed.Brief {
+		t.Fatalf("parseHelpQuery(knock/knock) = %+v, want exact plugin/command path", parsed)
+	}
+
+	parsed = parseHelpQuery([]string{"knock/knock", "brief"})
+	if !parsed.HasPath || parsed.PluginName != "knock" || parsed.Command != "knock" || !parsed.Brief {
+		t.Fatalf("parseHelpQuery(knock/knock brief) = %+v, want exact path with brief mode", parsed)
+	}
+
+	parsed = parseHelpQuery([]string{"sidetrack", "story", "foo"})
+	if parsed.HasPath || parsed.Term != "sidetrack story foo" {
+		t.Fatalf("parseHelpQuery(sidetrack story foo) = %+v, want non-path term", parsed)
 	}
 }
 

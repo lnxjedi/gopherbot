@@ -4,5 +4,6 @@ AllowDirect: true
 AuthorizeAllCommands: true
 AuthRequire: Helpdesk
 Commands:
-- Regex: (?i:lua-sec-authall)
+- # Regex: (?i:lua-sec-authall)
+  SimpleMatcher: lua-sec-authall
   Command: secauthall

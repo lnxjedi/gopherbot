@@ -13,17 +13,24 @@ ElevateImmediateCommands:
 AllowedHiddenCommands:
 - sechiddenok
 Commands:
-- Regex: (?i:js-sec-open)
+- # Regex: (?i:js-sec-open)
+  SimpleMatcher: js-sec-open
   Command: secopen
-- Regex: (?i:js-sec-admincmd)
+- # Regex: (?i:js-sec-admincmd)
+  SimpleMatcher: js-sec-admincmd
   Command: secadmincmd
-- Regex: (?i:js-sec-authz)
+- # Regex: (?i:js-sec-authz)
+  SimpleMatcher: js-sec-authz
   Command: secauthz
-- Regex: (?i:js-sec-elevated)
+- # Regex: (?i:js-sec-elevated)
+  SimpleMatcher: js-sec-elevated
   Command: secelevated
-- Regex: (?i:js-sec-immediate)
+- # Regex: (?i:js-sec-immediate)
+  SimpleMatcher: js-sec-immediate
   Command: secimmediate
-- Regex: (?i:js-sec-hidden-ok)
+- # Regex: (?i:js-sec-hidden-ok)
+  SimpleMatcher: js-sec-hidden-ok
   Command: sechiddenok
-- Regex: (?i:js-sec-hidden-denied)
+- # Regex: (?i:js-sec-hidden-denied)
+  SimpleMatcher: js-sec-hidden-denied
   Command: sechiddendenied

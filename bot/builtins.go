@@ -124,14 +124,15 @@ func hiddenSlashBotExample(input string) string {
 }
 
 type helpCommandMetadata struct {
-	PluginName string
-	Command    string
-	Usage      string
-	Summary    string
-	Examples   []string
-	Keywords   []string
-	Scope      string
-	HiddenOK   bool
+	PluginName    string
+	Command       string
+	Usage         string
+	Summary       string
+	Examples      []string
+	Keywords      []string
+	Scope         string
+	HiddenOK      bool
+	PluginSummary string
 }
 
 type rankedHelpMatch struct {
@@ -201,6 +202,27 @@ func singularizeHelpToken(token string) string {
 		return strings.TrimSuffix(token, "s")
 	}
 	return token
+}
+
+func absInt(value int) int {
+	if value < 0 {
+		return -value
+	}
+	return value
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 func helpTokenEquivalent(a, b string) bool {
@@ -274,6 +296,20 @@ func commandAllowsHidden(plugin *Plugin, command string) bool {
 	return false
 }
 
+func helpPluginSummary(task *Task, summaries ...string) string {
+	if task != nil {
+		if summary := strings.TrimSpace(task.Description); summary != "" {
+			return summary
+		}
+	}
+	for _, summary := range summaries {
+		if trimmed := strings.TrimSpace(summary); trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
+}
+
 func (r Robot) collectHelpCommandMetadata(includeGlobal bool) []helpCommandMetadata {
 	w := getLockedWorker(r.tid)
 	w.Unlock()
@@ -318,9 +354,10 @@ func (r Robot) collectHelpCommandMetadata(includeGlobal bool) []helpCommandMetad
 			entry, ok := byCommand[key]
 			if !ok {
 				entry = &helpCommandMetadata{
-					PluginName: task.name,
-					Command:    command,
-					Scope:      helpScopeText(task),
+					PluginName:    task.name,
+					Command:       command,
+					Scope:         helpScopeText(task),
+					PluginSummary: helpPluginSummary(task),
 				}
 				byCommand[key] = entry
 			}
@@ -329,6 +366,9 @@ func (r Robot) collectHelpCommandMetadata(includeGlobal bool) []helpCommandMetad
 			}
 			if len(entry.Summary) == 0 && len(strings.TrimSpace(matcher.Summary)) > 0 {
 				entry.Summary = strings.TrimSpace(matcher.Summary)
+			}
+			if entry.PluginSummary == "" {
+				entry.PluginSummary = helpPluginSummary(task, matcher.Summary)
 			}
 			if commandAllowsHidden(plugin, command) {
 				entry.HiddenOK = true
@@ -348,6 +388,14 @@ func (r Robot) collectHelpCommandMetadata(includeGlobal bool) []helpCommandMetad
 	return results
 }
 
+type parsedHelpQuery struct {
+	Term       string
+	Brief      bool
+	PluginName string
+	Command    string
+	HasPath    bool
+}
+
 func scoreHelpCommandMatch(entry helpCommandMetadata, term string) int {
 	termPhrase := normalizeHelpPhrase(term)
 	if len(termPhrase) == 0 {
@@ -363,6 +411,9 @@ func scoreHelpCommandMatch(entry helpCommandMetadata, term string) int {
 	if helpTokenEquivalent(termPhrase, pluginPhrase) && score < 95 {
 		score = 95
 	}
+
+	commandTokens := helpTokenRegex.FindAllString(commandPhrase, -1)
+	pluginTokens := helpTokenRegex.FindAllString(pluginPhrase, -1)
 
 	for _, keyword := range entry.Keywords {
 		keyPhrase := normalizeHelpPhrase(keyword)
@@ -401,6 +452,28 @@ func scoreHelpCommandMatch(entry helpCommandMetadata, term string) int {
 	}
 	if strings.Contains(examples, termPhrase) && score < 74 {
 		score = 74
+	}
+
+	for _, token := range commandTokens {
+		if fuzzyHelpTokenMatch(termPhrase, token, 1) && score < 88 {
+			score = 88
+		}
+	}
+	for _, token := range pluginTokens {
+		if fuzzyHelpTokenMatch(termPhrase, token, 1) && score < 84 {
+			score = 84
+		}
+	}
+	for _, keyword := range entry.Keywords {
+		keyPhrase := normalizeHelpPhrase(keyword)
+		if fuzzyHelpTokenMatch(termPhrase, keyPhrase, 1) && score < 82 {
+			score = 82
+		}
+	}
+	for _, token := range searchTokens {
+		if fuzzyHelpTokenMatch(termPhrase, token, 1) && score < 78 {
+			score = 78
+		}
 	}
 
 	termTokens := helpTokenRegex.FindAllString(termPhrase, -1)
@@ -477,6 +550,91 @@ func scoreHelpCommandMatch(entry helpCommandMetadata, term string) int {
 	return score
 }
 
+func fuzzyHelpTokenMatch(term, candidate string, maxDistance int) bool {
+	term = strings.TrimSpace(strings.ToLower(term))
+	candidate = strings.TrimSpace(strings.ToLower(candidate))
+	if term == "" || candidate == "" || helpTokenEquivalent(term, candidate) {
+		return false
+	}
+	if strings.Contains(term, " ") || strings.Contains(candidate, " ") {
+		return false
+	}
+	if len(term) < 4 || len(candidate) < 4 {
+		return false
+	}
+	if absInt(len(term)-len(candidate)) > maxDistance {
+		return false
+	}
+	_, ok := boundedLevenshtein(term, candidate, maxDistance)
+	return ok
+}
+
+func boundedLevenshtein(left, right string, maxDistance int) (int, bool) {
+	if left == right {
+		return 0, true
+	}
+	if maxDistance < 0 {
+		return 0, false
+	}
+	if absInt(len(left)-len(right)) > maxDistance {
+		return 0, false
+	}
+	if len(left) == 0 {
+		if len(right) <= maxDistance {
+			return len(right), true
+		}
+		return 0, false
+	}
+	if len(right) == 0 {
+		if len(left) <= maxDistance {
+			return len(left), true
+		}
+		return 0, false
+	}
+
+	previous := make([]int, len(right)+1)
+	current := make([]int, len(right)+1)
+	for j := range previous {
+		previous[j] = j
+	}
+
+	for i := 1; i <= len(left); i++ {
+		current[0] = i
+		rowMin := current[0]
+		start := maxInt(1, i-maxDistance)
+		end := minInt(len(right), i+maxDistance)
+		for j := 1; j < start; j++ {
+			current[j] = maxDistance + 1
+		}
+		for j := start; j <= end; j++ {
+			cost := 0
+			if left[i-1] != right[j-1] {
+				cost = 1
+			}
+			insertCost := current[j-1] + 1
+			deleteCost := previous[j] + 1
+			replaceCost := previous[j-1] + cost
+			value := minInt(insertCost, minInt(deleteCost, replaceCost))
+			current[j] = value
+			if value < rowMin {
+				rowMin = value
+			}
+		}
+		for j := end + 1; j <= len(right); j++ {
+			current[j] = maxDistance + 1
+		}
+		if rowMin > maxDistance {
+			return 0, false
+		}
+		previous, current = current, previous
+	}
+
+	if previous[len(right)] > maxDistance {
+		return 0, false
+	}
+	return previous[len(right)], true
+}
+
 func rankHelpMatches(entries []helpCommandMetadata, term string) []rankedHelpMatch {
 	matches := make([]rankedHelpMatch, 0, len(entries))
 	for _, entry := range entries {
@@ -542,6 +700,62 @@ func (r Robot) renderHelpEntry(entry helpCommandMetadata, includeExamples, inclu
 	return strings.Join(lines, "\n")
 }
 
+func (r Robot) renderHelpListingEntry(entry helpCommandMetadata, includeExamples, includeScope bool, exampleLimit int) string {
+	lines := []string{fmt.Sprintf("Command: %s/%s", entry.PluginName, entry.Command)}
+	if len(entry.Summary) > 0 {
+		lines = append(lines, "Summary: "+entry.Summary)
+	}
+	if len(entry.Usage) > 0 {
+		lines = append(lines, "Usage: "+r.formatHelpLine(stripHelpAddressPrefix(entry.Usage)))
+	}
+	if includeExamples && len(entry.Examples) > 0 {
+		examples := entry.Examples
+		if exampleLimit > 0 && len(examples) > exampleLimit {
+			examples = examples[:exampleLimit]
+		}
+		rendered := make([]string, 0, len(examples))
+		for _, example := range examples {
+			line := r.formatHelpExample(entry, example)
+			if len(strings.TrimSpace(line)) == 0 {
+				continue
+			}
+			rendered = append(rendered, line)
+		}
+		if len(rendered) > 0 {
+			lines = append(lines, "Examples:")
+			for _, example := range rendered {
+				lines = append(lines, "- "+example)
+			}
+		}
+	}
+	if includeScope && len(entry.Scope) > 0 {
+		lines = append(lines, "Availability: "+entry.Scope)
+	}
+	lines = append(lines, "Exact help: "+r.formatHelpLine("(alias) help "+entry.PluginName+"/"+entry.Command))
+	return strings.Join(lines, "\n")
+}
+
+func parseHelpQuery(args []string) parsedHelpQuery {
+	term, brief := parseHelpQueryMode(args)
+	parsed := parsedHelpQuery{
+		Term:  term,
+		Brief: brief,
+	}
+	if strings.Contains(term, "/") {
+		parts := strings.Split(term, "/")
+		if len(parts) == 2 {
+			plugin := strings.TrimSpace(strings.ToLower(parts[0]))
+			command := strings.TrimSpace(strings.ToLower(parts[1]))
+			if plugin != "" && command != "" && !strings.Contains(plugin, " ") && !strings.Contains(command, " ") {
+				parsed.PluginName = plugin
+				parsed.Command = command
+				parsed.HasPath = true
+			}
+		}
+	}
+	return parsed
+}
+
 func parseHelpQueryMode(args []string) (term string, brief bool) {
 	parts := make([]string, 0, len(args))
 	for _, arg := range args {
@@ -563,43 +777,204 @@ func parseHelpQueryMode(args []string) (term string, brief bool) {
 	return strings.TrimSpace(strings.Join(parts, " ")), brief
 }
 
-func (r Robot) renderCommandsOverview(entries []helpCommandMetadata) string {
+func groupHelpEntriesByPlugin(entries []helpCommandMetadata) map[string][]helpCommandMetadata {
 	byPlugin := make(map[string][]helpCommandMetadata)
 	for _, entry := range entries {
 		byPlugin[entry.PluginName] = append(byPlugin[entry.PluginName], entry)
 	}
+	return byPlugin
+}
+
+func pluginOverviewSummary(entries []helpCommandMetadata) string {
+	for _, entry := range entries {
+		if summary := strings.TrimSpace(entry.PluginSummary); summary != "" {
+			return summary
+		}
+	}
+	if len(entries) == 1 {
+		return strings.TrimSpace(entries[0].Summary)
+	}
+	for _, entry := range entries {
+		if summary := strings.TrimSpace(entry.Summary); summary != "" {
+			return summary
+		}
+	}
+	return ""
+}
+
+func summarizePluginCommands(entries []helpCommandMetadata, limit int) string {
+	if limit <= 0 {
+		limit = 3
+	}
+	commands := make([]string, 0, len(entries))
+	seen := map[string]struct{}{}
+	for _, entry := range entries {
+		if _, ok := seen[entry.Command]; ok {
+			continue
+		}
+		seen[entry.Command] = struct{}{}
+		commands = append(commands, entry.Command)
+	}
+	sort.Strings(commands)
+	if len(commands) == 0 {
+		return ""
+	}
+	if len(commands) <= limit {
+		return strings.Join(commands, ", ")
+	}
+	return strings.Join(commands[:limit], ", ") + fmt.Sprintf(", +%d more", len(commands)-limit)
+}
+
+func findHelpEntryByPath(entries []helpCommandMetadata, plugin, command string) (helpCommandMetadata, bool) {
+	for _, entry := range entries {
+		if strings.EqualFold(entry.PluginName, plugin) && strings.EqualFold(entry.Command, command) {
+			return entry, true
+		}
+	}
+	return helpCommandMetadata{}, false
+}
+
+func findHelpEntriesByPlugin(entries []helpCommandMetadata, plugin string) []helpCommandMetadata {
+	matches := make([]helpCommandMetadata, 0, 4)
+	for _, entry := range entries {
+		if strings.EqualFold(entry.PluginName, plugin) {
+			matches = append(matches, entry)
+		}
+	}
+	sort.Slice(matches, func(i, j int) bool {
+		return matches[i].Command < matches[j].Command
+	})
+	return matches
+}
+
+func (r Robot) renderCommandsOverview(entries []helpCommandMetadata) string {
+	byPlugin := groupHelpEntriesByPlugin(entries)
 	pluginNames := make([]string, 0, len(byPlugin))
 	for plugin := range byPlugin {
 		pluginNames = append(pluginNames, plugin)
 	}
 	sort.Strings(pluginNames)
 
-	lines := []string{"Command groups available in this channel:"}
+	lines := []string{
+		"Command groups available in this channel:",
+		"Skim a plugin first, then drill into one command if you need exact syntax.",
+	}
 	for _, plugin := range pluginNames {
 		pluginEntries := byPlugin[plugin]
 		sort.Slice(pluginEntries, func(i, j int) bool {
 			return pluginEntries[i].Command < pluginEntries[j].Command
 		})
-		commands := make([]string, 0, len(pluginEntries))
-		seen := map[string]struct{}{}
-		firstUsage := ""
-		for _, entry := range pluginEntries {
-			if _, ok := seen[entry.Command]; ok {
-				continue
-			}
-			seen[entry.Command] = struct{}{}
-			commands = append(commands, entry.Command)
-			if len(firstUsage) == 0 && len(entry.Usage) > 0 {
-				firstUsage = r.formatHelpLine(stripHelpAddressPrefix(entry.Usage))
-			}
+		summary := pluginOverviewSummary(pluginEntries)
+		if summary == "" {
+			summary = "Commands available."
 		}
-		lines = append(lines, fmt.Sprintf("- %s: %s", plugin, strings.Join(commands, ", ")))
-		if len(firstUsage) > 0 {
-			lines = append(lines, "  Example: "+firstUsage)
+		lines = append(lines, fmt.Sprintf("- %s: %s", plugin, summary))
+		if preview := summarizePluginCommands(pluginEntries, 4); preview != "" {
+			qualified := make([]string, 0, 4)
+			for _, command := range strings.Split(preview, ", ") {
+				trimmed := strings.TrimSpace(command)
+				if trimmed == "" {
+					continue
+				}
+				if strings.HasPrefix(trimmed, "+") {
+					qualified = append(qualified, trimmed)
+					continue
+				}
+				qualified = append(qualified, plugin+"/"+trimmed)
+			}
+			lines = append(lines, "  Commands: "+strings.Join(qualified, ", "))
 		}
+		lines = append(lines, "  Try: "+r.formatHelpLine("(alias) help "+plugin))
 	}
-	lines = append(lines, "Try: "+r.formatHelpLine("(alias) help <plugin|command|keyword>"))
+	lines = append(lines, "For one command: "+r.formatHelpLine("(alias) help <plugin>/<command>"))
+	lines = append(lines, "Search by keyword: "+r.formatHelpLine("(alias) help <plugin|command|keyword>"))
 	return strings.Join(lines, "\n")
+}
+
+func (r Robot) renderPluginHelpOverview(plugin string, entries []helpCommandMetadata) string {
+	if len(entries) == 0 {
+		return "Sorry, I couldn't find that plugin."
+	}
+	lines := []string{fmt.Sprintf("Plugin help: %s", plugin)}
+	if summary := pluginOverviewSummary(entries); summary != "" {
+		lines = append(lines, summary)
+	}
+	lines = append(lines, "Commands:")
+	for _, entry := range entries {
+		line := "- `" + entry.PluginName + "/" + entry.Command + "`"
+		if summary := strings.TrimSpace(entry.Summary); summary != "" {
+			line += " - " + summary
+		}
+		lines = append(lines, line)
+	}
+	if len(entries) == 1 {
+		lines = append(lines, "Exact help: "+r.formatHelpLine("(alias) help "+entries[0].PluginName+"/"+entries[0].Command))
+	} else {
+		lines = append(lines, "Exact help: "+r.formatHelpLine("(alias) help "+plugin+"/<command>"))
+	}
+	return strings.Join(lines, "\n")
+}
+
+func helpAddressKey(entry helpCommandMetadata) string {
+	return entry.PluginName + "/" + entry.Command
+}
+
+func renderKeywordPluginSection(r Robot, term string, pluginEntries []helpCommandMetadata, matches []rankedHelpMatch, brief bool) string {
+	sections := []string{
+		fmt.Sprintf("Help for keyword: %s", strings.ToLower(term)),
+		r.renderPluginHelpOverview(term, pluginEntries),
+	}
+
+	pluginCommands := make(map[string]struct{}, len(pluginEntries))
+	for _, entry := range pluginEntries {
+		pluginCommands[helpAddressKey(entry)] = struct{}{}
+	}
+
+	filtered := make([]rankedHelpMatch, 0, len(matches))
+	seen := make(map[string]struct{}, len(matches))
+	for _, match := range matches {
+		key := helpAddressKey(match.Entry)
+		if _, skip := pluginCommands[key]; skip {
+			continue
+		}
+		if _, dup := seen[key]; dup {
+			continue
+		}
+		seen[key] = struct{}{}
+		filtered = append(filtered, match)
+	}
+	if len(filtered) == 0 {
+		return strings.Join(sections, "\n\n")
+	}
+
+	limit := 6
+	if brief {
+		limit = 3
+	}
+	if len(filtered) > limit {
+		filtered = filtered[:limit]
+	}
+	otherLines := []string{"Other command matches:"}
+	for _, match := range filtered {
+		exampleLimit := 2
+		if brief {
+			exampleLimit = 1
+		}
+		otherLines = append(otherLines, r.renderHelpListingEntry(match.Entry, true, true, exampleLimit))
+	}
+	sections = append(sections, strings.Join(otherLines, "\n\n"))
+	return strings.Join(sections, "\n\n")
+}
+
+func (r Robot) renderExactHelpEntry(entry helpCommandMetadata, siblingCount int) string {
+	lines := []string{
+		fmt.Sprintf("Command help: %s/%s", entry.PluginName, entry.Command),
+		r.renderHelpEntry(entry, true, true, 3),
+	}
+	if siblingCount > 1 {
+		lines = append(lines, "More from this plugin: "+r.formatHelpLine("(alias) help "+entry.PluginName))
+	}
+	return strings.Join(lines, "\n\n")
 }
 
 func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
@@ -656,7 +1031,9 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 	}
 	if command == "help" || command == "help-all" || command == "commands" {
 		lineSeparator := "\n\n"
-		term, brief := parseHelpQueryMode(args)
+		query := parseHelpQuery(args)
+		term := query.Term
+		brief := query.Brief
 		hasKeyword := command == "help" && len(term) > 0
 		sendOutput := func(message string) {
 			if r.Incoming.ThreadedMessage {
@@ -680,6 +1057,8 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 			for _, line := range defaultHelpLines {
 				lines = append(lines, r.formatHelpLine(line))
 			}
+			lines = append(lines, "Plugin help: "+r.formatHelpLine("(alias) help <plugin>"))
+			lines = append(lines, "Exact command help: "+r.formatHelpLine("(alias) help <plugin>/<command>"))
 			lines = append(lines, "Tip: "+r.formatHelpLine("(alias) commands")+" shows command groups in this channel.")
 			sendOutput(strings.Join(lines, "\n"))
 			return
@@ -707,14 +1086,29 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 			})
 			helpLines := make([]string, 0, len(entries))
 			for _, entry := range entries {
-				helpLines = append(helpLines, r.renderHelpEntry(entry, true, true, 0))
+				helpLines = append(helpLines, r.renderHelpListingEntry(entry, true, true, 0))
 			}
 			sendOutput("Commands available in this channel (including global):\n" + strings.Join(helpLines, lineSeparator))
 		case "help":
 			entries := r.collectHelpCommandMetadata(true)
+			if query.HasPath {
+				entry, ok := findHelpEntryByPath(entries, query.PluginName, query.Command)
+				if !ok {
+					sendOutput("Sorry, I couldn't find that command. Try " + r.formatHelpLine("(alias) help "+query.PluginName) + " or " + r.formatHelpLine("(alias) commands") + ".")
+					return
+				}
+				siblings := findHelpEntriesByPlugin(entries, query.PluginName)
+				sendOutput(r.renderExactHelpEntry(entry, len(siblings)))
+				return
+			}
+			if pluginEntries := findHelpEntriesByPlugin(entries, term); len(pluginEntries) > 0 {
+				matches := rankHelpMatches(entries, term)
+				sendOutput(renderKeywordPluginSection(r, term, pluginEntries, matches, brief))
+				return
+			}
 			matches := rankHelpMatches(entries, term)
 			if len(matches) == 0 {
-				sendOutput("Sorry, I didn't find any commands matching your keyword")
+				sendOutput("Sorry, I didn't find any commands matching your keyword. Try " + r.formatHelpLine("(alias) commands") + " or " + r.formatHelpLine("(alias) help <plugin>/<command>") + ".")
 				return
 			}
 
@@ -732,7 +1126,7 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 				if brief {
 					exampleLimit = 1
 				}
-				helpLines = append(helpLines, r.renderHelpEntry(match.Entry, true, true, exampleLimit))
+				helpLines = append(helpLines, r.renderHelpListingEntry(match.Entry, true, true, exampleLimit))
 			}
 			header := fmt.Sprintf("Command matches for keyword: %s", strings.ToLower(term))
 			if brief {

@@ -15,7 +15,6 @@ The authoritative API surface for compiled Go and Yaegi-based extensions is the 
 - `GetMessage()` – returns `*robot.Message` for the current pipeline.
 - `GetTaskConfig(cfgptr interface{}) RetVal`
 - `GetHelpMetadata(query string) string`
-- `GetFallbackAdvice(query string) string`
 - `GetParameter(name string) string`
 - `GetBotAttribute(a string) *AttrRet`
 - `GetUserAttribute(u, a string) *AttrRet`
@@ -35,13 +34,7 @@ Important semantics:
 - Cross-channel entries are limited to commands the current user could already discover through help.
 - The primary intended use is "help me recover from an unmatched command" flows, including wrong-channel hints.
 
-`GetFallbackAdvice` is a higher-level companion to `GetHelpMetadata`. It returns a smaller JSON payload with:
-- an `advice` classification such as `wrong_channel`, `close_match_here`, `close_match_elsewhere`, or `no_match`
-- compact `here` / `elsewhere` command suggestions
-- `wrong_channel_hint` when the engine has a strong contextual hint
-- `deterministic_reply`, which is the engine's local non-AI reply text for the mismatch
-
-Use `GetHelpMetadata` when an extension needs richer search/browse context. Use `GetFallbackAdvice` when an extension wants to share the engine's deterministic mismatch judgment and only involve AI selectively.
+Use `GetHelpMetadata` when an extension needs engine-filtered search/browse context for help or recovery flows.
 
 ### Messaging and formatting
 - `Direct() Robot`, `Threaded() Robot`, `Fixed() Robot`, `MessageFormat(f MessageFormat) Robot`
@@ -120,7 +113,6 @@ Supported `FuncName` values in `bot/http.go`:
 - `Remember`, `RememberThread`, `Recall`, `DeleteMemory`
 - `GetParameter`, `GetTaskConfig`
 - `GetHelpMetadata`
-- `GetFallbackAdvice`
 - `GetSenderAttribute`, `GetBotAttribute`, `GetUserAttribute`
 - `Log`
 - `SendChannelThreadMessage`, `SendUserChannelThreadMessage`, `SendProtocolUserChannelMessage`, `SendUserMessage`
@@ -144,13 +136,13 @@ Both wrappers use the `GBOT` global injected by the interpreter modules (`lib/go
 External interpreters call the HTTP API and wrap it in language-appropriate helpers:
 
 - Bash: `lib/gopherbot_v1.sh` exports functions like `Say`, `Reply`, `Remember`, `PromptForReply`, `AddTask`, and more; it uses curl to post JSON to `GOPHER_HTTP_POST`.
-- Python 3: `lib/gopherbot_v2.py` defines `class Robot` with the same core methods, plus `Subscribe`, `Unsubscribe`, `SetWorkingDirectory`, `GetHelpMetadata`, and `GetFallbackAdvice`.
-- Ruby: `lib/gopherbot_v1.rb` defines `class Robot` (via `BaseBot`) with the same core methods, plus `Subscribe`, `Unsubscribe`, `SetWorkingDirectory`, `GetHelpMetadata`, and `GetFallbackAdvice`.
+- Python 3: `lib/gopherbot_v2.py` defines `class Robot` with the same core methods, plus `Subscribe`, `Unsubscribe`, `SetWorkingDirectory`, and `GetHelpMetadata`.
+- Ruby: `lib/gopherbot_v1.rb` defines `class Robot` (via `BaseBot`) with the same core methods, plus `Subscribe`, `Unsubscribe`, `SetWorkingDirectory`, and `GetHelpMetadata`.
 
 ## Parity notes and known gaps
 
 - `Subscribe` / `Unsubscribe` are now part of the canonical Go interface (`robot/robot.go`) and are exercised for external yaegi plugins via `test/go_full_test.go` + `plugins/test/gofull.go`.
-- `GetHelpMetadata` and `GetFallbackAdvice` are available to compiled Go, Yaegi Go, and the HTTP-backed Bash/Python/Ruby libraries. They are not yet surfaced in the in-process Lua/JS helper libraries.
+- `GetHelpMetadata` is available to compiled Go, Yaegi Go, and the HTTP-backed Bash/Python/Ruby libraries. It is not yet surfaced in the in-process Lua/JS helper libraries.
 - `SetWorkingDirectory` exists in the Go interface and external libraries (`lib/gopherbot_v1.sh`, `lib/gopherbot_v2.py`, `lib/gopherbot_v1.rb`), but it is not present in the Lua/JS wrappers as of `lib/gopherbot_v1.lua` / `lib/gopherbot_v1.js`.
 - `RaisePriv` is Go-only (`robot/robot.go`); there is no wrapper in external language libraries.
 - Yaegi caveat: interpreted Go plugins can diverge from compiled Go when values cross reflective boundaries. A focused local repro in `modules/yaegi-dynamic-go/yaegi_dynamic_test.go` shows that a helper chain returning a mixed multi-value tuple such as `(conversationState, []conversationExchange)` can panic under `RunPluginHandler` with `reflect.Set ... not assignable`, even though the same pattern succeeds in compiled Go.

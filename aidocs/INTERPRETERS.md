@@ -70,6 +70,7 @@ callTask()
 ## Plugin Contract by Language
 
 Config key note: in v3 plugin config, directed command matchers must be under `Commands`. Legacy `CommandMatchers` and top-level `Help` are no longer accepted.
+Directed `Commands` may use either `Regex` (raw Go regex) or `SimpleMatcher` (the simpler command DSL compiled to regex by the engine). `MessageMatchers` remain regex-only.
 
 ### Lua Plugins
 
@@ -85,7 +86,7 @@ if command == "configure" then
     -- MUST return a string (YAML config or empty "")
     return [[
 Commands:
-- Regex: '(?i:example)'
+- SimpleMatcher: example
   Command: example
 ]]
 end
@@ -107,7 +108,7 @@ return robot.task.Normal
 
 **Key points:**
 - `arg[1]` = command ("configure", "init", or user command)
-- `arg[2]`, `arg[3]`, ... = regex capture groups
+- `arg[2]`, `arg[3]`, ... = capture groups from either `Regex` or `SimpleMatcher`
 - `configure` **must return a string** (empty `""` if no config)
 - `GBOT` global provides the raw bot userdata
 - Use `robot.Robot:new()` to get a wrapped Robot instance

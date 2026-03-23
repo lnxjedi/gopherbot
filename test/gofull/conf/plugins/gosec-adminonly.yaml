@@ -3,5 +3,6 @@ AllChannels: true
 AllowDirect: true
 RequireAdmin: true
 Commands:
-- Regex: (?i:go-sec-adminonly)
+- # Regex: (?i:go-sec-adminonly)
+  SimpleMatcher: go-sec-adminonly
   Command: secadminonly

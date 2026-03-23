@@ -158,11 +158,6 @@ class BaseBot
 		return callBotFunc(__method__, args)["StrVal"]
 	end
 
-	def GetFallbackAdvice(query)
-		args = { "Query" => query }
-		return callBotFunc(__method__, args)["StrVal"]
-	end
-
 	def Exclusive(tag, queue_task=false)
 		return callBotFunc(__method__, { "Tag" => tag, "QueueTask" => queue_task })["Boolean"]
 	end

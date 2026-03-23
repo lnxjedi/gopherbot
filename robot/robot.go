@@ -70,9 +70,6 @@ type Robot interface {
 	// GetHelpMetadata returns engine-filtered help/search metadata as a JSON string.
 	// The returned data is limited to commands the current user can browse via help.
 	GetHelpMetadata(query string) string
-	// GetFallbackAdvice returns structured engine-generated advice for unmatched commands.
-	// It is derived from the same filtered help metadata the current user can already browse.
-	GetFallbackAdvice(query string) string
 	// GetMessage returns a pointer to the robot.Message struct
 	GetMessage() *Message
 	// GetParameter retrieves the value of a parameter for a pipeline. Only useful

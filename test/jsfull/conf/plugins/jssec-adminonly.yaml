@@ -3,5 +3,6 @@ AllChannels: true
 AllowDirect: true
 RequireAdmin: true
 Commands:
-- Regex: (?i:js-sec-adminonly)
+- # Regex: (?i:js-sec-adminonly)
+  SimpleMatcher: js-sec-adminonly
   Command: secadminonly

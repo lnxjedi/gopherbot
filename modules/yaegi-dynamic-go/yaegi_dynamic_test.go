@@ -139,19 +139,6 @@ func TestRunPluginHandlerYaegiRobotHelpMetadataMethodCompiles(t *testing.T) {
 	}
 }
 
-func TestRunPluginHandlerYaegiRobotFallbackAdviceMethodCompiles(t *testing.T) {
-	pluginPath := writeTempPlugin(t, yaegiPluginUsingFallbackAdvice())
-	logger := &testLogger{}
-
-	ret, err := RunPluginHandler(pluginPath, "fallback-advice-repro", nil, nil, logger, false, "catchall")
-	if err != nil {
-		t.Fatalf("RunPluginHandler fallback advice error = %v", err)
-	}
-	if ret != robot.Normal {
-		t.Fatalf("RunPluginHandler fallback advice ret = %v, want %v", ret, robot.Normal)
-	}
-}
-
 func writeTempPlugin(t *testing.T, src string) string {
 	t.Helper()
 	ensureYaegiInitialized(t)
@@ -499,21 +486,6 @@ func yaegiPluginUsingHelpMetadata() string {
 		"func PluginHandler(r robot.Robot, command string, args ...string) robot.TaskRetVal {",
 		"    _ = func(rb robot.Robot) string {",
 		"        return rb.GetHelpMetadata(\"launch-server\")",
-		"    }",
-		"    return robot.Normal",
-		"}",
-	}, "\n")
-}
-
-func yaegiPluginUsingFallbackAdvice() string {
-	return strings.Join([]string{
-		"package main",
-		"",
-		"import \"github.com/lnxjedi/gopherbot/robot\"",
-		"",
-		"func PluginHandler(r robot.Robot, command string, args ...string) robot.TaskRetVal {",
-		"    _ = func(rb robot.Robot) string {",
-		"        return rb.GetFallbackAdvice(\"launch-server\")",
 		"    }",
 		"    return robot.Normal",
 		"}",

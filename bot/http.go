@@ -492,17 +492,6 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		s := r.GetHelpMetadata(q.Query)
 		sendReturn(r, rw, &stringresponse{s})
 		return
-	case "GetFallbackAdvice":
-		var q helpmetadataquery
-		if !getArgs(rw, &f.FuncArgs, &q) {
-			return
-		}
-		if q.Base64 {
-			q.Query = decode(q.Query)
-		}
-		s := r.GetFallbackAdvice(q.Query)
-		sendReturn(r, rw, &stringresponse{s})
-		return
 	case "GetTaskConfig":
 		if task.Config == nil {
 			Log(robot.Error, "GetTaskConfig called by external script '%s', but no config found.", task.name)

@@ -8,7 +8,7 @@ shift
 configure(){
   cat <<"EOF"
 Commands:
-- Regex: '(?i:hello world)'
+- SimpleMatcher: hello world
   Command: "hello"
 AmbientMatchCommand: true
 MessageMatchers:

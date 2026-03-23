@@ -109,7 +109,7 @@ func TestGetHelpMetadataFiltersAndMarksVisibility(t *testing.T) {
 	}
 }
 
-func TestGetFallbackAdviceWrongChannel(t *testing.T) {
+func TestCollectFallbackAdviceWrongChannel(t *testing.T) {
 	tasks := &taskList{
 		t: []interface{}{
 			&Task{name: "namespace"},
@@ -150,10 +150,7 @@ func TestGetFallbackAdviceWrongChannel(t *testing.T) {
 	w.registerWorker(r.tid)
 	defer deregisterWorker(r.tid)
 
-	var advice fallbackAdviceResponse
-	if err := json.Unmarshal([]byte(r.GetFallbackAdvice("!launch-server")), &advice); err != nil {
-		t.Fatalf("GetFallbackAdvice unmarshal: %v", err)
-	}
+	advice := r.collectFallbackAdvice("!launch-server")
 	if advice.Advice != fallbackAdviceWrongChannel {
 		t.Fatalf("advice = %q, want %q", advice.Advice, fallbackAdviceWrongChannel)
 	}
@@ -168,7 +165,7 @@ func TestGetFallbackAdviceWrongChannel(t *testing.T) {
 	}
 }
 
-func TestGetFallbackAdviceSuppressesWeakConversationalMatches(t *testing.T) {
+func TestCollectFallbackAdviceSuppressesWeakConversationalMatches(t *testing.T) {
 	tasks := &taskList{
 		t: []interface{}{
 			&Task{name: "namespace"},
@@ -222,10 +219,7 @@ func TestGetFallbackAdviceSuppressesWeakConversationalMatches(t *testing.T) {
 	w.registerWorker(r.tid)
 	defer deregisterWorker(r.tid)
 
-	var advice fallbackAdviceResponse
-	if err := json.Unmarshal([]byte(r.GetFallbackAdvice("!tell me a joke")), &advice); err != nil {
-		t.Fatalf("GetFallbackAdvice unmarshal: %v", err)
-	}
+	advice := r.collectFallbackAdvice("!tell me a joke")
 	if advice.Advice != fallbackAdviceNoMatch {
 		t.Fatalf("advice = %q, want %q", advice.Advice, fallbackAdviceNoMatch)
 	}
@@ -240,7 +234,7 @@ func TestGetFallbackAdviceSuppressesWeakConversationalMatches(t *testing.T) {
 	}
 }
 
-func TestGetFallbackAdviceUsesExamplesForWrongChannelHint(t *testing.T) {
+func TestCollectFallbackAdviceUsesExamplesForWrongChannelHint(t *testing.T) {
 	tasks := &taskList{
 		t: []interface{}{
 			&Task{name: "namespace"},
@@ -282,10 +276,7 @@ func TestGetFallbackAdviceUsesExamplesForWrongChannelHint(t *testing.T) {
 	w.registerWorker(r.tid)
 	defer deregisterWorker(r.tid)
 
-	var advice fallbackAdviceResponse
-	if err := json.Unmarshal([]byte(r.GetFallbackAdvice("!tell me a joke")), &advice); err != nil {
-		t.Fatalf("GetFallbackAdvice unmarshal: %v", err)
-	}
+	advice := r.collectFallbackAdvice("!tell me a joke")
 	if advice.Advice != fallbackAdviceWrongChannel {
 		t.Fatalf("advice = %q, want %q", advice.Advice, fallbackAdviceWrongChannel)
 	}
@@ -294,6 +285,63 @@ func TestGetFallbackAdviceUsesExamplesForWrongChannelHint(t *testing.T) {
 	}
 	if !strings.Contains(advice.DeterministicReply, "#chat") {
 		t.Fatalf("deterministic reply %q missing chat hint", advice.DeterministicReply)
+	}
+}
+
+func TestCollectFallbackAdviceSuggestsHighConfidenceTypo(t *testing.T) {
+	tasks := &taskList{
+		t: []interface{}{
+			&Task{name: "namespace"},
+			&Plugin{
+				Task: &Task{
+					name:     "knock",
+					Channels: []string{"general"},
+				},
+				Commands: []InputMatcher{{
+					Command:  "knock",
+					Usage:    "tell me a knock-knock joke",
+					Summary:  "Starts an interactive knock-knock joke.",
+					Keywords: []string{"knock", "joke"},
+					Examples: []string{"(alias) tell me a knock-knock joke"},
+				}},
+			},
+		},
+		nameMap: map[string]int{
+			"knock": 1,
+		},
+		nameSpaces:    map[string]ParameterSet{},
+		parameterSets: map[string]ParameterSet{},
+	}
+
+	w := &worker{
+		User:       "alice",
+		Channel:    "general",
+		Protocol:   robot.Test,
+		Incoming:   &robot.ConnectorMessage{},
+		cfg:        &configuration{alias: '!', botinfo: UserInfo{UserName: "Clu"}, adminUsers: []string{"parsley"}},
+		tasks:      tasks,
+		listedUser: true,
+		pipeContext: &pipeContext{
+			parameters:  map[string]string{"GOPHER_CMDMODE": "alias"},
+			environment: map[string]string{},
+		},
+	}
+	r := w.makeRobot()
+	w.registerWorker(r.tid)
+	defer deregisterWorker(r.tid)
+
+	advice := r.collectFallbackAdvice("!knok")
+	if advice.Advice != fallbackAdviceCloseHere {
+		t.Fatalf("advice = %q, want %q", advice.Advice, fallbackAdviceCloseHere)
+	}
+	if len(advice.Here) != 1 || advice.Here[0].Command != "knock" {
+		t.Fatalf("here = %+v, want knock", advice.Here)
+	}
+	if !strings.Contains(advice.DeterministicReply, "Did you mean [knock] `knock`?") {
+		t.Fatalf("deterministic reply %q missing strong suggestion", advice.DeterministicReply)
+	}
+	if !strings.Contains(advice.DeterministicReply, "!help knock/knock") {
+		t.Fatalf("deterministic reply %q missing exact help path", advice.DeterministicReply)
 	}
 }
 
@@ -312,7 +360,7 @@ func TestCatchAllModeMatches(t *testing.T) {
 
 func TestSelectCatchAllTargetFiltersByCommandMode(t *testing.T) {
 	aliasPlugin := &Plugin{
-		Task:          &Task{name: "ai-fallback-help"},
+		Task:          &Task{name: "alias-fallback"},
 		CatchAll:      true,
 		CatchAllModes: []string{"alias"},
 	}
