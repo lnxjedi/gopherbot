@@ -28,6 +28,8 @@ Commands:
   Command: parameteraddtask
 - Regex: (?i:sh-utils)
   Command: utilities
+- Regex: (?i:sh-default-tasks)
+  Command: defaulttasks
 - Regex: (?i:sh-admin-check)
   Command: admincheck
 - Regex: (?i:sh-elevate-check)
@@ -249,6 +251,25 @@ utilities() {
 	return $PLUGRET_Normal
 }
 
+defaulttasks() {
+	helper=$(mktemp "$GOPHER_WORKSPACE/default-task-exec.XXXXXX") || return $PLUGRET_Fail
+	cat > "$helper" <<'EOF'
+#!/bin/sh
+exit 0
+EOF
+	chmod 755 "$helper" || return $PLUGRET_Fail
+
+	AddTask status "STATUS TASK OK"
+	AddTask say "SAY TASK OK"
+	AddTask reply "REPLY TASK OK"
+	AddTask notify "$GOPHER_USER" "NOTIFY TASK OK"
+	AddTask dmnotify "$GOPHER_USER" "DMNOTIFY TASK OK"
+	AddTask exec "$helper"
+	FinalTask say "EXEC TASK OK"
+	say "SHIPPED TASKS: queued"
+	return $PLUGRET_Normal
+}
+
 admincheck() {
 	admin=$(CheckAdmin)
 	say "ADMIN CHECK: ${admin}"
@@ -363,7 +384,7 @@ case "$command" in
 	init)
 		exit 0
 		;;
-	sendmsg|configtest|subscribe|prompts|memoryseed|memorycheck|memorythreadcheck|memorydelete|memorythreaddelete|identity|parameteraddtask|utilities|admincheck|elevatecheck|pipelineok|pipelinefail|spawnjob|pipeaddcmd|pipefinalcmd|pipefailcmd|secopen|secadmincmd|secauthz|secauthall|secelevated|secimmediate|sechiddenok|sechiddendenied|secadminonly|secusersonly)
+	sendmsg|configtest|subscribe|prompts|memoryseed|memorycheck|memorythreadcheck|memorydelete|memorythreaddelete|identity|parameteraddtask|utilities|defaulttasks|admincheck|elevatecheck|pipelineok|pipelinefail|spawnjob|pipeaddcmd|pipefinalcmd|pipefailcmd|secopen|secadmincmd|secauthz|secauthall|secelevated|secimmediate|sechiddenok|sechiddendenied|secadminonly|secusersonly)
 		"$command" "$@"
 		;;
 	*)

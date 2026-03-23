@@ -41,6 +41,18 @@ ExternalTasks:
     Path: test/tasks/param_show.sh
   "pipeline-note":
     Path: test/tasks/pipeline_note.sh
+  "notify":
+    Path: tasks/notify.gsh
+  "dmnotify":
+    Path: tasks/dmnotify.gsh
+  "status":
+    Path: tasks/status.gsh
+  "say":
+    Path: tasks/status.gsh
+  "reply":
+    Path: tasks/reply.gsh
+  "exec":
+    Path: tasks/exec.gsh
 ExternalJobs:
   "pipe-job":
     Path: test/tasks/pipeline_note.sh

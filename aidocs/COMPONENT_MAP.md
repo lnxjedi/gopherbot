@@ -75,7 +75,8 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 ## jobs/
 
-- Shell job scripts: `jobs/logrotate.sh`.
+- Built-in shell/runtime job scripts: `jobs/install-libs.gsh`.
+- External shell job scripts: `jobs/logrotate.sh`.
 - Go job entrypoint example: `jobs/updatecfg/updatecfg.go` (func `JobHandler`).
 - AI conversation retention prune job: `jobs/go-openai-prune/go_openai_prune_job.go` (func `JobHandler`).
 - SSH demo welcome trigger job: `jobs/go-welcome-join/welcome_join.go` (func `JobHandler`).
@@ -94,7 +95,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 ## plugins/
 
-- External script plugins and samples: `plugins/README.txt`, `plugins/welcome.lua`, `plugins/welcome.sh`, `plugins/samples/README.txt`, `plugins/samples/hello.gsh`, `plugins/test/shfull.gsh`.
+- External and interpreter-backed script plugins/samples: `plugins/README.txt`, `plugins/admin.gsh`, `plugins/ssh-admin.gsh`, `plugins/welcome.lua`, `plugins/welcome.sh`, `plugins/samples/README.txt`, `plugins/samples/hello.gsh`, `plugins/test/shfull.gsh`.
 - OpenAI fallback plugin: `plugins/go-openai-fallback/ai.go` (func `PluginHandler`).
 
 ## resources/
@@ -114,7 +115,8 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 ## tasks/
 
-- External task scripts: `tasks/exec.sh`, `tasks/reply.sh`, `tasks/notify.sh`.
+- Built-in shell/runtime task scripts: `tasks/exec.gsh`, `tasks/reply.gsh`, `tasks/notify.gsh`, `tasks/status.gsh`.
+- External task scripts: `tasks/remote-exec.sh`, `tasks/setworkdir.sh`.
 
 ## test/
 

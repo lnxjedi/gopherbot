@@ -235,6 +235,7 @@ esac
 - Robot methods such as `say`, `Reply`, `PromptForReply`, `AddTask`, and `GetTaskConfig` are builtin shell commands, not HTTP wrappers.
 - Common shell utilities are also builtin (`cat`, `cp`, `find`, `grep`, `jq`, `ls`, `mktemp`, `mv`, `sort`, `tar`, `touch`, `tr`, `uniq`, `wc`, `xargs`, and more).
 - Command lookup is case-insensitive across Robot builtins, so `say` and `Say` are equivalent.
+- Maintained engine-shipped script defaults now prefer `.gsh` entrypoints (for example `plugins/admin.gsh`, `tasks/status.gsh`, and `tasks/notify.gsh`) while legacy `.sh` examples remain in-tree for compatibility/reference.
 
 **See:** `plugins/samples/hello.gsh`, `plugins/test/shfull.gsh`
 

@@ -148,6 +148,30 @@ func TestShFullPipelineAdmin(t *testing.T) {
 	teardown(t, done, conn)
 }
 
+func TestShFullShippedTasks(t *testing.T) {
+	if !wantFull("sh") {
+		t.Skip("skipping Sh full shipped-task test; set RUN_FULL=sh (or RUN_SHFULL=1)")
+	}
+	done, conn := setup("test/shfull", "/tmp/bottest.log", t)
+
+	flow := []testItem{
+		{aliceID, general, ";sh-default-tasks", false, []TestMessage{
+			{null, general, "SHIPPED TASKS: queued", false},
+			{null, general, "STATUS TASK OK", false},
+			{null, general, "SAY TASK OK", false},
+			{alice, general, "REPLY TASK OK", false},
+			{alice, general, "NOTIFY TASK OK", false},
+			{alice, null, "DMNOTIFY TASK OK", false},
+			{null, general, "EXEC TASK OK", false}}, nil, 0},
+	}
+
+	for _, step := range flow {
+		testcaseRepliesOnly(t, conn, step)
+	}
+
+	teardown(t, done, conn)
+}
+
 func TestShFullSecurity(t *testing.T) {
 	if !wantFull("sh") {
 		t.Skip("skipping Sh full security test; set RUN_FULL=sh (or RUN_SHFULL=1)")
