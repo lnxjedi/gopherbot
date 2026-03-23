@@ -17,7 +17,7 @@ This document records the intended SSH connector behavior, control flow, and int
 
 ## Startup Integration
 
-- Connector registration via `bot.RegisterConnector("ssh", Initialize)` from `connectors/ssh/static.go`.
+- Connector registration via `robot.RegisterConnector("ssh", Initialize, robot.ConnectorCapabilities{HiddenCommands: true})` from `connectors/ssh/static.go`.
 - `bot/start.go` should accept `--ssh-port` CLI flag.
 - Default selection in `conf/robot.yaml` should use SSH instead of terminal in modes where terminal was implicitly default.
 - `nullconn` remains in bootstrapping modes per `aidocs/STARTUP_FLOW.md`.
@@ -181,6 +181,8 @@ Direct messages are buffered and replayed only to the sender/recipient.
 - `/...` (without bot name) is still hidden from other SSH users, but is not considered a name-addressed hidden command by engine policy.
 - `/ foo` sends nothing to others; emit `(INFO: '/' note to self message not sent to other users)`.
 - Hidden replies are prefixed with `private/` in the timestamp segment.
+- Connector registration marks SSH hidden-command support in `robot.ConnectorCapabilities{HiddenCommands: true}`.
+- SSH implements `robot.HiddenCommandFormatter`, so built-in help and metadata can render exact hidden examples as `/(bot) ...` instead of guessing Slack-style syntax.
 - Engine-side hidden policy still applies:
   - command must be listed in plugin `AllowedHiddenCommands`
   - and hidden message must be robot-addressed (`/<botname> ...` for SSH, or connector-routed `BotMessage=true` in protocols like Slack slash commands).

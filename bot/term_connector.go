@@ -17,7 +17,7 @@ import (
 )
 
 func init() {
-	RegisterConnector("terminal", Initialize)
+	robot.RegisterConnector("terminal", Initialize, robot.ConnectorCapabilities{HiddenCommands: true})
 }
 
 const termBotID = "u0000"
@@ -639,4 +639,12 @@ func (tc *termConnector) FormatHelp(input string) string {
 // DefaultHelp returns an empty array (no override)
 func (tc *termConnector) DefaultHelp() []string {
 	return []string{}
+}
+
+func (tc *termConnector) FormatHiddenCommandExample(input string) string {
+	return hiddenSlashBotExample(input)
+}
+
+func (tc *termConnector) HiddenCommandHint() string {
+	return "Use '/(bot) <command>' to address a hidden command."
 }

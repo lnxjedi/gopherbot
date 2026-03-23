@@ -9,33 +9,38 @@ import (
 )
 
 type helpMetadataContext struct {
-	BotName         string `json:"bot_name,omitempty"`
-	BotAlias        string `json:"bot_alias,omitempty"`
-	User            string `json:"user,omitempty"`
-	Channel         string `json:"channel,omitempty"`
-	CommandMode     string `json:"command_mode,omitempty"`
-	Direct          bool   `json:"direct"`
-	Threaded        bool   `json:"threaded"`
-	Protocol        string `json:"protocol,omitempty"`
-	RawQuery        string `json:"raw_query,omitempty"`
-	NormalizedQuery string `json:"normalized_query,omitempty"`
+	BotName                 string `json:"bot_name,omitempty"`
+	BotAlias                string `json:"bot_alias,omitempty"`
+	User                    string `json:"user,omitempty"`
+	Channel                 string `json:"channel,omitempty"`
+	CommandMode             string `json:"command_mode,omitempty"`
+	Direct                  bool   `json:"direct"`
+	Threaded                bool   `json:"threaded"`
+	Protocol                string `json:"protocol,omitempty"`
+	HiddenCommandsSupported bool   `json:"hidden_commands_supported,omitempty"`
+	HiddenCommandHint       string `json:"hidden_command_hint,omitempty"`
+	RawQuery                string `json:"raw_query,omitempty"`
+	NormalizedQuery         string `json:"normalized_query,omitempty"`
 }
 
 type helpMetadataEntry struct {
-	PluginName    string   `json:"plugin"`
-	Command       string   `json:"command"`
-	Usage         string   `json:"usage,omitempty"`
-	Summary       string   `json:"summary,omitempty"`
-	Examples      []string `json:"examples,omitempty"`
-	Keywords      []string `json:"keywords,omitempty"`
-	Scope         string   `json:"scope,omitempty"`
-	HiddenOK      bool     `json:"hidden_ok,omitempty"`
-	VisibleHere   bool     `json:"visible_here"`
-	Channels      []string `json:"channels,omitempty"`
-	AllChannels   bool     `json:"all_channels,omitempty"`
-	AllowDirect   bool     `json:"allow_direct,omitempty"`
-	DirectOnly    bool     `json:"direct_only,omitempty"`
-	PluginSummary string   `json:"plugin_summary,omitempty"`
+	PluginName      string   `json:"plugin"`
+	Command         string   `json:"command"`
+	Usage           string   `json:"usage,omitempty"`
+	Summary         string   `json:"summary,omitempty"`
+	Examples        []string `json:"examples,omitempty"`
+	HiddenExamples  []string `json:"hidden_examples,omitempty"`
+	Keywords        []string `json:"keywords,omitempty"`
+	Scope           string   `json:"scope,omitempty"`
+	HiddenOK        bool     `json:"hidden_ok,omitempty"`
+	HiddenSupported bool     `json:"hidden_supported,omitempty"`
+	HiddenHint      string   `json:"hidden_hint,omitempty"`
+	VisibleHere     bool     `json:"visible_here"`
+	Channels        []string `json:"channels,omitempty"`
+	AllChannels     bool     `json:"all_channels,omitempty"`
+	AllowDirect     bool     `json:"allow_direct,omitempty"`
+	DirectOnly      bool     `json:"direct_only,omitempty"`
+	PluginSummary   string   `json:"plugin_summary,omitempty"`
 }
 
 type helpMetadataMatch struct {
@@ -107,15 +112,18 @@ type fallbackMatchSignal struct {
 
 func (e helpMetadataEntry) toHelpCommandMetadata() helpCommandMetadata {
 	return helpCommandMetadata{
-		PluginName:    e.PluginName,
-		Command:       e.Command,
-		Usage:         e.Usage,
-		Summary:       e.Summary,
-		Examples:      append([]string(nil), e.Examples...),
-		Keywords:      append([]string(nil), e.Keywords...),
-		Scope:         e.Scope,
-		HiddenOK:      e.HiddenOK,
-		PluginSummary: e.PluginSummary,
+		PluginName:      e.PluginName,
+		Command:         e.Command,
+		Usage:           e.Usage,
+		Summary:         e.Summary,
+		Examples:        append([]string(nil), e.Examples...),
+		HiddenExamples:  append([]string(nil), e.HiddenExamples...),
+		Keywords:        append([]string(nil), e.Keywords...),
+		Scope:           e.Scope,
+		HiddenOK:        e.HiddenOK,
+		HiddenSupported: e.HiddenSupported,
+		HiddenHint:      e.HiddenHint,
+		PluginSummary:   e.PluginSummary,
 	}
 }
 
@@ -181,18 +189,21 @@ func (r Robot) collectHelpMetadata(query string) helpMetadataResponse {
 	botName := r.GetBotAttribute("name").String()
 	normalized := normalizeFallbackTerm(query, alias, botName)
 
+	protocol := protocolFromIncoming(r.Incoming, r.Protocol)
 	result := helpMetadataResponse{
 		Context: helpMetadataContext{
-			BotName:         botName,
-			BotAlias:        alias,
-			User:            r.User,
-			Channel:         r.Channel,
-			CommandMode:     strings.TrimSpace(r.GetParameter("GOPHER_CMDMODE")),
-			Direct:          len(strings.TrimSpace(r.Channel)) == 0,
-			Threaded:        r.Incoming != nil && r.Incoming.ThreadedMessage,
-			Protocol:        protocolFromIncoming(r.Incoming, r.Protocol),
-			RawQuery:        strings.TrimSpace(query),
-			NormalizedQuery: normalized,
+			BotName:                 botName,
+			BotAlias:                alias,
+			User:                    r.User,
+			Channel:                 r.Channel,
+			CommandMode:             strings.TrimSpace(r.GetParameter("GOPHER_CMDMODE")),
+			Direct:                  len(strings.TrimSpace(r.Channel)) == 0,
+			Threaded:                r.Incoming != nil && r.Incoming.ThreadedMessage,
+			Protocol:                protocol,
+			HiddenCommandsSupported: hiddenCommandsSupportedForProtocol(protocol),
+			HiddenCommandHint:       hiddenCommandHintForProtocol(protocol),
+			RawQuery:                strings.TrimSpace(query),
+			NormalizedQuery:         normalized,
 		},
 	}
 
@@ -264,8 +275,23 @@ func (r Robot) collectHelpMetadata(query string) helpMetadataResponse {
 			}
 			if commandAllowsHidden(plugin, command) {
 				entry.HiddenOK = true
+				if result.Context.HiddenCommandsSupported {
+					entry.HiddenSupported = true
+				}
+				if entry.HiddenHint == "" && strings.TrimSpace(result.Context.HiddenCommandHint) != "" {
+					entry.HiddenHint = strings.TrimSpace(result.Context.HiddenCommandHint)
+				}
 			}
 			entry.Examples = appendUniqueStrings(entry.Examples, matcher.Examples...)
+			if entry.HiddenOK && result.Context.HiddenCommandsSupported {
+				for _, example := range matcher.Examples {
+					hidden := strings.TrimSpace(formatHiddenCommandExample(protocol, example))
+					if hidden == "" {
+						continue
+					}
+					entry.HiddenExamples = appendUniqueStrings(entry.HiddenExamples, hidden)
+				}
+			}
 			entry.Keywords = appendUniqueStrings(entry.Keywords, matcher.Keywords...)
 		}
 	}

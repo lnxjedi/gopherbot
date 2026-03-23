@@ -1,6 +1,10 @@
 package bot
 
-import "github.com/lnxjedi/gopherbot/robot"
+import (
+	"strings"
+
+	"github.com/lnxjedi/gopherbot/robot"
+)
 
 func hiddenMessageAddressedToRobot(botMessage bool, cmdMode string) bool {
 	if botMessage {
@@ -20,11 +24,17 @@ func (r Robot) checkHiddenCommands(w *worker, t interface{}, command string) (re
 	// robot unless the connector marks them as BotMessage (e.g. slash commands
 	// already routed to this robot by the platform).
 	if !hiddenMessageAddressedToRobot(w.Incoming.BotMessage, w.cmdMode) {
-		botName := r.GetBotAttribute("name").String()
-		if botName == "" {
-			r.Reply("Sorry, hidden commands must be addressed to the robot")
+		hint := strings.TrimSpace(r.expandHelpPlaceholders(hiddenCommandHintForProtocol(protocolFromIncoming(r.Incoming, r.Protocol))))
+		if hint == "" {
+			botName := r.GetBotAttribute("name").String()
+			if botName == "" {
+				r.Reply("Sorry, hidden commands must be addressed to the robot")
+			} else {
+				r.Reply("Sorry, hidden commands must be addressed to %s", botName)
+			}
 		} else {
-			r.Reply("Sorry, hidden commands must be addressed as '/%s <command>'", botName)
+			r.Reply("Sorry, hidden commands must be addressed to the robot")
+			r.Reply(hint)
 		}
 		return robot.Fail
 	}

@@ -1,6 +1,9 @@
 package bot
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestHelpTokenEquivalentSingularPlural(t *testing.T) {
 	if !helpTokenEquivalent("siding", "sidings") {
@@ -215,14 +218,49 @@ func TestHiddenSlashBotExample(t *testing.T) {
 	}{
 		{"(bot) list lists", "/(bot) list lists"},
 		{"(bot), list lists", "/(bot) list lists"},
-		{"(alias) ping", "(alias) ping"},
-		{"ping", "ping"},
+		{"(alias) ping", "/(bot) ping"},
+		{"ping", "/(bot) ping"},
 	}
 	for _, tc := range cases {
 		if got := hiddenSlashBotExample(tc.in); got != tc.want {
 			t.Fatalf("hiddenSlashBotExample(%q) = %q, want %q", tc.in, got, tc.want)
 		}
 	}
+}
+
+func TestRenderHelpEntryIncludesHiddenExamples(t *testing.T) {
+	w := &worker{
+		cfg: &configuration{alias: '!', botinfo: UserInfo{UserName: "Clu"}},
+		pipeContext: &pipeContext{
+			parameters:  map[string]string{},
+			environment: map[string]string{},
+		},
+	}
+	r := w.makeRobot()
+	w.registerWorker(r.tid)
+	defer deregisterWorker(r.tid)
+	entry := helpCommandMetadata{
+		PluginName:     "builtin-help",
+		Command:        "help",
+		Examples:       []string{"(alias) help ping"},
+		HiddenExamples: []string{"/(bot) help ping"},
+	}
+	rendered := r.renderHelpEntry(entry, true, false, 0)
+	if !containsLine(rendered, "Examples:") {
+		t.Fatalf("rendered help missing Examples section: %q", rendered)
+	}
+	if !containsLine(rendered, "Hidden examples:") {
+		t.Fatalf("rendered help missing Hidden examples section: %q", rendered)
+	}
+}
+
+func containsLine(rendered, target string) bool {
+	for _, line := range strings.Split(rendered, "\n") {
+		if line == target {
+			return true
+		}
+	}
+	return false
 }
 
 func TestParseHelpQueryMode(t *testing.T) {

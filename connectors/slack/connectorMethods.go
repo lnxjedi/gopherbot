@@ -336,9 +336,13 @@ func (s *slackConnector) FormatHelp(input string) string {
 }
 
 func (s *slackConnector) DefaultHelp() []string {
-	return []string{
-		"/(bot) help <keyword> - get help for the provided <keyword>",
-		"/(bot) commands - browse command groups available in this channel",
-		"/(bot) help-all - help for all commands available in this channel, including global commands",
-	}
+	return nil
+}
+
+func (s *slackConnector) FormatHiddenCommandExample(string) string {
+	return ""
+}
+
+func (s *slackConnector) HiddenCommandHint() string {
+	return "Hidden commands are available through this Slack app's configured slash command."
 }

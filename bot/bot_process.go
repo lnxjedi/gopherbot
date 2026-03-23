@@ -8,7 +8,6 @@ import (
 	crand "crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"log"
 	"math/rand"
 	"net"
 	"net/http"
@@ -41,20 +40,6 @@ var botVersion VersionInfo
 
 // Seed the pseudo-random number generator, for plugin IDs, RandomString, etc.
 var random = rand.New(rand.NewSource(time.Now().UnixNano()))
-
-var connectors = make(map[string]func(robot.Handler, *log.Logger) robot.Connector)
-
-// RegisterConnector should be called in an init function to register a type
-// of connector. Currently only Slack is implemented.
-func RegisterConnector(name string, connstarter func(robot.Handler, *log.Logger) robot.Connector) {
-	if stopRegistrations {
-		return
-	}
-	if connectors[name] != nil {
-		log.Fatal("Attempted registration of duplicate connector:", name)
-	}
-	connectors[name] = connstarter
-}
 
 // Interfaces to external stuff, items should be set while single-threaded and never change
 var interfaces struct {
@@ -219,16 +204,19 @@ func initBot() {
 	stopRegistrations = true
 
 	if len(currentCfg.brainProvider) > 0 {
-		if bprovider, ok := brains[currentCfg.brainProvider]; !ok {
+		if registration, ok := brainProviderRegistration(currentCfg.brainProvider); !ok {
 			Log(robot.Fatal, "No provider registered for brain: \"%s\"", currentCfg.brainProvider)
 		} else {
-			brain := bprovider(handle)
+			brain := registration.Provider(handle)
 			interfaces.brain = brain
 			Log(robot.Info, "Initialized brain provider '%s'", currentCfg.brainProvider)
 		}
 	} else {
-		bprovider := brains["mem"]
-		interfaces.brain = bprovider(handle)
+		registration, ok := brainProviderRegistration("mem")
+		if !ok {
+			Log(robot.Fatal, "No provider registered for default brain: \"mem\"")
+		}
+		interfaces.brain = registration.Provider(handle)
 		Log(robot.Error, "No brain configured, falling back to default 'mem' brain - no memories will persist")
 	}
 	if !encryptionInitialized && len(currentCfg.encryptionKey) > 0 {

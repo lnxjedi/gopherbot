@@ -106,23 +106,23 @@ func (fc *fakeRuntimeConnector) sendMetrics() (channelCalls, userChannelCalls, u
 }
 
 type runtimeHarness struct {
-	t                *testing.T
-	originalConnects map[string]func(robot.Handler, *log.Logger) robot.Connector
-	originalCfg      *configuration
-	originalIface    robot.Connector
-	originalLogger   *log.Logger
-	instances        map[string]*fakeRuntimeConnector
+	t                 *testing.T
+	originalOverrides map[string]robot.ConnectorRegistration
+	originalCfg       *configuration
+	originalIface     robot.Connector
+	originalLogger    *log.Logger
+	instances         map[string]*fakeRuntimeConnector
 }
 
 func newRuntimeHarness(t *testing.T) *runtimeHarness {
 	t.Helper()
 	h := &runtimeHarness{
-		t:                t,
-		originalConnects: make(map[string]func(robot.Handler, *log.Logger) robot.Connector, len(connectors)),
-		instances:        make(map[string]*fakeRuntimeConnector),
+		t:                 t,
+		originalOverrides: make(map[string]robot.ConnectorRegistration, len(connectorRegistrationOverrides)),
+		instances:         make(map[string]*fakeRuntimeConnector),
 	}
-	for name, initFn := range connectors {
-		h.originalConnects[name] = initFn
+	for name, registration := range connectorRegistrationOverrides {
+		h.originalOverrides[name] = registration
 	}
 	currentCfg.RLock()
 	h.originalCfg = currentCfg.configuration
@@ -138,7 +138,7 @@ func newRuntimeHarness(t *testing.T) *runtimeHarness {
 func (h *runtimeHarness) cleanup() {
 	shutdownConnectorRuntimes()
 	h.resetRuntimeState()
-	connectors = h.originalConnects
+	connectorRegistrationOverrides = h.originalOverrides
 	currentCfg.Lock()
 	currentCfg.configuration = h.originalCfg
 	currentCfg.Unlock()
@@ -168,10 +168,12 @@ func (h *runtimeHarness) setConfig(primary string, secondaries ...string) {
 
 func (h *runtimeHarness) registerFake(protocol string) {
 	p := normalizeProtocolName(protocol)
-	connectors[p] = func(robot.Handler, *log.Logger) robot.Connector {
-		fc := &fakeRuntimeConnector{}
-		h.instances[p] = fc
-		return fc
+	connectorRegistrationOverrides[p] = robot.ConnectorRegistration{
+		Initialize: func(robot.Handler, *log.Logger) robot.Connector {
+			fc := &fakeRuntimeConnector{}
+			h.instances[p] = fc
+			return fc
+		},
 	}
 }
 

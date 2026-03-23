@@ -34,9 +34,9 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
 - [ ] Take a hard look at help-system UX:
   Re-evaluate quick help, `help <keyword>`, brief help, channel/context guidance, and how fallback/help should compose so the user gets the most useful next step with the least noise.
 
-- [ ] Define connector capability semantics for hidden-command help/examples:
-  The redesigned help UX can surface hidden-command examples, but we still need a clean connector contract for:
-  - whether a connector supports hidden commands at all
-  - what the canonical user-facing hidden-command syntax is for that connector
-  Candidate direction:
-  keep policy in the engine, but let connectors expose explicit capability metadata and connector-owned hidden-command example formatting so help/fallback only teaches hidden syntax when it is actually supported and correctly rendered.
+- [x] Define connector capability semantics for hidden-command help/examples:
+  Hidden-command help now uses an engine-owned connector `Capabilities` registration flag (`HiddenCommands`) plus connector-owned hidden-help rendering through the shared `robot/` contract.
+  Current behavior:
+  - help metadata and builtin help only surface hidden examples when the current connector is registered as supporting hidden commands
+  - SSH/terminal/test render exact `/(bot) ...` hidden examples through connector-owned formatting
+  - Slack reports hidden-command support but only provides a generic slash-command hint, because the configured slash command name is not the bot name and is not inferred by help

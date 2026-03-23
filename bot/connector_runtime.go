@@ -260,11 +260,11 @@ func ensureConnectorInitialized(protocol string, allowBotIdentity bool, logger *
 	}
 	runtimeConnectors.Unlock()
 
-	initializeConnector, ok := connectors[p]
+	registration, ok := connectorRegistrationForProtocol(p)
 	if !ok {
 		return fmt.Errorf("no connector registered with name '%s'", p)
 	}
-	conn := initializeConnector(connectorHandler{
+	conn := registration.Initialize(connectorHandler{
 		handler:          handle,
 		protocol:         p,
 		allowBotIdentity: allowBotIdentity,

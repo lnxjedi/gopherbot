@@ -8,6 +8,42 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
+type hiddenHelpTestConnector struct{}
+
+func (c *hiddenHelpTestConnector) GetProtocolUserAttribute(string, string) (string, robot.RetVal) {
+	return "", robot.AttributeNotFound
+}
+
+func (c *hiddenHelpTestConnector) MessageHeard(string, string) {}
+
+func (c *hiddenHelpTestConnector) FormatHelp(input string) string { return input }
+
+func (c *hiddenHelpTestConnector) DefaultHelp() []string { return nil }
+
+func (c *hiddenHelpTestConnector) JoinChannel(string) robot.RetVal { return robot.Ok }
+
+func (c *hiddenHelpTestConnector) SendProtocolChannelThreadMessage(string, string, string, robot.MessageFormat, *robot.ConnectorMessage) robot.RetVal {
+	return robot.Ok
+}
+
+func (c *hiddenHelpTestConnector) SendProtocolUserChannelThreadMessage(string, string, string, string, robot.MessageFormat, *robot.ConnectorMessage) robot.RetVal {
+	return robot.Ok
+}
+
+func (c *hiddenHelpTestConnector) SendProtocolUserMessage(string, string, robot.MessageFormat, *robot.ConnectorMessage) robot.RetVal {
+	return robot.Ok
+}
+
+func (c *hiddenHelpTestConnector) Run(<-chan struct{}) {}
+
+func (c *hiddenHelpTestConnector) FormatHiddenCommandExample(input string) string {
+	return hiddenSlashBotExample(input)
+}
+
+func (c *hiddenHelpTestConnector) HiddenCommandHint() string {
+	return "Use '/(bot) <command>' to address a hidden command."
+}
+
 func TestGetHelpMetadataFiltersAndMarksVisibility(t *testing.T) {
 	tasks := &taskList{
 		t: []interface{}{
@@ -106,6 +142,88 @@ func TestGetHelpMetadataFiltersAndMarksVisibility(t *testing.T) {
 	}
 	if !foundBrowseableElsewhere {
 		t.Fatal("expected theia-plugin to be browseable outside the current channel")
+	}
+}
+
+func TestGetHelpMetadataIncludesHiddenExamplesForSupportedConnector(t *testing.T) {
+	originalOverrides := connectorRegistrationOverrides
+	connectorRegistrationOverrides = map[string]robot.ConnectorRegistration{
+		"testhidden": {
+			Capabilities: robot.ConnectorCapabilities{HiddenCommands: true},
+		},
+	}
+	defer func() {
+		connectorRegistrationOverrides = originalOverrides
+	}()
+
+	runtimeConnectors.Lock()
+	originalPrimary := runtimeConnectors.primary
+	originalDefault := runtimeConnectors.defaultProtocol
+	originalRuntimes := runtimeConnectors.runtimes
+	runtimeConnectors.primary = "testhidden"
+	runtimeConnectors.defaultProtocol = "testhidden"
+	runtimeConnectors.runtimes = map[string]*managedConnector{
+		"testhidden": {protocol: "testhidden", connector: &hiddenHelpTestConnector{}},
+	}
+	runtimeConnectors.Unlock()
+	defer func() {
+		runtimeConnectors.Lock()
+		runtimeConnectors.primary = originalPrimary
+		runtimeConnectors.defaultProtocol = originalDefault
+		runtimeConnectors.runtimes = originalRuntimes
+		runtimeConnectors.Unlock()
+	}()
+
+	tasks := &taskList{
+		t: []interface{}{
+			&Task{name: "namespace"},
+			&Plugin{
+				Task:                  &Task{name: "builtin-help", Channels: []string{"general"}},
+				AllowedHiddenCommands: []string{"help"},
+				Commands: []InputMatcher{{
+					Command:  "help",
+					Usage:    "(alias) help <keyword>",
+					Summary:  "find help for commands matching <keyword>",
+					Examples: []string{"(alias) help ping"},
+				}},
+			},
+		},
+		nameMap:       map[string]int{"builtin-help": 1},
+		nameSpaces:    map[string]ParameterSet{},
+		parameterSets: map[string]ParameterSet{},
+	}
+	w := &worker{
+		User:       "alice",
+		Channel:    "general",
+		Incoming:   &robot.ConnectorMessage{Protocol: "testhidden"},
+		cfg:        &configuration{alias: '!', botinfo: UserInfo{UserName: "Clu"}},
+		tasks:      tasks,
+		listedUser: true,
+		pipeContext: &pipeContext{
+			parameters:  map[string]string{"GOPHER_CMDMODE": "alias"},
+			environment: map[string]string{},
+		},
+	}
+	r := w.makeRobot()
+	w.registerWorker(r.tid)
+	defer deregisterWorker(r.tid)
+
+	payload := r.collectHelpMetadata("help")
+	if !payload.Context.HiddenCommandsSupported {
+		t.Fatalf("expected hidden command support in metadata context")
+	}
+	if got := payload.Context.HiddenCommandHint; got == "" {
+		t.Fatalf("expected hidden command hint in metadata context")
+	}
+	if len(payload.VisibleHere) != 1 {
+		t.Fatalf("visible_here = %+v, want one help entry", payload.VisibleHere)
+	}
+	entry := payload.VisibleHere[0]
+	if !entry.HiddenSupported {
+		t.Fatalf("expected hidden support on help entry: %+v", entry)
+	}
+	if len(entry.HiddenExamples) != 1 || entry.HiddenExamples[0] != "/(bot) help ping" {
+		t.Fatalf("hidden examples = %+v, want [/(bot) help ping]", entry.HiddenExamples)
 	}
 }
 

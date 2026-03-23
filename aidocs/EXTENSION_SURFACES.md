@@ -2,19 +2,34 @@
 
 Concise map of extension types, where they live, and how they register/discover. Every claim points to a concrete file or symbol; unknowns are marked TODO.
 
+## Shared Boundary
+
+- `robot/` is the shared contract surface for modular components that plug into the engine.
+- Connectors, brains, and history providers should depend on `robot/`, not `bot/`.
+- `bot/` consumes those registrations and contracts; it should not be the package external modular components need to import.
+
 ## Connectors
 
 - Where: protocol connectors under `connectors/`, plus built-ins like `bot/term_connector.go` and `bot/null_connector.go`.
-- Registration: `bot/bot_process.go` (func `RegisterConnector`) called from connector init (e.g., `connectors/slack/static.go` calls `bot.RegisterConnector("slack", Initialize)`).
+- Registration: `robot/connectors.go` (func `RegisterConnector`) called from connector init (for example `connectors/slack/static.go` calls `robot.RegisterConnector("slack", Initialize, robot.ConnectorCapabilities{HiddenCommands: true})`).
+- Capabilities: `robot/connectors.go` (type `ConnectorCapabilities`) holds engine-owned connector capability flags such as `HiddenCommands`.
+- Optional connector-owned hidden-help rendering hooks: `robot/connectors.go` (interface `HiddenCommandFormatter`), consumed in `bot/connector_capabilities.go`.
 - Selection: `bot/conf.go` (type `ConfigLoader` fields `PrimaryProtocol`/`DefaultProtocol`) reads `conf/robot.yaml`; connector-specific `ProtocolConfig` is loaded from `conf/protocols/<protocol>.yaml`.
-- Examples: `connectors/slack/connect.go` (func `Initialize`), `connectors/test/init.go` (func `Initialize`), `bot/term_connector.go` (calls `RegisterConnector("terminal", Initialize)`).
+- Examples: `connectors/slack/connect.go` (func `Initialize`), `connectors/test/init.go` (func `Initialize`), `bot/term_connector.go` (calls `robot.RegisterConnector("terminal", Initialize, robot.ConnectorCapabilities{HiddenCommands: true})`).
 
 ## Brains (SimpleBrain providers)
 
 - Where: built-ins in `bot/membrain.go` and `bot/filebrain.go`, plus providers under `brains/`.
-- Registration: `bot/brain.go` (func `RegisterSimpleBrain`) called from provider `init()` (e.g., `brains/dynamodb/static.go`, `brains/cloudflarekv/static.go`, `bot/membrain.go`).
+- Registration: `robot/brains.go` (func `RegisterSimpleBrain`) called from provider `init()` (e.g., `brains/dynamodb/static.go`, `brains/cloudflarekv/static.go`, `bot/membrain.go`).
 - Selection: `bot/conf.go` (type `ConfigLoader` field `Brain`) reads `conf/robot.yaml`.
 - Examples: `brains/dynamodb/dynamobrain.go` (func `provider`), `brains/cloudflarekv/cloudflarekvbrain.go` (func `provider`), `bot/filebrain.go` (func `fbprovider`).
+
+## History Providers
+
+- Where: built-ins in `bot/memhistory.go`, plus providers under `history/`.
+- Registration: `robot/history_providers.go` (func `RegisterHistoryProvider`) called from provider `init()` (for example `history/file/static.go`, `bot/memhistory.go`).
+- Selection: `bot/conf.go` (type `ConfigLoader` field `HistoryProvider`) reads `conf/robot.yaml`.
+- Examples: `history/file/filehistory.go` (func `provider`), `bot/memhistory.go` (func `mhprovider`).
 
 ## Script plugins (external executables)
 

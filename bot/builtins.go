@@ -66,9 +66,8 @@ var botRegex = regexp.MustCompile(`^([^(]*)\(bot\)(,?) *`)
 var aliasRegex = regexp.MustCompile(`^\(alias\) *`)
 var helpTokenRegex = regexp.MustCompile(`[A-Za-z0-9_-]+`)
 var helpAddressPrefixRegex = regexp.MustCompile(`^\s*/?\((?:alias|bot)\)(?:[,:])?\s*`)
-var botAddressPrefixRegex = regexp.MustCompile(`^\s*/?\(bot\)(?:[,:])?\s*`)
 
-func (r Robot) formatHelpLine(input string) (ret string) {
+func (r Robot) expandHelpPlaceholders(input string) (ret string) {
 	w := getLockedWorker(r.tid)
 	w.Unlock()
 	ret = input
@@ -92,6 +91,11 @@ func (r Robot) formatHelpLine(input string) (ret string) {
 			}
 		}
 	}
+	return ret
+}
+
+func (r Robot) formatHelpLine(input string) string {
+	ret := r.expandHelpPlaceholders(input)
 	conn := getConnectorForProtocol(protocolFromIncoming(r.Incoming, r.Protocol))
 	if conn == nil {
 		return ret
@@ -113,10 +117,10 @@ func stripHelpAddressPrefix(input string) string {
 
 func hiddenSlashBotExample(input string) string {
 	trimmed := strings.TrimSpace(input)
-	if len(trimmed) == 0 || !botAddressPrefixRegex.MatchString(trimmed) {
-		return trimmed
+	if len(trimmed) == 0 {
+		return "/(bot)"
 	}
-	rest := strings.TrimSpace(botAddressPrefixRegex.ReplaceAllString(trimmed, ""))
+	rest := strings.TrimSpace(helpAddressPrefixRegex.ReplaceAllString(trimmed, ""))
 	if len(rest) == 0 {
 		return "/(bot)"
 	}
@@ -124,15 +128,18 @@ func hiddenSlashBotExample(input string) string {
 }
 
 type helpCommandMetadata struct {
-	PluginName    string
-	Command       string
-	Usage         string
-	Summary       string
-	Examples      []string
-	Keywords      []string
-	Scope         string
-	HiddenOK      bool
-	PluginSummary string
+	PluginName      string
+	Command         string
+	Usage           string
+	Summary         string
+	Examples        []string
+	HiddenExamples  []string
+	Keywords        []string
+	Scope           string
+	HiddenOK        bool
+	HiddenSupported bool
+	HiddenHint      string
+	PluginSummary   string
 }
 
 type rankedHelpMatch struct {
@@ -319,6 +326,9 @@ func (r Robot) collectHelpCommandMetadata(includeGlobal bool) []helpCommandMetad
 		known  bool
 	}
 	groupCache := make(map[string]authorizerGroupLookup)
+	protocol := protocolFromIncoming(r.Incoming, r.Protocol)
+	hiddenSupported := hiddenCommandsSupportedForProtocol(protocol)
+	hiddenHint := hiddenCommandHintForProtocol(protocol)
 
 	byCommand := make(map[string]*helpCommandMetadata)
 	for _, t := range r.tasks.t[1:] {
@@ -372,8 +382,23 @@ func (r Robot) collectHelpCommandMetadata(includeGlobal bool) []helpCommandMetad
 			}
 			if commandAllowsHidden(plugin, command) {
 				entry.HiddenOK = true
+				if hiddenSupported {
+					entry.HiddenSupported = true
+				}
+				if entry.HiddenHint == "" && strings.TrimSpace(hiddenHint) != "" {
+					entry.HiddenHint = strings.TrimSpace(hiddenHint)
+				}
 			}
 			entry.Examples = appendUniqueStrings(entry.Examples, matcher.Examples...)
+			if entry.HiddenOK && hiddenSupported {
+				for _, example := range matcher.Examples {
+					hidden := strings.TrimSpace(formatHiddenCommandExample(protocol, example))
+					if hidden == "" {
+						continue
+					}
+					entry.HiddenExamples = appendUniqueStrings(entry.HiddenExamples, hidden)
+				}
+			}
 			entry.Keywords = appendUniqueStrings(entry.Keywords, matcher.Keywords...)
 		}
 	}
@@ -660,9 +685,6 @@ func (r Robot) formatHelpExample(entry helpCommandMetadata, example string) stri
 	if len(line) == 0 {
 		return ""
 	}
-	if entry.HiddenOK {
-		line = hiddenSlashBotExample(line)
-	}
 	return r.formatHelpLine(line)
 }
 
@@ -692,6 +714,26 @@ func (r Robot) renderHelpEntry(entry helpCommandMetadata, includeExamples, inclu
 			for _, example := range rendered {
 				lines = append(lines, "- "+example)
 			}
+		}
+		hiddenExamples := entry.HiddenExamples
+		if exampleLimit > 0 && len(hiddenExamples) > exampleLimit {
+			hiddenExamples = hiddenExamples[:exampleLimit]
+		}
+		renderedHidden := make([]string, 0, len(hiddenExamples))
+		for _, example := range hiddenExamples {
+			line := r.formatHelpLine(example)
+			if len(strings.TrimSpace(line)) == 0 {
+				continue
+			}
+			renderedHidden = append(renderedHidden, line)
+		}
+		if len(renderedHidden) > 0 {
+			lines = append(lines, "Hidden examples:")
+			for _, example := range renderedHidden {
+				lines = append(lines, "- "+example)
+			}
+		} else if entry.HiddenSupported && strings.TrimSpace(entry.HiddenHint) != "" {
+			lines = append(lines, "Hidden: "+r.expandHelpPlaceholders(entry.HiddenHint))
 		}
 	}
 	if includeScope && len(entry.Scope) > 0 {
@@ -726,6 +768,26 @@ func (r Robot) renderHelpListingEntry(entry helpCommandMetadata, includeExamples
 			for _, example := range rendered {
 				lines = append(lines, "- "+example)
 			}
+		}
+		hiddenExamples := entry.HiddenExamples
+		if exampleLimit > 0 && len(hiddenExamples) > exampleLimit {
+			hiddenExamples = hiddenExamples[:exampleLimit]
+		}
+		renderedHidden := make([]string, 0, len(hiddenExamples))
+		for _, example := range hiddenExamples {
+			line := r.formatHelpLine(example)
+			if len(strings.TrimSpace(line)) == 0 {
+				continue
+			}
+			renderedHidden = append(renderedHidden, line)
+		}
+		if len(renderedHidden) > 0 {
+			lines = append(lines, "Hidden examples:")
+			for _, example := range renderedHidden {
+				lines = append(lines, "- "+example)
+			}
+		} else if entry.HiddenSupported && strings.TrimSpace(entry.HiddenHint) != "" {
+			lines = append(lines, "Hidden: "+r.expandHelpPlaceholders(entry.HiddenHint))
 		}
 	}
 	if includeScope && len(entry.Scope) > 0 {

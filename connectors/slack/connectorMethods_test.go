@@ -15,17 +15,20 @@ func TestFormatHelp(t *testing.T) {
 	}
 }
 
-func TestDefaultHelpIncludesCommands(t *testing.T) {
+func TestDefaultHelpUsesEngineDefault(t *testing.T) {
 	s := &slackConnector{}
 	lines := s.DefaultHelp()
-	found := false
-	for _, line := range lines {
-		if strings.Contains(line, "commands") {
-			found = true
-			break
-		}
+	if len(lines) != 0 {
+		t.Fatalf("DefaultHelp() = %#v, want nil/empty to defer to engine defaults", lines)
 	}
-	if !found {
-		t.Fatalf("DefaultHelp() did not include commands line: %#v", lines)
+}
+
+func TestHiddenCommandHint(t *testing.T) {
+	s := &slackConnector{}
+	if got := s.FormatHiddenCommandExample("(alias) help ping"); got != "" {
+		t.Fatalf("FormatHiddenCommandExample() = %q, want empty for Slack", got)
+	}
+	if got := s.HiddenCommandHint(); !strings.Contains(got, "slash command") {
+		t.Fatalf("HiddenCommandHint() = %q, want slash-command guidance", got)
 	}
 }

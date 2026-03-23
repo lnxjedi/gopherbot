@@ -1,7 +1,7 @@
 package ssh
 
-import "github.com/lnxjedi/gopherbot/v2/bot"
+import "github.com/lnxjedi/gopherbot/robot"
 
 func init() {
-	bot.RegisterConnector("ssh", Initialize)
+	robot.RegisterConnector("ssh", Initialize, robot.ConnectorCapabilities{HiddenCommands: true})
 }

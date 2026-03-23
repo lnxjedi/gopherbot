@@ -16,7 +16,7 @@ func nullStart(robot.Handler, *log.Logger) robot.Connector {
 }
 
 func init() {
-	RegisterConnector("nullconn", nullStart)
+	robot.RegisterConnector("nullconn", nullStart, robot.ConnectorCapabilities{})
 }
 
 func (nc nullConnector) GetProtocolUserAttribute(u, a string) (value string, ret robot.RetVal) {

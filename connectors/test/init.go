@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/lnxjedi/gopherbot/robot"
-	"github.com/lnxjedi/gopherbot/v2/bot"
 )
 
 // Global persistent map of user name to user index
@@ -44,7 +43,7 @@ type config struct {
 }
 
 func init() {
-	bot.RegisterConnector("test", Initialize)
+	robot.RegisterConnector("test", Initialize, robot.ConnectorCapabilities{HiddenCommands: true})
 }
 
 // Initialize sets up the connector and returns a connector object

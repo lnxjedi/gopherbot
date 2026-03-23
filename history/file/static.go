@@ -1,7 +1,7 @@
 package filehistory
 
-import "github.com/lnxjedi/gopherbot/v2/bot"
+import "github.com/lnxjedi/gopherbot/robot"
 
 func init() {
-	bot.RegisterHistoryProvider("file", provider)
+	robot.RegisterHistoryProvider("file", provider)
 }
