@@ -191,7 +191,7 @@ func isInterpreterTask(task *Task) bool {
 		return false
 	}
 	path := strings.ToLower(strings.TrimSpace(task.Path))
-	return strings.HasSuffix(path, ".go") || strings.HasSuffix(path, ".lua") || strings.HasSuffix(path, ".js")
+	return strings.HasSuffix(path, ".go") || strings.HasSuffix(path, ".lua") || strings.HasSuffix(path, ".js") || strings.HasSuffix(path, ".gsh")
 }
 
 func promptTimeoutForContext(r Robot, task *Task) time.Duration {

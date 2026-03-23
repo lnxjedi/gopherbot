@@ -26,7 +26,7 @@ func (externalProcessTaskRunner) runTask(w *worker, t interface{}, command strin
 
 func isExternalInterpreterTask(task *Task) bool {
 	path := strings.ToLower(task.Path)
-	return strings.HasSuffix(path, ".go") || strings.HasSuffix(path, ".lua") || strings.HasSuffix(path, ".js")
+	return strings.HasSuffix(path, ".go") || strings.HasSuffix(path, ".lua") || strings.HasSuffix(path, ".js") || strings.HasSuffix(path, ".gsh")
 }
 
 func (w *worker) selectTaskExecutionRunner(t interface{}) taskExecutionRunner {

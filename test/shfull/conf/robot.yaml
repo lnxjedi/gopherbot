@@ -1,0 +1,68 @@
+AdminContact: "Joe User, <user@example.org>"
+DefaultChannels: [ "general", "random" ]
+DefaultJobChannel: general
+JoinChannels: [ ]
+AdminUsers: [ "alice" ]
+Alias: ";"
+PrimaryProtocol: {{ env "GOPHER_PROTOCOL" | default "test" }}
+
+{{ $botname := env "GOPHER_BOTNAME" | default "bender" }}
+{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Bender Rodriguez" }}
+
+BotInfo:
+  UserName: {{ $botname }}
+  FullName: {{ $botfullname }}
+UserRoster:
+- UserName: "alice"
+  UserID: "u0001"
+- UserName: "bob"
+  UserID: "u0002"
+- UserName: "carol"
+  UserID: "u0003"
+- UserName: "david"
+  UserID: "u0004"
+- UserName: "erin"
+  UserID: "u0005"
+
+LocalPort: 0
+ExternalPlugins:
+  "shfull":
+    Path: plugins/test/shfull.gsh
+  "shsec":
+    Path: plugins/test/shfull.gsh
+  "shsec-authall":
+    Path: plugins/test/shfull.gsh
+  "shsec-adminonly":
+    Path: plugins/test/shfull.gsh
+  "shsec-users":
+    Path: plugins/test/shfull.gsh
+ExternalTasks:
+  "param-show":
+    Path: test/tasks/param_show.sh
+  "pipeline-note":
+    Path: test/tasks/pipeline_note.sh
+  "notify":
+    Path: tasks/notify.gsh
+  "dmnotify":
+    Path: tasks/dmnotify.gsh
+  "status":
+    Path: tasks/status.gsh
+  "say":
+    Path: tasks/status.gsh
+  "reply":
+    Path: tasks/reply.gsh
+  "exec":
+    Path: tasks/exec.gsh
+ExternalJobs:
+  "pipe-job":
+    Path: test/tasks/pipeline_note.sh
+    Privileged: false
+  "pipe-spawn-job":
+    Path: test/tasks/pipeline_note.sh
+    Privileged: false
+
+WorkSpace: workspace
+
+Brain: mem
+DefaultAuthorizer: groups
+DefaultElevator: builtin-totp

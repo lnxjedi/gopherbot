@@ -187,7 +187,7 @@ ExternalPlugins:
   "admin":
     Description: A plugin for legacy admin workflows
     Privileged: true
-    Path: plugins/admin.sh
+    Path: plugins/admin.gsh
   "knock":
     Description: An external Go plugin demonstrating Prompting and custom configuration
     Path: plugins/go-knock/knock.go
@@ -206,7 +206,7 @@ ExternalPlugins:
     Homed: true
   "ssh-admin":
     Description: Administrative plugin for managing the robot's ssh keypair
-    Path: plugins/ssh-admin.sh
+    Path: plugins/ssh-admin.gsh
     Privileged: true
     NameSpace: ssh
   "openai-fallback":
@@ -273,7 +273,7 @@ ExternalJobs:
   "install-libs":
     Description: A job for installing ruby gems and python packages
     Homed: true
-    Path: jobs/install-libs.sh
+    Path: jobs/install-libs.gsh
   "logrotate":
     Description: Log rotation for file logging, schedule daily
     Path: jobs/logrotate.sh
@@ -293,26 +293,26 @@ ExternalJobs:
 ExternalTasks:
   "notify":
     Description: Send a message to a user in the job channel, generally as a FailTask
-    Path: tasks/notify.sh
+    Path: tasks/notify.gsh
   "dmnotify":
     Description: Send a DM to a user, generally as a FailTask
-    Path: tasks/dmnotify.sh
+    Path: tasks/dmnotify.gsh
   "status":
     Description: Trivial task that can be used to send status updates in a pipeline
-    Path: tasks/status.sh
+    Path: tasks/status.gsh
   "say":
     Description: Convenience synonym for 'status'
-    Path: tasks/status.sh
+    Path: tasks/status.gsh
   "reply":
     Description: Trivial task to reply to the user with a message
-    Path: tasks/reply.sh
+    Path: tasks/reply.gsh
   "ssh-task":
     Description: Wrapper for ssh tasks
     Path: jobs/ssh-job.sh
     Privileged: true
   "exec":
     Description: Simple utility for running scripts in a repository
-    Path: tasks/exec.sh
+    Path: tasks/exec.gsh
   "remote":
     Description: Utility for running scripts and commands on a remote host
     Path: tasks/remote-exec.sh

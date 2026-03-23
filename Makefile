@@ -19,6 +19,18 @@ ifeq ($(TEST),JSFull)
 TESTARGS = -run TestJSFull
 TESTENV = RUN_FULL=js
 endif
+ifeq ($(TEST),LuaFull)
+TESTARGS = -run TestLuaFull
+TESTENV = RUN_FULL=lua
+endif
+ifeq ($(TEST),ShFull)
+TESTARGS = -run TestShFull
+TESTENV = RUN_FULL=sh
+endif
+ifeq ($(TEST),GoFull)
+TESTARGS = -run TestGoFull
+TESTENV = RUN_FULL=go
+endif
 ifneq ($(strip $(RUN_FULL)),)
 TESTARGS = -run Test.*Full
 TESTENV = RUN_FULL=$(RUN_FULL)

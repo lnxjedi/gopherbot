@@ -32,11 +32,13 @@ This document describes how pipeline execution and privilege separation currentl
   - interpreter-backed external:
     - `.lua` -> child RPC process (`gopherbot pipeline-child-rpc`) via parent-managed `lua_run` / `robot_call`.
     - `.js` -> child RPC process (`gopherbot pipeline-child-rpc`) via parent-managed `js_run` / `robot_call`.
+    - `.gsh` -> child RPC process (`gopherbot pipeline-child-rpc`) via parent-managed `gsh_run` / `gsh_get_config` / `robot_call`.
     - `.go` -> child RPC process (`gopherbot pipeline-child-rpc`) via parent-managed `go_plugin_run` / `go_job_run` / `go_task_run` / `robot_call`.
   - external executable (non-interpreter path) -> child process runner (`gopherbot pipeline-child-exec`) via `callTask` options.
   - external executable plugin default-config (`configure`) -> child process runner from `getDefCfgThread`.
   - external Lua plugin default-config -> child RPC process via `lua_get_config`.
   - external JavaScript plugin default-config -> child RPC process via `js_get_config`.
+  - external Gopherbot shell plugin default-config -> child RPC process via `gsh_get_config`.
   - external Go plugin default-config -> child RPC process via `go_get_config`.
 
 ## Privilege Separation Bootstrap
@@ -73,8 +75,9 @@ Key invariant in current model: dropping/raising privilege for task execution re
 - Compiled-in Go tasks/plugins:
   - `raiseThreadPriv` if pipeline/task is privileged, else `dropThreadPriv`.
   - Handler runs in-process.
-- External interpreted tasks (`.go` via yaegi, `.lua`, `.js`) now execute in child RPC processes.
+- External interpreted tasks (`.go` via yaegi, `.lua`, `.js`, `.gsh`) now execute in child RPC processes.
   - Parent keeps policy/routing/identity authority and services Robot API calls over RPC.
+  - For `.gsh`, shell utilities such as `ls`, `grep`, `jq`, `mktemp`, and `tar` stay inside the child process; only Robot operations cross back to the parent engine over RPC.
   - Parent tracks active RPC child process in `worker.osCmd` and request-cancel hook in `worker.rpcCancel`.
   - RPC request lifecycle now uses bounded handshake/request/shutdown/child-exit waits with explicit error classes.
 - External executable tasks:
@@ -95,7 +98,7 @@ Key invariant in current model: dropping/raising privilege for task execution re
 
 - This is not yet a strict multi-process sandbox model for all task types.
 - Compiled-in tasks (`taskGo`, `bot/*`) still execute in the engine process.
-- Lua, JavaScript, and external Go interpreter-backed tasks now gain process isolation via parent/child RPC.
+- Lua, JavaScript, Gopherbot shell, and external Go interpreter-backed tasks now gain process isolation via parent/child RPC.
 - Cancellation semantics for long-running interpreter tasks are now available through admin `kill`, but fine-grained task-level cancellation (beyond process termination) remains future work.
 - Long-lived correctness depends on careful `LockOSThread` usage and goroutine/thread lifecycle.
 

@@ -1546,6 +1546,14 @@ func (c *pipelineRPCInterpreterRobotClient) SetParameter(name, value string) boo
 	return pipelineRPCMapBool(res, "bool")
 }
 
+func (c *pipelineRPCInterpreterRobotClient) SetWorkingDirectory(path string) bool {
+	res, err := c.call("SetWorkingDirectory", path)
+	if err != nil {
+		return false
+	}
+	return pipelineRPCMapBool(res, "bool")
+}
+
 func (c *pipelineRPCInterpreterRobotClient) Subscribe() bool {
 	res, err := c.call("Subscribe")
 	if err != nil {

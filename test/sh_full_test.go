@@ -1,0 +1,227 @@
+//go:build integration
+// +build integration
+
+package tbot_test
+
+import (
+	"testing"
+
+	. "github.com/lnxjedi/gopherbot/v2/bot"
+)
+
+func TestShFull(t *testing.T) {
+	if !wantFull("sh") {
+		t.Skip("skipping Sh full test; set RUN_FULL=sh (or RUN_SHFULL=1)")
+	}
+	done, conn := setup("test/shfull", "/tmp/bottest.log", t)
+
+	tests := []testItem{
+		{aliceID, general, ";say everything", false, []TestMessage{
+			{null, general, "Regular Say", false},
+			{null, general, "SayThread, yeah", true},
+			{alice, general, "Regular Reply", false},
+			{alice, general, "Reply in thread, yo", true},
+			{null, general, "Sending to the channel: general", false},
+			{alice, null, "Sending this message to user: alice", false},
+			{alice, general, "Sending to user 'alice' in channel: general", false},
+			{null, general, "Sending to channel 'general' in thread: 0xDEADBEEF", true},
+			{alice, general, "Sending to user 'alice' in channel 'general' in thread: 0xDEADBEEF", true}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, "/bender say everything", false, []TestMessage{
+			{null, general, "\\(Regular Say\\)", false},
+			{null, general, "\\(SayThread, yeah\\)", true},
+			{alice, general, "\\(Regular Reply\\)", false},
+			{alice, general, "\\(Reply in thread, yo\\)", true},
+			{null, general, "\\(Sending to the channel: general\\)", false},
+			{alice, null, "\\(Sending this message to user: alice\\)", false},
+			{alice, general, "\\(Sending to user 'alice' in channel: general\\)", false},
+			{null, general, "\\(Sending to channel 'general' in thread: 0xDEADBEEF\\)", true},
+			{alice, general, "\\(Sending to user 'alice' in channel 'general' in thread: 0xDEADBEEF\\)", true}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";sh-config", false, []TestMessage{
+			{null, general, "Not completely random.*", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";sh-subscribe", false, []TestMessage{
+			{null, general, "SUBSCRIBE FLOW: true/true", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";sh-prompts", false, []TestMessage{
+			{alice, general, "Codename check: pick a mission codename\\.", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 150},
+		{aliceID, general, "Nova Sparrow", false, []TestMessage{
+			{alice, general, "Thread check: pick a favorite snack for launch\\.", true}},
+			[]Event{}, 150},
+		{aliceID, general, "spicy popcorn", true, []TestMessage{
+			{alice, null, "DM check: name a secret moon base\\.", false}},
+			[]Event{}, 150},
+		{aliceID, null, "io station nine", false, []TestMessage{
+			{alice, general, "Channel check: describe launch weather in two words\\.", false}},
+			[]Event{BotDirectMessage}, 150},
+		{aliceID, general, "aurora clear", false, []TestMessage{
+			{alice, general, "Thread rally: choose a backup call sign\\.", true}},
+			[]Event{}, 150},
+		{aliceID, general, "ember fox", true, []TestMessage{
+			{null, general, "PROMPT FLOW OK: Nova Sparrow \\| spicy popcorn \\| io station nine \\| aurora clear \\| ember fox", false}},
+			[]Event{}, 0},
+		{aliceID, general, ";sh-memory-seed", false, []TestMessage{
+			{null, general, "MEMORY SEED: done", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";sh-memory-check", false, []TestMessage{
+			{null, general, "MEMORY CHECK: local=saffron noodles shared=solar soup ctx=orbital-7 thread=<empty> threadctx=<empty>", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{bobID, general, ";sh-memory-check", false, []TestMessage{
+			{null, general, "MEMORY CHECK: local=<empty> shared=solar soup ctx=<empty> thread=<empty> threadctx=<empty>", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";sh-memory-thread-check", true, []TestMessage{
+			{null, general, "MEMORY THREAD CHECK: local=<empty> shared=<empty> ctx=<empty> thread=delta thread threadctx=aurora mission", true}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";sh-memory-delete", false, []TestMessage{
+			{null, general, "MEMORY DELETE: done", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";sh-memory-check", false, []TestMessage{
+			{null, general, "MEMORY CHECK: local=<empty> shared=<empty> ctx=<empty> thread=<empty> threadctx=<empty>", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{bobID, general, ";sh-memory-check", false, []TestMessage{
+			{null, general, "MEMORY CHECK: local=<empty> shared=<empty> ctx=<empty> thread=<empty> threadctx=<empty>", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";sh-memory-thread-delete", true, []TestMessage{
+			{null, general, "MEMORY THREAD DELETE: done", true}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";sh-memory-thread-check", true, []TestMessage{
+			{null, general, "MEMORY THREAD CHECK: local=<empty> shared=<empty> ctx=<empty> thread=<empty> threadctx=<empty>", true}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";sh-identity", false, []TestMessage{
+			{null, general, "IDENTITY CHECK: bot=bender/Ok sender=Alice/Ok bob=Robert/Ok set=true param=<empty>", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";sh-parameter-addtask", false, []TestMessage{
+			{null, general, "SETPARAM ADDTASK: queued", false},
+			{null, general, "PARAM-SHOW: PIPELINE_SENTINEL=nebula-42", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";sh-utils", false, []TestMessage{
+			{null, general, "(?s:UTILS OK: HEAD=BETA TAIL=BETA LINES=3 UNIQ=ALPHA,BETA, DECODE=SHIP JQ=GO RECOVERED=BETA.*BASE=MOVED.TXT DIR=A FIND=4 WHICH=YES PWD=A SEQ=2,3,4, YES=HI,HI, ENV=YES)", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+	}
+	testcases(t, conn, tests)
+
+	teardown(t, done, conn)
+}
+
+func TestShFullPipelineAdmin(t *testing.T) {
+	if !wantFull("sh") {
+		t.Skip("skipping Sh full pipeline/admin test; set RUN_FULL=sh (or RUN_SHFULL=1)")
+	}
+	done, conn := setup("test/shfull", "/tmp/bottest.log", t)
+
+	flow := []testItem{
+		{aliceID, general, ";sh-admin-check", false, []TestMessage{
+			{null, general, "ADMIN CHECK: true", false}}, nil, 0},
+		{bobID, general, ";sh-admin-check", false, []TestMessage{
+			{null, general, "ADMIN CHECK: false", false}}, nil, 0},
+		{aliceID, general, ";sh-elevate-check", false, []TestMessage{
+			{alice, general, "This command requires immediate elevation.*TOTP code.*", false}}, nil, 150},
+		{aliceID, general, "123456", false, []TestMessage{
+			{null, general, "There were technical issues validating your code.*", false},
+			{null, general, "Sorry, elevation failed due to a problem with the elevation service", false},
+			{null, general, "ELEVATE CHECK: false", false}}, nil, 0},
+		{aliceID, general, ";sh-pipeline-ok", false, []TestMessage{
+			{null, general, "PIPELINE OK: queued", false},
+			{null, general, "PIPE NOTE: add-task", false},
+			{null, general, "Starting job 'pipe-job job-step', run [0-9]+", false},
+			{null, general, "PIPE NOTE: job-step", false},
+			{null, general, "Finished job 'pipe-job', run [0-9]+, final task 'pipe-job', status: normal", false},
+			{null, general, "PIPE ADD COMMAND: ran", false},
+			{null, general, "PIPE FINAL COMMAND: ran", false},
+			{null, general, "PIPE NOTE: final-task", false}}, nil, 0},
+		{aliceID, general, ";sh-pipeline-fail", false, []TestMessage{
+			{null, general, "PIPELINE FAIL: armed", false},
+			{null, general, "PIPE NOTE: fail-task", false},
+			{null, general, "PIPE FAIL COMMAND: ran", false}}, nil, 0},
+		{aliceID, general, ";sh-spawn-job", false, []TestMessage{
+			{null, general, "Starting job 'pipe-spawn-job spawn-step', run [0-9]+ - spawned by pipeline .*", false},
+			{null, general, "PIPE NOTE: spawn-step", false},
+			{null, general, "Finished job 'pipe-spawn-job', run [0-9]+, final task 'pipe-spawn-job', status: normal", false}}, nil, 0},
+	}
+
+	for _, step := range flow {
+		testcaseRepliesOnly(t, conn, step)
+	}
+
+	teardown(t, done, conn)
+}
+
+func TestShFullShippedTasks(t *testing.T) {
+	if !wantFull("sh") {
+		t.Skip("skipping Sh full shipped-task test; set RUN_FULL=sh (or RUN_SHFULL=1)")
+	}
+	done, conn := setup("test/shfull", "/tmp/bottest.log", t)
+
+	flow := []testItem{
+		{aliceID, general, ";sh-default-tasks", false, []TestMessage{
+			{null, general, "SHIPPED TASKS: queued", false},
+			{null, general, "STATUS TASK OK", false},
+			{null, general, "SAY TASK OK", false},
+			{alice, general, "REPLY TASK OK", false},
+			{alice, general, "NOTIFY TASK OK", false},
+			{alice, null, "DMNOTIFY TASK OK", false},
+			{null, general, "EXEC TASK OK", false}}, nil, 0},
+	}
+
+	for _, step := range flow {
+		testcaseRepliesOnly(t, conn, step)
+	}
+
+	teardown(t, done, conn)
+}
+
+func TestShFullSecurity(t *testing.T) {
+	if !wantFull("sh") {
+		t.Skip("skipping Sh full security test; set RUN_FULL=sh (or RUN_SHFULL=1)")
+	}
+	done, conn := setup("test/shfull", "/tmp/bottest.log", t)
+
+	flow := []testItem{
+		{aliceID, general, ";sh-sec-open", false, []TestMessage{
+			{null, general, "SECURITY CHECK: secopen", false}}, nil, 0},
+		{bobID, general, ";sh-sec-open", false, []TestMessage{
+			{null, general, "SECURITY CHECK: secopen", false}}, nil, 0},
+		{aliceID, general, ";sh-sec-admincmd", false, []TestMessage{
+			{null, general, "SECURITY CHECK: secadmincmd", false}}, nil, 0},
+		{bobID, general, ";sh-sec-admincmd", false, []TestMessage{
+			{null, general, "Sorry, 'shsec/secadmincmd' is only available to bot administrators", false}}, nil, 0},
+		{bobID, general, ";sh-sec-authz", false, []TestMessage{
+			{null, general, "SECURITY CHECK: secauthz", false}}, nil, 0},
+		{davidID, general, ";sh-sec-authz", false, []TestMessage{
+			{null, general, "Sorry, you're not authorized for that command", false}}, nil, 0},
+		{bobID, general, ";sh-sec-authall", false, []TestMessage{
+			{null, general, "SECURITY CHECK: secauthall", false}}, nil, 0},
+		{davidID, general, ";sh-sec-authall", false, []TestMessage{
+			{null, general, "Sorry, you're not authorized for that command", false}}, nil, 0},
+		{aliceID, general, ";sh-sec-elevated", false, []TestMessage{
+			{alice, general, "This command requires.*elevation.*TOTP code.*", false}}, nil, 150},
+		{aliceID, general, "123456", false, []TestMessage{
+			{null, general, "There were technical issues validating your code.*", false},
+			{null, general, "Sorry, elevation failed due to a problem with the elevation service", false}}, nil, 0},
+		{aliceID, general, ";sh-sec-immediate", false, []TestMessage{
+			{alice, general, "This command requires immediate elevation.*TOTP code.*", false}}, nil, 150},
+		{aliceID, general, "123456", false, []TestMessage{
+			{null, general, "There were technical issues validating your code.*", false},
+			{null, general, "Sorry, elevation failed due to a problem with the elevation service", false}}, nil, 0},
+		{aliceID, general, "/bender sh-sec-hidden-ok", false, []TestMessage{
+			{null, general, "\\(SECURITY CHECK: sechiddenok\\)", false}}, nil, 0},
+		{aliceID, general, "/bender sh-sec-hidden-denied", false, []TestMessage{
+			{alice, general, "\\(?Sorry, 'shsec/sechiddendenied' cannot be run as a hidden command - use the robot's name or alias\\)?", false}}, nil, 0},
+		{aliceID, general, ";sh-sec-adminonly", false, []TestMessage{
+			{null, general, "SECURITY CHECK: secadminonly", false}}, nil, 0},
+		{bobID, general, ";sh-sec-adminonly", false, []TestMessage{
+			{null, general, "No command matched in channel.*", true}}, nil, 0},
+		{aliceID, general, ";sh-sec-usersonly", false, []TestMessage{
+			{null, general, "SECURITY CHECK: secusersonly", false}}, nil, 0},
+		{bobID, general, ";sh-sec-usersonly", false, []TestMessage{
+			{null, general, "No command matched in channel.*", true}}, nil, 0},
+	}
+
+	for _, step := range flow {
+		testcaseRepliesOnly(t, conn, step)
+	}
+
+	teardown(t, done, conn)
+}

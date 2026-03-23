@@ -39,7 +39,7 @@ The authoritative API surface for compiled Go and Yaegi-based extensions is the 
 
 Prompt timeout semantics:
 - Default timeout: `45s`.
-- Extended timeout: `42m` for `ssh`/`terminal` when the calling task is compiled Go or interpreter-backed (`.go`, `.lua`, `.js`).
+- Extended timeout: `42m` for `ssh`/`terminal` when the calling task is compiled Go or interpreter-backed (`.go`, `.lua`, `.js`, `.gsh`).
 - On robot shutdown, in-progress prompt waits return `Interrupted` immediately.
 
 ### Memory (brain + ephemeral)
@@ -104,7 +104,7 @@ Notes:
 - `bot/http.go` explicitly notes that `Say`, `Reply`, and the user-level prompt helpers are implemented in the language libraries, not the HTTP handler.
 - External libraries use `GOPHER_HTTP_POST` and `X-Caller-ID` headers for requests (`lib/gopherbot_v1.sh`, `lib/gopherbot_v2.py`).
 
-## Built-in interpreter libraries (Lua / JavaScript)
+## Built-in interpreter libraries (Lua / JavaScript / Gopherbot shell)
 
 Lua and JavaScript run in-process but use the same logical API surface via their libraries:
 
@@ -112,6 +112,13 @@ Lua and JavaScript run in-process but use the same logical API surface via their
 - JavaScript: `lib/gopherbot_v1.js` defines `new Robot()` and exposes the primary methods.
 
 Both wrappers use the `GBOT` global injected by the interpreter modules (`lib/gopherbot_v1.lua`, `lib/gopherbot_v1.js`). They mirror most of the `robot.Robot` interface and are the canonical method list for Lua/JS extensions.
+
+Gopherbot shell uses `modules/gsh/assets/gopherbot_v1.gsh` as a compatibility shim, but the primary interface is builtin shell commands rather than a loaded language object:
+
+- Robot methods are exposed as shell builtins (`say`, `Reply`, `PromptForReply`, `CheckAdmin`, `AddTask`, `GetTaskConfig`, etc.).
+- Common utility commands are also builtin (`base64`, `cat`, `cp`, `find`, `grep`, `jq`, `ls`, `mktemp`, `mv`, `rm`, `sort`, `tar`, `touch`, `tr`, `uniq`, `wc`, `xargs`, and related helpers).
+- `say` / `Say` style variants are equivalent because command lookup normalizes case plus `-` / `_`.
+- `.gsh` does not use `bot/http.go`; Robot methods traverse the internal pipeline RPC robot bridge instead.
 
 ## External interpreter libraries (Bash / Python / Ruby)
 
@@ -125,6 +132,7 @@ External interpreters call the HTTP API and wrap it in language-appropriate help
 
 - `Subscribe` / `Unsubscribe` are now part of the canonical Go interface (`robot/robot.go`) and are exercised for external yaegi plugins via `test/go_full_test.go` + `plugins/test/gofull.go`.
 - `SetWorkingDirectory` exists in the Go interface and external libraries (`lib/gopherbot_v1.sh`, `lib/gopherbot_v2.py`, `lib/gopherbot_v1.rb`), but it is not present in the Lua/JS wrappers as of `lib/gopherbot_v1.lua` / `lib/gopherbot_v1.js`.
+- `.gsh` implements `SetWorkingDirectory` plus a BusyBox-style builtin utility surface in-process inside the child interpreter.
 - `RaisePriv` is Go-only (`robot/robot.go`); there is no wrapper in external language libraries.
 - Yaegi caveat: interpreted Go plugins can diverge from compiled Go when values cross reflective boundaries. A focused local repro in `modules/yaegi-dynamic-go/yaegi_dynamic_test.go` shows that a helper chain returning a mixed multi-value tuple such as `(conversationState, []conversationExchange)` can panic under `RunPluginHandler` with `reflect.Set ... not assignable`, even though the same pattern succeeds in compiled Go.
 - For external Go plugins running under Yaegi, prefer returning a single wrapper struct when state must carry multiple logically-related values across helper boundaries. The `plugins/go-openai-fallback` compaction path now uses `compactionResult{State, Older}` for this reason.
