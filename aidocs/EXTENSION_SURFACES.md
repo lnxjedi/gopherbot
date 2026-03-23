@@ -32,10 +32,10 @@ Concise map of extension types, where they live, and how they register/discover.
 
 ## External tasks (scripted)
 
-- Where: task scripts live under `tasks/` (e.g., `tasks/exec.sh`, `tasks/notify.sh`).
+- Where: task scripts live under `tasks/` when they still rely on an external executable entrypoint (e.g., `tasks/remote-exec.sh`, `tasks/setworkdir.sh`).
 - Discovery: `conf/robot.yaml` defines `ExternalTasks`, loaded into `bot/conf.go` (type `ConfigLoader` field `ExternalTasks`), then turned into tasks in `bot/taskconf.go` (func `addExternalTask`).
 - Execution: external tasks run via `exec.Command` in `bot/calltask.go` (external branch after `.go/.lua/.js` checks).
-- Examples: `tasks/exec.sh`, `tasks/notify.sh`.
+- Examples: `tasks/remote-exec.sh`, `tasks/setworkdir.sh`.
 
 ## Go plugins
 

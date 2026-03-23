@@ -128,6 +128,13 @@ So, AI should be fully integrated if desired, but the AI integration will never 
 ### Stretch Goal: Enable a persistent AI engine with support for MCPs
 Just imagine: "Astro, the app is really slow - can you see what's going on?" - using RedHat's kubernetes mcp server and maybe Grafana Loki mcp.
 
+## Long-Term Cleanup and Operational Polish
+
+These items are worth improving, but are not intended to block the v3 release unless they grow into larger architectural concerns.
+
+* Revisit handling of plugin failure logs such as `<plugin>-fail.log`. The current model works, but is operationally messy: the engine emits a failure message, then the bot administrator typically logs onto the robot system and inspects the generated log file manually.
+* Evaluate better approaches for failed-plugin diagnostics, retention, and operator access. Possibilities could include cleaner retention rules, surfacing through built-in admin/history commands, explicit archival behavior, or another workflow that avoids leaving a pile of ad-hoc files in the working tree.
+
 ## Non-Goals for v3
 
 The following items are explicitly *not* required for v3 and should not block release unless this document is updated to say otherwise.
