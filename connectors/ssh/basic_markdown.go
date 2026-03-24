@@ -9,6 +9,12 @@ const (
 	basicMarkdownEmphasisANSI
 )
 
+type basicMarkdownStyle struct {
+	emphasisMode   basicMarkdownEmphasisMode
+	inlineCodeANSI [2]string
+	codeBlockANSI  [2]string
+}
+
 var basicMarkdownCoreEmoji = map[string]string{
 	"white_check_mark": "\u2705",
 	"warning":          "\u26a0\ufe0f",
@@ -23,14 +29,15 @@ var basicMarkdownCoreEmoji = map[string]string{
 }
 
 func renderBasicMarkdownPlain(msg string) string {
-	return renderBasicMarkdown(msg, basicMarkdownEmphasisPlain)
+	return renderBasicMarkdown(msg, basicMarkdownStyle{emphasisMode: basicMarkdownEmphasisPlain})
 }
 
-func renderBasicMarkdownStyled(msg string) string {
-	return renderBasicMarkdown(msg, basicMarkdownEmphasisANSI)
+func renderBasicMarkdownStyled(msg string, style basicMarkdownStyle) string {
+	style.emphasisMode = basicMarkdownEmphasisANSI
+	return renderBasicMarkdown(msg, style)
 }
 
-func renderBasicMarkdown(msg string, emphasisMode basicMarkdownEmphasisMode) string {
+func renderBasicMarkdown(msg string, style basicMarkdownStyle) string {
 	var out strings.Builder
 	inFence := false
 
@@ -38,18 +45,18 @@ func renderBasicMarkdown(msg string, emphasisMode basicMarkdownEmphasisMode) str
 		idx := strings.Index(msg, "```")
 		if idx == -1 {
 			if inFence {
-				out.WriteString(msg)
+				out.WriteString(wrapBasicMarkdownStyledSegment(msg, style.codeBlockANSI))
 			} else {
-				out.WriteString(renderBasicMarkdownInline(msg, emphasisMode))
+				out.WriteString(renderBasicMarkdownInline(msg, style))
 			}
 			break
 		}
 
 		chunk := msg[:idx]
 		if inFence {
-			out.WriteString(chunk)
+			out.WriteString(wrapBasicMarkdownStyledSegment(chunk, style.codeBlockANSI))
 		} else {
-			out.WriteString(renderBasicMarkdownInline(chunk, emphasisMode))
+			out.WriteString(renderBasicMarkdownInline(chunk, style))
 		}
 
 		inFence = !inFence
@@ -73,22 +80,22 @@ func stripBasicMarkdownFenceLanguage(msg string) string {
 	return msg[lineEnd:]
 }
 
-func renderBasicMarkdownInline(msg string, emphasisMode basicMarkdownEmphasisMode) string {
+func renderBasicMarkdownInline(msg string, style basicMarkdownStyle) string {
 	var out strings.Builder
 	for len(msg) > 0 {
 		start := findNextUnescapedBacktick(msg, 0)
 		if start == -1 {
-			out.WriteString(renderBasicMarkdownChunk(msg, emphasisMode))
+			out.WriteString(renderBasicMarkdownChunk(msg, style))
 			break
 		}
-		out.WriteString(renderBasicMarkdownChunk(msg[:start], emphasisMode))
+		out.WriteString(renderBasicMarkdownChunk(msg[:start], style))
 
 		end := findNextUnescapedBacktick(msg, start+1)
 		if end == -1 {
-			out.WriteString(renderBasicMarkdownChunk(msg[start:], emphasisMode))
+			out.WriteString(renderBasicMarkdownChunk(msg[start:], style))
 			break
 		}
-		out.WriteString(msg[start+1 : end])
+		out.WriteString(wrapBasicMarkdownStyledSegment(msg[start+1:end], style.inlineCodeANSI))
 		msg = msg[end+1:]
 	}
 	return out.String()
@@ -114,13 +121,20 @@ func isEscapedAt(msg string, idx int) bool {
 	return slashes%2 == 1
 }
 
-func renderBasicMarkdownChunk(msg string, emphasisMode basicMarkdownEmphasisMode) string {
+func renderBasicMarkdownChunk(msg string, style basicMarkdownStyle) string {
 	msg, escapedLiterals := protectBasicMarkdownEscapes(msg)
 	msg = replaceBasicMarkdownLinks(msg)
 	msg = replaceBasicMarkdownEmoji(msg)
-	msg = renderBasicMarkdownEmphasis(msg, emphasisMode)
+	msg = renderBasicMarkdownEmphasis(msg, style.emphasisMode)
 	msg = restoreEscapedLiterals(msg, escapedLiterals)
 	return msg
+}
+
+func wrapBasicMarkdownStyledSegment(msg string, ansi [2]string) string {
+	if msg == "" || ansi[0] == "" || ansi[1] == "" {
+		return msg
+	}
+	return ansi[0] + msg + ansi[1]
 }
 
 func protectBasicMarkdownEscapes(msg string) (string, []string) {

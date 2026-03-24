@@ -144,6 +144,12 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 			"private":   129,
 		}
 	}
+	if _, ok := cfg.ColorScheme["inlinecode"]; !ok {
+		cfg.ColorScheme["inlinecode"] = 210
+	}
+	if _, ok := cfg.ColorScheme["codeblock"]; !ok {
+		cfg.ColorScheme["codeblock"] = 48
+	}
 
 	sc := &sshConnector{
 		cfg:          cfg,

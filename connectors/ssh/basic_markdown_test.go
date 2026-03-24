@@ -64,7 +64,7 @@ func TestRenderBasicMarkdownPlainEmojiMalformedToken(t *testing.T) {
 
 func TestRenderBasicMarkdownStyled(t *testing.T) {
 	in := "**Deploy status:** *rollback in progress* `kubectl get pods` :rocket:\nSee [runbook](https://example.com/runbook)"
-	got := renderBasicMarkdownStyled(in)
+	got := renderBasicMarkdownStyled(in, basicMarkdownStyle{})
 	want := "\x1b[1mDeploy status:\x1b[22m \x1b[3mrollback in progress\x1b[23m kubectl get pods \U0001f680\nSee runbook (https://example.com/runbook)"
 	if got != want {
 		t.Fatalf("renderBasicMarkdownStyled() = %q, want %q", got, want)
@@ -73,8 +73,20 @@ func TestRenderBasicMarkdownStyled(t *testing.T) {
 
 func TestRenderBasicMarkdownStyledDoesNotParseCode(t *testing.T) {
 	in := "Inline `**stay** :joy:`\n```txt\n*still literal* :rocket:\n```\nDone *now*"
-	got := renderBasicMarkdownStyled(in)
+	got := renderBasicMarkdownStyled(in, basicMarkdownStyle{})
 	want := "Inline **stay** :joy:\n\n*still literal* :rocket:\n\nDone \x1b[3mnow\x1b[23m"
+	if got != want {
+		t.Fatalf("renderBasicMarkdownStyled() = %q, want %q", got, want)
+	}
+}
+
+func TestRenderBasicMarkdownStyledCodeColors(t *testing.T) {
+	in := "Run `kubectl get pods`\n```txt\nstatus=ok\n```\nDone"
+	got := renderBasicMarkdownStyled(in, basicMarkdownStyle{
+		inlineCodeANSI: [2]string{"\x1b[38;5;210m", "\x1b[38;5;81m"},
+		codeBlockANSI:  [2]string{"\x1b[38;5;48m", "\x1b[38;5;81m"},
+	})
+	want := "Run \x1b[38;5;210mkubectl get pods\x1b[38;5;81m\n\x1b[38;5;48m\nstatus=ok\n\x1b[38;5;81m\nDone"
 	if got != want {
 		t.Fatalf("renderBasicMarkdownStyled() = %q, want %q", got, want)
 	}
@@ -112,10 +124,12 @@ func TestFormatMessageBasicMarkdownUsesStyledDisplaySource(t *testing.T) {
 		width:    200,
 		color:    true,
 		colorScheme: map[string]int{
-			"prompt":    39,
-			"timestamp": 244,
-			"bot":       81,
-			"user":      114,
+			"prompt":     39,
+			"timestamp":  244,
+			"bot":        81,
+			"user":       114,
+			"inlinecode": 210,
+			"codeblock":  48,
 		},
 	}
 	evt := bufferMsg{
@@ -124,8 +138,8 @@ func TestFormatMessageBasicMarkdownUsesStyledDisplaySource(t *testing.T) {
 		userID:              "botid",
 		isBot:               true,
 		channel:             "general",
-		text:                "Deploy status: rollback in progress",
-		basicMarkdownSource: "**Deploy status:** *rollback in progress*",
+		text:                "Deploy status: rollback in progress\nstatus=ok",
+		basicMarkdownSource: "**Deploy status:** *rollback in progress* `kubectl get pods`\n```txt\nstatus=ok\n```",
 	}
 
 	got := client.formatMessage(evt, false, false)
@@ -134,6 +148,12 @@ func TestFormatMessageBasicMarkdownUsesStyledDisplaySource(t *testing.T) {
 	}
 	if !strings.Contains(got, "\x1b[3mrollback in progress\x1b[23m") {
 		t.Fatalf("formatted message missing italic ANSI: %q", got)
+	}
+	if !strings.Contains(got, "\x1b[38;5;210mkubectl get pods\x1b[38;5;81m") {
+		t.Fatalf("formatted message missing inline code ANSI: %q", got)
+	}
+	if !strings.Contains(got, "\x1b[38;5;48m\nstatus=ok\n\x1b[38;5;81m") {
+		t.Fatalf("formatted message missing code block ANSI: %q", got)
 	}
 	if !strings.Contains(got, "09:15:45") {
 		t.Fatalf("formatted message missing timestamp: %q", got)

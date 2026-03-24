@@ -39,7 +39,7 @@ This document records the intended SSH connector behavior, control flow, and int
 - `BotName` (default: `gopherbot`)
 - `Channels` (optional list of valid channel names)
 - `Color` (default: `true` in stock config)
-- `ColorScheme` (ANSI 256 color map; keys: `prompt`, `timestamp`, `bot`, `user`, `system`, `info`, `warning`, `error`, `private`)
+- `ColorScheme` (ANSI 256 color map; keys: `prompt`, `timestamp`, `bot`, `user`, `system`, `info`, `warning`, `error`, `private`, `inlinecode`, `codeblock`)
 
 `ListenPort` can be overridden by CLI `--ssh-port` and env `GOPHER_SSH_PORT`.
 
@@ -137,12 +137,21 @@ Message format behavior:
 - `Raw` / `Fixed` / `Variable`: preserved as-is (same connector behavior as before).
 - `BasicMarkdown`: rendered to plain-text-safe output for SSH:
   - when `Color` is enabled, bold and italics use ANSI SGR in live SSH output; otherwise markers are removed
+  - when `Color` is enabled, inline code uses the `inlinecode` color and fenced code blocks use the `codeblock` color in live SSH output
   - inline code/backticks removed, keeping inner text
   - fenced code fences removed (including optional language hint), preserving code lines
   - markdown links degraded to `label (https://...)`
   - escaped literals (for example `\*`, ``\` ``, `\@`) unescaped
   - mentions pass through as literal text
   - core emoji shortcodes (for example `:white_check_mark:`, `:rocket:`) are expanded to Unicode outside inline/fenced code; unknown shortcodes remain literal
+
+### Rendering Pipeline
+
+- SSH stores a plain-text `text` payload in the replay buffer and `GetMessages(...)` results.
+- For `BasicMarkdown`, the connector also preserves the original markdown source separately on the buffered event (`basicMarkdownSource`) when the message is not truncated.
+- Live SSH display re-renders from `basicMarkdownSource` when `Color` is enabled, so terminal-only styling stays out of the canonical buffered/API text.
+- Styled output is wrapped after ANSI sequences are added; the shared wrapper in `robot/wrap.go` ignores ANSI escape width so bold/italic/code colors do not break line wrapping.
+- If a buffered message is truncated to the 4k replay limit, SSH clears the preserved markdown source so replay/API consumers do not receive partial terminal styling state.
 
 ### User input
 

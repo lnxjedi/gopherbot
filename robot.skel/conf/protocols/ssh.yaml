@@ -17,6 +17,8 @@ ProtocolConfig:
     warning: 214
     error: 196
     private: 129
+    inlinecode: 210
+    codeblock: 48
   UserKeys: []
   # - UserName: johndoe
   #   PublicKeys:

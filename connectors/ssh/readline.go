@@ -250,6 +250,17 @@ func (c *sshClient) colorize(kind, s string) string {
 	return fmt.Sprintf("\x1b[38;5;%dm%s%s", code, s, ansiReset)
 }
 
+func (c *sshClient) colorStart(kind string) string {
+	if !c.color || c.colorScheme == nil {
+		return ""
+	}
+	code, ok := c.colorScheme[strings.ToLower(kind)]
+	if !ok {
+		return ""
+	}
+	return fmt.Sprintf("\x1b[38;5;%dm", code)
+}
+
 func (c *sshClient) colorizeHeader(stamp, prefix, channel, thread string, isBot, private bool) string {
 	var b strings.Builder
 	b.WriteString("(")
@@ -319,7 +330,11 @@ func (c *sshClient) formatMessageBodyWithHeader(header, headerColored string, ev
 	}
 	bodyText := evt.text
 	if c.color && evt.basicMarkdownSource != "" {
-		bodyText = renderBasicMarkdownStyled(evt.basicMarkdownSource)
+		bodyRestore := c.colorStart(bodyKind)
+		bodyText = renderBasicMarkdownStyled(evt.basicMarkdownSource, basicMarkdownStyle{
+			inlineCodeANSI: [2]string{c.colorStart("inlinecode"), bodyRestore},
+			codeBlockANSI:  [2]string{c.colorStart("codeblock"), bodyRestore},
+		})
 	}
 	body := " " + bodyText
 	if !c.color || headerColored == "" {
