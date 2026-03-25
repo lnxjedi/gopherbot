@@ -13,6 +13,7 @@ import (
 type managedConnector struct {
 	protocol  string
 	connector robot.Connector
+	caps      robot.ConnectorCapabilities
 	stop      chan struct{}
 	done      chan struct{}
 	running   bool
@@ -162,6 +163,17 @@ func getRuntimeConnector(protocol string) (robot.Connector, bool) {
 	return mc.connector, true
 }
 
+func getRuntimeConnectorCapabilities(protocol string) (robot.ConnectorCapabilities, bool) {
+	p := normalizeProtocolName(protocol)
+	runtimeConnectors.RLock()
+	defer runtimeConnectors.RUnlock()
+	mc, ok := runtimeConnectors.runtimes[p]
+	if !ok || mc == nil {
+		return robot.ConnectorCapabilities{}, false
+	}
+	return mc.caps, true
+}
+
 func getPrimaryConnector() robot.Connector {
 	runtimeConnectors.RLock()
 	defer runtimeConnectors.RUnlock()
@@ -264,11 +276,12 @@ func ensureConnectorInitialized(protocol string, allowBotIdentity bool, logger *
 	if !ok {
 		return fmt.Errorf("no connector registered with name '%s'", p)
 	}
-	conn := registration.Initialize(connectorHandler{
+	initialized := registration.Initialize(connectorHandler{
 		handler:          handle,
 		protocol:         p,
 		allowBotIdentity: allowBotIdentity,
 	}, logger)
+	conn := initialized.Connector
 	if conn == nil {
 		return fmt.Errorf("connector '%s' returned nil from initializer", p)
 	}
@@ -280,6 +293,7 @@ func ensureConnectorInitialized(protocol string, allowBotIdentity bool, logger *
 		runtimeConnectors.runtimes[p] = mc
 	}
 	mc.connector = conn
+	mc.caps = initialized.Capabilities
 	mc.lastError = ""
 	runtimeConnectors.Unlock()
 	return nil

@@ -339,10 +339,23 @@ func (s *slackConnector) DefaultHelp() []string {
 	return nil
 }
 
-func (s *slackConnector) FormatHiddenCommandExample(string) string {
-	return ""
+func formatHiddenCommand(botName, input string) string {
+	name := strings.TrimSpace(strings.TrimPrefix(botName, "/"))
+	if name == "" {
+		return ""
+	}
+	fields := strings.Fields(name)
+	if len(fields) > 0 {
+		name = fields[0]
+	}
+	command := strings.TrimSpace(input)
+	name = strings.ToLower(name)
+	if command == "" {
+		return "/" + name
+	}
+	return "/" + name + " " + command
 }
 
-func (s *slackConnector) HiddenCommandHint() string {
-	return "Hidden commands are available through this Slack app's configured slash command."
+func (s *slackConnector) FormatHiddenCommand(input string) string {
+	return formatHiddenCommand(s.slashCommand, input)
 }

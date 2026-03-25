@@ -17,7 +17,6 @@ ProtocolConfig:
   ListenPort: {{ env "GOPHER_SSH_PORT" | default "4221" }}
   HearSelf: true
   DefaultChannel: general
-  BotName: {{ $botname }}
   Color: true
   ColorScheme:
     prompt: 39

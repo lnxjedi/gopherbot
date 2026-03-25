@@ -17,7 +17,8 @@ This document records the intended SSH connector behavior, control flow, and int
 
 ## Startup Integration
 
-- Connector registration via `robot.RegisterConnector("ssh", Initialize, robot.ConnectorCapabilities{HiddenCommands: true})` from `connectors/ssh/static.go`.
+- Connector registration via `robot.RegisterConnector("ssh", Initialize)` from `connectors/ssh/static.go`.
+- `connectors/ssh/connector.go` `Initialize(...)` returns `robot.InitializedConnector{Connector, Capabilities}` and marks SSH hidden-command support there.
 - `bot/start.go` should accept `--ssh-port` CLI flag.
 - Default selection in `conf/robot.yaml` should use SSH instead of terminal in modes where terminal was implicitly default.
 - `nullconn` remains in bootstrapping modes per `aidocs/STARTUP_FLOW.md`.
@@ -36,12 +37,16 @@ This document records the intended SSH connector behavior, control flow, and int
 - `ReplayBufferSize` (default: `42`)
 - `MaxMsgBytes` (default: `16384`)
 - `DefaultChannel` (default: `general`)
-- `BotName` (default: `gopherbot`)
 - `Channels` (optional list of valid channel names)
 - `Color` (default: `true` in stock config)
 - `ColorScheme` (ANSI 256 color map; keys: `prompt`, `timestamp`, `bot`, `user`, `system`, `info`, `warning`, `error`, `private`, `inlinecode`, `codeblock`)
 
 `ListenPort` can be overridden by CLI `--ssh-port` and env `GOPHER_SSH_PORT`.
+
+SSH no longer takes a protocol-local `BotName`. During `Initialize(...)`, it
+uses `Handler.GetBotInfo().UserName` as the canonical robot name for
+name-addressed hidden input, hidden-help rendering, and local bot labeling. If
+`BotInfo.UserName` is empty, SSH falls back to `gopherbot`.
 
 ## Connection Model
 
@@ -189,9 +194,13 @@ Direct messages are buffered and replayed only to the sender/recipient.
 - `/botname ...` sends a hidden message addressed by robot name and returns hidden replies only to that user.
 - `/...` (without bot name) is still hidden from other SSH users, but is not considered a name-addressed hidden command by engine policy.
 - `/ foo` sends nothing to others; emit `(INFO: '/' note to self message not sent to other users)`.
+- Incoming SSH hidden messages therefore split into two cases:
+  - `HiddenMessage=true` for any slash-prefixed hidden/private message
+  - a robot-addressed command payload only for `/<botname> ...`, which SSH normalizes to `<BotInfo.UserName> ...` before calling `IncomingMessage(...)`
 - Hidden replies are prefixed with `private/` in the timestamp segment.
-- Connector registration marks SSH hidden-command support in `robot.ConnectorCapabilities{HiddenCommands: true}`.
-- SSH implements `robot.HiddenCommandFormatter`, so built-in help and metadata can render exact hidden examples as `/(bot) ...` instead of guessing Slack-style syntax.
+- SSH advertises hidden-command support from `Initialize(...)` through `robot.InitializedConnector.Capabilities.HiddenCommands`.
+- SSH implements `robot.HiddenCommandFormatter`, so built-in help and metadata can render concrete hidden examples such as `/clu help ping` and `/clu ping`.
+- The same formatter is used by engine-owned denial copy when a hidden command is matched but not addressed with SSH hidden syntax.
 - Engine-side hidden policy still applies:
   - command must be listed in plugin `AllowedHiddenCommands`
   - and hidden message must be robot-addressed (`/<botname> ...` for SSH, or connector-routed `BotMessage=true` in protocols like Slack slash commands).

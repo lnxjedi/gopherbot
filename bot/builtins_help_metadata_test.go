@@ -3,7 +3,69 @@ package bot
 import (
 	"strings"
 	"testing"
+
+	"github.com/lnxjedi/gopherbot/robot"
 )
+
+type formatCaptureConnector struct {
+	lastFormat  robot.MessageFormat
+	lastMessage string
+}
+
+func (c *formatCaptureConnector) GetProtocolUserAttribute(string, string) (string, robot.RetVal) {
+	return "", robot.AttributeNotFound
+}
+
+func (c *formatCaptureConnector) MessageHeard(string, string) {}
+
+func (c *formatCaptureConnector) FormatHelp(input string) string { return input }
+
+func (c *formatCaptureConnector) DefaultHelp() []string { return nil }
+
+func (c *formatCaptureConnector) JoinChannel(string) robot.RetVal { return robot.Ok }
+
+func (c *formatCaptureConnector) SendProtocolChannelThreadMessage(_, _, msg string, f robot.MessageFormat, _ *robot.ConnectorMessage) robot.RetVal {
+	c.lastFormat = f
+	c.lastMessage = msg
+	return robot.Ok
+}
+
+func (c *formatCaptureConnector) SendProtocolUserChannelThreadMessage(_, _, _, msg string, f robot.MessageFormat, _ *robot.ConnectorMessage) robot.RetVal {
+	c.lastFormat = f
+	c.lastMessage = msg
+	return robot.Ok
+}
+
+func (c *formatCaptureConnector) SendProtocolUserMessage(_, msg string, f robot.MessageFormat, _ *robot.ConnectorMessage) robot.RetVal {
+	c.lastFormat = f
+	c.lastMessage = msg
+	return robot.Ok
+}
+
+func (c *formatCaptureConnector) Run(<-chan struct{}) {}
+
+func makeFormatTestRobot(t *testing.T) Robot {
+	t.Helper()
+	w := &worker{
+		User:       "alice",
+		Channel:    "general",
+		Protocol:   robot.Test,
+		Incoming:   &robot.ConnectorMessage{Protocol: "test", ChannelName: "general"},
+		cfg:        &configuration{alias: '!', botinfo: UserInfo{UserName: "Clu"}, defaultMessageFormat: robot.Raw},
+		tasks:      &taskList{t: []interface{}{&Task{name: "namespace"}}, nameMap: map[string]int{}, nameSpaces: map[string]ParameterSet{}, parameterSets: map[string]ParameterSet{}},
+		listedUser: true,
+		pipeContext: &pipeContext{
+			parameters:  map[string]string{"GOPHER_CMDMODE": "alias"},
+			environment: map[string]string{},
+		},
+	}
+	r := w.makeRobot()
+	w.registerWorker(r.tid)
+	t.Cleanup(func() {
+		deregisterWorker(r.tid)
+	})
+	return r
+}
 
 func TestHelpTokenEquivalentSingularPlural(t *testing.T) {
 	if !helpTokenEquivalent("siding", "sidings") {
@@ -69,14 +131,33 @@ func TestScoreHelpCommandMatchKeywordOutranksSummaryToken(t *testing.T) {
 
 func TestScoreHelpCommandMatchRecoversSingleTypo(t *testing.T) {
 	entry := helpCommandMetadata{
-		PluginName: "knock",
-		Command:    "knock",
-		Usage:      "tell me a knock-knock joke",
-		Summary:    "Starts an interactive knock-knock joke.",
-		Keywords:   []string{"joke", "knock"},
+		PluginName:    "knock",
+		Command:       "knock",
+		SimpleMatcher: "tell me a [another] [knock-knock] joke",
+		Usage:         "tell me a knock-knock joke",
+		Summary:       "Starts an interactive knock-knock joke.",
+		Keywords:      []string{"joke", "knock"},
 	}
 	if got := scoreHelpCommandMatch(entry, "knok"); got < 80 {
 		t.Fatalf("scoreHelpCommandMatch() expected strong typo score for knok, got %d", got)
+	}
+}
+
+func TestFallbackCloseMatchScorePrefersRealPhraseSurface(t *testing.T) {
+	entry := helpCommandMetadata{
+		PluginName:    "knock",
+		Command:       "knock",
+		SimpleMatcher: "tell me a [another] [knock-knock] joke",
+		Usage:         "tell me a knock-knock joke",
+		Summary:       "Starts an interactive knock-knock joke.",
+		Examples:      []string{"(alias) tell me another joke"},
+		Keywords:      []string{"joke", "knock"},
+	}
+	if got := fallbackCloseMatchScore(entry, "tell me a jok"); got < 80 {
+		t.Fatalf("fallbackCloseMatchScore() expected strong phrase score for tell me a jok, got %d", got)
+	}
+	if got := fallbackCloseMatchScore(entry, "knok"); got != 0 {
+		t.Fatalf("fallbackCloseMatchScore() expected bare identifier miss for phrase command, got %d", got)
 	}
 }
 
@@ -165,6 +246,36 @@ func TestRankHelpMatchesRegressionTable(t *testing.T) {
 	}
 }
 
+func TestRenderPluginHelpOverviewIncludesExamplesAndMoreDetail(t *testing.T) {
+	r := makeFormatTestRobot(t)
+	got := r.renderPluginHelpOverview("knock", []helpCommandMetadata{
+		{
+			PluginName: "knock",
+			Command:    "knock",
+			Summary:    "Starts an interactive knock-knock joke.",
+			Examples:   []string{"(alias) tell me a knock-knock joke"},
+		},
+		{
+			PluginName: "knock",
+			Command:    "another",
+			Summary:    "Starts another joke.",
+			Usage:      "(alias) tell me another joke",
+		},
+	})
+	if !strings.Contains(got, "Plugin help: knock") {
+		t.Fatalf("renderPluginHelpOverview() missing plugin header: %q", got)
+	}
+	if !strings.Contains(got, "  Example: !tell me a knock-knock joke") {
+		t.Fatalf("renderPluginHelpOverview() missing explicit example: %q", got)
+	}
+	if !strings.Contains(got, "  Example: tell me another joke") {
+		t.Fatalf("renderPluginHelpOverview() missing usage fallback example: %q", got)
+	}
+	if !strings.Contains(got, "More detail: `!help knock/<command>`") {
+		t.Fatalf("renderPluginHelpOverview() missing more detail hint: %q", got)
+	}
+}
+
 func TestRankHelpMatchesPrefersFirstMeaningfulTokenStem(t *testing.T) {
 	entries := []helpCommandMetadata{
 		{
@@ -211,19 +322,109 @@ func TestStripHelpAddressPrefix(t *testing.T) {
 	}
 }
 
-func TestHiddenSlashBotExample(t *testing.T) {
+func TestHiddenSlashBotCommand(t *testing.T) {
 	cases := []struct {
 		in   string
 		want string
 	}{
-		{"(bot) list lists", "/(bot) list lists"},
-		{"(bot), list lists", "/(bot) list lists"},
-		{"(alias) ping", "/(bot) ping"},
-		{"ping", "/(bot) ping"},
+		{"list lists", "/clu list lists"},
+		{"ping", "/clu ping"},
 	}
 	for _, tc := range cases {
-		if got := hiddenSlashBotExample(tc.in); got != tc.want {
-			t.Fatalf("hiddenSlashBotExample(%q) = %q, want %q", tc.in, got, tc.want)
+		if got := hiddenSlashBotCommand("Clu", tc.in); got != tc.want {
+			t.Fatalf("hiddenSlashBotCommand(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestFormatExactHelpAvailability(t *testing.T) {
+	t.Run("explicit channels stay explicit", func(t *testing.T) {
+		entry := helpCommandMetadata{
+			Channels: []string{"clu-jobs", "general", "chat", "random", "botdev"},
+		}
+		want := "`#botdev`, `#chat`, `#clu-jobs`, `#general`, `#random`"
+		if got := formatExactHelpAvailability(entry); got != want {
+			t.Fatalf("formatExactHelpAvailability(channels) = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("all channels uses robot wording", func(t *testing.T) {
+		entry := helpCommandMetadata{AllChannels: true}
+		if got := formatExactHelpAvailability(entry); got != "all robot channels" {
+			t.Fatalf("formatExactHelpAvailability(all channels) = %q", got)
+		}
+	})
+}
+
+func TestFormatSuggestedCommandPrefersHiddenHelp(t *testing.T) {
+	runtimeConnectors.Lock()
+	origPrimary := runtimeConnectors.primary
+	origDefault := runtimeConnectors.defaultProtocol
+	origRuntimes := runtimeConnectors.runtimes
+	runtimeConnectors.primary = "testhidden"
+	runtimeConnectors.defaultProtocol = "testhidden"
+	runtimeConnectors.runtimes = map[string]*managedConnector{
+		"testhidden": {
+			connector: &hiddenHelpTestConnector{},
+			caps:      robot.ConnectorCapabilities{HiddenCommands: true},
+		},
+	}
+	runtimeConnectors.Unlock()
+	t.Cleanup(func() {
+		runtimeConnectors.Lock()
+		runtimeConnectors.primary = origPrimary
+		runtimeConnectors.defaultProtocol = origDefault
+		runtimeConnectors.runtimes = origRuntimes
+		runtimeConnectors.Unlock()
+	})
+
+	w := &worker{
+		Protocol: robot.Protocol(0),
+		Incoming: &robot.ConnectorMessage{Protocol: "testhidden"},
+		cfg:      &configuration{alias: '!', botinfo: UserInfo{UserName: "Clu"}},
+		pipeContext: &pipeContext{
+			parameters:  map[string]string{},
+			environment: map[string]string{},
+		},
+	}
+	r := w.makeRobot()
+	w.registerWorker(r.tid)
+	defer deregisterWorker(r.tid)
+
+	if got := r.formatSuggestedCommand("(alias) help knock/knock"); got != "/clu help knock/knock" {
+		t.Fatalf("formatSuggestedCommand() = %q", got)
+	}
+}
+
+func TestSummarizeQualifiedPluginCommands(t *testing.T) {
+	entries := []helpCommandMetadata{
+		{PluginName: "builtin-admin", Command: "branch"},
+		{PluginName: "builtin-admin", Command: "abort"},
+		{PluginName: "builtin-admin", Command: "chanlog"},
+		{PluginName: "builtin-admin", Command: "defaultbranch"},
+		{PluginName: "builtin-admin", Command: "quit"},
+	}
+	want := "`builtin-admin/abort`, `/branch`, `/chanlog`, `/defaultbranch` ... (+1 more)"
+	if got := summarizeQualifiedPluginCommands("builtin-admin", entries, 4); got != want {
+		t.Fatalf("summarizeQualifiedPluginCommands() = %q, want %q", got, want)
+	}
+}
+
+func TestHelpSurfaceCommandText(t *testing.T) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{"(alias) ping", "ping"},
+		{"!ping", "ping"},
+		{"Clu, ping", "ping"},
+		{"Clu ping", "ping"},
+		{"/clu help ping", "help ping"},
+		{"help ping", "help ping"},
+	}
+	for _, tc := range cases {
+		if got := helpSurfaceCommandText(tc.in, "!", "Clu"); got != tc.want {
+			t.Fatalf("helpSurfaceCommandText(%q) = %q, want %q", tc.in, got, tc.want)
 		}
 	}
 }
@@ -243,7 +444,7 @@ func TestRenderHelpEntryIncludesHiddenExamples(t *testing.T) {
 		PluginName:     "builtin-help",
 		Command:        "help",
 		Examples:       []string{"(alias) help ping"},
-		HiddenExamples: []string{"/(bot) help ping"},
+		HiddenExamples: []string{"/clu help ping"},
 	}
 	rendered := r.renderHelpEntry(entry, true, false, 0)
 	if !containsLine(rendered, "Examples:") {
@@ -307,5 +508,41 @@ func TestCommandAllowsHidden(t *testing.T) {
 	}
 	if commandAllowsHidden(&Plugin{}, "help") {
 		t.Fatalf("expected false for plugin with no hidden commands")
+	}
+}
+
+func TestHelpUsesBasicMarkdownOutputFormat(t *testing.T) {
+	originalConnector := interfaces.Connector
+	fake := &formatCaptureConnector{}
+	interfaces.Connector = fake
+	defer func() {
+		interfaces.Connector = originalConnector
+	}()
+
+	r := makeFormatTestRobot(t)
+	help(r, "help")
+	if fake.lastFormat != robot.BasicMarkdown {
+		t.Fatalf("help() sent format %v, want %v", fake.lastFormat, robot.BasicMarkdown)
+	}
+	if !strings.Contains(fake.lastMessage, "Quick help:") {
+		t.Fatalf("help() message missing quick help header: %q", fake.lastMessage)
+	}
+}
+
+func TestFallbackUsesBasicMarkdownOutputFormat(t *testing.T) {
+	originalConnector := interfaces.Connector
+	fake := &formatCaptureConnector{}
+	interfaces.Connector = fake
+	defer func() {
+		interfaces.Connector = originalConnector
+	}()
+
+	r := makeFormatTestRobot(t)
+	fallback(r, "catchall", "tell me a jok")
+	if fake.lastFormat != robot.BasicMarkdown {
+		t.Fatalf("fallback() sent format %v, want %v", fake.lastFormat, robot.BasicMarkdown)
+	}
+	if !strings.Contains(fake.lastMessage, "I couldn't match") {
+		t.Fatalf("fallback() message missing mismatch text: %q", fake.lastMessage)
 	}
 }

@@ -138,6 +138,12 @@ Connector identity mapping now lives inside `ProtocolConfig`, for example:
 - Slack: `ProtocolConfig.UserMap`
 - SSH: `ProtocolConfig.UserKeys` as a list of `{UserName, PublicKeys}` entries (supports multiple keys per username)
 
+Bot identity for local connectors now lives in shared `BotInfo` in
+`conf/robot.yaml`, not protocol-local fields:
+- SSH derives its hidden-command bot name from `BotInfo.UserName`
+- terminal derives its synthetic bot user and hidden-command bot name from `BotInfo`
+- test connector derives bot display/full name from `BotInfo`
+
 Do not rely on these keys in `conf/<protocol>.yaml` in recommended style:
 
 - `AdminUsers`

@@ -73,7 +73,6 @@ type sshConfig struct {
 	ReplayBufferSize int
 	MaxMsgBytes      int
 	DefaultChannel   string
-	BotName          string
 	Channels         []string
 	WrapWidth        int
 	UserHistoryLines int
@@ -105,11 +104,13 @@ type sshConnector struct {
 }
 
 // Initialize sets up the SSH connector and returns a connector object.
-func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
+func Initialize(handler robot.Handler, l *log.Logger) robot.InitializedConnector {
 	var cfg sshConfig
 	if err := handler.GetProtocolConfig(&cfg); err != nil {
 		handler.Log(robot.Fatal, "Unable to retrieve protocol configuration: %v", err)
 	}
+	botInfo := handler.GetBotInfo()
+	botName := strings.TrimSpace(botInfo.UserName)
 	if cfg.ListenHost == "" {
 		cfg.ListenHost = defaultListenHost
 	}
@@ -125,8 +126,8 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 	if cfg.DefaultChannel == "" {
 		cfg.DefaultChannel = defaultChannel
 	}
-	if cfg.BotName == "" {
-		cfg.BotName = "gopherbot"
+	if botName == "" {
+		botName = "gopherbot"
 	}
 	if cfg.UserHistoryLines == 0 {
 		cfg.UserHistoryLines = 14
@@ -155,8 +156,8 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 		cfg:          cfg,
 		handler:      handler,
 		logger:       l,
-		botName:      cfg.BotName,
-		botNameLower: strings.ToLower(cfg.BotName),
+		botName:      botName,
+		botNameLower: strings.ToLower(botName),
 		clients:      make(map[*sshClient]struct{}),
 		userKeys:     make(map[string]userKeyInfo),
 		userNames:    make(map[string]userKeyInfo),
@@ -170,7 +171,10 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 		handler.Log(robot.Warn, "SSH connector started with no configured user keys; no SSH user can authenticate until UserKeys is configured in ProtocolConfig")
 	}
 
-	return robot.Connector(sc)
+	return robot.InitializedConnector{
+		Connector:    robot.Connector(sc),
+		Capabilities: robot.ConnectorCapabilities{HiddenCommands: true},
+	}
 }
 
 func (sc *sshConnector) Run(stop <-chan struct{}) {

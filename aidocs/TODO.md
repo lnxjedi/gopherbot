@@ -35,8 +35,19 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
   Re-evaluate quick help, `help <keyword>`, brief help, channel/context guidance, and how fallback/help should compose so the user gets the most useful next step with the least noise.
 
 - [x] Define connector capability semantics for hidden-command help/examples:
-  Hidden-command help now uses an engine-owned connector `Capabilities` registration flag (`HiddenCommands`) plus connector-owned hidden-help rendering through the shared `robot/` contract.
+  Hidden-command help now uses an engine-owned connector `Capabilities` runtime flag (`HiddenCommands`) plus connector-owned hidden-help rendering through the shared `robot/` contract.
   Current behavior:
-  - help metadata and builtin help only surface hidden examples when the current connector is registered as supporting hidden commands
-  - SSH/terminal/test render exact `/(bot) ...` hidden examples through connector-owned formatting
-  - Slack reports hidden-command support but only provides a generic slash-command hint, because the configured slash command name is not the bot name and is not inferred by help
+  - help metadata and builtin help only surface hidden examples when the current initialized connector reports hidden-command support
+  - connectors with hidden-command support render concrete hidden commands such as `/clu help knock/knock` through connector-owned formatting
+  - engine-owned denial/help copy uses the same concrete hidden-command formatter instead of placeholder `/(bot)` text or a separate connector hint
+
+- [ ] Reconcile SSH and terminal hidden-message parsing and `IncomingMessage` shaping:
+  Current local-connector behavior still has some awkwardness and drift:
+  - SSH and terminal both treat slash-prefixed input as `HiddenMessage=true`, even when it is not robot-addressed
+  - only `/<botname> ...` is normalized into a bot-addressed command payload before `IncomingMessage(...)`
+  - the test connector is intentionally different because the harness injects the hidden flag directly instead of parsing slash syntax
+  Follow-up goals:
+  - decide whether SSH and terminal should keep the current split between "hidden/private" and "robot-addressed hidden command", or move to a cleaner unified model
+  - make the SSH and terminal parsing/path shaping consistent with each other
+  - review whether `IncomingMessage.MessageText`, `HiddenMessage`, and `BotMessage` are being populated in the cleanest possible way for local hidden commands
+  - preserve engine-owned hidden-command policy while reducing connector-local surprises

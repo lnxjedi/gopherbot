@@ -1,11 +1,6 @@
-{{ $botname := env "GOPHER_BOTNAME" | default "bender" }}
-{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Bender Rodriguez" }}
-
 ProtocolConfig:
   StartChannel: general
   StartUser: alice
-  BotName: {{ $botname }}
-  BotFullName: {{ $botfullname }}
   Channels:
   - random
   - general

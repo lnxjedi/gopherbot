@@ -38,12 +38,17 @@ Catch-all mode scoping:
 ## Hidden Command Policy (routing + safety guard)
 
 - Hidden-command policy check runs at pipeline-start time: `bot/run_pipelines.go` calls `Robot.checkHiddenCommands` in `bot/allow_hidden.go`.
+- Hidden-command support is a connector capability (`robot.ConnectorCapabilities.HiddenCommands`) supplied by the initialized connector instance and consumed through `bot/connector_capabilities.go`.
+- Connector registrations are static, but capability values are runtime/init-time so they can depend on protocol config (for example Slack slash-command enablement).
 - A hidden command is allowed only if both are true:
   - the command is listed in plugin `AllowedHiddenCommands`
   - the hidden message is explicitly addressed to this robot:
     - connector-marked bot message (`Incoming.BotMessage=true`, e.g. Slack slash route), or
     - name-addressed command mode (`cmdMode == "name"`).
 - Practical effect: hidden `/...` payloads that are not bot-addressed by connector or name will not execute hidden commands.
+- User-facing denial behavior is split cleanly:
+  - if the active connector does not support hidden commands, engine returns a single protocol-specific unsupported message
+  - if the connector does support hidden commands but the user addressed them incorrectly, engine returns a single engine-authored guidance string built from the connector's concrete hidden-command formatter (for example ``Use `/clu <command>` to address a hidden command.``)
 
 ## Self-Message Routing Nuance (HearSelf-style flows)
 

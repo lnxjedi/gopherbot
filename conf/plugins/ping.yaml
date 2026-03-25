@@ -17,12 +17,12 @@ Commands:
   # NOTE: We don't match 'I <something>' - otherwise users couldn't say
   # "Floyd, I love you" (or "Floyd, I think you're a nimrod")
   # Regex: '(?s:(?:i(?:gnore)?|Ignore|I:)[ :].*)'
-  SimpleMatcher: "(i|ignore|i:) <message:rest>"
+  SimpleMatcher: "(i:|ignore|ignore:) <message:rest>"
   Keywords: [ "ignore" ]
-  Usage: "i(gnore) <anything>"
-  Summary: "ignore a chat message, useful in channels that match all messages"
+  Usage: "i(gnore): <anything>"
+  Summary: "ignore a chat message, useful for subscribed threads or in channels that match all messages"
   Examples:
-  - "(alias) ignore this"
+  - "(alias) ignore: this is a test"
 - Command: "thanks"
   Regex: "(?i:thanks?( you)?!?)"
 - Command: "rules"

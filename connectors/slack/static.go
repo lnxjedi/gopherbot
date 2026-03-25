@@ -6,5 +6,5 @@ import (
 
 func init() {
 	robot.RegisterPlugin("slackutil", slackplugin)
-	robot.RegisterConnector("slack", Initialize, robot.ConnectorCapabilities{HiddenCommands: true})
+	robot.RegisterConnector("slack", Initialize)
 }

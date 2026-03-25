@@ -1,7 +1,6 @@
 package slack
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -23,12 +22,9 @@ func TestDefaultHelpUsesEngineDefault(t *testing.T) {
 	}
 }
 
-func TestHiddenCommandHint(t *testing.T) {
-	s := &slackConnector{}
-	if got := s.FormatHiddenCommandExample("(alias) help ping"); got != "" {
-		t.Fatalf("FormatHiddenCommandExample() = %q, want empty for Slack", got)
-	}
-	if got := s.HiddenCommandHint(); !strings.Contains(got, "slash command") {
-		t.Fatalf("HiddenCommandHint() = %q, want slash-command guidance", got)
+func TestFormatHiddenCommand(t *testing.T) {
+	s := &slackConnector{slashCommand: "clu"}
+	if got := s.FormatHiddenCommand("help ping"); got != "/clu help ping" {
+		t.Fatalf("FormatHiddenCommand() = %q", got)
 	}
 }

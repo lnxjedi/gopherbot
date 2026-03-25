@@ -26,6 +26,9 @@ func (t *testHandler) GetProtocolConfig(_ interface{}) error { return nil }
 func (t *testHandler) GetBrainConfig(_ interface{}) error    { return nil }
 func (t *testHandler) GetEventStrings() *[]string            { return nil }
 func (t *testHandler) GetHistoryConfig(_ interface{}) error  { return nil }
+func (t *testHandler) GetBotInfo() robot.BotInfo {
+	return robot.BotInfo{UserName: "floyd", FullName: "Floyd Gopherbot"}
+}
 func (t *testHandler) SetBotID(_ string)                     {}
 func (t *testHandler) SetTerminalWriter(_ io.Writer)         {}
 func (t *testHandler) SetBotMention(_ string)                {}
@@ -240,11 +243,9 @@ func TestFormatHelp(t *testing.T) {
 	if got := sc.FormatHelp("Usage: (alias) help <keyword>"); got != "Usage: *(alias) help <keyword>*" {
 		t.Fatalf("FormatHelp() usage format = %q", got)
 	}
-	if got := sc.FormatHiddenCommandExample("(alias) help ping"); got != "/(bot) help ping" {
-		t.Fatalf("FormatHiddenCommandExample() = %q", got)
-	}
-	if got := sc.HiddenCommandHint(); got == "" {
-		t.Fatal("HiddenCommandHint() returned empty string")
+	sc.botName = "Floyd"
+	if got := sc.FormatHiddenCommand("help ping"); got != "/floyd help ping" {
+		t.Fatalf("FormatHiddenCommand() = %q", got)
 	}
 }
 

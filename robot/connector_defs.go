@@ -68,6 +68,8 @@ type Handler interface {
 	// GetHistoryConfig unmarshals the HistoryConfig section of robot.yaml
 	// into a struct provided by the brain provider
 	GetHistoryConfig(interface{}) error
+	// GetBotInfo returns the configured robot identity from robot.yaml.
+	GetBotInfo() BotInfo
 	// SetID allows the connector to set the robot's internal ID
 	SetBotID(id string)
 	// SetTerminalWriter allows the terminal connector to provide an io.Writer

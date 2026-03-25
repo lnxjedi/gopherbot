@@ -9,17 +9,20 @@ type ConnectorCapabilities struct {
 	HiddenCommands bool
 }
 
-type ConnectorRegistration struct {
-	Initialize   func(Handler, *log.Logger) Connector
+type InitializedConnector struct {
+	Connector    Connector
 	Capabilities ConnectorCapabilities
 }
 
-// HiddenCommandFormatter is an optional connector contract for rendering
-// connector-specific hidden-command help when connector capabilities indicate
-// that hidden commands are supported.
+type ConnectorRegistration struct {
+	Initialize func(Handler, *log.Logger) InitializedConnector
+}
+
+// HiddenCommandFormatter is an optional connector contract for rendering a
+// connector-specific hidden command when connector capabilities indicate that
+// hidden commands are supported.
 type HiddenCommandFormatter interface {
-	FormatHiddenCommandExample(string) string
-	HiddenCommandHint() string
+	FormatHiddenCommand(string) string
 }
 
 var connectorRegistry = struct {
@@ -31,7 +34,7 @@ var connectorRegistry = struct {
 
 // RegisterConnector allows connectors to register themselves with the shared
 // engine/connector contract surface.
-func RegisterConnector(name string, initialize func(Handler, *log.Logger) Connector, capabilities ConnectorCapabilities) {
+func RegisterConnector(name string, initialize func(Handler, *log.Logger) InitializedConnector) {
 	connectorRegistry.Lock()
 	defer connectorRegistry.Unlock()
 
@@ -41,8 +44,7 @@ func RegisterConnector(name string, initialize func(Handler, *log.Logger) Connec
 		log.Fatalf("Connector '%s' is already registered", name)
 	}
 	connectorRegistry.registrations[name] = ConnectorRegistration{
-		Initialize:   initialize,
-		Capabilities: capabilities,
+		Initialize: initialize,
 	}
 }
 

@@ -17,7 +17,7 @@ import (
 )
 
 func init() {
-	robot.RegisterConnector("terminal", Initialize, robot.ConnectorCapabilities{HiddenCommands: true})
+	robot.RegisterConnector("terminal", Initialize)
 }
 
 const termBotID = "u0000"
@@ -36,7 +36,6 @@ type termconfig struct {
 	EOF              string // command to send on EOF (ctrl-D), default ";quit"
 	Abort            string // command to send on ctrl-c
 	MockFormatting   bool   // whether to simulate FIXED and variable message formatting
-	BotName          string // the bot's name, required for the robot to hear it's own messages
 	Users            []termUser
 	Channels         []string
 	GenerateNewlines bool // whether to replace the \n sequence with an actual newline
@@ -83,11 +82,11 @@ var lock sync.Mutex // package var lock
 var started bool    // set when connector is started
 
 // Initialize sets up the connector and returns a connector object
-func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
+func Initialize(handler robot.Handler, l *log.Logger) robot.InitializedConnector {
 	lock.Lock()
 	if started {
 		lock.Unlock()
-		return nil
+		return robot.InitializedConnector{}
 	}
 	started = true
 	lock.Unlock()
@@ -97,6 +96,11 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 	err := handler.GetProtocolConfig(&c)
 	if err != nil {
 		handler.Log(robot.Fatal, "Unable to retrieve protocol configuration: %v", err)
+	}
+	botInfo := handler.GetBotInfo()
+	botName := strings.TrimSpace(botInfo.UserName)
+	if botName == "" {
+		botName = "gopherbot"
 	}
 	eof := ";quit"
 	abort := ";abort"
@@ -120,20 +124,36 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 		handler.Log(robot.Fatal, "Start user \"%s\" not listed in Users array", c.StartUser)
 	}
 	if _, ok := userIDToIndex[termBotID]; !ok {
-		firstRunes := []rune(c.BotName)
+		firstRunes := []rune(botName)
 		firstRunes[0] = unicode.ToUpper(firstRunes[0])
+		fullName := strings.TrimSpace(botInfo.FullName)
+		if fullName == "" {
+			fullName = string(firstRunes) + " Gopherbot"
+		}
+		firstName := strings.TrimSpace(botInfo.FirstName)
+		if firstName == "" {
+			firstName = string(firstRunes)
+		}
+		lastName := strings.TrimSpace(botInfo.LastName)
+		if lastName == "" {
+			lastName = "Gopherbot"
+		}
+		email := strings.TrimSpace(botInfo.Email)
+		if email == "" {
+			email = botName + "@example.com"
+		}
 		botUser := termUser{
-			Name:       c.BotName,
+			Name:       botName,
 			InternalID: termBotID,
-			Email:      c.BotName + "@example.com",
-			FullName:   string(firstRunes) + " Gopherbot",
-			FirstName:  string(firstRunes),
-			LastName:   "Gopherbot",
+			Email:      email,
+			FullName:   fullName,
+			FirstName:  firstName,
+			LastName:   lastName,
 			Phone:      "(555)765-0000",
 		}
 		c.Users = append(c.Users, botUser)
 		idx := len(c.Users) - 1
-		userNameToIndex[c.BotName] = idx
+		userNameToIndex[botName] = idx
 		userIDToIndex[termBotID] = idx
 	}
 
@@ -165,14 +185,14 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 	})
 	if err != nil {
 		handler.Log(robot.Fatal, "Creating terminal connector readline: %v", err)
-		return nil
+		return robot.InitializedConnector{}
 	}
 
 	tc := &termConnector{
 		currentChannel:   c.StartChannel,
 		currentUser:      c.StartUser,
 		generateNewlines: c.GenerateNewlines,
-		botName:          c.BotName,
+		botName:          botName,
 		mockFormat:       c.MockFormatting,
 		eof:              eof,
 		abort:            abort,
@@ -189,7 +209,10 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 	tc.Handler = handler
 	tc.SetBotID(termBotID)
 	tc.SetTerminalWriter(tc.reader)
-	return robot.Connector(tc)
+	return robot.InitializedConnector{
+		Connector:    robot.Connector(tc),
+		Capabilities: robot.ConnectorCapabilities{HiddenCommands: true},
+	}
 }
 
 func (tc *termConnector) Run(stop <-chan struct{}) {
@@ -401,7 +424,11 @@ loop:
 				hiddenMsg := false
 				if input[0] == '/' {
 					hiddenMsg = true
-					input = input[1:]
+					if hiddenPayload, ok := termHiddenPayload(tc.botName, input); ok {
+						input = hiddenPayload
+					} else {
+						input = strings.TrimSpace(strings.TrimPrefix(input, "/"))
+					}
 				}
 				var channelID string
 				direct := false
@@ -641,10 +668,33 @@ func (tc *termConnector) DefaultHelp() []string {
 	return []string{}
 }
 
-func (tc *termConnector) FormatHiddenCommandExample(input string) string {
-	return hiddenSlashBotExample(input)
+func (tc *termConnector) FormatHiddenCommand(input string) string {
+	return hiddenSlashBotCommand(tc.botName, input)
 }
 
-func (tc *termConnector) HiddenCommandHint() string {
-	return "Use '/(bot) <command>' to address a hidden command."
+func termHiddenPayload(botName, input string) (string, bool) {
+	if !strings.HasPrefix(input, "/") {
+		return "", false
+	}
+	trimmed := strings.TrimPrefix(input, "/")
+	if trimmed == "" {
+		return "", false
+	}
+	displayName := strings.TrimSpace(strings.TrimPrefix(botName, "/"))
+	botName = strings.ToLower(displayName)
+	lower := strings.ToLower(trimmed)
+	if botName == "" || !strings.HasPrefix(lower, botName) {
+		return "", false
+	}
+	if len(trimmed) == len(botName) {
+		return "", false
+	}
+	if trimmed[len(botName)] != ' ' {
+		return "", false
+	}
+	remainder := strings.TrimSpace(trimmed[len(botName):])
+	if remainder == "" {
+		return "", false
+	}
+	return strings.TrimSpace(displayName + " " + remainder), true
 }

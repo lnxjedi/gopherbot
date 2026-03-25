@@ -36,12 +36,8 @@ func (c *hiddenHelpTestConnector) SendProtocolUserMessage(string, string, robot.
 
 func (c *hiddenHelpTestConnector) Run(<-chan struct{}) {}
 
-func (c *hiddenHelpTestConnector) FormatHiddenCommandExample(input string) string {
-	return hiddenSlashBotExample(input)
-}
-
-func (c *hiddenHelpTestConnector) HiddenCommandHint() string {
-	return "Use '/(bot) <command>' to address a hidden command."
+func (c *hiddenHelpTestConnector) FormatHiddenCommand(input string) string {
+	return hiddenSlashBotCommand("Clu", input)
 }
 
 func TestGetHelpMetadataFiltersAndMarksVisibility(t *testing.T) {
@@ -146,16 +142,6 @@ func TestGetHelpMetadataFiltersAndMarksVisibility(t *testing.T) {
 }
 
 func TestGetHelpMetadataIncludesHiddenExamplesForSupportedConnector(t *testing.T) {
-	originalOverrides := connectorRegistrationOverrides
-	connectorRegistrationOverrides = map[string]robot.ConnectorRegistration{
-		"testhidden": {
-			Capabilities: robot.ConnectorCapabilities{HiddenCommands: true},
-		},
-	}
-	defer func() {
-		connectorRegistrationOverrides = originalOverrides
-	}()
-
 	runtimeConnectors.Lock()
 	originalPrimary := runtimeConnectors.primary
 	originalDefault := runtimeConnectors.defaultProtocol
@@ -163,7 +149,7 @@ func TestGetHelpMetadataIncludesHiddenExamplesForSupportedConnector(t *testing.T
 	runtimeConnectors.primary = "testhidden"
 	runtimeConnectors.defaultProtocol = "testhidden"
 	runtimeConnectors.runtimes = map[string]*managedConnector{
-		"testhidden": {protocol: "testhidden", connector: &hiddenHelpTestConnector{}},
+		"testhidden": {protocol: "testhidden", connector: &hiddenHelpTestConnector{}, caps: robot.ConnectorCapabilities{HiddenCommands: true}},
 	}
 	runtimeConnectors.Unlock()
 	defer func() {
@@ -212,8 +198,8 @@ func TestGetHelpMetadataIncludesHiddenExamplesForSupportedConnector(t *testing.T
 	if !payload.Context.HiddenCommandsSupported {
 		t.Fatalf("expected hidden command support in metadata context")
 	}
-	if got := payload.Context.HiddenCommandHint; got == "" {
-		t.Fatalf("expected hidden command hint in metadata context")
+	if got := payload.Context.HiddenCommandHint; got != "Use `/clu <command>` to address a hidden command." {
+		t.Fatalf("unexpected hidden command hint in metadata context: %q", got)
 	}
 	if len(payload.VisibleHere) != 1 {
 		t.Fatalf("visible_here = %+v, want one help entry", payload.VisibleHere)
@@ -222,8 +208,8 @@ func TestGetHelpMetadataIncludesHiddenExamplesForSupportedConnector(t *testing.T
 	if !entry.HiddenSupported {
 		t.Fatalf("expected hidden support on help entry: %+v", entry)
 	}
-	if len(entry.HiddenExamples) != 1 || entry.HiddenExamples[0] != "/(bot) help ping" {
-		t.Fatalf("hidden examples = %+v, want [/(bot) help ping]", entry.HiddenExamples)
+	if len(entry.HiddenExamples) != 1 || entry.HiddenExamples[0] != "/clu help ping" {
+		t.Fatalf("hidden examples = %+v, want [/clu help ping]", entry.HiddenExamples)
 	}
 }
 
@@ -404,9 +390,12 @@ func TestCollectFallbackAdviceUsesExamplesForWrongChannelHint(t *testing.T) {
 	if !strings.Contains(advice.DeterministicReply, "#chat") {
 		t.Fatalf("deterministic reply %q missing chat hint", advice.DeterministicReply)
 	}
+	if !strings.Contains(advice.DeterministicReply, "looks close to `knock/knock`") {
+		t.Fatalf("deterministic reply %q missing close-match phrasing", advice.DeterministicReply)
+	}
 }
 
-func TestCollectFallbackAdviceSuggestsHighConfidenceTypo(t *testing.T) {
+func TestCollectFallbackAdviceSuggestsHighConfidencePhraseNearMiss(t *testing.T) {
 	tasks := &taskList{
 		t: []interface{}{
 			&Task{name: "namespace"},
@@ -448,18 +437,79 @@ func TestCollectFallbackAdviceSuggestsHighConfidenceTypo(t *testing.T) {
 	w.registerWorker(r.tid)
 	defer deregisterWorker(r.tid)
 
-	advice := r.collectFallbackAdvice("!knok")
+	advice := r.collectFallbackAdvice("!tell me a jok")
 	if advice.Advice != fallbackAdviceCloseHere {
 		t.Fatalf("advice = %q, want %q", advice.Advice, fallbackAdviceCloseHere)
 	}
 	if len(advice.Here) != 1 || advice.Here[0].Command != "knock" {
 		t.Fatalf("here = %+v, want knock", advice.Here)
 	}
-	if !strings.Contains(advice.DeterministicReply, "Did you mean [knock] `knock`?") {
+	if !strings.Contains(advice.DeterministicReply, "looks close to `knock/knock`") {
 		t.Fatalf("deterministic reply %q missing strong suggestion", advice.DeterministicReply)
+	}
+	if !strings.Contains(advice.DeterministicReply, "Try: `!tell me a knock-knock joke`") {
+		t.Fatalf("deterministic reply %q missing direct retry example", advice.DeterministicReply)
 	}
 	if !strings.Contains(advice.DeterministicReply, "!help knock/knock") {
 		t.Fatalf("deterministic reply %q missing exact help path", advice.DeterministicReply)
+	}
+}
+
+func TestCollectFallbackAdviceSuppressesBareIdentifierGuessForPhraseCommand(t *testing.T) {
+	tasks := &taskList{
+		t: []interface{}{
+			&Task{name: "namespace"},
+			&Plugin{
+				Task: &Task{
+					name:     "knock",
+					Channels: []string{"general"},
+				},
+				Commands: []InputMatcher{{
+					Command:       "knock",
+					SimpleMatcher: "tell me a [another] [knock-knock] joke",
+					Usage:         "tell me a knock-knock joke",
+					Summary:       "Starts an interactive knock-knock joke.",
+					Keywords:      []string{"knock", "joke"},
+					Examples:      []string{"(alias) tell me a knock-knock joke"},
+				}},
+			},
+		},
+		nameMap: map[string]int{
+			"knock": 1,
+		},
+		nameSpaces:    map[string]ParameterSet{},
+		parameterSets: map[string]ParameterSet{},
+	}
+
+	w := &worker{
+		User:       "alice",
+		Channel:    "general",
+		Protocol:   robot.Test,
+		Incoming:   &robot.ConnectorMessage{},
+		cfg:        &configuration{alias: '!', botinfo: UserInfo{UserName: "Clu"}, adminUsers: []string{"parsley"}},
+		tasks:      tasks,
+		listedUser: true,
+		pipeContext: &pipeContext{
+			parameters:  map[string]string{"GOPHER_CMDMODE": "alias"},
+			environment: map[string]string{},
+		},
+	}
+	r := w.makeRobot()
+	w.registerWorker(r.tid)
+	defer deregisterWorker(r.tid)
+
+	advice := r.collectFallbackAdvice("!knok")
+	if advice.Advice != fallbackAdviceCloseHere {
+		t.Fatalf("advice = %q, want %q", advice.Advice, fallbackAdviceCloseHere)
+	}
+	if strings.Contains(advice.DeterministicReply, "looks close to `knock/knock`") {
+		t.Fatalf("deterministic reply %q should not over-suggest a phrase command from bare identifier typo", advice.DeterministicReply)
+	}
+	if !strings.Contains(advice.DeterministicReply, "!help knock/knock") {
+		t.Fatalf("deterministic reply %q missing exact-help recovery", advice.DeterministicReply)
+	}
+	if !strings.Contains(advice.DeterministicReply, "!commands") {
+		t.Fatalf("deterministic reply %q missing generic guidance", advice.DeterministicReply)
 	}
 }
 

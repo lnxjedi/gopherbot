@@ -10,7 +10,7 @@ The key product decision is simple:
 - AI should not be a core dependency of basic command recovery
 - users should be guided from broad browsing to exact command syntax in small, readable steps
 
-This work adds a clearer help ladder, a plugin-level help view, exact command help using `help plugin/command`, smarter keyword help when the keyword is also a plugin name, high-confidence deterministic suggestions, and more actionable fallback copy. The result is a help system that does a better job of getting a user from "I need help finding the right command" to "I found the exact command and syntax" without needing AI inference.
+This work adds a clearer help ladder, a plugin-level help view, exact command help using `help plugin/command`, smarter keyword help when the keyword is also a plugin name, higher-quality deterministic suggestions grounded in real command surfaces, and more actionable fallback copy. The result is a help system that does a better job of getting a user from "I need help finding the right command" to "I found the exact command and syntax" without needing AI inference.
 
 ## Why We Changed Direction
 
@@ -51,7 +51,7 @@ The redesign uses a few simple UX rules that fit chatops well:
 
 This gives users a more understandable mental model than the older quick-help copy.
 
-### 2. `commands` Is Now Organized Around Plugin Groups
+### 2. `commands` Is Now Organized Around Plugins And Command Groups
 
 The old command browsing path leaned toward a very long command list. That is hard to skim in chat.
 
@@ -60,6 +60,8 @@ The new `commands` output is grouped by plugin and, for each plugin, shows:
 - a short plugin summary
 - a preview of representative commands using their full `plugin/command` address
 - the next step: `help <plugin>`
+
+Plugin names are visually emphasized so they are easier to skim in a long help response.
 
 This turns `commands` into a directory instead of a dump.
 
@@ -123,17 +125,20 @@ Current recovery copy points users toward:
 
 That makes the failure path more useful immediately.
 
-### 8. High-Confidence Suggestions Are Now Explicit
+### 8. High-Confidence Suggestions Are Now Explicit, But Narrower
 
-When the matcher has a strong deterministic guess, the fallback now says so directly.
+When the matcher has a strong deterministic guess based on the actual command surface, the fallback now says so directly.
 
 Example shape:
 
-- `Did you mean [knock] knock?`
+- `Best guess: [knock] knock?`
+
+If the engine only has a weaker directional hint, it now uses softer wording such as "Closest help I found..." instead of pretending certainty.
 
 The system still follows that with broader help guidance, so the response is not a brittle one-shot guess. The intended user experience is:
 
 - suggest the most likely command when confidence is high
+- soften the wording when the match is only directionally helpful
 - still provide the broader help path if the suggestion is wrong
 
 ## Why This Is Better For Users
@@ -161,18 +166,11 @@ A repeat user can now learn a durable navigation pattern:
 
 That is much easier to internalize than relying on fuzzy search alone.
 
-## Live UX Testing With A Local Test Robot
+## Live UX Testing
 
-I rebuilt and restarted a local UX test robot and tested the updated help flows over SSH using a separate test user.
+I tested the updated help flows with a local UX robot and the integration harness.
 
-At the time of writing, the throwaway UX test robot is:
-
-- robot dir: `/tmp/clu-ux`
-- SSH port: `4223`
-
-If it is still running when you review this, you should be able to connect with your normal SSH testing flow against port `4223` and reproduce these transcripts directly.
-
-The sample transcripts below are copied from live test sessions and are written just as the user would see them in chat. The exact robot name varies by deployment, so the examples focus on the command flow rather than a specific bot identity.
+The sample transcripts below are representative of the current behavior and can be reproduced with the local test configuration or an interactive robot using the same engine/config combination. The exact robot name varies by deployment, so the examples focus on the command flow rather than a specific bot identity.
 
 ### Transcript: `!help`
 
@@ -188,17 +186,17 @@ Robot:
 Quick help:
 !help <keyword> - get help for the provided <keyword>
 !help <keyword> brief - compact help for a likely command
-!commands - browse command groups available in this channel
+!commands - browse plugins and command groups available in this channel
 !help-all - help for all commands available in this channel, including global commands
 Plugin help: !help <plugin>
 Exact command help: !help <plugin>/<command>
-Tip: !commands shows command groups in this channel.
+Tip: !commands shows plugins and command groups in this channel.
 ```
 
 Commentary:
 
 - quick help now explicitly teaches plugin help and exact command help
-- users are told that `commands` shows command groups in the current channel
+- users are told that `commands` shows plugins and command groups in the current channel
 
 ### Transcript: `!commands`
 
@@ -211,27 +209,27 @@ User:
 Robot:
 
 ```text
-Command groups available in this channel:
-Skim a plugin first, then drill into one command if you need exact syntax.
-- builtin-help: A plugin providing help for commands
-  Commands: builtin-help/commands, builtin-help/help, builtin-help/help-all, builtin-help/info
-  Try: !help builtin-help
-- knock: An external Go plugin demonstrating Prompting and custom configuration
-  Commands: knock/knock
-  Try: !help knock
-- lists: An external Go plugin for managing simple lists of strings
-  Commands: lists/add, lists/delete, lists/empty, lists/help, +5 more
-  Try: !help lists
+Plugins and command groups available in this channel:
+**builtin-help**: A plugin providing help for commands
+Commands: `builtin-help/commands`, `builtin-help/help`, `builtin-help/help-all`, `builtin-help/info`
+Help: `!help builtin-help`
+**knock**: An external Go plugin demonstrating Prompting and custom configuration
+Commands: `knock/knock`
+Help: `!help knock`
+**lists**: An external Go plugin for managing simple lists of strings
+Commands: `lists/add`, `lists/delete`, `lists/empty`, `lists/help`, +5 more
+Help: `!help lists`
 ...
-For one command: !help <plugin>/<command>
-Search by keyword: !help <plugin|command|keyword>
+Exact help: `!help <plugin>/<command>`
+Search by keyword: `!help <plugin|command|keyword>`
 ```
 
 Commentary:
 
-- response begins with "Command groups available in this channel"
+- response begins with an explicit plugins-and-command-groups heading
+- plugin names are emphasized so the list is easier to scan
 - each plugin shows a summary, a command preview using the full `plugin/command` address, and a `!help <plugin>` next step
-- the footer gives both `!help <plugin>/<command>` and keyword search
+- the footer gives both exact-help and keyword-search paths
 
 This is noticeably more scannable than a flat command list.
 
@@ -336,7 +334,35 @@ Commentary:
 
 This makes exact help addressable and predictable.
 
-### Transcript: `!knok`
+### Transcript: `!tell me a jok`
+
+User:
+
+```text
+!tell me a jok
+```
+
+Robot:
+
+```text
+I couldn't match `tell me a jok`.
+Best guess: [knock] `knock`? Starts an interactive knock-knock joke.
+Try `!help knock/knock` in #general or #random, or run `!tell me a knock-knock joke` there.
+Possible commands to check:
+- `knock/knock` - Starts an interactive knock-knock joke.
+If not, try `!commands`, `!help <keyword>`, or `!help <plugin>/<command>`.
+```
+
+Commentary:
+
+- deterministic fallback now makes a high-confidence suggestion when the intended phrase is actually close to a supported command surface
+- the reply still includes broader help escape hatches and exact-help addresses
+- the response can mention likely target channels when the command family is not valid where the user asked
+- this is intentionally better than guessing from an internal command name alone
+
+This is already a better failure experience than the earlier baseline.
+
+### Transcript: bare identifier typo for a phrase command
 
 User:
 
@@ -347,16 +373,17 @@ User:
 Robot:
 
 ```text
-I couldn't match `knok`. Did you mean [knock] `knock`? Starts an interactive knock-knock joke. Try `!help knock/knock` in #botdev, #chat, #clu-jobs, or other configured channels, or run `!tell me a knock-knock joke` there. If not, try `!commands`, `!help <keyword>`, or `!help <plugin>/<command>`.
+I couldn't match `knok` here.
+This looks more likely to belong in #general or #random.
+Try `!help knock/knock` in #general or #random, or run `!tell me a knock-knock joke` there.
+If not, try `!commands`, `!help <keyword>`, or `!help <plugin>/<command>`.
 ```
 
 Commentary:
 
-- deterministic fallback now makes a high-confidence suggestion when the intended command is obvious
-- the reply still includes broader help escape hatches
-- the response can mention likely target channels when the command family is not valid where the user asked
-
-This is already a better failure experience than the earlier baseline.
+- this is an intentional behavior change from the earlier prototype
+- the engine no longer over-claims that a one-word typo is a confident near-match for a phrase-shaped command
+- instead it offers softer recovery guidance and points the user back to exact help
 
 ## Configuration And Metadata Impact
 
@@ -399,23 +426,20 @@ In other words, the product should treat help and fallback as a navigation syste
 
 The current work establishes the right help architecture. The next best product slices would be:
 
-1. Tune the new high-confidence suggestion layer.
-   The first pass is in place now, but it should be tuned so obvious near-matches are recovered aggressively without creating noisy bad guesses.
-
-2. Improve family-level matching.
+1. Improve family-level matching.
    Handle common operator substitutions such as `show/get/list`, `reload/refresh/rebuild`, and singular/plural variants.
 
-3. Tighten plugin summaries and examples.
+2. Tighten plugin summaries and examples.
    This is likely to deliver a lot of UX value with little engine complexity.
 
-4. Tune fallback copy by situation.
+3. Tune fallback copy by situation.
    Differentiate between:
    - obvious near-match
    - wrong channel
    - broad no-match
    - command family likely found but syntax incomplete
 
-5. Consider a compact mode for long plugin overviews.
+4. Consider a compact mode for long plugin overviews.
    Some plugins may still need shorter chat-first rendering when command counts are large.
 
 ## Bottom Line
@@ -427,7 +451,7 @@ It reduces system complexity, removes AI pressure from the core help path, and g
 The new interaction model is:
 
 - `help` teaches the system
-- `commands` shows command groups
+- `commands` shows plugins and command groups
 - `help plugin` narrows to a family
 - `help plugin/command` gives exact syntax
 - fallback points users back into that path

@@ -23,7 +23,7 @@ Commands:
   SimpleMatcher: "(command|commands)"
   Keywords: [ "help", "commands", "list", "browse" ]
   Usage: "commands"
-  Summary: "browse command groups available in this channel"
+  Summary: "browse plugins and command groups available in this channel"
   Examples:
   - "(alias) commands"
 - Command: info

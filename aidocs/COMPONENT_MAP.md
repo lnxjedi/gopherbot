@@ -23,7 +23,8 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 - Engine entrypoints: `bot/start.go` (func `Start`), `bot/bot_process.go` (funcs `initBot`, `run`, `stop`).
 - Runtime connector orchestration: `bot/connector_runtime.go` (runtime manager, protocol routing, lifecycle controls).
-- Bot-side connector capability/registration consumption: `bot/connector_capabilities.go` (shared registration lookup + test overrides).
+- Bot-side connector capability/registration consumption: `bot/connector_capabilities.go` (shared registration lookup, runtime capability lookup, and test overrides).
+- Connector/brain/history handler implementation: `bot/handler.go` (implements shared `robot.Handler`, including `GetBotInfo()` for connector init).
 - Bot-side provider registration consumption: `bot/provider_registrations.go` (shared brain/history registration lookup + test overrides).
 - Pipeline execution + privilege separation internals: `bot/run_pipelines.go`, `bot/task_execution.go`, `bot/task_execution_child.go`, `bot/pipeline_rpc.go`, `bot/pipeline_rpc_interpreter.go`, `bot/pipeline_rpc_javascript.go`, `bot/pipeline_rpc_yaegi.go`, `bot/calltask.go`, `bot/privsep.go`.
 - Startup mode and config loading: `bot/config_load.go` (funcs `detectStartupMode`, `getConfigFile`), `bot/conf.go` (func `loadConfig`).
@@ -50,9 +51,9 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 ## connectors/
 
-- Slack connector registration + init: `connectors/slack/static.go` (calls `robot.RegisterConnector("slack", Initialize, robot.ConnectorCapabilities{HiddenCommands: true})`), `connectors/slack/connect.go` (func `Initialize`; connector-local `ProtocolConfig.UserMap` identity mapping).
-- Test connector registration + runtime: `connectors/test/init.go` (calls `robot.RegisterConnector("test", Initialize, robot.ConnectorCapabilities{HiddenCommands: true})`; connector-local `ProtocolConfig.Users` identity mapping), `connectors/test/connector.go` (method `(*TestConnector).Run`).
-- SSH connector registration + runtime: `connectors/ssh/static.go` (calls `robot.RegisterConnector("ssh", Initialize, robot.ConnectorCapabilities{HiddenCommands: true})`), `connectors/ssh/connector.go` (method `(*sshConnector).Run`; connector-local `ProtocolConfig.UserKeys` list identity mapping).
+- Slack connector registration + init: `connectors/slack/static.go` (calls `robot.RegisterConnector("slack", Initialize)`), `connectors/slack/connect.go` (func `Initialize`; connector-local `ProtocolConfig.UserMap` identity mapping plus slash-command-driven runtime hidden-command capability).
+- Test connector registration + runtime: `connectors/test/init.go` (calls `robot.RegisterConnector("test", Initialize)`; connector-local `ProtocolConfig.Users` identity mapping), `connectors/test/connector.go` (method `(*TestConnector).Run`).
+- SSH connector registration + runtime: `connectors/ssh/static.go` (calls `robot.RegisterConnector("ssh", Initialize)`), `connectors/ssh/connector.go` (method `(*sshConnector).Run`; connector-local `ProtocolConfig.UserKeys` list identity mapping plus runtime hidden-command capability).
 
 ## gojobs/
 
@@ -109,7 +110,8 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 - Shared modular contract surface: `robot/README.md`.
 - Go extension registrations: `robot/registrations.go` (funcs `RegisterPlugin`, `RegisterJob`, `RegisterTask`).
-- Connector registrations + capabilities: `robot/connectors.go` (`RegisterConnector`, `ConnectorCapabilities`, `HiddenCommandFormatter`).
+- Connector registrations + capabilities: `robot/connectors.go` (`RegisterConnector`, `InitializedConnector`, `ConnectorCapabilities`, `HiddenCommandFormatter`).
+- Shared robot identity shape for connector/provider init: `robot/botinfo.go` (`BotInfo`).
 - Brain-provider registrations: `robot/brains.go` (`RegisterSimpleBrain`).
 - History-provider registrations: `robot/history_providers.go` (`RegisterHistoryProvider`).
 - Connector contracts and connector-side APIs: `robot/connector_defs.go` (`Connector`, `ConnectorAPIProvider`, `Injector`, `MessageSource`).

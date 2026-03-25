@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/lnxjedi/gopherbot/robot"
@@ -19,19 +20,27 @@ func connectorRegistrationForProtocol(protocol string) (robot.ConnectorRegistrat
 	return robot.GetConnectorRegistration(p)
 }
 
+var connectorCapabilityOverrides = map[string]robot.ConnectorCapabilities{}
+
 func capabilitiesForProtocol(protocol string) robot.ConnectorCapabilities {
-	registration, ok := connectorRegistrationForProtocol(protocol)
-	if !ok {
+	p := normalizeProtocolName(protocol)
+	if p == "" {
 		return robot.ConnectorCapabilities{}
 	}
-	return registration.Capabilities
+	if capabilities, ok := connectorCapabilityOverrides[p]; ok {
+		return capabilities
+	}
+	if capabilities, ok := getRuntimeConnectorCapabilities(p); ok {
+		return capabilities
+	}
+	return robot.ConnectorCapabilities{}
 }
 
 func hiddenCommandsSupportedForProtocol(protocol string) bool {
 	return capabilitiesForProtocol(protocol).HiddenCommands
 }
 
-func formatHiddenCommandExample(protocol, example string) string {
+func formatHiddenCommand(protocol, command string) string {
 	if !hiddenCommandsSupportedForProtocol(protocol) {
 		return ""
 	}
@@ -43,20 +52,16 @@ func formatHiddenCommandExample(protocol, example string) string {
 	if !ok {
 		return ""
 	}
-	return strings.TrimSpace(formatter.FormatHiddenCommandExample(example))
+	return strings.TrimSpace(formatter.FormatHiddenCommand(command))
 }
 
 func hiddenCommandHintForProtocol(protocol string) string {
 	if !hiddenCommandsSupportedForProtocol(protocol) {
 		return ""
 	}
-	conn := getConnectorForProtocol(protocol)
-	if conn == nil {
+	command := formatHiddenCommand(protocol, "<command>")
+	if command == "" {
 		return ""
 	}
-	formatter, ok := conn.(robot.HiddenCommandFormatter)
-	if !ok {
-		return ""
-	}
-	return strings.TrimSpace(formatter.HiddenCommandHint())
+	return fmt.Sprintf("Use `%s` to address a hidden command.", command)
 }

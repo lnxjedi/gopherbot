@@ -47,6 +47,11 @@ Use `GetHelpMetadata` when an extension needs engine-filtered search/browse cont
 - `Say(msg string, v ...interface{}) RetVal`, `SayThread(msg string, v ...interface{}) RetVal`
 - `Reply(msg string, v ...interface{}) RetVal`, `ReplyThread(msg string, v ...interface{}) RetVal`
 
+Formatting semantics:
+- `DefaultMessageFormat` is the fallback only when the sender does not explicitly choose a format.
+- `MessageFormat(...)` overrides the robot default for the resulting send/reply call chain.
+- Engine-shipped help/fallback flows intentionally send `BasicMarkdown` explicitly so connectors can render help consistently even when a robot's default format is `Raw` or another mode.
+
 ### Prompting
 - `PromptForReply(regexID, prompt string, v ...interface{}) (string, RetVal)`
 - `PromptThreadForReply(regexID, prompt string, v ...interface{}) (string, RetVal)`

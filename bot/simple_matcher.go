@@ -359,6 +359,66 @@ func (g simpleMatcherGroup) isOptional() bool {
 	return g.optional
 }
 
+func simpleMatcherLiteralSequences(spec string) ([][]string, error) {
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return nil, fmt.Errorf("SimpleMatcher cannot be empty")
+	}
+	parser := simpleMatcherParser{spec: spec}
+	expr, err := parser.parseExpr(0)
+	if err != nil {
+		return nil, err
+	}
+	parser.skipSpaces()
+	if !parser.eof() {
+		return nil, fmt.Errorf("unexpected trailing character %q in SimpleMatcher", parser.peek())
+	}
+	return expr.literalSequences(), nil
+}
+
+func (e simpleMatcherExpr) literalSequences() [][]string {
+	sequences := make([][]string, 0, len(e.alternatives))
+	for _, alt := range e.alternatives {
+		sequences = append(sequences, alt.literalSequences()...)
+	}
+	return sequences
+}
+
+func (s simpleMatcherSequence) literalSequences() [][]string {
+	sequences := [][]string{{}}
+	for _, term := range s.terms {
+		var options [][]string
+		switch t := term.(type) {
+		case simpleMatcherLiteral:
+			options = [][]string{fallbackLiteralTokens(t.value)}
+		case simpleMatcherSlot:
+			options = [][]string{{}}
+		case simpleMatcherGroup:
+			options = t.literalSequences()
+		default:
+			options = [][]string{{}}
+		}
+		next := make([][]string, 0, len(sequences)*maxInt(1, len(options)))
+		for _, existing := range sequences {
+			for _, option := range options {
+				combined := append([]string(nil), existing...)
+				combined = append(combined, option...)
+				next = append(next, combined)
+			}
+		}
+		sequences = next
+	}
+	return sequences
+}
+
+func (g simpleMatcherGroup) literalSequences() [][]string {
+	options := g.expr.literalSequences()
+	if !g.optional {
+		return options
+	}
+	return append([][]string{{}}, options...)
+}
+
 func (p *simpleMatcherParser) skipSpaces() {
 	for !p.eof() && isSimpleMatcherSpace(p.peek()) {
 		p.pos++

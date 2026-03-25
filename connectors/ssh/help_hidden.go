@@ -1,28 +1,26 @@
 package ssh
 
 import (
-	"regexp"
 	"strings"
 )
 
-var helpAddressPrefixRegex = regexp.MustCompile(`^\s*/?\((?:alias|bot)\)(?:[,:])?\s*`)
-
-func formatHiddenExample(input string) string {
-	trimmed := strings.TrimSpace(input)
-	if trimmed == "" {
-		return "/(bot)"
+func formatHiddenCommand(botName, input string) string {
+	name := strings.TrimSpace(strings.TrimPrefix(botName, "/"))
+	if name == "" {
+		return ""
 	}
-	rest := strings.TrimSpace(helpAddressPrefixRegex.ReplaceAllString(trimmed, ""))
-	if rest == "" {
-		return "/(bot)"
+	fields := strings.Fields(name)
+	if len(fields) > 0 {
+		name = fields[0]
 	}
-	return "/(bot) " + rest
+	command := strings.TrimSpace(input)
+	name = strings.ToLower(name)
+	if command == "" {
+		return "/" + name
+	}
+	return "/" + name + " " + command
 }
 
-func (sc *sshConnector) FormatHiddenCommandExample(input string) string {
-	return formatHiddenExample(input)
-}
-
-func (sc *sshConnector) HiddenCommandHint() string {
-	return "Use '/(bot) <command>' to address a hidden command."
+func (sc *sshConnector) FormatHiddenCommand(input string) string {
+	return formatHiddenCommand(sc.botName, input)
 }

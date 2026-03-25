@@ -108,6 +108,7 @@ func (fc *fakeRuntimeConnector) sendMetrics() (channelCalls, userChannelCalls, u
 type runtimeHarness struct {
 	t                 *testing.T
 	originalOverrides map[string]robot.ConnectorRegistration
+	originalCaps      map[string]robot.ConnectorCapabilities
 	originalCfg       *configuration
 	originalIface     robot.Connector
 	originalLogger    *log.Logger
@@ -119,10 +120,14 @@ func newRuntimeHarness(t *testing.T) *runtimeHarness {
 	h := &runtimeHarness{
 		t:                 t,
 		originalOverrides: make(map[string]robot.ConnectorRegistration, len(connectorRegistrationOverrides)),
+		originalCaps:      make(map[string]robot.ConnectorCapabilities, len(connectorCapabilityOverrides)),
 		instances:         make(map[string]*fakeRuntimeConnector),
 	}
 	for name, registration := range connectorRegistrationOverrides {
 		h.originalOverrides[name] = registration
+	}
+	for name, capabilities := range connectorCapabilityOverrides {
+		h.originalCaps[name] = capabilities
 	}
 	currentCfg.RLock()
 	h.originalCfg = currentCfg.configuration
@@ -139,6 +144,7 @@ func (h *runtimeHarness) cleanup() {
 	shutdownConnectorRuntimes()
 	h.resetRuntimeState()
 	connectorRegistrationOverrides = h.originalOverrides
+	connectorCapabilityOverrides = h.originalCaps
 	currentCfg.Lock()
 	currentCfg.configuration = h.originalCfg
 	currentCfg.Unlock()
@@ -169,10 +175,10 @@ func (h *runtimeHarness) setConfig(primary string, secondaries ...string) {
 func (h *runtimeHarness) registerFake(protocol string) {
 	p := normalizeProtocolName(protocol)
 	connectorRegistrationOverrides[p] = robot.ConnectorRegistration{
-		Initialize: func(robot.Handler, *log.Logger) robot.Connector {
+		Initialize: func(robot.Handler, *log.Logger) robot.InitializedConnector {
 			fc := &fakeRuntimeConnector{}
 			h.instances[p] = fc
-			return fc
+			return robot.InitializedConnector{Connector: fc}
 		},
 	}
 }

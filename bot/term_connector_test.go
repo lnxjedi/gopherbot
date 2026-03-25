@@ -48,3 +48,28 @@ func TestResolveTermUserOutOfRangeIndex(t *testing.T) {
 		t.Fatalf("resolveTermUserByID should fail for out-of-range index")
 	}
 }
+
+func TestTermHiddenPayload(t *testing.T) {
+	tests := []struct {
+		name    string
+		botName string
+		input   string
+		want    string
+		ok      bool
+	}{
+		{name: "case insensitive match", botName: "Clu", input: "/clu help ping", want: "Clu help ping", ok: true},
+		{name: "mixed case input", botName: "Clu", input: "/ClU ping", want: "Clu ping", ok: true},
+		{name: "must have separator", botName: "Clu", input: "/clux ping", ok: false},
+		{name: "must have remainder", botName: "Clu", input: "/clu", ok: false},
+		{name: "non bot hidden slash", botName: "Clu", input: "/ping", ok: false},
+	}
+	for _, tt := range tests {
+		got, ok := termHiddenPayload(tt.botName, tt.input)
+		if ok != tt.ok {
+			t.Fatalf("%s: ok = %t, want %t", tt.name, ok, tt.ok)
+		}
+		if got != tt.want {
+			t.Fatalf("%s: payload = %q, want %q", tt.name, got, tt.want)
+		}
+	}
+}

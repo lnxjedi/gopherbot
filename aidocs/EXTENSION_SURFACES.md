@@ -11,11 +11,13 @@ Concise map of extension types, where they live, and how they register/discover.
 ## Connectors
 
 - Where: protocol connectors under `connectors/`, plus built-ins like `bot/term_connector.go` and `bot/null_connector.go`.
-- Registration: `robot/connectors.go` (func `RegisterConnector`) called from connector init (for example `connectors/slack/static.go` calls `robot.RegisterConnector("slack", Initialize, robot.ConnectorCapabilities{HiddenCommands: true})`).
-- Capabilities: `robot/connectors.go` (type `ConnectorCapabilities`) holds engine-owned connector capability flags such as `HiddenCommands`.
-- Optional connector-owned hidden-help rendering hooks: `robot/connectors.go` (interface `HiddenCommandFormatter`), consumed in `bot/connector_capabilities.go`.
+- Registration: `robot/connectors.go` (func `RegisterConnector`) called from connector init (for example `connectors/slack/static.go` calls `robot.RegisterConnector("slack", Initialize)`).
+- Initialization: connector `Initialize(...)` returns `robot.InitializedConnector{Connector, Capabilities}`, letting connectors compute runtime capabilities after reading protocol config.
+- Connector init also receives shared robot identity through `robot.Handler.GetBotInfo()`, so local connectors can derive bot-addressed behavior from `BotInfo` without duplicating bot-name fields in `ProtocolConfig`.
+- Capabilities: `robot/connectors.go` (types `InitializedConnector`, `ConnectorCapabilities`) holds engine-owned connector capability flags such as `HiddenCommands`.
+- Optional connector-owned hidden-help rendering hook: `robot/connectors.go` (interface `HiddenCommandFormatter`), consumed in `bot/connector_capabilities.go` so engine help/fallback and hidden-command denials can render a concrete protocol-correct hidden command such as `/clu help ping`.
 - Selection: `bot/conf.go` (type `ConfigLoader` fields `PrimaryProtocol`/`DefaultProtocol`) reads `conf/robot.yaml`; connector-specific `ProtocolConfig` is loaded from `conf/protocols/<protocol>.yaml`.
-- Examples: `connectors/slack/connect.go` (func `Initialize`), `connectors/test/init.go` (func `Initialize`), `bot/term_connector.go` (calls `robot.RegisterConnector("terminal", Initialize, robot.ConnectorCapabilities{HiddenCommands: true})`).
+- Examples: `connectors/slack/connect.go` (func `Initialize`), `connectors/test/init.go` (func `Initialize`), `bot/term_connector.go` (registers `"terminal"` and returns hidden-command capability from `Initialize(...)`).
 
 ## Brains (SimpleBrain providers)
 
