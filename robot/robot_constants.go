@@ -57,7 +57,7 @@ const (
 	// Success indicates successful authorization or elevation; using '7' (three bits set)
 	// reduces the likelihood of an authorization plugin mistakenly exiting with a success
 	// value
-	Success = 7
+	Success TaskRetVal = 7
 )
 
 // RetVal is a integer type for returning error conditions from bot methods, or 0 for Ok
@@ -156,7 +156,7 @@ const (
 	OAuth2ConfigError
 	// Failed is a generic failure code for use when we don't want to return Ok;
 	// should be accompanied by a log.
-	Failed = 63
+	Failed RetVal = 63
 )
 
 // MessageFormat indicates how the connector should display the content of
