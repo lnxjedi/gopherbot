@@ -121,10 +121,10 @@ func githubClientCredentials(r robot.Robot) githubCredentialResult {
 	result := githubCredentialResult{
 		ClientID:     strings.TrimSpace(r.GetParameter("CLIENT_ID")),
 		ClientSecret: strings.TrimSpace(r.GetParameter("CLIENT_SECRET")),
-		Ret:          robot.RetVal(robot.Ok),
+		Ret:          robot.Ok,
 	}
 	if result.ClientID == "" || result.ClientSecret == "" {
-		result.Ret = robot.RetVal(robot.OAuth2ConfigError)
+		result.Ret = robot.OAuth2ConfigError
 	}
 	return result
 }
@@ -230,7 +230,7 @@ func oauth2BearerHeader(token string) string {
 
 func requestOAuth2DeviceAuthorization(clientID string, scopes []string) githubDeviceAuthorizationResult {
 	if strings.TrimSpace(clientID) == "" {
-		return githubDeviceAuthorizationResult{Ret: robot.RetVal(robot.OAuth2ConfigError)}
+		return githubDeviceAuthorizationResult{Ret: robot.OAuth2ConfigError}
 	}
 	if len(scopes) == 0 {
 		scopes = append([]string(nil), githubDefaultScopes...)
@@ -244,27 +244,27 @@ func requestOAuth2DeviceAuthorization(clientID string, scopes []string) githubDe
 		"Accept": "application/json",
 	}, values)
 	if err != nil {
-		return githubDeviceAuthorizationResult{Ret: robot.RetVal(robot.Failed)}
+		return githubDeviceAuthorizationResult{Ret: robot.Failed}
 	}
 	var resp oauth2DeviceAuthorizationResponse
 	if err := oauth2DecodeJSON(payload, &resp); err != nil {
-		return githubDeviceAuthorizationResult{Ret: robot.RetVal(robot.Failed)}
+		return githubDeviceAuthorizationResult{Ret: robot.Failed}
 	}
 	if resp.Error != "" || resp.DeviceCode == "" {
-		return githubDeviceAuthorizationResult{Ret: robot.RetVal(robot.Failed)}
+		return githubDeviceAuthorizationResult{Ret: robot.Failed}
 	}
 	if resp.Interval <= 0 {
 		resp.Interval = 5
 	}
-	return githubDeviceAuthorizationResult{Response: &resp, Ret: robot.RetVal(robot.Ok)}
+	return githubDeviceAuthorizationResult{Response: &resp, Ret: robot.Ok}
 }
 
 func exchangeOAuth2DeviceCode(clientID, clientSecret, deviceCode string) githubTokenExchangeResult {
 	if strings.TrimSpace(clientID) == "" || strings.TrimSpace(clientSecret) == "" {
-		return githubTokenExchangeResult{Ret: robot.RetVal(robot.OAuth2ConfigError)}
+		return githubTokenExchangeResult{Ret: robot.OAuth2ConfigError}
 	}
 	if strings.TrimSpace(deviceCode) == "" {
-		return githubTokenExchangeResult{Ret: robot.RetVal(robot.OAuth2ConfigError)}
+		return githubTokenExchangeResult{Ret: robot.OAuth2ConfigError}
 	}
 	values := url.Values{}
 	values.Set("grant_type", "urn:ietf:params:oauth:grant-type:device_code")
@@ -275,13 +275,13 @@ func exchangeOAuth2DeviceCode(clientID, clientSecret, deviceCode string) githubT
 		"Accept": "application/json",
 	}, values)
 	if err != nil {
-		return githubTokenExchangeResult{Ret: robot.RetVal(robot.Failed)}
+		return githubTokenExchangeResult{Ret: robot.Failed}
 	}
 	var resp oauth2TokenHTTPResponse
 	if err := oauth2DecodeJSON(payload, &resp); err != nil {
-		return githubTokenExchangeResult{Ret: robot.RetVal(robot.Failed)}
+		return githubTokenExchangeResult{Ret: robot.Failed}
 	}
-	return githubTokenExchangeResult{Response: &resp, Ret: robot.RetVal(robot.Ok)}
+	return githubTokenExchangeResult{Response: &resp, Ret: robot.Ok}
 }
 
 func githubFetchUserInfo(token string) (*githubUserInfo, error) {

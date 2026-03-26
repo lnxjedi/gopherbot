@@ -139,6 +139,19 @@ func TestRunPluginHandlerYaegiRobotHelpMetadataMethodCompiles(t *testing.T) {
 	}
 }
 
+func TestRunPluginHandlerYaegiOAuth2LinkRequestAndRetValsWork(t *testing.T) {
+	pluginPath := writeTempPlugin(t, yaegiPluginUsingOAuth2LinkRequestAndRetVals())
+	logger := &testLogger{}
+
+	ret, err := RunPluginHandler(pluginPath, "oauth2-linkrequest-repro", nil, nil, logger, false, "probe")
+	if err != nil {
+		t.Fatalf("RunPluginHandler oauth2 link request error = %v", err)
+	}
+	if ret != robot.Normal {
+		t.Fatalf("RunPluginHandler oauth2 link request ret = %v, want %v", ret, robot.Normal)
+	}
+}
+
 func writeTempPlugin(t *testing.T, src string) string {
 	t.Helper()
 	ensureYaegiInitialized(t)
@@ -486,6 +499,45 @@ func yaegiPluginUsingHelpMetadata() string {
 		"func PluginHandler(r robot.Robot, command string, args ...string) robot.TaskRetVal {",
 		"    _ = func(rb robot.Robot) string {",
 		"        return rb.GetHelpMetadata(\"launch-server\")",
+		"    }",
+		"    return robot.Normal",
+		"}",
+	}, "\n")
+}
+
+func yaegiPluginUsingOAuth2LinkRequestAndRetVals() string {
+	return strings.Join([]string{
+		"package main",
+		"",
+		"import \"github.com/lnxjedi/gopherbot/robot\"",
+		"",
+		"type oauthRetProbe struct {",
+		"    Ret robot.RetVal",
+		"}",
+		"",
+		"func PluginHandler(r robot.Robot, command string, args ...string) robot.TaskRetVal {",
+		"    _ = &robot.OAuth2LinkRequest{",
+		"        Provider: \"github\",",
+		"        User: \"alice\",",
+		"        AccessToken: \"token\",",
+		"        RefreshToken: \"refresh\",",
+		"        TokenType: \"Bearer\",",
+		"    }",
+		"    values := []robot.RetVal{",
+		"        robot.Ok,",
+		"        robot.OAuth2ProviderNotFound,",
+		"        robot.OAuth2UserNotLinked,",
+		"        robot.OAuth2ReauthRequired,",
+		"        robot.OAuth2RefreshFailed,",
+		"        robot.OAuth2InvalidLinkRequest,",
+		"        robot.OAuth2ConfigError,",
+		"    }",
+		"    if len(values) != 7 {",
+		"        return robot.Fail",
+		"    }",
+		"    probe := oauthRetProbe{Ret: robot.OAuth2ConfigError}",
+		"    if probe.Ret != robot.OAuth2ConfigError {",
+		"        return robot.Fail",
 		"    }",
 		"    return robot.Normal",
 		"}",
