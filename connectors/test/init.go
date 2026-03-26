@@ -2,11 +2,11 @@ package test
 
 import (
 	"log"
+	"strings"
 	"sync"
 	"testing"
 
 	"github.com/lnxjedi/gopherbot/robot"
-	"github.com/lnxjedi/gopherbot/v2/bot"
 )
 
 // Global persistent map of user name to user index
@@ -37,23 +37,30 @@ type testUser struct {
 }
 
 type config struct {
-	BotName     string // the short name used for addressing the robot
-	BotFullName string // the full name of the bot
-	Users       []testUser
-	Channels    []string
+	Users    []testUser
+	Channels []string
 }
 
 func init() {
-	bot.RegisterConnector("test", Initialize)
+	robot.RegisterConnector("test", Initialize)
 }
 
 // Initialize sets up the connector and returns a connector object
-func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
+func Initialize(handler robot.Handler, l *log.Logger) robot.InitializedConnector {
 	var c config
 
 	err := handler.GetProtocolConfig(&c)
 	if err != nil {
 		handler.Log(robot.Fatal, "Unable to retrieve protocol configuration: %v", err)
+	}
+	botInfo := handler.GetBotInfo()
+	botName := strings.TrimSpace(botInfo.UserName)
+	if botName == "" {
+		botName = "gopherbot"
+	}
+	botFullName := strings.TrimSpace(botInfo.FullName)
+	if botFullName == "" {
+		botFullName = botName
 	}
 
 	rebuildUserIndexes(c.Users)
@@ -63,8 +70,8 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 	ExportTest.Unlock()
 
 	tc := &TestConnector{
-		botName:     c.BotName,
-		botFullName: c.BotFullName,
+		botName:     botName,
+		botFullName: botFullName,
 		botID:       "deadbeef", // yes - hex in a string
 		users:       c.Users,
 		channels:    c.Channels,
@@ -77,5 +84,8 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 	tc.SetBotID(tc.botID)
 	tc.Log(robot.Info, "Set bot ID to", tc.botID)
 
-	return robot.Connector(tc)
+	return robot.InitializedConnector{
+		Connector:    robot.Connector(tc),
+		Capabilities: robot.ConnectorCapabilities{HiddenCommands: true},
+	}
 }

@@ -17,6 +17,18 @@ Commands:
 	}
 }
 
+func TestValidateYAMLPluginAcceptsSimpleMatcherInCommands(t *testing.T) {
+	yml := []byte(`
+---
+Commands:
+- Command: ping
+  SimpleMatcher: ping
+`)
+	if err := validate_yaml("conf/plugins/example.yaml", yml); err != nil {
+		t.Fatalf("validate_yaml() rejected SimpleMatcher: %v", err)
+	}
+}
+
 func TestValidateYAMLPluginRejectsLegacyCommandMatchersKey(t *testing.T) {
 	yml := []byte(`
 ---

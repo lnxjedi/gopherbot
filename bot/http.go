@@ -30,6 +30,11 @@ type parameter struct {
 	Parameter string
 }
 
+type helpmetadataquery struct {
+	Query  string
+	Base64 bool
+}
+
 type elevate struct {
 	Immediate bool
 }
@@ -474,6 +479,17 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 		s := r.GetParameter(p.Parameter)
+		sendReturn(r, rw, &stringresponse{s})
+		return
+	case "GetHelpMetadata":
+		var q helpmetadataquery
+		if !getArgs(rw, &f.FuncArgs, &q) {
+			return
+		}
+		if q.Base64 {
+			q.Query = decode(q.Query)
+		}
+		s := r.GetHelpMetadata(q.Query)
 		sendReturn(r, rw, &stringresponse{s})
 		return
 	case "GetTaskConfig":

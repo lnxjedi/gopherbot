@@ -34,9 +34,11 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/lnxjedi/gopherbot/robot"
 	. "github.com/lnxjedi/gopherbot/v2/bot"
 	testc "github.com/lnxjedi/gopherbot/v2/connectors/test"
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/groups"
@@ -96,8 +98,31 @@ const bottest = "bottest"
 const deadzone = "deadzone"
 
 func setup(cfgdir, logfile string, t *testing.T) (<-chan bool, *testc.TestConnector) {
+	done, conn, _ := setupWithOptions(cfgdir, logfile, testSetupOptions{}, t)
+	return done, conn
+}
+
+type testSetupOptions struct {
+	ConnectorCapabilities map[string]robot.ConnectorCapabilities
+}
+
+func setupWithOptions(cfgdir, logfile string, opts testSetupOptions, t *testing.T) (<-chan bool, *testc.TestConnector, func()) {
 	os.Setenv("GOPHER_ENCRYPTION_KEY", "gopherbot-integration-tests-brain-key")
 	testVer := VersionInfo{"test", "(unknown)"}
+
+	restore, err := ApplyConnectorCapabilitiesForTesting(opts.ConnectorCapabilities)
+	if err != nil {
+		t.Fatalf("ApplyConnectorCapabilitiesForTesting(): %v", err)
+	}
+	var once sync.Once
+	cleanup := func() {
+		once.Do(func() {
+			if restore != nil {
+				restore()
+			}
+		})
+	}
+	t.Cleanup(cleanup)
 
 	testc.ExportTest.Lock()
 	testc.ExportTest.Test = t
@@ -106,10 +131,19 @@ func setup(cfgdir, logfile string, t *testing.T) (<-chan bool, *testc.TestConnec
 	done, tconn := StartTest(testVer, cfgdir, logfile, t)
 	testConnector := tconn.(*testc.TestConnector)
 
-	return done, testConnector
+	return done, testConnector, cleanup
 }
 
 func teardown(t *testing.T, done <-chan bool, conn *testc.TestConnector) {
+	teardownWithOptions(t, done, conn, nil)
+}
+
+func teardownWithOptions(t *testing.T, done <-chan bool, conn *testc.TestConnector, cleanup func()) {
+	defer func() {
+		if cleanup != nil {
+			cleanup()
+		}
+	}()
 	WaitForBackgroundInitsForTesting()
 	GetEvents()
 

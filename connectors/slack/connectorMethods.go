@@ -347,9 +347,26 @@ func (s *slackConnector) FormatHelp(input string) string {
 }
 
 func (s *slackConnector) DefaultHelp() []string {
-	return []string{
-		"/(bot) help <keyword> - get help for the provided <keyword>",
-		"/(bot) commands - browse command groups available in this channel",
-		"/(bot) help-all - help for all commands available in this channel, including global commands",
+	return nil
+}
+
+func formatHiddenCommand(botName, input string) string {
+	name := strings.TrimSpace(strings.TrimPrefix(botName, "/"))
+	if name == "" {
+		return ""
 	}
+	fields := strings.Fields(name)
+	if len(fields) > 0 {
+		name = fields[0]
+	}
+	command := strings.TrimSpace(input)
+	name = strings.ToLower(name)
+	if command == "" {
+		return "/" + name
+	}
+	return "/" + name + " " + command
+}
+
+func (s *slackConnector) FormatHiddenCommand(input string) string {
+	return formatHiddenCommand(s.slashCommand, input)
 }

@@ -44,6 +44,10 @@ func (h connectorHandler) SetBotMention(m string) {
 	}
 }
 
+func (h connectorHandler) GetBotInfo() robot.BotInfo {
+	return h.handler.GetBotInfo()
+}
+
 /* Handle incoming messages and other callbacks from the connector. */
 
 // GetLogLevel returns the bot's current loglevel, mainly for the
@@ -368,6 +372,21 @@ func (h handler) GetBrainConfig(v interface{}) error {
 func (h handler) GetHistoryConfig(v interface{}) error {
 	err := json.Unmarshal(historyConfig, v)
 	return err
+}
+
+func (h handler) GetBotInfo() robot.BotInfo {
+	currentCfg.RLock()
+	botinfo := currentCfg.botinfo
+	alias := currentCfg.alias
+	currentCfg.RUnlock()
+	return robot.BotInfo{
+		UserName:  botinfo.UserName,
+		Email:     botinfo.Email,
+		FullName:  botinfo.FullName,
+		FirstName: botinfo.FirstName,
+		LastName:  botinfo.LastName,
+		Alias:     aliasString(alias),
+	}
 }
 
 // Log logs a message to the robot's log file (or stderr)

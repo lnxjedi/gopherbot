@@ -29,8 +29,6 @@ var (
 
 	hostName  string
 	startMode string
-
-	deployEnvironment string
 )
 
 const defaultLogFile = "robot.log"
@@ -61,18 +59,12 @@ func Start(v VersionInfo) {
 		panic(err)
 	}
 
-	var ok bool
-
-	var overrideDevEnv string
 	// Save args in case we need to spawn child
 	args := os.Args[1:]
 	// Process command-line flags
 	lusage := "path to robot's log file (or 'stdout' or 'stderr')"
 	flag.StringVar(&logFile, "log", "", lusage)
 	flag.StringVar(&logFile, "l", "", "")
-	envusage := "alternate dev environment override (default GOPHER_ENVIRONMENT / production)"
-	flag.StringVar(&overrideDevEnv, "devenv", "", envusage)
-	flag.StringVar(&overrideDevEnv, "d", "", "")
 	plusage := "omit timestamps from the log"
 	flag.BoolVar(&plainlog, "plainlog", false, plusage)
 	flag.BoolVar(&plainlog, "p", false, "")
@@ -197,12 +189,6 @@ func Start(v VersionInfo) {
 		}
 	}
 	penvErr := godotenv.Overload(envFile)
-	if deployEnvironment, ok = lookupEnv("GOPHER_ENVIRONMENT"); !ok {
-		deployEnvironment = "production"
-	}
-	if len(overrideDevEnv) > 0 {
-		deployEnvironment = overrideDevEnv
-	}
 	// Re-evaluate startup mode after private environment loading so
 	// bootstrap decisions include values from process env or .env.
 	startMode = detectStartupMode()

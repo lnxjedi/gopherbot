@@ -1,8 +1,17 @@
 ---
 AllChannels: true
 Commands:
+- Command: help-all
+  # Regex: '(?i:help-all)'
+  SimpleMatcher: "help all"
+  Keywords: [ "help", "all" ]
+  Usage: "help-all"
+  Summary: "help for all commands available in this channel, including global commands"
+  Examples:
+  - "(alias) help-all"
 - Command: help
-  Regex: '(?i:help(?:\s+(.+))?)'
+  # Regex: '(?i:help(?:\s+(.+))?)'
+  SimpleMatcher: "help [<query:rest>]"
   Keywords: [ "*", "help" ]
   Usage: "help <keyword>"
   Summary: "find help for commands matching <keyword>"
@@ -10,21 +19,16 @@ Commands:
   - "(alias) help ping"
   - "(alias) help"
 - Command: commands
-  Regex: '(?i:commands?)'
+  # Regex: '(?i:commands?)'
+  SimpleMatcher: "(command|commands)"
   Keywords: [ "help", "commands", "list", "browse" ]
   Usage: "commands"
-  Summary: "browse command groups available in this channel"
+  Summary: "browse plugins and command groups available in this channel"
   Examples:
   - "(alias) commands"
-- Command: help-all
-  Regex: '(?i:help-all)'
-  Keywords: [ "help", "all" ]
-  Usage: "help-all"
-  Summary: "help for all commands available in this channel, including global commands"
-  Examples:
-  - "(alias) help-all"
 - Command: info
-  Regex: '(?i:info|tell me about yourself|about|information)'
+  # Regex: '(?i:info|tell me about yourself|about|information)'
+  SimpleMatcher: "(info|tell me about yourself|about|information)"
   Keywords: [ "info", "information", "robot", "admin", "administrators" ]
   Usage: "info | tell me about yourself"
   Summary: "provide useful information for admins, including git branch status"

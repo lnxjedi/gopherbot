@@ -11,18 +11,30 @@ Focus: integration test harness under `test/` and how tests are executed.
 ## Harness entrypoints
 
 - `setup()` in `test/common_test.go` starts the bot via `StartTest()` and relies on the test configs to choose the `test` protocol.
+- `setupWithOptions()` in `test/common_test.go` is the per-suite harness entrypoint when a test block needs connector capability overrides (for example simulating a protocol without hidden-command support while still using the `test` connector).
 - `StartTest()` is defined in `bot/start_t.go` (only built with `test` tag). It locates the repo root by walking up until `conf/robot.yaml` is found, `chdir`s there so startup mode resolves to `test-dev`, initializes connector runtime via `initializeConnectorRuntime`, runs `run()`, then waits for the current async plugin-init batch to drain before clearing startup events and returning control to the harness (see also `bot/bot_process.go`, `bot/tasks.go`, and `bot/connector_runtime.go`).
-- The test connector is registered in `connectors/test/init.go` (`bot.RegisterConnector("test", Initialize)`), and its runtime loop lives in `connectors/test/connector.go` (`(*TestConnector).Run`).
+- The test connector is registered in `connectors/test/init.go` with `robot.RegisterConnector("test", Initialize)`, and `Initialize(...)` returns `robot.InitializedConnector{Connector, Capabilities}` so the harness can treat hidden-command support as a runtime capability rather than a registration-time constant.
+- The test connector derives bot display/full name from `BotInfo` in `conf/robot.yaml` via `Handler.GetBotInfo()`, not from protocol-local `BotName`/`BotFullName` fields.
 
 ## setup / teardown / testcases flow
 
 - `setup(cfgdir, logfile, t)` sets `GOPHER_ENCRYPTION_KEY`, wires `testc.ExportTest.Test`, and calls `StartTest()` (see `test/common_test.go`).
+- `setupWithOptions(cfgdir, logfile, opts, t)` does the same, but first applies test-only connector capability overrides through `ApplyConnectorCapabilitiesForTesting(...)` in `bot/connector_capabilities_testing.go`, then restores them during teardown/cleanup.
 - `teardown(t, done, conn)` sends a `quit` message and waits on `done`, then checks emitted events from `GetEvents()` (see `test/common_test.go` and `bot/emit_testing.go`).
+- `teardownWithOptions(t, done, conn, cleanup)` is the paired helper for suites that used `setupWithOptions(...)`.
 - `testcases(t, conn, tests)` drives each test by:
   - Waiting for any in-flight async plugin-init batch to finish, then clearing startup/background-init events with `GetEvents()` before sending the message (see `test/common_test.go`).
   - Sending the message through `conn.SendBotMessage` (type `testc.TestMessage` in `connectors/test/connector.go`).
   - Matching expected replies using regex on `TestMessage.Message` and strict equality on user/channel/threaded fields (see `test/common_test.go`).
   - Comparing observed `[]Event` from `GetEvents()` with expected events (event type `Event` in `bot/events.go`), then waiting/draining again so late init events from reload-like flows do not leak into later cases or teardown.
+
+Required triage rule:
+
+- Every integration failure must be classified before changing code or test expectations:
+  - real regression / newly introduced bug
+  - intentional behavior change with outdated test expectations
+- Do not update assertions blindly just to make `make test` pass.
+- The expected end state for a task is that applicable integration tests run cleanly after this classification work.
 
 ## Integration Failure Triage
 
@@ -75,6 +87,7 @@ Notes:
   - `events []Event` expected for the interaction (type `Event` in `bot/events.go`).
   - `pause` (milliseconds) to sleep between cases (see `test/common_test.go`).
 - Hidden messages are signaled by a leading `/` in `message` and transformed before sending (see `test/common_test.go`).
+- The harness sets the test connector's `Hidden` flag directly; the test connector does not parse slash syntax itself. That is intentional so integration suites can simulate protocols with and without hidden-command support using the same connector.
 
 ## Protocol selection for tests
 
@@ -93,6 +106,14 @@ Notes:
 - Lists plugin behavior: `test/lists_integration_test.go`.
 - External yaegi Go full coverage: `test/go_full_test.go`.
 - Gopherbot shell full coverage: `test/sh_full_test.go` plus `plugins/test/shfull.gsh`.
+
+## Focused routing/help metadata checks
+
+- `go test ./bot ./modules/yaegi-dynamic-go`
+- This focused set currently covers:
+  - catch-all mode routing and selection in `bot/help_metadata_api_test.go`
+  - engine-side help metadata filtering, ranking inputs, and deterministic fallback advice in `bot/help_metadata_api_test.go`
+  - Yaegi symbol/runtime coverage for active Robot API methods in `modules/yaegi-dynamic-go/yaegi_dynamic_test.go`
 
 ## Targeted Yaegi runtime repros
 

@@ -319,7 +319,7 @@ func (r Robot) GetBotAttribute(a string) *robot.AttrRet {
 	case "fullname", "realname":
 		attr = r.cfg.botinfo.FullName
 	case "alias":
-		attr = string(r.cfg.alias)
+		attr = aliasString(r.cfg.alias)
 	case "mail", "email":
 		attr = r.cfg.botinfo.Email
 	case "contact", "admin", "admincontact":

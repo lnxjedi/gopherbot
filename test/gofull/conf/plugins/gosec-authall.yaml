@@ -4,5 +4,6 @@ AllowDirect: true
 AuthorizeAllCommands: true
 AuthRequire: Helpdesk
 Commands:
-- Regex: (?i:go-sec-authall)
+- # Regex: (?i:go-sec-authall)
+  SimpleMatcher: go-sec-authall
   Command: secauthall

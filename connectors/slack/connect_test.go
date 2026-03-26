@@ -14,6 +14,7 @@ func (t *testHandler) GetProtocolConfig(_ interface{}) error     { return nil }
 func (t *testHandler) GetBrainConfig(_ interface{}) error        { return nil }
 func (t *testHandler) GetEventStrings() *[]string                { return nil }
 func (t *testHandler) GetHistoryConfig(_ interface{}) error      { return nil }
+func (t *testHandler) GetBotInfo() robot.BotInfo                 { return robot.BotInfo{} }
 func (t *testHandler) SetBotID(_ string)                         {}
 func (t *testHandler) SetTerminalWriter(_ io.Writer)             {}
 func (t *testHandler) SetBotMention(_ string)                    {}
@@ -62,5 +63,69 @@ func TestNormalizeConfiguredUserMapEmpty(t *testing.T) {
 	}
 	if got := normalizeConfiguredUserMap(map[string]string{}, h); got != nil {
 		t.Fatalf("expected nil map for empty input")
+	}
+}
+
+func TestResolveSlashCommandConfig(t *testing.T) {
+	trueVal := true
+	falseVal := false
+
+	tests := []struct {
+		name    string
+		cfg     config
+		wantOK  bool
+		wantCmd string
+	}{
+		{
+			name:   "missing explicit accept",
+			cfg:    config{},
+			wantOK: false,
+		},
+		{
+			name: "disabled slash commands",
+			cfg:  config{AcceptSlashCommands: &falseVal},
+		},
+		{
+			name:   "enabled requires command",
+			cfg:    config{AcceptSlashCommands: &trueVal},
+			wantOK: false,
+		},
+		{
+			name:    "enabled normalizes slash",
+			cfg:     config{AcceptSlashCommands: &trueVal, SlashCommand: " /clu "},
+			wantOK:  true,
+			wantCmd: "clu",
+		},
+	}
+
+	for _, tt := range tests {
+		enabled, command, err := resolveSlashCommandConfig(tt.cfg)
+		if tt.wantOK {
+			if err != nil {
+				t.Fatalf("%s: unexpected error: %v", tt.name, err)
+			}
+			if !enabled {
+				t.Fatalf("%s: expected enabled", tt.name)
+			}
+			if command != tt.wantCmd {
+				t.Fatalf("%s: command = %q, want %q", tt.name, command, tt.wantCmd)
+			}
+			continue
+		}
+		if tt.cfg.AcceptSlashCommands != nil && !*tt.cfg.AcceptSlashCommands {
+			if err != nil {
+				t.Fatalf("%s: unexpected error: %v", tt.name, err)
+			}
+			if enabled {
+				t.Fatalf("%s: expected disabled", tt.name)
+			}
+			if command != "" {
+				t.Fatalf("%s: command = %q, want empty", tt.name, command)
+			}
+			continue
+		}
+		if err == nil {
+			t.Fatalf("%s: expected error", tt.name)
+		}
 	}
 }

@@ -2,7 +2,42 @@ package ssh
 
 import "strings"
 
+type basicMarkdownEmphasisMode int
+
+const (
+	basicMarkdownEmphasisPlain basicMarkdownEmphasisMode = iota
+	basicMarkdownEmphasisANSI
+)
+
+type basicMarkdownStyle struct {
+	emphasisMode   basicMarkdownEmphasisMode
+	inlineCodeANSI [2]string
+	codeBlockANSI  [2]string
+}
+
+var basicMarkdownCoreEmoji = map[string]string{
+	"white_check_mark": "\u2705",
+	"warning":          "\u26a0\ufe0f",
+	"x":                "\u274c",
+	"rocket":           "\U0001f680",
+	"fire":             "\U0001f525",
+	"joy":              "\U0001f602",
+	"thinking_face":    "\U0001f914",
+	"eyes":             "\U0001f440",
+	"thumbsup":         "\U0001f44d",
+	"thumbsdown":       "\U0001f44e",
+}
+
 func renderBasicMarkdownPlain(msg string) string {
+	return renderBasicMarkdown(msg, basicMarkdownStyle{emphasisMode: basicMarkdownEmphasisPlain})
+}
+
+func renderBasicMarkdownStyled(msg string, style basicMarkdownStyle) string {
+	style.emphasisMode = basicMarkdownEmphasisANSI
+	return renderBasicMarkdown(msg, style)
+}
+
+func renderBasicMarkdown(msg string, style basicMarkdownStyle) string {
 	var out strings.Builder
 	inFence := false
 
@@ -10,18 +45,18 @@ func renderBasicMarkdownPlain(msg string) string {
 		idx := strings.Index(msg, "```")
 		if idx == -1 {
 			if inFence {
-				out.WriteString(msg)
+				out.WriteString(wrapBasicMarkdownStyledSegment(msg, style.codeBlockANSI))
 			} else {
-				out.WriteString(renderBasicMarkdownInline(msg))
+				out.WriteString(renderBasicMarkdownInline(msg, style))
 			}
 			break
 		}
 
 		chunk := msg[:idx]
 		if inFence {
-			out.WriteString(chunk)
+			out.WriteString(wrapBasicMarkdownStyledSegment(chunk, style.codeBlockANSI))
 		} else {
-			out.WriteString(renderBasicMarkdownInline(chunk))
+			out.WriteString(renderBasicMarkdownInline(chunk, style))
 		}
 
 		inFence = !inFence
@@ -45,22 +80,22 @@ func stripBasicMarkdownFenceLanguage(msg string) string {
 	return msg[lineEnd:]
 }
 
-func renderBasicMarkdownInline(msg string) string {
+func renderBasicMarkdownInline(msg string, style basicMarkdownStyle) string {
 	var out strings.Builder
 	for len(msg) > 0 {
 		start := findNextUnescapedBacktick(msg, 0)
 		if start == -1 {
-			out.WriteString(renderBasicMarkdownPlainChunk(msg))
+			out.WriteString(renderBasicMarkdownChunk(msg, style))
 			break
 		}
-		out.WriteString(renderBasicMarkdownPlainChunk(msg[:start]))
+		out.WriteString(renderBasicMarkdownChunk(msg[:start], style))
 
 		end := findNextUnescapedBacktick(msg, start+1)
 		if end == -1 {
-			out.WriteString(renderBasicMarkdownPlainChunk(msg[start:]))
+			out.WriteString(renderBasicMarkdownChunk(msg[start:], style))
 			break
 		}
-		out.WriteString(msg[start+1 : end])
+		out.WriteString(wrapBasicMarkdownStyledSegment(msg[start+1:end], style.inlineCodeANSI))
 		msg = msg[end+1:]
 	}
 	return out.String()
@@ -86,12 +121,20 @@ func isEscapedAt(msg string, idx int) bool {
 	return slashes%2 == 1
 }
 
-func renderBasicMarkdownPlainChunk(msg string) string {
+func renderBasicMarkdownChunk(msg string, style basicMarkdownStyle) string {
 	msg, escapedLiterals := protectBasicMarkdownEscapes(msg)
 	msg = replaceBasicMarkdownLinks(msg)
-	msg = removeBasicMarkdownEmphasis(msg)
+	msg = replaceBasicMarkdownEmoji(msg)
+	msg = renderBasicMarkdownEmphasis(msg, style.emphasisMode)
 	msg = restoreEscapedLiterals(msg, escapedLiterals)
 	return msg
+}
+
+func wrapBasicMarkdownStyledSegment(msg string, ansi [2]string) string {
+	if msg == "" || ansi[0] == "" || ansi[1] == "" {
+		return msg
+	}
+	return ansi[0] + msg + ansi[1]
 }
 
 func protectBasicMarkdownEscapes(msg string) (string, []string) {
@@ -179,13 +222,84 @@ func isBasicMarkdownLinkURL(url string) bool {
 	return strings.HasPrefix(url, "https://") || strings.HasPrefix(url, "http://")
 }
 
-func removeBasicMarkdownEmphasis(msg string) string {
-	msg = removeBasicMarkdownBold(msg)
-	msg = removeBasicMarkdownItalic(msg)
+func replaceBasicMarkdownEmoji(msg string) string {
+	var out strings.Builder
+
+	for i := 0; i < len(msg); {
+		if msg[i] != ':' {
+			out.WriteByte(msg[i])
+			i++
+			continue
+		}
+
+		end := findBasicMarkdownEmojiEnd(msg, i)
+		if end == -1 {
+			out.WriteByte(msg[i])
+			i++
+			continue
+		}
+
+		name := msg[i+1 : end]
+		if emoji, ok := basicMarkdownCoreEmoji[name]; ok {
+			out.WriteString(emoji)
+		} else {
+			out.WriteString(msg[i : end+1])
+		}
+		i = end + 1
+	}
+
+	return out.String()
+}
+
+func findBasicMarkdownEmojiEnd(msg string, start int) int {
+	if start < 0 || start >= len(msg) || msg[start] != ':' {
+		return -1
+	}
+	if start > 0 && isBasicMarkdownEmojiNameChar(msg[start-1]) {
+		return -1
+	}
+	nameStart := start + 1
+	if nameStart >= len(msg) || !isBasicMarkdownEmojiNameChar(msg[nameStart]) {
+		return -1
+	}
+	for i := nameStart; i < len(msg); i++ {
+		switch {
+		case msg[i] == ':':
+			if i+1 < len(msg) && isBasicMarkdownEmojiNameChar(msg[i+1]) {
+				return -1
+			}
+			return i
+		case isBasicMarkdownEmojiNameChar(msg[i]):
+			continue
+		default:
+			return -1
+		}
+	}
+	return -1
+}
+
+func isBasicMarkdownEmojiNameChar(ch byte) bool {
+	switch {
+	case ch >= 'a' && ch <= 'z':
+		return true
+	case ch >= 'A' && ch <= 'Z':
+		return true
+	case ch >= '0' && ch <= '9':
+		return true
+	case ch == '_' || ch == '+' || ch == '-':
+		return true
+	default:
+		return false
+	}
+}
+
+func renderBasicMarkdownEmphasis(msg string, mode basicMarkdownEmphasisMode) string {
+	msg = renderBasicMarkdownBold(msg, mode)
+	msg = renderBasicMarkdownItalic(msg, mode)
 	return msg
 }
 
-func removeBasicMarkdownBold(msg string) string {
+func renderBasicMarkdownBold(msg string, mode basicMarkdownEmphasisMode) string {
 	var out strings.Builder
 
 	for len(msg) > 0 {
@@ -205,14 +319,14 @@ func removeBasicMarkdownBold(msg string) string {
 			break
 		}
 
-		out.WriteString(msg[:end])
+		out.WriteString(renderBasicMarkdownEmphasizedText(msg[:end], mode, "\x1b[1m", "\x1b[22m"))
 		msg = msg[end+2:]
 	}
 
 	return out.String()
 }
 
-func removeBasicMarkdownItalic(msg string) string {
+func renderBasicMarkdownItalic(msg string, mode basicMarkdownEmphasisMode) string {
 	var out strings.Builder
 
 	for i := 0; i < len(msg); {
@@ -229,11 +343,18 @@ func removeBasicMarkdownItalic(msg string) string {
 			continue
 		}
 
-		out.WriteString(msg[i+1 : end])
+		out.WriteString(renderBasicMarkdownEmphasizedText(msg[i+1:end], mode, "\x1b[3m", "\x1b[23m"))
 		i = end + 1
 	}
 
 	return out.String()
+}
+
+func renderBasicMarkdownEmphasizedText(msg string, mode basicMarkdownEmphasisMode, startANSI, endANSI string) string {
+	if mode != basicMarkdownEmphasisANSI || msg == "" {
+		return msg
+	}
+	return startANSI + msg + endANSI
 }
 
 func findNextSingleAsterisk(msg string, start int) int {

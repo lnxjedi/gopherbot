@@ -1,7 +1,8 @@
 ---
 Commands:
 - Command: "identify"
-  Regex: '(?i:slack id ([@\w]+))'
+  # Regex: '(?i:slack id ([@\w]+))'
+  SimpleMatcher: "slack id <user:token>"
   Keywords: [ "identify", "id", "slack", "whois" ]
   Usage: "slack id <@user>"
   Summary: "get the slack internal ID for @user"

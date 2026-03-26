@@ -117,5 +117,5 @@ func mhprovider(r robot.Handler) robot.HistoryProvider {
 }
 
 func init() {
-	RegisterHistoryProvider("mem", mhprovider)
+	robot.RegisterHistoryProvider("mem", mhprovider)
 }

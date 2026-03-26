@@ -88,5 +88,5 @@ func fbprovider(r robot.Handler) robot.SimpleBrain {
 }
 
 func init() {
-	RegisterSimpleBrain("file", fbprovider)
+	robot.RegisterSimpleBrain("file", fbprovider)
 }

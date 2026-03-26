@@ -10,13 +10,13 @@ import (
 
 type nullConnector struct{}
 
-func nullStart(robot.Handler, *log.Logger) robot.Connector {
+func nullStart(robot.Handler, *log.Logger) robot.InitializedConnector {
 	nc := nullConnector{}
-	return nc
+	return robot.InitializedConnector{Connector: nc}
 }
 
 func init() {
-	RegisterConnector("nullconn", nullStart)
+	robot.RegisterConnector("nullconn", nullStart)
 }
 
 func (nc nullConnector) GetProtocolUserAttribute(u, a string) (value string, ret robot.RetVal) {

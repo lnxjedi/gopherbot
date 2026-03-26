@@ -294,6 +294,7 @@ type _github_com_lnxjedi_gopherbot_robot_Robot struct {
 	WFinalTask                       func(a0 string, a1 ...string) robot.RetVal
 	WFixed                           func() robot.Robot
 	WGetBotAttribute                 func(a string) *robot.AttrRet
+	WGetHelpMetadata                 func(query string) string
 	WGetMessage                      func() *robot.Message
 	WGetParameter                    func(name string) string
 	WGetSenderAttribute              func(a string) *robot.AttrRet
@@ -393,6 +394,9 @@ func (W _github_com_lnxjedi_gopherbot_robot_Robot) Fixed() robot.Robot {
 }
 func (W _github_com_lnxjedi_gopherbot_robot_Robot) GetBotAttribute(a string) *robot.AttrRet {
 	return W.WGetBotAttribute(a)
+}
+func (W _github_com_lnxjedi_gopherbot_robot_Robot) GetHelpMetadata(query string) string {
+	return W.WGetHelpMetadata(query)
 }
 func (W _github_com_lnxjedi_gopherbot_robot_Robot) GetMessage() *robot.Message {
 	return W.WGetMessage()

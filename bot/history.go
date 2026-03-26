@@ -10,7 +10,6 @@ package bot
 */
 
 import (
-	"log"
 	"sync"
 	"time"
 
@@ -161,19 +160,4 @@ func getHistoryProvider() robot.HistoryProvider {
 		interfaces.history = memHistories
 	}
 	return interfaces.history
-}
-
-// Map of registered history providers
-var historyProviders = make(map[string]func(robot.Handler) robot.HistoryProvider)
-
-// RegisterHistoryProvider allows history implementations to register a function
-// with a named provider type that returns a HistoryProvider interface.
-func RegisterHistoryProvider(name string, provider func(robot.Handler) robot.HistoryProvider) {
-	if stopRegistrations {
-		return
-	}
-	if historyProviders[name] != nil {
-		log.Fatal("Attempted registration of duplicate history provider name:", name)
-	}
-	historyProviders[name] = provider
 }
