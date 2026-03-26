@@ -142,6 +142,18 @@ const (
 	TaskDisabled
 	// PrivilegeViolation - error adding a privileged job/command to an unprivileged pipeline
 	PrivilegeViolation
+	// OAuth2ProviderNotFound - provider key not configured in robot.yaml
+	OAuth2ProviderNotFound
+	// OAuth2UserNotLinked - the requested user has not linked the provider
+	OAuth2UserNotLinked
+	// OAuth2ReauthRequired - token refresh cannot proceed and user must link again
+	OAuth2ReauthRequired
+	// OAuth2RefreshFailed - token refresh failed for a recoverable/provider error
+	OAuth2RefreshFailed
+	// OAuth2InvalidLinkRequest - LinkOAuth2User was called with invalid data
+	OAuth2InvalidLinkRequest
+	// OAuth2ConfigError - provider config is incomplete or invalid
+	OAuth2ConfigError
 	// Failed is a generic failure code for use when we don't want to return Ok;
 	// should be accompanied by a log.
 	Failed = 63

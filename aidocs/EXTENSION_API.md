@@ -54,6 +54,17 @@ Prompt timeout semantics:
 - `Recall(key string, shared bool) string`
 - `DeleteMemory(key string, shared bool)`
 
+### OAuth2 token management
+- `GetOAuth2Token(provider, user string) (string, RetVal)`
+- `LinkOAuth2User(link *OAuth2LinkRequest) RetVal`
+- `UnlinkOAuth2User(provider, user string) RetVal`
+
+OAuth2 notes:
+- `GetOAuth2Token` returns the raw bearer token string, not a full `Authorization` header.
+- Token refresh/storage is engine-managed and uses provider config from `OAuth2Providers` in `robot.yaml`.
+- `OAuth2LinkRequest` is defined in `robot/oauth2.go`.
+- Return codes include `OAuth2ProviderNotFound`, `OAuth2UserNotLinked`, `OAuth2ReauthRequired`, `OAuth2RefreshFailed`, `OAuth2InvalidLinkRequest`, and `OAuth2ConfigError`.
+
 ### Pipeline control
 - `Exclusive(tag string, queueTask bool) bool`
 - `SpawnJob(name string, args ...string) RetVal`
@@ -92,6 +103,7 @@ Supported `FuncName` values in `bot/http.go`:
 - `AddCommand`, `FinalCommand`, `FailCommand`
 - `SetParameter`, `SetWorkingDirectory`
 - `Exclusive`, `Elevate`
+- `GetOAuth2Token`, `LinkOAuth2User`, `UnlinkOAuth2User`
 - `CheckoutDatum`, `CheckinDatum`, `UpdateDatum`, `DeleteDatum`
 - `Remember`, `RememberThread`, `Recall`, `DeleteMemory`
 - `GetParameter`, `GetTaskConfig`
@@ -113,6 +125,9 @@ Lua and JavaScript run in-process but use the same logical API surface via their
 
 Both wrappers use the `GBOT` global injected by the interpreter modules (`lib/gopherbot_v1.lua`, `lib/gopherbot_v1.js`). They mirror most of the `robot.Robot` interface and are the canonical method list for Lua/JS extensions.
 
+OAuth2 parity note:
+- Lua and JavaScript both expose `GetOAuth2Token`, `LinkOAuth2User`, and `UnlinkOAuth2User`.
+
 Gopherbot shell uses `modules/gsh/assets/gopherbot_v1.gsh` as a compatibility shim, but the primary interface is builtin shell commands rather than a loaded language object:
 
 - Robot methods are exposed as shell builtins (`say`, `Reply`, `PromptForReply`, `CheckAdmin`, `AddTask`, `GetTaskConfig`, etc.).
@@ -127,6 +142,7 @@ External interpreters call the HTTP API and wrap it in language-appropriate help
 - Bash: `lib/gopherbot_v1.sh` exports functions like `Say`, `Reply`, `Remember`, `PromptForReply`, `AddTask`, and more; it uses curl to post JSON to `GOPHER_HTTP_POST`.
 - Python 3: `lib/gopherbot_v2.py` defines `class Robot` with the same core methods, plus `Subscribe`, `Unsubscribe`, and `SetWorkingDirectory`.
 - Ruby: `lib/gopherbot_v1.rb` defines `class Robot` (via `BaseBot`) with the same core methods, plus `Subscribe`, `Unsubscribe`, and `SetWorkingDirectory`.
+- Bash, Python, Ruby, Julia, and compatibility JS/Lua libraries also expose the OAuth2 methods above.
 
 ## Parity notes and known gaps
 

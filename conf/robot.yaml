@@ -169,6 +169,30 @@ NameSpaces:
 
 ParameterSets:
 
+## Optional registry of OAuth2 providers that engine-managed plugins and
+## custom extensions can use via GetOAuth2Token / LinkOAuth2User.
+# OAuth2Providers:
+#   github:
+#     DisplayName: GitHub
+#     ClientID: "Iv1..."
+#     ClientSecret: {{ decrypt "<encrypted github client secret>" }}
+#     DefaultScopes: [ "read:user", "repo", "workflow" ]
+#     ## GitHub device flow commonly works with client_id only, but other
+#     ## providers may require client_secret_post or client_secret_basic.
+#     TokenEndpointAuthMethod: client_id_only
+#     DeviceAuthorization:
+#       URL: https://github.com/login/device/code
+#       Headers:
+#         Accept: application/json
+#     Token:
+#       URL: https://github.com/login/oauth/access_token
+#       Headers:
+#         Accept: application/json
+#     UserInfo:
+#       URL: https://api.github.com/user
+#       Headers:
+#         Accept: application/vnd.github+json
+
 {{- if ne $mode "demo" }}
 ScheduledJobs:
 - Name: go-bootstrap
@@ -241,6 +265,8 @@ GoPlugins:
   "builtin-help":
     Description: A plugin providing help for commands
     NameSpace: manage
+  "github-link":
+    Description: Link and verify a user's GitHub account with device authorization
 
 ## Only for compiled-in Go jobs, all current Go jobs are external and dynamic, see
 ## below.

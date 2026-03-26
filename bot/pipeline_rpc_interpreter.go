@@ -530,6 +530,41 @@ func handlePipelineRPCRobotCall(paramsRaw json.RawMessage, base robot.Robot) (ma
 			return nil, err
 		}
 		return map[string]interface{}{"string": r.GetParameter(name)}, nil
+	case "GetOAuth2Token":
+		provider, err := pipelineRPCArgString(args, 0)
+		if err != nil {
+			return nil, err
+		}
+		user, err := pipelineRPCArgString(args, 1)
+		if err != nil {
+			return nil, err
+		}
+		token, ret := r.GetOAuth2Token(provider, user)
+		return map[string]interface{}{"token": token, "ret_val": int(ret)}, nil
+	case "LinkOAuth2User":
+		raw, err := pipelineRPCArgAny(args, 0)
+		if err != nil {
+			return nil, err
+		}
+		var req robot.OAuth2LinkRequest
+		blob, err := json.Marshal(raw)
+		if err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal(blob, &req); err != nil {
+			return nil, err
+		}
+		return map[string]interface{}{"ret_val": int(r.LinkOAuth2User(&req))}, nil
+	case "UnlinkOAuth2User":
+		provider, err := pipelineRPCArgString(args, 0)
+		if err != nil {
+			return nil, err
+		}
+		user, err := pipelineRPCArgString(args, 1)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]interface{}{"ret_val": int(r.UnlinkOAuth2User(provider, user))}, nil
 	case "Email":
 		subject, err := pipelineRPCArgString(args, 0)
 		if err != nil {
@@ -1202,6 +1237,30 @@ func (c *pipelineRPCInterpreterRobotClient) GetParameter(name string) string {
 		return ""
 	}
 	return pipelineRPCMapString(res, "string")
+}
+
+func (c *pipelineRPCInterpreterRobotClient) GetOAuth2Token(provider, user string) (string, robot.RetVal) {
+	res, err := c.call("GetOAuth2Token", provider, user)
+	if err != nil {
+		return "", robot.Failed
+	}
+	return pipelineRPCMapString(res, "token"), robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
+}
+
+func (c *pipelineRPCInterpreterRobotClient) LinkOAuth2User(link *robot.OAuth2LinkRequest) robot.RetVal {
+	res, err := c.call("LinkOAuth2User", link)
+	if err != nil {
+		return robot.Failed
+	}
+	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
+}
+
+func (c *pipelineRPCInterpreterRobotClient) UnlinkOAuth2User(provider, user string) robot.RetVal {
+	res, err := c.call("UnlinkOAuth2User", provider, user)
+	if err != nil {
+		return robot.Failed
+	}
+	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
 func (c *pipelineRPCInterpreterRobotClient) Exclusive(tag string, queueTask bool) bool {

@@ -93,6 +93,7 @@ Notes:
 - Lists plugin behavior: `test/lists_integration_test.go`.
 - External yaegi Go full coverage: `test/go_full_test.go`.
 - Gopherbot shell full coverage: `test/sh_full_test.go` plus `plugins/test/shfull.gsh`.
+- JavaScript full coverage: `test/js_full_test.go` plus `plugins/test/jsfull.js`, including the OAuth2 link/get/unlink engine API cycle.
 
 ## Targeted Yaegi runtime repros
 

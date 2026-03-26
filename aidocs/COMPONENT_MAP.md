@@ -13,6 +13,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Interpreter notes: `aidocs/INTERPRETERS.md`.
 - Extension surface map: `aidocs/EXTENSION_SURFACES.md`.
 - Test harness overview: `aidocs/TESTING_CURRENT.md`.
+- OAuth2 provider registry, brain schema, and token lifecycle: `aidocs/OAUTH2_TOKEN_MANAGEMENT.md`.
 - Incoming message pipeline flow: `aidocs/PIPELINE_LIFECYCLE.md`.
 - Scheduled job pipeline flow: `aidocs/SCHEDULER_FLOW.md`.
 - AI-maintained backlog: `aidocs/TODO.md`.
@@ -28,6 +29,8 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Runtime git branch observability: `bot/git_runtime.go` (startup capture + runtime snapshot for info/admin commands), with privileged sync task registration in `bot/pipe_tasks.go` (`git-sync-state`).
 - AI-dev endpoint/auth helpers: `bot/aidev.go` (token + `.aiport`) and `bot/aidev_http.go` (authenticated `send_message` / `get_messages` routing).
 - Internal module initialization: `bot/modules_init.go` (func `initializeModules`) — initializes ssh-agent, ssh-git-helper, and yaegi interpreter modules.
+- OAuth2 token manager + device-flow helpers: `bot/oauth2.go`, `bot/oauth2_types.go`.
+- Built-in GitHub onboarding plugin: `bot/oauth2_github_plugin.go` (registers `github-link`).
 - Built-in connectors (not under `connectors/`): `bot/term_connector.go` (registers `"terminal"`), `bot/null_connector.go` (registers `"nullconn"`).
 
 ## brains/
@@ -42,6 +45,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 ## conf/
 
 - Default configuration: `conf/README.md`, `conf/robot.yaml`, `conf/protocols/terminal.yaml`.
+- Shipped OAuth2/GitHub linker command config: `conf/plugins/github-link.yaml`.
 - Brain provider defaults: `conf/brains/*.yaml` (`BrainConfig`).
 - History provider defaults: `conf/history/*.yaml` (`HistoryConfig`).
 - Default job/plugin config examples live under `conf/jobs/` and `conf/plugins/` (e.g., `conf/jobs/pause-notifies.yaml`, `conf/plugins/builtin-help.yaml`).
@@ -107,6 +111,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 ## robot/
 
 - Go extension API: `robot/README.md`, `robot/registrations.go` (funcs `RegisterPlugin`, `RegisterJob`, `RegisterTask`).
+- OAuth2 extension API request shape: `robot/oauth2.go`.
 - Connector contracts and optional connector capability interfaces: `robot/connector_defs.go` (`Connector`, `ConnectorAPIProvider`, `Injector`, `MessageSource`).
 
 ## robot.skel/

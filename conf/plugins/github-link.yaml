@@ -1,0 +1,21 @@
+Commands:
+- Regex: '(?i:link[- ]github)'
+  Command: link
+  Usage: "link-github"
+  Summary: "Link your GitHub account to the robot with a device authorization code."
+  Examples:
+  - "(alias) link-github"
+  - "(bot) link-github"
+- Regex: '(?i:unlink[- ]github)'
+  Command: unlink
+  Usage: "unlink-github"
+  Summary: "Remove your linked GitHub account from the robot."
+  Examples:
+  - "(alias) unlink-github"
+- Regex: '(?i:github[- ]whoami)'
+  Command: whoami
+  Usage: "github-whoami"
+  Summary: "Verify the GitHub account currently linked to your robot user."
+  Examples:
+  - "(alias) github-whoami"
+AllowDirect: true

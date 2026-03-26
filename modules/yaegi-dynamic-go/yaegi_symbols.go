@@ -296,9 +296,11 @@ type _github_com_lnxjedi_gopherbot_robot_Robot struct {
 	WGetBotAttribute                 func(a string) *robot.AttrRet
 	WGetMessage                      func() *robot.Message
 	WGetParameter                    func(name string) string
+	WGetOAuth2Token                  func(provider string, user string) (token string, ret robot.RetVal)
 	WGetSenderAttribute              func(a string) *robot.AttrRet
 	WGetTaskConfig                   func(cfgptr interface{}) robot.RetVal
 	WGetUserAttribute                func(u string, a string) *robot.AttrRet
+	WLinkOAuth2User                  func(link *robot.OAuth2LinkRequest) robot.RetVal
 	WLog                             func(l robot.LogLevel, m string, v ...interface{}) bool
 	WMessageFormat                   func(f robot.MessageFormat) robot.Robot
 	WPause                           func(s float64)
@@ -331,6 +333,7 @@ type _github_com_lnxjedi_gopherbot_robot_Robot struct {
 	WSetWorkingDirectory             func(a0 string) bool
 	WSpawnJob                        func(a0 string, a1 ...string) robot.RetVal
 	WThreaded                        func() robot.Robot
+	WUnlinkOAuth2User                func(provider string, user string) robot.RetVal
 	WUpdateDatum                     func(key string, locktoken string, datum interface{}) (ret robot.RetVal)
 }
 
@@ -400,6 +403,9 @@ func (W _github_com_lnxjedi_gopherbot_robot_Robot) GetMessage() *robot.Message {
 func (W _github_com_lnxjedi_gopherbot_robot_Robot) GetParameter(name string) string {
 	return W.WGetParameter(name)
 }
+func (W _github_com_lnxjedi_gopherbot_robot_Robot) GetOAuth2Token(provider string, user string) (token string, ret robot.RetVal) {
+	return W.WGetOAuth2Token(provider, user)
+}
 func (W _github_com_lnxjedi_gopherbot_robot_Robot) GetSenderAttribute(a string) *robot.AttrRet {
 	return W.WGetSenderAttribute(a)
 }
@@ -411,6 +417,9 @@ func (W _github_com_lnxjedi_gopherbot_robot_Robot) GetUserAttribute(u string, a 
 }
 func (W _github_com_lnxjedi_gopherbot_robot_Robot) Log(l robot.LogLevel, m string, v ...interface{}) bool {
 	return W.WLog(l, m, v...)
+}
+func (W _github_com_lnxjedi_gopherbot_robot_Robot) LinkOAuth2User(link *robot.OAuth2LinkRequest) robot.RetVal {
+	return W.WLinkOAuth2User(link)
 }
 func (W _github_com_lnxjedi_gopherbot_robot_Robot) MessageFormat(f robot.MessageFormat) robot.Robot {
 	return W.WMessageFormat(f)
@@ -504,6 +513,9 @@ func (W _github_com_lnxjedi_gopherbot_robot_Robot) SpawnJob(a0 string, a1 ...str
 }
 func (W _github_com_lnxjedi_gopherbot_robot_Robot) Threaded() robot.Robot {
 	return W.WThreaded()
+}
+func (W _github_com_lnxjedi_gopherbot_robot_Robot) UnlinkOAuth2User(provider string, user string) robot.RetVal {
+	return W.WUnlinkOAuth2User(provider, user)
 }
 func (W _github_com_lnxjedi_gopherbot_robot_Robot) UpdateDatum(key string, locktoken string, datum interface{}) (ret robot.RetVal) {
 	return W.WUpdateDatum(key, locktoken, datum)

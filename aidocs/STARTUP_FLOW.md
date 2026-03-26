@@ -172,6 +172,7 @@ The default `robot.yaml` uses Go templates to derive configuration values from s
 
 - `PrimaryProtocol` in `robot.yaml` (required)
 - `DefaultProtocol` in `robot.yaml` (optional; defaults to `PrimaryProtocol`)
+- `OAuth2Providers` in `robot.yaml` (optional; engine-managed provider registry for device-flow onboarding and token refresh)
 
 If `DefaultProtocol` is set, it must be the primary protocol or one of `SecondaryProtocols`; otherwise startup logs a warning and falls back to `PrimaryProtocol`.
 
@@ -201,6 +202,15 @@ Provider-specific configuration is loaded by selected provider name:
 `BrainConfig` and `HistoryConfig` are invalid top-level keys in `robot.yaml`.
 
 If a selected provider file is missing, or missing its required top-level key, startup/reload config load fails.
+
+### OAuth2 Provider Registry
+
+OAuth2 provider definitions are loaded from the root `robot.yaml` key `OAuth2Providers`.
+
+- Providers are part of normal config processing in `bot/conf.go`.
+- Provider keys are normalized to lowercase and stored in processed config for runtime lookup.
+- Secrets can use normal template decryption, for example `ClientSecret: {{ decrypt "..." }}`.
+- The registry is configuration-only at startup; token storage and refresh state live in the brain at runtime.
 
 ### Config Merge Semantics (Installed Defaults + Custom Overrides)
 

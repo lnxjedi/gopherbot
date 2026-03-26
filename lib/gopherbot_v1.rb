@@ -73,6 +73,12 @@ class BaseBot
 	CommandNotMatched = 27
 	TaskDisabled = 28
 	PrivilegeViolation = 29
+	OAuth2ProviderNotFound = 30
+	OAuth2UserNotLinked = 31
+	OAuth2ReauthRequired = 32
+	OAuth2RefreshFailed = 33
+	OAuth2InvalidLinkRequest = 34
+	OAuth2ConfigError = 35
 	Failed = 63
 
 	# Plugin return values / exit codes
@@ -151,6 +157,22 @@ class BaseBot
 	def GetParameter(name)
 		args = { "Parameter" => name }
 		return callBotFunc(__method__, args)["StrVal"]
+	end
+
+	def GetOAuth2Token(provider, user)
+		args = { "Provider" => provider, "User" => user }
+		ret = callBotFunc(__method__, args)
+		return ret["StrVal"], ret["RetVal"]
+	end
+
+	def LinkOAuth2User(link)
+		ret = callBotFunc(__method__, link)
+		return ret["RetVal"]
+	end
+
+	def UnlinkOAuth2User(provider, user)
+		ret = callBotFunc(__method__, { "Provider" => provider, "User" => user })
+		return ret["RetVal"]
 	end
 
 	def Exclusive(tag, queue_task=false)

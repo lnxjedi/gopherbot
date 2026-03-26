@@ -62,6 +62,12 @@ M.ret = {
     CommandNotMatched = 27,
     TaskDisabled = 28,
     PrivilegeViolation = 29,
+    OAuth2ProviderNotFound = 30,
+    OAuth2UserNotLinked = 31,
+    OAuth2ReauthRequired = 32,
+    OAuth2RefreshFailed = 33,
+    OAuth2InvalidLinkRequest = 34,
+    OAuth2ConfigError = 35,
 
     -- General Failure
     Failed = 63,
@@ -475,6 +481,30 @@ end
 ---@return string
 function Robot:GetParameter(name)
     return self.gbot:GetParameter(name)
+end
+
+---Retrieve a usable OAuth2 bearer token for a provider/user pair.
+---@param provider string
+---@param user string
+---@return string token
+---@return number retVal
+function Robot:GetOAuth2Token(provider, user)
+    return self.gbot:GetOAuth2Token(provider, user)
+end
+
+---Store a linked OAuth2 token set.
+---@param link table
+---@return number retVal
+function Robot:LinkOAuth2User(link)
+    return self.gbot:LinkOAuth2User(link)
+end
+
+---Remove a linked OAuth2 provider for a user.
+---@param provider string
+---@param user string
+---@return number retVal
+function Robot:UnlinkOAuth2User(provider, user)
+    return self.gbot:UnlinkOAuth2User(provider, user)
 end
 
 ---Set a pipeline parameter.

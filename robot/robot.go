@@ -73,6 +73,13 @@ type Robot interface {
 	// for Go plugins; external scripts have all the parameters for the pipeline exposed
 	// as environment variables.
 	GetParameter(name string) string
+	// GetOAuth2Token retrieves a usable bearer token for the given provider and user.
+	// The engine handles expiry checks and refresh attempts before returning.
+	GetOAuth2Token(provider, user string) (token string, ret RetVal)
+	// LinkOAuth2User stores an OAuth2 token set for the given provider/user link.
+	LinkOAuth2User(link *OAuth2LinkRequest) RetVal
+	// UnlinkOAuth2User removes an existing OAuth2 link for the given provider/user.
+	UnlinkOAuth2User(provider, user string) RetVal
 	Email(subject string, messageBody *bytes.Buffer, html ...bool) (ret RetVal)
 	EmailUser(user, subject string, messageBody *bytes.Buffer, html ...bool) (ret RetVal)
 	EmailAddress(address, subject string, messageBody *bytes.Buffer, html ...bool) (ret RetVal)

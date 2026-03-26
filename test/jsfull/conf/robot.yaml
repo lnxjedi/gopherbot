@@ -54,3 +54,7 @@ WorkSpace: workspace
 Brain: mem
 DefaultAuthorizer: groups
 DefaultElevator: builtin-totp
+OAuth2Providers:
+  github:
+    DisplayName: GitHub
+    ClientID: "jsfull-client"

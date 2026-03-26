@@ -36,6 +36,8 @@ Commands:
   Command: identity
 - Regex: (?i:js-parameter-addtask)
   Command: parameteraddtask
+- Regex: (?i:js-oauth2-cycle)
+  Command: oauth2cycle
 - Regex: (?i:js-pipeline-ok)
   Command: pipelineok
 - Regex: (?i:js-pipeline-fail)
@@ -326,6 +328,23 @@ function handler(argv) {
           return task.Fail;
         }
         bot.Say("SETPARAM ADDTASK: queued");
+        return task.Normal;
+      }
+    case 'oauth2cycle':
+      {
+        const bot = new Robot();
+        const linkRet = bot.LinkOAuth2User({
+          Provider: "github",
+          User: bot.user,
+          AccessToken: "js-token",
+          RefreshToken: "js-refresh",
+          TokenType: "Bearer",
+        });
+        const tokenResult = bot.GetOAuth2Token("github", bot.user);
+        const unlinkRet = bot.UnlinkOAuth2User("github", bot.user);
+        bot.Say(
+          `OAUTH2 FLOW: link=${ret.string(linkRet)} token=${tokenResult.token} get=${ret.string(tokenResult.retVal)} unlink=${ret.string(unlinkRet)}`
+        );
         return task.Normal;
       }
     case 'pipeaddcmd':

@@ -51,6 +51,9 @@ ExternalJobs:
 #     Description: Example scheduled job for testing
 #     Path: jobs/your-job.sh
 #     Privileged: true
+#   "github-review-digest":
+#     Description: Example JavaScript job that DMs a user a GitHub review digest
+#     Path: jobs/samples/github-review-digest.js
 #   "go-openai-prune":
 #     Description: Prune stale go-openai-fallback conversation datums
 #     Path: jobs/go-openai-prune/go_openai_prune_job.go
@@ -111,6 +114,11 @@ ExternalPlugins:
 #       Value: replace with encrypted string
 #     - Name: OPENAI_ORGANIZATION_ID
 #       Value: optional organization ID
+#   "github-tools":
+#     Description: Example JavaScript plugin using GetOAuth2Token plus GitHub HTTP APIs
+#     Path: plugins/samples/github-tools.js
+#   "github-link":
+#     Description: Built-in GitHub account linker using OAuth2 device flow
 
 ## Note that modules for connectors, brains and history providers load automatically
 # LoadableModules:
@@ -138,6 +146,26 @@ NameSpaces:
       Value: {{ decrypt "<sshencrypted>" }}
 
 DefaultMessageFormat: BasicMarkdown
+
+# OAuth2Providers:
+#   github:
+#     DisplayName: GitHub
+#     ClientID: "Iv1..."
+#     ClientSecret: {{ decrypt "<encrypted github client secret>" }}
+#     DefaultScopes: [ "read:user", "repo", "workflow" ]
+#     TokenEndpointAuthMethod: client_id_only
+#     DeviceAuthorization:
+#       URL: https://github.com/login/device/code
+#       Headers:
+#         Accept: application/json
+#     Token:
+#       URL: https://github.com/login/oauth/access_token
+#       Headers:
+#         Accept: application/json
+#     UserInfo:
+#       URL: https://api.github.com/user
+#       Headers:
+#         Accept: application/vnd.github+json
 # Users the bot should never listen to
 #IgnoreUsers: [ "otherbot", "slackbot" ]
 

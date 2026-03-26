@@ -68,6 +68,12 @@ class Robot:
     CommandNotMatched = 27
     TaskDisabled = 28
     PrivilegeViolation = 29
+    OAuth2ProviderNotFound = 30
+    OAuth2UserNotLinked = 31
+    OAuth2ReauthRequired = 32
+    OAuth2RefreshFailed = 33
+    OAuth2InvalidLinkRequest = 34
+    OAuth2ConfigError = 35
     Failed = 63
 
     # Plugin return values / exit codes
@@ -174,6 +180,18 @@ class Robot:
     def GetParameter(self, name):
         ret = self.Call(sys._getframe().f_code.co_name, { "Parameter": name })
         return ret["StrVal"]
+
+    def GetOAuth2Token(self, provider, user):
+        ret = self.Call(sys._getframe().f_code.co_name, { "Provider": provider, "User": user })
+        return ret["StrVal"], ret["RetVal"]
+
+    def LinkOAuth2User(self, link):
+        ret = self.Call(sys._getframe().f_code.co_name, link)
+        return ret["RetVal"]
+
+    def UnlinkOAuth2User(self, provider, user):
+        ret = self.Call(sys._getframe().f_code.co_name, { "Provider": provider, "User": user })
+        return ret["RetVal"]
 
     def Exclusive(self, tag, queue_task=False):
         return self.Call(sys._getframe().f_code.co_name, { "Tag": tag, "QueueTask": queue_task })["Boolean"]

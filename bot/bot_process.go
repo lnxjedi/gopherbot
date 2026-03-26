@@ -112,20 +112,21 @@ type configuration struct {
 	workSpace            string              // Read/Write directory where the robot does work
 	defaultElevator      string              // Plugin name for performing elevation
 	defaultAuthorizer    string              // Plugin name for performing authorization
-	externalPlugins      []TaskSettings      // List of external plugins to load
-	externalJobs         []TaskSettings      // List of external jobs to load
-	externalTasks        []TaskSettings      // List of external tasks to load
-	goPlugins            []TaskSettings      // Settings for goPlugins: Name(match), Description, NameSpace, Parameters, Disabled
-	goJobs               []TaskSettings      // Settings for goJobs: Name(match), Description, NameSpace, Parameters, Disabled
-	goTasks              []TaskSettings      // Settings for goTasks: Name(match), Description, NameSpace, Parameters, Disabled
-	nsList               []TaskSettings      // loaded NameSpaces for shared parameters
-	psList               []TaskSettings      // loaded ParameterSets for shared parameter sets
-	ScheduledJobs        []ScheduledTask     // List of scheduled tasks
-	port                 string              // Configured localhost port to listen on, or 0 for first open
-	timeZone             *time.Location      // for forcing the TimeZone, Unix only
-	logLevel             robot.LogLevel      // one of warn, audit, info, debug, trace, error
-	logDest              string              // log to stdout, stderr, or <filename>
-	defaultJobChannel    string              // where job statuses will post if not otherwise specified
+	oauth2Providers      map[string]OAuth2ProviderConfig
+	externalPlugins      []TaskSettings  // List of external plugins to load
+	externalJobs         []TaskSettings  // List of external jobs to load
+	externalTasks        []TaskSettings  // List of external tasks to load
+	goPlugins            []TaskSettings  // Settings for goPlugins: Name(match), Description, NameSpace, Parameters, Disabled
+	goJobs               []TaskSettings  // Settings for goJobs: Name(match), Description, NameSpace, Parameters, Disabled
+	goTasks              []TaskSettings  // Settings for goTasks: Name(match), Description, NameSpace, Parameters, Disabled
+	nsList               []TaskSettings  // loaded NameSpaces for shared parameters
+	psList               []TaskSettings  // loaded ParameterSets for shared parameter sets
+	ScheduledJobs        []ScheduledTask // List of scheduled tasks
+	port                 string          // Configured localhost port to listen on, or 0 for first open
+	timeZone             *time.Location  // for forcing the TimeZone, Unix only
+	logLevel             robot.LogLevel  // one of warn, audit, info, debug, trace, error
+	logDest              string          // log to stdout, stderr, or <filename>
+	defaultJobChannel    string          // where job statuses will post if not otherwise specified
 }
 
 // The current configuration and task list

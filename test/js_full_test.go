@@ -123,6 +123,9 @@ func TestJSFull(t *testing.T) {
 			{null, general, "SETPARAM ADDTASK: queued", false},
 			{null, general, "PARAM-SHOW: PIPELINE_SENTINEL=nebula-42", false}},
 			[]Event{CommandTaskRan, ExternalTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";js-oauth2-cycle", false, []TestMessage{
+			{null, general, "OAUTH2 FLOW: link=Ok token=js-token get=Ok unlink=Ok", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
 	}
 	testcases(t, conn, tests)
 

@@ -36,6 +36,12 @@ GBRET_InvalidTaskType=26
 GBRET_CommandNotMatched=27
 GBRET_TaskDisabled=28
 GBRET_PrivilegeViolation=29
+GBRET_OAuth2ProviderNotFound=30
+GBRET_OAuth2UserNotLinked=31
+GBRET_OAuth2ReauthRequired=32
+GBRET_OAuth2RefreshFailed=33
+GBRET_OAuth2InvalidLinkRequest=34
+GBRET_OAuth2ConfigError=35
 GBRET_Failed=63
 
 # Plugin return values / exit codes
@@ -267,6 +273,60 @@ EOF
 	local GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
 	local RETVAL=$(echo "$GB_RET" | jq -r .StrVal)
 	echo -n "$RETVAL"
+}
+
+GetOAuth2Token() {
+	local PROVIDER="$1"
+	local USER="$2"
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Provider": "$PROVIDER",
+	"User": "$USER"
+}
+EOF
+)
+	local GB_RET
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
+	echo -n "$(echo "$GB_RET" | jq -r .StrVal)"
+	return "$(echo "$GB_RET" | jq -r .RetVal)"
+}
+
+LinkOAuth2User() {
+	local PROVIDER="$1"
+	local USER="$2"
+	local ACCESS_TOKEN="$3"
+	local REFRESH_TOKEN="$4"
+	local EXPIRES_IN="$5"
+	local TOKEN_TYPE="$6"
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Provider": "$PROVIDER",
+	"User": "$USER",
+	"AccessToken": "$ACCESS_TOKEN",
+	"RefreshToken": "$REFRESH_TOKEN",
+	"ExpiresIn": ${EXPIRES_IN:-0},
+	"TokenType": "${TOKEN_TYPE:-Bearer}"
+}
+EOF
+)
+	local GB_RET
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
+	return "$(echo "$GB_RET" | jq -r .RetVal)"
+}
+
+UnlinkOAuth2User() {
+	local PROVIDER="$1"
+	local USER="$2"
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Provider": "$PROVIDER",
+	"User": "$USER"
+}
+EOF
+)
+	local GB_RET
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
+	return "$(echo "$GB_RET" | jq -r .RetVal)"
 }
 
 SetParameter() {
