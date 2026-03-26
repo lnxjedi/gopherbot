@@ -254,7 +254,7 @@ func (s *slackConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f
 }
 
 // SendProtocolUserChannelMessage sends a message to a user in a channel
-func (s *slackConnector) SendProtocolUserChannelThreadMessage(u, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+func (s *slackConnector) SendProtocolUserChannelThreadMessage(uid, u, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	var userID, chanID string
 	var ok bool
 	if chanID, ok = s.ExtractID(ch); !ok {
@@ -264,10 +264,20 @@ func (s *slackConnector) SendProtocolUserChannelThreadMessage(u, ch, thr, msg st
 		s.Log(robot.Error, "Slack channel ID not found for: %s", ch)
 		return robot.ChannelNotFound
 	}
-	userID, ok = s.userID(u, false)
+	userID, ok = s.ExtractID(uid)
 	if !ok {
-		s.Log(robot.Error, "Slack user ID not found for username: %s", u)
+		userID, ok = s.userID(u, false)
+	}
+	if !ok {
+		s.Log(robot.Error, "Slack user ID not found for: %s", uid)
 		return robot.UserNotFound
+	}
+	if strings.TrimSpace(u) == "" {
+		if readable, found := s.userName(userID); found {
+			u = readable
+		} else {
+			u = userID
+		}
 	}
 	// Block-backed sends use a readable literal prefix instead of exposing Slack's internal mention token.
 	legacyPrefix := "<@" + userID + ">: "

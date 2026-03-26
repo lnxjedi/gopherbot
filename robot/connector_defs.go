@@ -134,9 +134,13 @@ type Connector interface {
 	// starting a thread if none exists. If thread is unset or unsupported by the
 	// protocol, it just sends a message to the channel.
 	SendProtocolChannelThreadMessage(channelname, threadid, msg string, format MessageFormat, msgObject *ConnectorMessage) RetVal
-	// SendProtocolUserChannelThreadMessage directs a message to a user in a channel/thread.
-	// The value of username is the engine's canonical user identity.
-	SendProtocolUserChannelThreadMessage(username, channelname, threadid, msg string, format MessageFormat, msgObject *ConnectorMessage) RetVal
+	// SendProtocolUserChannelThreadMessage directs a message to a user in a
+	// channel/thread.
+	// userid carries the protocol-local target identity when one exists, usually
+	// as a bracketed internal ID like "<U123...>".
+	// username carries the engine's canonical user identity for readable fallback
+	// formatting or protocol-local lookup.
+	SendProtocolUserChannelThreadMessage(userid, username, channelname, threadid, msg string, format MessageFormat, msgObject *ConnectorMessage) RetVal
 	// SendProtocolUserMessage sends a direct message to a user if supported.
 	// The value of user is the engine's canonical username identity.
 	SendProtocolUserMessage(user, msg string, format MessageFormat, msgObject *ConnectorMessage) RetVal

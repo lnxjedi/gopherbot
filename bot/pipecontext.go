@@ -71,11 +71,7 @@ func (w *worker) registerActive(parent *worker) {
 		currentUCMaps.Unlock()
 	}
 	if len(w.ProtocolUser) == 0 && len(w.User) > 0 {
-		if idRegex.MatchString(w.User) {
-			w.ProtocolUser = w.User
-		} else {
-			w.ProtocolUser = w.User
-		}
+		w.ProtocolUser = w.tryResolveUser(w.User)
 	}
 	if len(w.ProtocolChannel) == 0 && len(w.Channel) > 0 {
 		if idRegex.MatchString(w.Channel) {

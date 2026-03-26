@@ -614,7 +614,7 @@ func (tc *termConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f
 }
 
 // SendProtocolUserChannelThreadMessage sends a message to a user's channel thread with validation by username
-func (tc *termConnector) SendProtocolUserChannelThreadMessage(uname, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+func (tc *termConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	var chanID string
 	var ok bool
 	if chanID, ok = tc.ExtractID(ch); !ok {
@@ -626,6 +626,9 @@ func (tc *termConnector) SendProtocolUserChannelThreadMessage(uname, ch, thr, ms
 		return robot.ChannelNotFound // Ensure you have this constant defined
 	}
 	userInfo, ok := tc.resolveTermUserByName(uname)
+	if !ok && uid != "" {
+		userInfo, ok = tc.resolveTermUser(uid)
+	}
 	if !ok {
 		tc.Log(robot.Error, fmt.Sprintf("SendProtocolUserChannelThreadMessage: Username '%s' not found", uname))
 		return robot.UserNotFound

@@ -135,6 +135,13 @@ func resolveIncomingUser(maps *userChanMaps, protocol, userID, connectorUser str
 	return userName, botUser, protocolMapped, directoryListed
 }
 
+func resolveIncomingProtocolUser(userID, userName string) string {
+	if len(userID) > 0 {
+		return bracket(userID)
+	}
+	return userName
+}
+
 // clone a worker for a new execution context
 func (w *worker) clone() *worker {
 	var incoming *robot.ConnectorMessage
@@ -214,7 +221,7 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 		}
 	} // ProtocolChannel / channelName should be "" for DM
 	userName, BotUser, protocolMapped, directoryListed := resolveIncomingUser(maps, incomingProtocol, inc.UserID, inc.UserName)
-	ProtocolUser = userName
+	ProtocolUser = resolveIncomingProtocolUser(inc.UserID, userName)
 	listedUser := directoryListed
 	protocol := getProtocol(inc.Protocol)
 

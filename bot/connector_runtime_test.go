@@ -57,10 +57,11 @@ func (fc *fakeRuntimeConnector) SendProtocolChannelThreadMessage(ch, thr, msg st
 	return robot.Ok
 }
 
-func (fc *fakeRuntimeConnector) SendProtocolUserChannelThreadMessage(uname, ch, thr, msg string, _ robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {
+func (fc *fakeRuntimeConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, _ robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {
 	fc.mu.Lock()
 	defer fc.mu.Unlock()
 	fc.userChannelCalls++
+	fc.lastUser = uid
 	fc.lastUserName = uname
 	fc.lastChannel = ch
 	fc.lastThread = thr
@@ -99,10 +100,10 @@ func (fc *fakeRuntimeConnector) metrics() (runs, stops int) {
 	return fc.runCount, fc.stopCount
 }
 
-func (fc *fakeRuntimeConnector) sendMetrics() (channelCalls, userChannelCalls, userCalls int, protocol, channel string) {
+func (fc *fakeRuntimeConnector) sendMetrics() (channelCalls, userChannelCalls, userCalls int, protocol, channel, userID, userName string) {
 	fc.mu.Lock()
 	defer fc.mu.Unlock()
-	return fc.channelCalls, fc.userChannelCalls, fc.userCalls, fc.lastProtocolOnSend, fc.lastChannel
+	return fc.channelCalls, fc.userChannelCalls, fc.userCalls, fc.lastProtocolOnSend, fc.lastChannel, fc.lastUser, fc.lastUserName
 }
 
 type runtimeHarness struct {
@@ -368,21 +369,21 @@ func TestSendProtocolUserChannelMessageRouting(t *testing.T) {
 	if ret := r.SendProtocolUserChannelMessage("secondary", "alice", "general", "hello"); ret != robot.Ok {
 		t.Fatalf("SendProtocolUserChannelMessage(user+channel) ret = %v, want %v", ret, robot.Ok)
 	}
-	if channelCalls, userChannelCalls, userCalls, protocol, channel := h.instances["secondary"].sendMetrics(); channelCalls != 0 || userChannelCalls != 1 || userCalls != 0 || protocol != "secondary" || channel != "<sec-general>" {
-		t.Fatalf("secondary send metrics = channel:%d userChannel:%d user:%d protocol:%q channelArg:%q", channelCalls, userChannelCalls, userCalls, protocol, channel)
+	if channelCalls, userChannelCalls, userCalls, protocol, channel, userID, userName := h.instances["secondary"].sendMetrics(); channelCalls != 0 || userChannelCalls != 1 || userCalls != 0 || protocol != "secondary" || channel != "<sec-general>" || userID != "<sec-alice>" || userName != "alice" {
+		t.Fatalf("secondary send metrics = channel:%d userChannel:%d user:%d protocol:%q channelArg:%q userID:%q userName:%q", channelCalls, userChannelCalls, userCalls, protocol, channel, userID, userName)
 	}
 
 	if ret := r.SendProtocolUserChannelMessage("secondary", "alice", "", "dm"); ret != robot.Ok {
 		t.Fatalf("SendProtocolUserChannelMessage(dm) ret = %v, want %v", ret, robot.Ok)
 	}
-	if channelCalls, userChannelCalls, userCalls, protocol, _ := h.instances["secondary"].sendMetrics(); channelCalls != 0 || userChannelCalls != 1 || userCalls != 1 || protocol != "secondary" {
-		t.Fatalf("secondary send metrics after dm = channel:%d userChannel:%d user:%d protocol:%q", channelCalls, userChannelCalls, userCalls, protocol)
+	if channelCalls, userChannelCalls, userCalls, protocol, _, userID, _ := h.instances["secondary"].sendMetrics(); channelCalls != 0 || userChannelCalls != 1 || userCalls != 1 || protocol != "secondary" || userID != "<sec-alice>" {
+		t.Fatalf("secondary send metrics after dm = channel:%d userChannel:%d user:%d protocol:%q userID:%q", channelCalls, userChannelCalls, userCalls, protocol, userID)
 	}
 
 	if ret := r.SendProtocolUserChannelMessage("secondary", "", "general", "chan"); ret != robot.Ok {
 		t.Fatalf("SendProtocolUserChannelMessage(channel) ret = %v, want %v", ret, robot.Ok)
 	}
-	if channelCalls, userChannelCalls, userCalls, protocol, channel := h.instances["secondary"].sendMetrics(); channelCalls != 1 || userChannelCalls != 1 || userCalls != 1 || protocol != "secondary" || channel != "<sec-general>" {
+	if channelCalls, userChannelCalls, userCalls, protocol, channel, _, _ := h.instances["secondary"].sendMetrics(); channelCalls != 1 || userChannelCalls != 1 || userCalls != 1 || protocol != "secondary" || channel != "<sec-general>" {
 		t.Fatalf("secondary send metrics after channel send = channel:%d userChannel:%d user:%d protocol:%q channelArg:%q", channelCalls, userChannelCalls, userCalls, protocol, channel)
 	}
 

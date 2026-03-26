@@ -13,6 +13,49 @@ versions is that the Robot version uses it's local copy of the robot.Message,
 which may have been modified by e.g. r.Direct(), r.Fixed(), etc.
 */
 
+// tryResolveUser resolves the user to its internal ID wrapped in brackets if available.
+// If the user is not found in the internal map, it returns the original username.
+func (r *Robot) tryResolveUser(u string) string {
+	if r.maps == nil {
+		return u
+	}
+	protocol := protocolFromIncoming(r.Incoming, r.Protocol)
+	if pm, ok := r.maps.userProto[protocol]; ok {
+		if ui, ok := pm[u]; ok {
+			return bracket(ui.UserID)
+		}
+	}
+	return u
+}
+
+func (r *Robot) tryResolveUserForProtocol(protocol, u string) string {
+	if r.maps == nil {
+		return u
+	}
+	p := normalizeProtocolName(protocol)
+	if p != "" {
+		if pm, ok := r.maps.userProto[p]; ok {
+			if ui, ok := pm[u]; ok {
+				return bracket(ui.UserID)
+			}
+		}
+	}
+	return u
+}
+
+func (w *worker) tryResolveUser(u string) string {
+	if w.maps == nil {
+		return u
+	}
+	protocol := protocolFromIncoming(w.Incoming, w.Protocol)
+	if pm, ok := w.maps.userProto[protocol]; ok {
+		if ui, ok := pm[u]; ok {
+			return bracket(ui.UserID)
+		}
+	}
+	return u
+}
+
 // tryResolveChannel resolves the channel to its internal ID wrapped in brackets if available.
 // If the channel is not found in the internal map, it returns the original channel name.
 // This allows the chat connector to handle unresolved channels appropriately.
@@ -145,8 +188,9 @@ func (r Robot) SendUserChannelMessage(u, ch, msg string, v ...interface{}) robot
 	if empty {
 		return robot.Failed
 	}
+	user := r.tryResolveUser(u)
 	channel := r.tryResolveChannel(ch)
-	return interfaces.SendProtocolUserChannelThreadMessage(u, channel, "", msg, r.Format, r.Incoming)
+	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, "", msg, r.Format, r.Incoming)
 }
 
 func (w *worker) SendUserChannelMessage(u, ch, msg string, v ...interface{}) robot.RetVal {
@@ -154,8 +198,9 @@ func (w *worker) SendUserChannelMessage(u, ch, msg string, v ...interface{}) rob
 	if empty {
 		return robot.Failed
 	}
+	user := w.tryResolveUser(u)
 	channel := w.tryResolveChannel(ch)
-	return interfaces.SendProtocolUserChannelThreadMessage(u, channel, "", msg, w.Format, w.Incoming)
+	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, "", msg, w.Format, w.Incoming)
 }
 
 func (r Robot) SendProtocolUserChannelMessage(protocol, u, ch, msg string, v ...interface{}) robot.RetVal {
@@ -182,13 +227,15 @@ func (r Robot) SendProtocolUserChannelMessage(protocol, u, ch, msg string, v ...
 	}
 	msgObject := protocolIncoming(r.Incoming, p)
 	if u != "" && ch == "" {
-		return interfaces.SendProtocolUserMessage(u, msg, r.Format, msgObject)
+		user := r.tryResolveUserForProtocol(p, u)
+		return interfaces.SendProtocolUserMessage(user, msg, r.Format, msgObject)
 	}
 	channel := r.tryResolveChannelForProtocol(p, ch)
 	if u == "" {
 		return interfaces.SendProtocolChannelThreadMessage(channel, "", msg, r.Format, msgObject)
 	}
-	return interfaces.SendProtocolUserChannelThreadMessage(u, channel, "", msg, r.Format, msgObject)
+	user := r.tryResolveUserForProtocol(p, u)
+	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, "", msg, r.Format, msgObject)
 }
 
 func (r Robot) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interface{}) robot.RetVal {
@@ -196,8 +243,9 @@ func (r Robot) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interfa
 	if empty {
 		return robot.Failed
 	}
+	user := r.tryResolveUser(u)
 	channel := r.tryResolveChannel(ch)
-	return interfaces.SendProtocolUserChannelThreadMessage(u, channel, thr, msg, r.Format, r.Incoming)
+	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, thr, msg, r.Format, r.Incoming)
 }
 
 func (w *worker) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interface{}) robot.RetVal {
@@ -205,8 +253,9 @@ func (w *worker) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...inter
 	if empty {
 		return robot.Failed
 	}
+	user := w.tryResolveUser(u)
 	channel := w.tryResolveChannel(ch)
-	return interfaces.SendProtocolUserChannelThreadMessage(u, channel, thr, msg, w.Format, w.Incoming)
+	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, thr, msg, w.Format, w.Incoming)
 }
 
 // see robot/robot.go
@@ -215,7 +264,8 @@ func (r Robot) SendUserMessage(u, msg string, v ...interface{}) robot.RetVal {
 	if empty {
 		return robot.Failed
 	}
-	return interfaces.SendProtocolUserMessage(u, msg, r.Format, r.Incoming)
+	user := r.tryResolveUser(u)
+	return interfaces.SendProtocolUserMessage(user, msg, r.Format, r.Incoming)
 }
 
 // see robot/robot.go
@@ -243,9 +293,9 @@ func (r Robot) Reply(msg string, v ...interface{}) robot.RetVal {
 	w := getLockedWorker(r.tid)
 	w.Unlock()
 	if w.BotUser {
-		return interfaces.SendProtocolChannelThreadMessage(r.Channel, thread, r.User+": "+msg, r.Format, r.Incoming)
+		return interfaces.SendProtocolChannelThreadMessage(channel, thread, r.User+": "+msg, r.Format, r.Incoming)
 	}
-	return interfaces.SendProtocolUserChannelThreadMessage(user, r.Channel, thread, msg, r.Format, r.Incoming)
+	return interfaces.SendProtocolUserChannelThreadMessage(user, r.User, channel, thread, msg, r.Format, r.Incoming)
 }
 
 func (w *worker) Reply(msg string, v ...interface{}) robot.RetVal {
@@ -261,14 +311,18 @@ func (w *worker) Reply(msg string, v ...interface{}) robot.RetVal {
 	if w.Channel == "" {
 		return interfaces.SendProtocolUserMessage(user, msg, w.Format, w.Incoming)
 	}
+	channel := w.ProtocolChannel
+	if len(channel) == 0 {
+		channel = w.Channel
+	}
 	var thread string
 	if w.Incoming.ThreadedMessage {
 		thread = w.Incoming.ThreadID
 	}
 	if w.BotUser {
-		return interfaces.SendProtocolChannelThreadMessage(w.Channel, thread, w.User+": "+msg, w.Format, w.Incoming)
+		return interfaces.SendProtocolChannelThreadMessage(channel, thread, w.User+": "+msg, w.Format, w.Incoming)
 	}
-	return interfaces.SendProtocolUserChannelThreadMessage(user, w.Channel, thread, msg, w.Format, w.Incoming)
+	return interfaces.SendProtocolUserChannelThreadMessage(user, w.User, channel, thread, msg, w.Format, w.Incoming)
 }
 
 // see robot/robot.go
@@ -292,9 +346,9 @@ func (r Robot) ReplyThread(msg string, v ...interface{}) robot.RetVal {
 	w := getLockedWorker(r.tid)
 	w.Unlock()
 	if w.BotUser {
-		return interfaces.SendProtocolChannelThreadMessage(r.Channel, r.Incoming.ThreadID, r.User+": "+msg, r.Format, r.Incoming)
+		return interfaces.SendProtocolChannelThreadMessage(channel, r.Incoming.ThreadID, r.User+": "+msg, r.Format, r.Incoming)
 	}
-	return interfaces.SendProtocolUserChannelThreadMessage(user, r.Channel, r.Incoming.ThreadID, msg, r.Format, r.Incoming)
+	return interfaces.SendProtocolUserChannelThreadMessage(user, r.User, channel, r.Incoming.ThreadID, msg, r.Format, r.Incoming)
 }
 
 // see robot/robot.go

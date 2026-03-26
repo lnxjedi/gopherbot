@@ -126,7 +126,7 @@ type _github_com_lnxjedi_gopherbot_robot_Connector struct {
 	WMessageHeard                         func(user string, channel string)
 	WRun                                  func(stopchannel <-chan struct{})
 	WSendProtocolChannelThreadMessage     func(channelname string, threadid string, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal
-	WSendProtocolUserChannelThreadMessage func(username string, channelname string, threadid string, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal
+	WSendProtocolUserChannelThreadMessage func(userid string, username string, channelname string, threadid string, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal
 	WSendProtocolUserMessage              func(user string, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal
 }
 
@@ -151,8 +151,8 @@ func (W _github_com_lnxjedi_gopherbot_robot_Connector) Run(stopchannel <-chan st
 func (W _github_com_lnxjedi_gopherbot_robot_Connector) SendProtocolChannelThreadMessage(channelname string, threadid string, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {
 	return W.WSendProtocolChannelThreadMessage(channelname, threadid, msg, format, msgObject)
 }
-func (W _github_com_lnxjedi_gopherbot_robot_Connector) SendProtocolUserChannelThreadMessage(username string, channelname string, threadid string, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {
-	return W.WSendProtocolUserChannelThreadMessage(username, channelname, threadid, msg, format, msgObject)
+func (W _github_com_lnxjedi_gopherbot_robot_Connector) SendProtocolUserChannelThreadMessage(userid string, username string, channelname string, threadid string, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {
+	return W.WSendProtocolUserChannelThreadMessage(userid, username, channelname, threadid, msg, format, msgObject)
 }
 func (W _github_com_lnxjedi_gopherbot_robot_Connector) SendProtocolUserMessage(user string, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {
 	return W.WSendProtocolUserMessage(user, msg, format, msgObject)

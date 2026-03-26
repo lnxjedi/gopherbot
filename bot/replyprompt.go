@@ -313,6 +313,7 @@ func (r Robot) PromptUserChannelThreadForReply(regexID string, user, channel, th
 // promptInternal can return 'RetryPrompt'
 func (r Robot) promptInternal(regexID, user, channel, thread, prompt string) (string, robot.RetVal) {
 	protocol := protocolFromIncoming(r.Incoming, r.Protocol)
+	resolvedUser := r.tryResolveUserForProtocol(protocol, user)
 	matcher := replyMatcher{
 		protocol: protocol,
 		user:     user,
@@ -368,9 +369,9 @@ func (r Robot) promptInternal(regexID, user, channel, thread, prompt string) (st
 		Log(robot.Debug, "Prompting for \"%s\" and creating reply waiters list and prompting for matcher: %q (protocol: %s)", prompt, matcher, protocol)
 		var ret robot.RetVal
 		if channel == "" {
-			ret = interfaces.SendProtocolUserMessage(user, prompt, r.Format, r.Incoming)
+			ret = interfaces.SendProtocolUserMessage(resolvedUser, prompt, r.Format, r.Incoming)
 		} else {
-			ret = interfaces.SendProtocolUserChannelThreadMessage(user, channel, thread, prompt, r.Format, r.Incoming)
+			ret = interfaces.SendProtocolUserChannelThreadMessage(resolvedUser, user, channel, thread, prompt, r.Format, r.Incoming)
 		}
 		if ret != robot.Ok {
 			replies.Unlock()

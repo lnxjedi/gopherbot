@@ -262,8 +262,8 @@ func buildSlackTruncationBlocks(text string) []slack.Block {
 }
 
 func (s *slackConnector) slackifyLegacyMessage(targetUserID, prefix, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) []string {
-	msg = s.applySlackPrefix(targetUserID, prefix, msg, msgObject)
 	msg = s.formatSlackMessage(msg, f)
+	msg = s.applySlackPrefix(targetUserID, prefix, msg, msgObject)
 	return s.segmentFormattedSlackMessage(msg)
 }
 

@@ -622,12 +622,12 @@ func (rc *runtimeConnectorRouter) SendProtocolChannelThreadMessage(channelname, 
 	return conn.SendProtocolChannelThreadMessage(channelname, threadid, msg, format, msgObject)
 }
 
-func (rc *runtimeConnectorRouter) SendProtocolUserChannelThreadMessage(username, channelname, threadid, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {
+func (rc *runtimeConnectorRouter) SendProtocolUserChannelThreadMessage(userid, username, channelname, threadid, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {
 	conn := getConnectorForProtocol(protocolForMessage(msgObject))
 	if conn == nil {
 		return robot.Failed
 	}
-	return conn.SendProtocolUserChannelThreadMessage(username, channelname, threadid, msg, format, msgObject)
+	return conn.SendProtocolUserChannelThreadMessage(userid, username, channelname, threadid, msg, format, msgObject)
 }
 
 func (rc *runtimeConnectorRouter) SendProtocolUserMessage(user, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {
