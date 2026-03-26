@@ -5,7 +5,8 @@ DirectOnly: true
 RequireAdmin: true
 Commands:
 - Command: "listplugins"
-  Regex: '(?i:list(?:[- ](disabled))?[- ]plugins?)'
+  # Regex: '(?i:list(?:[- ](disabled))?[- ]plugins?)'
+  SimpleMatcher: "list [disabled] (plugin|plugins)"
   Keywords: [ "list", "plugin", "plugins" ]
   Usage: "list (disabled) plugins"
   Summary: "list all known plugins, or list disabled plugins with the reason disabled"
@@ -13,21 +14,24 @@ Commands:
   - "(alias) list plugins"
   - "(alias) list disabled plugins"
 - Command: "dumpplugdefault"
-  Regex: '(?i:dump[- ]plugin[- ]default ([\d\w-.]+))'
+  # Regex: '(?i:dump[- ]plugin[- ]default ([\d\w-.]+))'
+  SimpleMatcher: "dump plugin default <plugin:token>"
   Keywords: [ "dump", "plugin" ]
   Usage: "dump plugin (default) <plugname>"
   Summary: "dump the current or default configuration for the plugin"
   Examples:
   - "(alias) dump plugin default ping"
 - Command: "dumpplugin"
-  Regex: '(?i:dump[- ]plugin ([\d\w-.]+))'
+  # Regex: '(?i:dump[- ]plugin ([\d\w-.]+))'
+  SimpleMatcher: "dump plugin <plugin:token>"
   Keywords: [ "dump", "plugin" ]
   Usage: "dump plugin (default) <plugname>"
   Summary: "dump the current or default configuration for the plugin"
   Examples:
   - "(alias) dump plugin ping"
 - Command: "dumprobot"
-  Regex: "(?i:dump[- ]robot)"
+  # Regex: "(?i:dump[- ]robot)"
+  SimpleMatcher: "dump robot"
   Keywords: [ "dump", "robot" ]
   Usage: "dump robot"
   Summary: "dump the current configuration for the robot"

@@ -35,6 +35,11 @@ type oauth2tokenrequest struct {
 	User     string
 }
 
+type helpmetadataquery struct {
+	Query  string
+	Base64 bool
+}
+
 type elevate struct {
 	Immediate bool
 }
@@ -507,6 +512,17 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 		sendReturn(r, rw, &botretvalresponse{int(r.UnlinkOAuth2User(req.Provider, req.User))})
+		return
+	case "GetHelpMetadata":
+		var q helpmetadataquery
+		if !getArgs(rw, &f.FuncArgs, &q) {
+			return
+		}
+		if q.Base64 {
+			q.Query = decode(q.Query)
+		}
+		s := r.GetHelpMetadata(q.Query)
+		sendReturn(r, rw, &stringresponse{s})
 		return
 	case "GetTaskConfig":
 		if task.Config == nil {

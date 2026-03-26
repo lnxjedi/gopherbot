@@ -578,24 +578,25 @@ LoadLoop:
 		if isPlugin {
 			for i := range plugin.Commands {
 				command := &plugin.Commands[i]
-				regex := `^(?s:\s*` + command.Regex + `\s*)$`
-				re, err := regexp.Compile(regex)
-				if err != nil {
-					msg := fmt.Sprintf("Disabling '%s', couldn't compile command regular expression '%s': %v", task.name, regex, err)
+				if err := compileInputMatcher(command, true); err != nil {
+					msg := fmt.Sprintf("Disabling '%s', invalid command matcher for command '%s': %v", task.name, command.Command, err)
 					Log(robot.Error, msg)
 					task.Disabled = true
 					task.reason = msg
 					continue LoadLoop
-				} else {
-					// Store the modified regex
-					command.Regex = regex
-					command.re = re
 				}
 			}
 			for i := range plugin.MessageMatchers {
 				// Note that full message regexes don't get the beginning and end anchors added - the individual plugin
 				// will need to do this if necessary.
 				message := &plugin.MessageMatchers[i]
+				if strings.TrimSpace(message.SimpleMatcher) != "" {
+					msg := fmt.Sprintf("Disabling '%s', SimpleMatcher is only supported for directed Commands", task.name)
+					Log(robot.Error, msg)
+					task.Disabled = true
+					task.reason = msg
+					continue LoadLoop
+				}
 				re, err := regexp.Compile(message.Regex)
 				if err != nil {
 					msg := fmt.Sprintf("Disabling '%s', couldn't compile message regular expression '%s': %v", task.name, message.Regex, err)
@@ -638,17 +639,12 @@ LoadLoop:
 					task.reason = msg
 					continue LoadLoop
 				}
-				regex := `^\s*` + argument.Regex + `\s*$`
-				re, err := regexp.Compile(regex)
-				if err != nil {
-					msg := fmt.Sprintf("Disabling '%s', couldn't compile argument regular expression '%s': %v", task.name, regex, err)
+				if err := compileInputMatcher(argument, false); err != nil {
+					msg := fmt.Sprintf("Disabling '%s', invalid argument matcher '%s': %v", task.name, label, err)
 					Log(robot.Error, msg)
 					task.Disabled = true
 					task.reason = msg
 					continue LoadLoop
-				} else {
-					argument.Regex = regex
-					argument.re = re
 				}
 			}
 		}
@@ -662,15 +658,12 @@ LoadLoop:
 				task.reason = msg
 				continue LoadLoop
 			}
-			re, err := regexp.Compile(`^\s*` + reply.Regex + `\s*$`)
-			if err != nil {
-				msg := fmt.Sprintf("Skipping %s, couldn't compile reply regular expression '%s': %v", task.name, reply.Regex, err)
+			if err := compileInputMatcher(reply, false); err != nil {
+				msg := fmt.Sprintf("Skipping %s, invalid reply matcher '%s': %v", task.name, reply.Label, err)
 				Log(robot.Error, msg)
 				task.Disabled = true
 				task.reason = msg
 				continue LoadLoop
-			} else {
-				reply.re = re
 			}
 		}
 

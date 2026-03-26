@@ -24,17 +24,20 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 - Engine entrypoints: `bot/start.go` (func `Start`), `bot/bot_process.go` (funcs `initBot`, `run`, `stop`).
 - Runtime connector orchestration: `bot/connector_runtime.go` (runtime manager, protocol routing, lifecycle controls).
+- Bot-side connector capability/registration consumption: `bot/connector_capabilities.go` (shared registration lookup, runtime capability lookup, and test overrides).
+- Connector/brain/history handler implementation: `bot/handler.go` (implements shared `robot.Handler`, including `GetBotInfo()` for connector init).
+- Bot-side provider registration consumption: `bot/provider_registrations.go` (shared brain/history registration lookup + test overrides).
 - Pipeline execution + privilege separation internals: `bot/run_pipelines.go`, `bot/task_execution.go`, `bot/task_execution_child.go`, `bot/pipeline_rpc.go`, `bot/pipeline_rpc_interpreter.go`, `bot/pipeline_rpc_javascript.go`, `bot/pipeline_rpc_gsh.go`, `bot/pipeline_rpc_yaegi.go`, `bot/calltask.go`, `bot/privsep.go`.
 - Startup mode and config loading: `bot/config_load.go` (funcs `detectStartupMode`, `getConfigFile`), `bot/conf.go` (func `loadConfig`).
 - Runtime git branch observability: `bot/git_runtime.go` (startup capture + runtime snapshot for info/admin commands), with privileged sync task registration in `bot/pipe_tasks.go` (`git-sync-state`).
 - AI-dev endpoint/auth helpers: `bot/aidev.go` (token + `.aiport`) and `bot/aidev_http.go` (authenticated `send_message` / `get_messages` routing).
 - Internal module initialization: `bot/modules_init.go` (func `initializeModules`) — initializes ssh-agent, ssh-git-helper, and yaegi interpreter modules.
 - OAuth2 token manager + internal refresh-registry handling: `bot/oauth2.go`, `bot/oauth2_types.go`.
-- Built-in connectors (not under `connectors/`): `bot/term_connector.go` (registers `"terminal"`), `bot/null_connector.go` (registers `"nullconn"`).
+- Built-in connectors (not under `connectors/`): `bot/term_connector.go` (registers `"terminal"` through `robot.RegisterConnector`), `bot/null_connector.go` (registers `"nullconn"` through `robot.RegisterConnector`).
 
 ## brains/
 
-- SimpleBrain providers are registered via `bot.RegisterSimpleBrain` in `brains/dynamodb/static.go` and `brains/cloudflarekv/static.go`.
+- SimpleBrain providers are registered via `robot.RegisterSimpleBrain` in `brains/dynamodb/static.go` and `brains/cloudflarekv/static.go`.
 - Provider implementations: `brains/dynamodb/dynamobrain.go` (func `provider`, methods `Store`, `Retrieve`) and `brains/cloudflarekv/cloudflarekvbrain.go` (func `provider`).
 
 ## cmd/
@@ -51,9 +54,9 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 ## connectors/
 
-- Slack connector registration + init: `connectors/slack/static.go` (calls `bot.RegisterConnector("slack", Initialize)`), `connectors/slack/connect.go` (func `Initialize`; connector-local `ProtocolConfig.UserMap` identity mapping).
-- Test connector registration + runtime: `connectors/test/init.go` (calls `bot.RegisterConnector("test", Initialize)`; connector-local `ProtocolConfig.Users` identity mapping), `connectors/test/connector.go` (method `(*TestConnector).Run`).
-- SSH connector registration + runtime: `connectors/ssh/static.go` (calls `bot.RegisterConnector("ssh", Initialize)`), `connectors/ssh/connector.go` (method `(*sshConnector).Run`; connector-local `ProtocolConfig.UserKeys` list identity mapping).
+- Slack connector registration + init: `connectors/slack/static.go` (calls `robot.RegisterConnector("slack", Initialize)`), `connectors/slack/connect.go` (func `Initialize`; connector-local `ProtocolConfig.UserMap` identity mapping plus slash-command-driven runtime hidden-command capability).
+- Test connector registration + runtime: `connectors/test/init.go` (calls `robot.RegisterConnector("test", Initialize)`; connector-local `ProtocolConfig.Users` identity mapping), `connectors/test/connector.go` (method `(*TestConnector).Run`).
+- SSH connector registration + runtime: `connectors/ssh/static.go` (calls `robot.RegisterConnector("ssh", Initialize)`), `connectors/ssh/connector.go` (method `(*sshConnector).Run`; connector-local `ProtocolConfig.UserKeys` list identity mapping plus runtime hidden-command capability).
 
 ## gojobs/
 
@@ -73,7 +76,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 ## history/
 
-- History provider registration: `history/file/static.go` (calls `bot.RegisterHistoryProvider("file", provider)`).
+- History provider registration: `history/file/static.go` (calls `robot.RegisterHistoryProvider("file", provider)`).
 - File-backed implementation: `history/file/filehistory.go` (methods `NewLog`, `GetLog`, `GetLogURL`).
 
 ## jobs/
@@ -110,9 +113,15 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 ## robot/
 
-- Go extension API: `robot/README.md`, `robot/registrations.go` (funcs `RegisterPlugin`, `RegisterJob`, `RegisterTask`).
+- Shared modular contract surface: `robot/README.md`.
+- Go extension registrations: `robot/registrations.go` (funcs `RegisterPlugin`, `RegisterJob`, `RegisterTask`).
+- Connector registrations + capabilities: `robot/connectors.go` (`RegisterConnector`, `InitializedConnector`, `ConnectorCapabilities`, `HiddenCommandFormatter`).
+- Shared robot identity shape for connector/provider init: `robot/botinfo.go` (`BotInfo`).
+- Brain-provider registrations: `robot/brains.go` (`RegisterSimpleBrain`).
+- History-provider registrations: `robot/history_providers.go` (`RegisterHistoryProvider`).
 - OAuth2 extension API request shape: `robot/oauth2.go`.
-- Connector contracts and optional connector capability interfaces: `robot/connector_defs.go` (`Connector`, `ConnectorAPIProvider`, `Injector`, `MessageSource`).
+- Connector contracts and connector-side APIs: `robot/connector_defs.go` (`Connector`, `ConnectorAPIProvider`, `Injector`, `MessageSource`).
+- Shared wrapping utility used by engine and connectors: `robot/wrap.go` (`Wrapper`, `NewWrapper`, `Wrap`).
 
 ## robot.skel/
 

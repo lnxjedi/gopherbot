@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/lnxjedi/gopherbot/robot"
 	. "github.com/lnxjedi/gopherbot/v2/bot"
 	testc "github.com/lnxjedi/gopherbot/v2/connectors/test"
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/groups"
@@ -26,7 +27,7 @@ func TestBotName(t *testing.T) {
 	tests := []testItem{
 		{aliceID, null, "ping, bender", false, []TestMessage{{alice, null, "PONG", false}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, ";ping", false, []TestMessage{{alice, null, "PONG", false}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, null, "/ping", false, []TestMessage{{alice, null, "Sorry, hidden commands must be addressed as '/bender <command>'", false}}, []Event{BotDirectMessage}, 0},
+		{aliceID, null, "/ping", false, []TestMessage{{alice, null, "\\(Use `/bender <command>` to address a hidden command\\.\\)", false}}, []Event{BotDirectMessage}, 0},
 		{aliceID, null, "bender ping", false, []TestMessage{{alice, null, "PONG", false}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, "ping", false, []TestMessage{{alice, null, "PONG", false}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "ping, bender", false, []TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
@@ -50,6 +51,21 @@ func TestBotName(t *testing.T) {
 	testcases(t, conn, tests)
 
 	teardown(t, done, conn)
+}
+
+func TestBotNameHiddenCommandsUnsupportedConnector(t *testing.T) {
+	done, conn, cleanup := setupWithOptions("test/membrain", "/tmp/bottest.log", testSetupOptions{
+		ConnectorCapabilities: map[string]robot.ConnectorCapabilities{
+			"test": {HiddenCommands: false},
+		},
+	}, t)
+
+	tests := []testItem{
+		{aliceID, null, "/ping", false, []TestMessage{{alice, null, "This command isn't supported with test because hidden commands are unavailable for this connector\\. Check with the robot administrator\\.", false}}, []Event{BotDirectMessage}, 0},
+	}
+	testcases(t, conn, tests)
+
+	teardownWithOptions(t, done, conn, cleanup)
 }
 
 func TestBotNoName(t *testing.T) {
@@ -115,6 +131,9 @@ func TestMessageMatch(t *testing.T) {
 	tests := []testItem{
 		{aliceID, general, "hello robot", false, []TestMessage{{null, general, "Hello, World!", false}}, []Event{AmbientTaskRan, ExternalTaskRan}, 0},
 		{aliceID, general, ";hello robot", false, []TestMessage{{null, general, "Hello, World!", false}}, []Event{AmbientTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";hello world", false, []TestMessage{{null, general, "Hello, World!", false}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";HELLO   WORLD", false, []TestMessage{{null, general, "Hello, World!", false}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";hello-world", false, []TestMessage{{null, general, "Hello, World!", false}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
 		{aliceID, null, "hello robot", false, []TestMessage{{alice, null, "Hello, World!", false}}, []Event{BotDirectMessage, AmbientTaskRan, ExternalTaskRan}, 0},
 		{aliceID, null, "bender, hello robot", false, []TestMessage{{alice, null, "Hello, World!", false}}, []Event{BotDirectMessage, AmbientTaskRan, ExternalTaskRan}, 0},
 		{aliceID, general, "ping", false, []TestMessage{}, []Event{}, 100},
@@ -136,8 +155,8 @@ func TestVisibility(t *testing.T) {
 		{aliceID, general, "ruby me, bender", false, []TestMessage{{null, general, "rubydemo/ruby not available in #general, try #random", true}}, []Event{}, 0},
 		{aliceID, deadzone, "bender: echo hello world", false, []TestMessage{{null, deadzone, "echo/echo not available in #deadzone, try one of: #general, #random", true}}, []Event{}, 0},
 		{aliceID, null, "hear me out", false, []TestMessage{{alice, null, "bashdemo/hear not available in direct messages, try it in any regular channel", false}}, []Event{BotDirectMessage}, 0},
-		{bobID, general, ";ping", false, []TestMessage{{null, general, "No command matched in channel.*", true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
-		{bobID, general, ";reload", false, []TestMessage{{null, general, "No command matched in channel.*", true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
+		{bobID, general, ";ping", false, []TestMessage{{null, general, `(?s:I couldn't match .*More help: .*help builtin-help/help.*Try .*commands.*help <keyword>.*)`, true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
+		{bobID, general, ";reload", false, []TestMessage{{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*)`, true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 
@@ -207,7 +226,7 @@ func TestDevel(t *testing.T) {
 	done, conn := setup("test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
-		{aliceID, general, ";create a new grocery list", false, []TestMessage{{null, general, `(?s:No command matched in channel 'general'.*Closest matches.*\[lists\] add.*Try: ;help lists)`, true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";create a new grocery list", false, []TestMessage{{null, general, `(?s:I couldn't match .*create a new grocery list.*More help: ` + "`" + `/bender help lists/add` + "`" + `.*Try ` + "`" + `/bender commands` + "`" + ` or ` + "`" + `/bender help <keyword>` + "`" + `\.)`, true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";add bananas to the grocery list", false, []TestMessage{{alice, general, "I don't have a 'grocery' list, do you want to create it?", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "yes", false, []TestMessage{{null, general, "Ok, I created a new grocery list and added bananas to it", false}}, []Event{}, 0},
 	}
@@ -220,10 +239,57 @@ func TestHelp(t *testing.T) {
 	done, conn := setup("test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
-		{aliceID, deadzone, ";help", false, []TestMessage{{null, deadzone, `(?s:Quick help:\n;help <keyword> - get help for the provided <keyword>\n;commands - browse command groups available in this channel\n;help-all - help for all commands available in this channel, including global commands\nTip: ;commands shows command groups in this channel\.)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, deadzone, ";commands", false, []TestMessage{{null, deadzone, `(?s:Command groups available in this channel:.*Try: ;help <plugin\|command\|keyword>)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, deadzone, ";help-all", false, []TestMessage{{null, deadzone, `(?s:Commands available in this channel \(including global\):.*\[builtin-help\] help.*Usage: help <keyword>)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, deadzone, ";help help", false, []TestMessage{{null, deadzone, `(?s:Command matches for keyword: help.*\[builtin-help\] help.*Usage: help <keyword>)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";help", false, []TestMessage{{null, deadzone, `(?s:Quick help:\n/bender help <keyword> - get help for the provided <keyword>\n/bender help <keyword> brief - compact help for a likely command\n/bender commands - browse plugins and command groups available in this channel\n/bender help-all - help for all commands available in this channel, including global commands\nPlugin help: ` + "`" + `/bender help <plugin>` + "`" + `\nExact command help: ` + "`" + `/bender help <plugin>/<command>` + "`" + `\nTip: ` + "`" + `/bender commands` + "`" + ` shows plugins and command groups in this channel\.)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";commands", false, []TestMessage{{null, deadzone, `(?s:Plugins and command groups available in this channel:.*\*\*builtin-help\*\*:.*Commands: ` + "`" + `builtin-help/commands` + "`" + `.*Help: ` + "`" + `/bender help builtin-help` + "`" + ` or ` + "`" + `/bender help builtin-help/<command>` + "`" + `.*Exact help: ` + "`" + `/bender help <plugin>/<command>` + "`" + `.*Search by keyword: ` + "`" + `/bender help <plugin\|command\|keyword>` + "`" + `)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";help-all", false, []TestMessage{{null, deadzone, `(?s:Commands available in this channel \(including global\):.*\*\*Command:\*\* builtin-help/help.*Usage: help <keyword>.*Exact help: ` + "`" + `/bender help builtin-help/help` + "`" + `)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";help help", false, []TestMessage{{null, deadzone, `(?s:Help for keyword: ` + "`" + `help` + "`" + `.*Plugin help: help.*Commands:\n- ` + "`" + `help/help` + "`" + `.*Example: ;help with robot.*More detail: ` + "`" + `/bender help help/help` + "`" + `.*Other command matches:.*\*\*Command:\*\* builtin-help/help.*Exact help: ` + "`" + `/bender help builtin-help/help` + "`" + `)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";help knock", false, []TestMessage{{null, deadzone, `(?s:Help for keyword: ` + "`" + `knock` + "`" + `.*Plugin help: knock.*Commands:\n- ` + "`" + `knock/knock` + "`" + ` - Starts an interactive knock-knock joke\..*Example: ;tell me a knock-knock joke.*More detail: ` + "`" + `/bender help knock/knock` + "`" + `)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";help knock/knock", false, []TestMessage{{null, deadzone, `(?s:Command help: ` + "`" + `knock/knock` + "`" + `.*Usage: tell me a knock-knock joke.*Availability:)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";tell me a jok", false, []TestMessage{{null, general, `(?s:` + "`" + `;tell me a jok` + "`" + ` looks close to ` + "`" + `knock/knock` + "`" + `.*Try: ` + "`" + `;tell me a knock-knock joke` + "`" + `.*More help: ` + "`" + `/bender help knock/knock` + "`" + `)`, true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";knok", false, []TestMessage{{null, deadzone, `(?s:I couldn't match ` + "`" + `;knok` + "`" + ` in channel ` + "`" + `#deadzone` + "`" + `.*#general or #random.*` + "`" + `/bender help knock/knock` + "`" + `)`, true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
+	}
+	testcases(t, conn, tests)
+
+	teardown(t, done, conn)
+}
+
+func TestHelpWithoutHiddenCommands(t *testing.T) {
+	done, conn, cleanup := setupWithOptions("test/membrain", "/tmp/bottest.log", testSetupOptions{
+		ConnectorCapabilities: map[string]robot.ConnectorCapabilities{
+			"test": {HiddenCommands: false},
+		},
+	}, t)
+
+	tests := []testItem{
+		{aliceID, general, ";tell me a jok", false, []TestMessage{{null, general, `(?s:` + "`" + `;tell me a jok` + "`" + ` looks close to ` + "`" + `knock/knock` + "`" + `.*Try: ` + "`" + `;tell me a knock-knock joke` + "`" + `.*More help: ` + "`" + `;help knock/knock` + "`" + `)`, true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";knok", false, []TestMessage{{null, deadzone, `(?s:I couldn't match ` + "`" + `;knok` + "`" + ` in channel ` + "`" + `#deadzone` + "`" + `.*#general or #random.*` + "`" + `;help knock/knock` + "`" + `)`, true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
+	}
+	testcases(t, conn, tests)
+
+	teardownWithOptions(t, done, conn, cleanup)
+}
+
+func TestHelpNoAliasWithoutHiddenCommands(t *testing.T) {
+	done, conn, cleanup := setupWithOptions("test/membrain-noalias", "/tmp/bottest.log", testSetupOptions{
+		ConnectorCapabilities: map[string]robot.ConnectorCapabilities{
+			"test": {HiddenCommands: false},
+		},
+	}, t)
+
+	tests := []testItem{
+		{aliceID, general, "bender, tell me a jok", false, []TestMessage{{null, general, `(?s:` + "`" + `bender, tell me a jok` + "`" + ` looks close to ` + "`" + `knock/knock` + "`" + `.*Try: ` + "`" + `bender, tell me a knock-knock joke` + "`" + `.*More help: ` + "`" + `bender, help knock/knock` + "`" + `)`, true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, "bender, knok", false, []TestMessage{{null, deadzone, `(?s:I couldn't match ` + "`" + `bender, knok` + "`" + ` in channel ` + "`" + `#deadzone` + "`" + `.*#general or #random.*` + "`" + `bender, help knock/knock` + "`" + `)`, true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
+	}
+	testcases(t, conn, tests)
+
+	teardownWithOptions(t, done, conn, cleanup)
+}
+
+func TestHelpConnectorWithoutProtocolBotNameUsesBotInfoForHiddenHelp(t *testing.T) {
+	done, conn := setup("test/membrain-nameless", "/tmp/bottest.log", t)
+
+	tests := []testItem{
+		{aliceID, general, ";tell me a jok", false, []TestMessage{{null, general, `(?s:` + "`" + `;tell me a jok` + "`" + ` looks close to ` + "`" + `knock/knock` + "`" + `.*Try: ` + "`" + `;tell me a knock-knock joke` + "`" + `.*More help: ` + "`" + `/bender help knock/knock` + "`" + `)`, true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 
@@ -249,15 +315,15 @@ func TestHelpGroupFiltering(t *testing.T) {
 	}
 
 	aliceHelp := getHelpReply(aliceID)
-	if !strings.Contains(aliceHelp, "[lists] add") {
+	if !strings.Contains(aliceHelp, "`lists/add`") {
 		t.Fatalf("expected lists help output for alice to include at least one lists command, got: %q", aliceHelp)
 	}
-	if strings.Contains(aliceHelp, "[lists] send") {
+	if strings.Contains(aliceHelp, "`lists/send`") {
 		t.Fatalf("expected help to hide unauthorized command '[lists] send' for alice, got: %q", aliceHelp)
 	}
 
 	bobHelp := getHelpReply(bobID)
-	if !strings.Contains(bobHelp, "[lists] send") {
+	if !strings.Contains(bobHelp, "`lists/send`") {
 		t.Fatalf("expected help to include authorized command '[lists] send' for bob, got: %q", bobHelp)
 	}
 }

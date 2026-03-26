@@ -4,6 +4,7 @@ package slack
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 
@@ -14,12 +15,34 @@ import (
 )
 
 type config struct {
-	SlackToken         string // the 'bot token for connecting to Slack using RTM
-	AppToken, BotToken string // tokens used for connecting to Slack using the new SocketMode
-	MaxMessageSplit    int    // the maximum # of ~4000 byte messages to split a large message into
-	DisableReflection  bool   // turn off automatic reflection of hidden (slash "/") commands
-	Debug              bool   // Explicitly turn on Slack protocol debug output
-	UserMap            map[string]string
+	SlackToken          string // the 'bot token for connecting to Slack using RTM
+	AppToken, BotToken  string // tokens used for connecting to Slack using the new SocketMode
+	MaxMessageSplit     int    // the maximum # of ~4000 byte messages to split a large message into
+	DisableReflection   bool   // turn off automatic reflection of hidden (slash "/") commands
+	AcceptSlashCommands *bool
+	SlashCommand        string
+	Debug               bool // Explicitly turn on Slack protocol debug output
+	UserMap             map[string]string
+}
+
+func normalizeConfiguredSlashCommand(input string) string {
+	command := strings.TrimSpace(input)
+	command = strings.TrimPrefix(command, "/")
+	return strings.TrimSpace(command)
+}
+
+func resolveSlashCommandConfig(c config) (bool, string, error) {
+	if c.AcceptSlashCommands == nil {
+		return false, "", fmt.Errorf("Slack protocol config must explicitly set AcceptSlashCommands: true or false")
+	}
+	if !*c.AcceptSlashCommands {
+		return false, "", nil
+	}
+	command := normalizeConfiguredSlashCommand(c.SlashCommand)
+	if command == "" {
+		return false, "", fmt.Errorf("Slack protocol config enables slash commands, but SlashCommand is not configured")
+	}
+	return true, command, nil
 }
 
 func normalizeConfiguredUserMap(in map[string]string, h robot.Handler) map[string]string {
@@ -47,7 +70,7 @@ func normalizeConfiguredUserMap(in map[string]string, h robot.Handler) map[strin
 }
 
 // Initialize validates config, sets up and returns the connector object.
-func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
+func Initialize(r robot.Handler, l *log.Logger) robot.InitializedConnector {
 	var c config
 	var tok string
 	socketMode := false
@@ -60,6 +83,10 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 	err := r.GetProtocolConfig(&c)
 	if err != nil {
 		r.Log(robot.Fatal, "Unable to retrieve slack protocol configuration: %v", err)
+	}
+	slashEnabled, slashCommand, slashErr := resolveSlashCommandConfig(c)
+	if slashErr != nil {
+		r.Log(robot.Fatal, slashErr.Error())
 	}
 	// This spits out a lot of extra stuff, so we only enable it when tracing or
 	// explicitly configured.
@@ -100,6 +127,7 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 		api:             api,
 		maxMessageSplit: c.MaxMessageSplit,
 		reflectHidden:   !c.DisableReflection,
+		slashCommand:    slashCommand,
 		name:            "slack",
 		socketMode:      socketMode,
 		sendQueue:       nil,
@@ -141,7 +169,10 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 	sc.updateChannelMaps("")
 	sc.updateUserList("")
 
-	return robot.Connector(sc)
+	return robot.InitializedConnector{
+		Connector:    robot.Connector(sc),
+		Capabilities: robot.ConnectorCapabilities{HiddenCommands: slashEnabled},
+	}
 }
 
 func (sc *slackConnector) Run(stop <-chan struct{}) {

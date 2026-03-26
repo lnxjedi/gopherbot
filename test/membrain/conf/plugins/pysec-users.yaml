@@ -11,5 +11,6 @@ ElevatedCommands: []
 ElevateImmediateCommands: []
 AllowedHiddenCommands: []
 Commands:
-- Regex: (?i:python-sec-usersonly)
+- # Regex: (?i:python-sec-usersonly)
+  SimpleMatcher: python-sec-usersonly
   Command: secusersonly

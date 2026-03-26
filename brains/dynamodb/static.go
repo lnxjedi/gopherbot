@@ -1,7 +1,7 @@
 package dynamobrain
 
-import "github.com/lnxjedi/gopherbot/v2/bot"
+import "github.com/lnxjedi/gopherbot/robot"
 
 func init() {
-	bot.RegisterSimpleBrain("dynamo", provider)
+	robot.RegisterSimpleBrain("dynamo", provider)
 }

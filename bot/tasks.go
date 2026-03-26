@@ -112,16 +112,17 @@ type ScheduledTask struct {
 
 // InputMatcher specifies the command or message to match for a plugin
 type InputMatcher struct {
-	Regex       string         `yaml:"Regex"`       // The regular expression string to match - bot adds ^\w* & \w*$
-	Command     string         `yaml:"Command"`     // The name of the command to pass to the plugin with its arguments
-	Usage       string         `yaml:"Usage"`       // Canonical usage text for help output
-	Summary     string         `yaml:"Summary"`     // Short command description for help output
-	Examples    []string       `yaml:"Examples"`    // Optional examples for this command
-	Keywords    []string       `yaml:"Keywords"`    // Optional help search keywords tied to this command matcher
-	Label       string         `yaml:"Label"`       // ReplyMatchers use "Label" instead of "Command"
-	ChannelOnly bool           `yaml:"ChannelOnly"` // Whether this matcher only applies in the main channel (not a thread)
-	Contexts    []string       `yaml:"Contexts"`    // Labels for capture groups, for supporting "it" & optional args
-	re          *regexp.Regexp `yaml:"-"`           // The compiled regular expression, logged if compilation fails
+	Regex         string         `yaml:"Regex"`         // The regular expression string to match - bot adds ^\w* & \w*$
+	SimpleMatcher string         `yaml:"SimpleMatcher"` // Optional simplified matcher syntax for common directed Commands
+	Command       string         `yaml:"Command"`       // The name of the command to pass to the plugin with its arguments
+	Usage         string         `yaml:"Usage"`         // Canonical usage text for help output
+	Summary       string         `yaml:"Summary"`       // Short command description for help output
+	Examples      []string       `yaml:"Examples"`      // Optional examples for this command
+	Keywords      []string       `yaml:"Keywords"`      // Optional help search keywords tied to this command matcher
+	Label         string         `yaml:"Label"`         // ReplyMatchers use "Label" instead of "Command"
+	ChannelOnly   bool           `yaml:"ChannelOnly"`   // Whether this matcher only applies in the main channel (not a thread)
+	Contexts      []string       `yaml:"Contexts"`      // Labels for capture groups, for supporting "it" & optional args
+	re            *regexp.Regexp `yaml:"-"`             // The compiled regular expression, logged if compilation fails
 }
 
 // JobTrigger specifies a user and message to trigger a job

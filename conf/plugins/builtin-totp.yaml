@@ -1,7 +1,8 @@
 ---
 Commands:
 - Command: "check"
-  Regex: '(?i:(?:validate|launch missiles:) (\d{6}))'
+  # Regex: '(?i:(?:validate|launch missiles:) (\d{6}))'
+  SimpleMatcher: "(validate|launch missiles:) <code:number>"
   Keywords: [ "totp", "launch", "missiles" ]
   Usage: "validate <code>"
   Summary: "check that your TOTP codes are working"

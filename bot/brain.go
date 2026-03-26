@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -16,9 +15,6 @@ import (
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
-
-// Map of registered brains
-var brains = make(map[string]func(robot.Handler) robot.SimpleBrain)
 
 // For aes brain encryption
 var cryptKey = struct {
@@ -493,20 +489,6 @@ func (r Robot) DeleteMemory(key string, shared bool) {
 		ephemeralMemories.dirty = true
 	}
 	ephemeralMemories.Unlock()
-}
-
-// RegisterSimpleBrain allows brain implementations to register a function with a named
-// brain type that returns an SimpleBrain interface.
-// This can only be called from a brain provider's init() function(s). Pass in a Logger
-// so the brain can log it's own error messages if needed.
-func RegisterSimpleBrain(name string, provider func(robot.Handler) robot.SimpleBrain) {
-	if stopRegistrations {
-		return
-	}
-	if brains[name] != nil {
-		log.Fatal("Attempted registration of duplicate brain provider name:", name)
-	}
-	brains[name] = provider
 }
 
 // NOTE: All locking is done with the cryptKey mutex, bypassing

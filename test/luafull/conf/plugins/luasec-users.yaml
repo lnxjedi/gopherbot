@@ -4,5 +4,6 @@ AllowDirect: true
 Users:
 - alice
 Commands:
-- Regex: (?i:lua-sec-usersonly)
+- # Regex: (?i:lua-sec-usersonly)
+  SimpleMatcher: lua-sec-usersonly
   Command: secusersonly

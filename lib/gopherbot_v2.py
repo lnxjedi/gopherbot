@@ -193,6 +193,10 @@ class Robot:
         ret = self.Call(sys._getframe().f_code.co_name, { "Provider": provider, "User": user })
         return ret["RetVal"]
 
+    def GetHelpMetadata(self, query):
+        ret = self.Call(sys._getframe().f_code.co_name, { "Query": query })
+        return ret["StrVal"]
+
     def Exclusive(self, tag, queue_task=False):
         return self.Call(sys._getframe().f_code.co_name, { "Tag": tag, "QueueTask": queue_task })["Boolean"]
 

@@ -203,11 +203,11 @@ func TestGoFullSecurity(t *testing.T) {
 		{aliceID, general, ";go-sec-adminonly", false, []TestMessage{
 			{null, general, "SECURITY CHECK: secadminonly", false}}, nil, 0},
 		{bobID, general, ";go-sec-adminonly", false, []TestMessage{
-			{null, general, "No command matched in channel.*", true}}, nil, 0},
+			{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*)`, true}}, nil, 0},
 		{aliceID, general, ";go-sec-usersonly", false, []TestMessage{
 			{null, general, "SECURITY CHECK: secusersonly", false}}, nil, 0},
 		{bobID, general, ";go-sec-usersonly", false, []TestMessage{
-			{null, general, "No command matched in channel.*", true}}, nil, 0},
+			{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*)`, true}}, nil, 0},
 	}
 
 	for _, step := range flow {

@@ -67,6 +67,9 @@ type Robot interface {
 	GetSenderAttribute(a string) *AttrRet
 	// GetTaskConfig unmarshals the job/plugin configuration into a struct.
 	GetTaskConfig(cfgptr interface{}) RetVal
+	// GetHelpMetadata returns engine-filtered help/search metadata as a JSON string.
+	// The returned data is limited to commands the current user can browse via help.
+	GetHelpMetadata(query string) string
 	// GetMessage returns a pointer to the robot.Message struct
 	GetMessage() *Message
 	// GetParameter retrieves the value of a parameter for a pipeline. Only useful

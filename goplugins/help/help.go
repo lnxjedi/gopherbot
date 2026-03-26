@@ -40,7 +40,7 @@ func help(bot robot.Robot, command string, args ...string) (retval robot.TaskRet
 		} else {
 			reply += "."
 		}
-		bot.SayThread(reply)
+		bot.MessageFormat(robot.BasicMarkdown).SayThread(reply)
 	}
 	return
 }

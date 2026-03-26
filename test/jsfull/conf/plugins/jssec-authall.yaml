@@ -4,5 +4,6 @@ AllowDirect: true
 AuthorizeAllCommands: true
 AuthRequire: Helpdesk
 Commands:
-- Regex: (?i:js-sec-authall)
+- # Regex: (?i:js-sec-authall)
+  SimpleMatcher: js-sec-authall
   Command: secauthall

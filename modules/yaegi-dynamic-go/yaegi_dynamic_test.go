@@ -126,6 +126,19 @@ func TestRunPluginHandlerYaegiWrappedReturnWorks(t *testing.T) {
 	}
 }
 
+func TestRunPluginHandlerYaegiRobotHelpMetadataMethodCompiles(t *testing.T) {
+	pluginPath := writeTempPlugin(t, yaegiPluginUsingHelpMetadata())
+	logger := &testLogger{}
+
+	ret, err := RunPluginHandler(pluginPath, "help-metadata-repro", nil, nil, logger, false, "catchall")
+	if err != nil {
+		t.Fatalf("RunPluginHandler help metadata error = %v", err)
+	}
+	if ret != robot.Normal {
+		t.Fatalf("RunPluginHandler help metadata ret = %v, want %v", ret, robot.Normal)
+	}
+}
+
 func writeTempPlugin(t *testing.T, src string) string {
 	t.Helper()
 	ensureYaegiInitialized(t)
@@ -458,6 +471,21 @@ func yaegiPluginWithWrappedReturn() string {
 		"    result := forceCompactConversationDeterministic(state, cfg)",
 		"    if len(result.State.Exchanges) != 2 || len(result.Older) != 1 {",
 		"        return robot.Fail",
+		"    }",
+		"    return robot.Normal",
+		"}",
+	}, "\n")
+}
+
+func yaegiPluginUsingHelpMetadata() string {
+	return strings.Join([]string{
+		"package main",
+		"",
+		"import \"github.com/lnxjedi/gopherbot/robot\"",
+		"",
+		"func PluginHandler(r robot.Robot, command string, args ...string) robot.TaskRetVal {",
+		"    _ = func(rb robot.Robot) string {",
+		"        return rb.GetHelpMetadata(\"launch-server\")",
 		"    }",
 		"    return robot.Normal",
 		"}",

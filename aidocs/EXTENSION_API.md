@@ -14,10 +14,27 @@ The authoritative API surface for compiled Go and Yaegi-based extensions is the 
 ### Identity, attributes, config
 - `GetMessage()` – returns `*robot.Message` for the current pipeline.
 - `GetTaskConfig(cfgptr interface{}) RetVal`
+- `GetHelpMetadata(query string) string`
 - `GetParameter(name string) string`
 - `GetBotAttribute(a string) *AttrRet`
 - `GetUserAttribute(u, a string) *AttrRet`
 - `GetSenderAttribute(a string) *AttrRet`
+
+`GetHelpMetadata` returns engine-filtered JSON describing commands the current user can browse via help. It is intended for extension-side recovery/help experiences and keeps visibility policy in the engine rather than in plugins.
+
+Returned JSON includes:
+- `context` – bot/user/channel/protocol metadata plus `command_mode`, `raw_query`, and normalized query text
+- `visible_here` – commands currently visible/runnable in the active context
+- `browseable` – commands the user can browse via help, even if not runnable in the current channel
+- `ranked_here` – ranked matches from `visible_here`
+- `ranked_browseable` – ranked matches from the broader `browseable` set
+
+Important semantics:
+- The engine still applies normal authorization and visibility filtering.
+- Cross-channel entries are limited to commands the current user could already discover through help.
+- The primary intended use is "help me recover from an unmatched command" flows, including wrong-channel hints.
+
+Use `GetHelpMetadata` when an extension needs engine-filtered search/browse context for help or recovery flows.
 
 ### Messaging and formatting
 - `Direct() Robot`, `Threaded() Robot`, `Fixed() Robot`, `MessageFormat(f MessageFormat) Robot`
@@ -29,6 +46,11 @@ The authoritative API surface for compiled Go and Yaegi-based extensions is the 
 - `SendUserMessage(u, msg string, v ...interface{}) RetVal`
 - `Say(msg string, v ...interface{}) RetVal`, `SayThread(msg string, v ...interface{}) RetVal`
 - `Reply(msg string, v ...interface{}) RetVal`, `ReplyThread(msg string, v ...interface{}) RetVal`
+
+Formatting semantics:
+- `DefaultMessageFormat` is the fallback only when the sender does not explicitly choose a format.
+- `MessageFormat(...)` overrides the robot default for the resulting send/reply call chain.
+- Engine-shipped help/fallback flows intentionally send `BasicMarkdown` explicitly so connectors can render help consistently even when a robot's default format is `Raw` or another mode.
 
 ### Prompting
 - `PromptForReply(regexID, prompt string, v ...interface{}) (string, RetVal)`
@@ -112,6 +134,7 @@ Supported `FuncName` values in `bot/http.go`:
 - `CheckoutDatum`, `CheckinDatum`, `UpdateDatum`, `DeleteDatum`
 - `Remember`, `RememberThread`, `Recall`, `DeleteMemory`
 - `GetParameter`, `GetTaskConfig`
+- `GetHelpMetadata`
 - `GetSenderAttribute`, `GetBotAttribute`, `GetUserAttribute`
 - `Log`
 - `SendChannelThreadMessage`, `SendUserChannelThreadMessage`, `SendProtocolUserChannelMessage`, `SendUserMessage`
@@ -148,10 +171,13 @@ External interpreters call the HTTP API and wrap it in language-appropriate help
 - Python 3: `lib/gopherbot_v2.py` defines `class Robot` with the same core methods, plus `Subscribe`, `Unsubscribe`, and `SetWorkingDirectory`.
 - Ruby: `lib/gopherbot_v1.rb` defines `class Robot` (via `BaseBot`) with the same core methods, plus `Subscribe`, `Unsubscribe`, and `SetWorkingDirectory`.
 - Bash, Python, Ruby, Julia, and compatibility JS/Lua libraries also expose the OAuth2 methods above.
+- Python 3: `lib/gopherbot_v2.py` defines `class Robot` with the same core methods, plus `Subscribe`, `Unsubscribe`, `SetWorkingDirectory`, `GetHelpMetadata`, and the OAuth2 methods above.
+- Ruby: `lib/gopherbot_v1.rb` defines `class Robot` (via `BaseBot`) with the same core methods, plus `Subscribe`, `Unsubscribe`, `SetWorkingDirectory`, `GetHelpMetadata`, and the OAuth2 methods above.
 
 ## Parity notes and known gaps
 
 - `Subscribe` / `Unsubscribe` are now part of the canonical Go interface (`robot/robot.go`) and are exercised for external yaegi plugins via `test/go_full_test.go` + `plugins/test/gofull.go`.
+- `GetHelpMetadata` is available to compiled Go, Yaegi Go, and the HTTP-backed Bash/Python/Ruby libraries. It is not yet surfaced in the in-process Lua/JS helper libraries.
 - `SetWorkingDirectory` exists in the Go interface and external libraries (`lib/gopherbot_v1.sh`, `lib/gopherbot_v2.py`, `lib/gopherbot_v1.rb`), but it is not present in the Lua/JS wrappers as of `lib/gopherbot_v1.lua` / `lib/gopherbot_v1.js`.
 - `.gsh` implements `SetWorkingDirectory` plus a BusyBox-style builtin utility surface in-process inside the child interpreter.
 - `RaisePriv` is Go-only (`robot/robot.go`); there is no wrapper in external language libraries.

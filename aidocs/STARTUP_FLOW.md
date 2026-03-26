@@ -183,6 +183,8 @@ If `DefaultProtocol` is set, it must be the primary protocol or one of `Secondar
 - Supported values: `Raw`, `Fixed`, `Variable`, `BasicMarkdown`
 - If unset, startup defaults to `BasicMarkdown`
 - Unknown values log an error and fall back to `BasicMarkdown`
+- This default applies only when a plugin/job/built-in send path does not explicitly select a message format.
+- Calls chained from `Robot.MessageFormat(...)` override the default for that send.
 
 ### Primary Protocol Config Source
 
@@ -191,6 +193,22 @@ Primary connector configuration is always loaded from:
 - `conf/protocols/<PrimaryProtocol>.yaml`
 
 `ProtocolConfig` is expected there (not in `robot.yaml`). If that file is missing, or missing `ProtocolConfig`, startup/reload config load fails.
+
+### Connector Initialization Contract
+
+Connector registration is static, but connector capabilities are resolved at initialization time.
+
+- `robot.RegisterConnector(name, Initialize)` registers the connector type.
+- During connector runtime startup, the engine calls `Initialize(...)` for each active protocol.
+- `Initialize(...)` returns `robot.InitializedConnector{Connector, Capabilities}`.
+- Zero-value `ConnectorCapabilities` means "no special connector capabilities".
+- This allows capability flags like `HiddenCommands` to depend on protocol config instead of being fixed at registration time.
+- Because pre-connect config is already loaded before connector runtime initialization, connectors can also consume shared robot identity at init time through `Handler.GetBotInfo()` without needing protocol-local bot-name duplicates.
+
+Practical example:
+
+- Slack now decides hidden-command support during `Initialize(...)` based on `ProtocolConfig.AcceptSlashCommands` and `ProtocolConfig.SlashCommand`.
+- SSH/test/terminal currently return hidden-command support unconditionally from their initialized connector result.
 
 ### Brain/History Provider Config Sources
 
@@ -282,6 +300,10 @@ When `--aidev <token>` is supplied at startup:
 
 This mode is additive: connector startup and config merge ordering are unchanged.
 
+Test harness note:
+
+- integration startup in `bot/start_t.go` waits for the current async plugin-init batch to quiesce before returning control to the harness, so startup `init` events do not bleed into the first assertion
+
 ### Template Functions
 
 | Function             | Purpose                        | Example                             |
@@ -327,6 +349,14 @@ if encryptionInitialized {
    - otherwise fall back to `binary-encrypted-key`
 3. If neither candidate file exists but env key does, generate a new binary key at the base path `binary-encrypted-key`
 4. If no env key exists, `initCrypt` finishes. A final check for a legacy `EncryptionKey` in `robot.yaml` is performed by `initBot()` after `initCrypt()` returns.
+
+`GOPHER_ENVIRONMENT` therefore has two related startup roles:
+- selecting custom robot environment files under `custom/conf/environments/`
+- optionally selecting a separate encrypted binary key file when an environment-specific key file is intentionally present
+
+Operational note:
+- this preserves easy reuse of the shared encrypted-secret domain in development by default
+- operators can still opt into separate encrypted credentials for a given environment by creating `binary-encrypted-key.<environment>`
 
 ## Configuration Loading
 

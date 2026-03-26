@@ -28,9 +28,16 @@ This file captures Slack connector behavior relevant to routing, hidden commands
 
 ## Hidden Command Semantics
 
+- Slack hidden-command support is decided at connector initialization time, not registration time.
+- `Initialize(...)` returns `robot.InitializedConnector{Connector, Capabilities}` and only sets `Capabilities.HiddenCommands=true` when slash-command support is explicitly enabled in config.
+- Slack protocol config must explicitly set `AcceptSlashCommands: true|false`.
+- If `AcceptSlashCommands: true`, `SlashCommand` is required. The connector normalizes either `clu` or `/clu` to the canonical slash form.
+- If `AcceptSlashCommands` is omitted, or `SlashCommand` is missing while slash commands are enabled, Slack startup fails with a clear fatal log message so the robot owner knows the config is incomplete.
 - Slack slash commands are platform-routed to one bot app, so connector sets `BotMessage=true`.
 - Engine hidden-command policy then treats slash payload as addressed-to-robot without requiring an explicit robot name in text.
 - Command still must be explicitly allowed by plugin `AllowedHiddenCommands`.
+- Slack implements `robot.HiddenCommandFormatter`, so engine help/fallback can suggest concrete hidden commands such as `/clu help knock/knock` instead of placeholder `/(bot)` text.
+- Engine remains the owner of user-facing denial copy; when a hidden command is matched but addressed incorrectly for the protocol, engine uses Slack's formatter to produce one concrete guidance message.
 
 ## Outgoing Format Behavior
 
@@ -50,8 +57,10 @@ This file captures Slack connector behavior relevant to routing, hidden commands
 
 - Slack connector implements:
   - `FormatHelp(string) string` for line-level Slack-friendly formatting
-  - `DefaultHelp() []string` to override no-keyword quick-help lines.
-- Built-in help plugin (`builtin-help`) uses these hooks so `help`, `commands`, and `help-all` output remains readable in Slack formatting.
+  - `FormatHiddenCommand(string) string` via `robot.HiddenCommandFormatter`
+- `FormatHiddenCommand(...)` uses the configured slash command, not Slack bot username, so help/fallback suggestions reflect the real slash command surface (`/clu ...`) instead of app/bot identity values such as `clu_gopherbot`.
+- `DefaultHelp()` now returns no override so the engine can keep protocol-agnostic quick-help text instead of hardcoding Slack slash syntax.
+- Built-in help plugin (`builtin-help`) uses these hooks so `help`, `commands`, and `help-all` output remains readable in Slack formatting while only surfacing hidden-command guidance when it is actually valid.
 
 ## slack-go v0.17.x Notes
 

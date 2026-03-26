@@ -1,12 +1,33 @@
 package bot
 
-import "github.com/lnxjedi/gopherbot/robot"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/lnxjedi/gopherbot/robot"
+)
 
 func hiddenMessageAddressedToRobot(botMessage bool, cmdMode string) bool {
 	if botMessage {
 		return true
 	}
 	return cmdMode == "name"
+}
+
+func unsupportedHiddenCommandMessage(protocol string) string {
+	protocol = strings.TrimSpace(normalizeProtocolName(protocol))
+	if protocol == "" {
+		return "This command isn't supported here because hidden commands are unavailable for this connector. Check with the robot administrator."
+	}
+	return fmt.Sprintf("This command isn't supported with %s because hidden commands are unavailable for this connector. Check with the robot administrator.", protocol)
+}
+
+func defaultHiddenCommandHint(botName string) string {
+	botName = strings.TrimSpace(botName)
+	if botName == "" {
+		return "Hidden commands must be addressed to the robot."
+	}
+	return fmt.Sprintf("Hidden commands must be addressed to %s.", botName)
 }
 
 // Check whether a given command is allowed to run as a hidden command. Connectors set HiddenMessage
@@ -16,16 +37,20 @@ func (r Robot) checkHiddenCommands(w *worker, t interface{}, command string) (re
 	if !w.Incoming.HiddenMessage {
 		return robot.Success
 	}
+	protocol := protocolFromIncoming(r.Incoming, r.Protocol)
+	if !hiddenCommandsSupportedForProtocol(protocol) {
+		r.Reply(unsupportedHiddenCommandMessage(protocol))
+		return robot.Fail
+	}
 	// Hidden commands from connectors should still be explicitly addressed to the
 	// robot unless the connector marks them as BotMessage (e.g. slash commands
 	// already routed to this robot by the platform).
 	if !hiddenMessageAddressedToRobot(w.Incoming.BotMessage, w.cmdMode) {
-		botName := r.GetBotAttribute("name").String()
-		if botName == "" {
-			r.Reply("Sorry, hidden commands must be addressed to the robot")
-		} else {
-			r.Reply("Sorry, hidden commands must be addressed as '/%s <command>'", botName)
+		hint := strings.TrimSpace(r.expandHelpPlaceholders(hiddenCommandHintForProtocol(protocol)))
+		if hint == "" {
+			hint = defaultHiddenCommandHint(r.GetBotAttribute("name").String())
 		}
+		r.Reply(hint)
 		return robot.Fail
 	}
 	_, plugin, _ := getTask(t)

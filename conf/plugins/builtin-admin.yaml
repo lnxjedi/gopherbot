@@ -4,97 +4,116 @@ AllowDirect: true
 RequireAdmin: true
 Commands:
 - Command: reload
-  Regex: '(?i:reload)'
+  # Regex: '(?i:reload)'
+  SimpleMatcher: "reload"
   Keywords: [ "reload" ]
   Usage: "reload"
   Summary: "have the robot reload configuration files"
 - Command: update
-  Regex: '(?i:update(?:[ -]config(?:uration)?)?)'
+  # Regex: '(?i:update(?:[ -]config(?:uration)?)?)'
+  SimpleMatcher: "update [config|configuration]"
   Keywords: [ "config", "configuration", "update", "git" ]
   Usage: "update (configuration)"
   Summary: "perform a git pull of custom configuration and reload"
 - Command: branch
-  Regex: '(?i:(?:switch|change)[ -]branch ([^\s]+))'
+  # Regex: '(?i:(?:switch|change)[ -]branch ([^\s]+))'
+  SimpleMatcher: "(switch|change) branch <branch:token>"
   Keywords: [ "config", "configuration", "branch", "switch", "git" ]
   Usage: "switch-branch <branch>"
   Summary: "switch branches in configuration repository, pull latest, and reload"
 - Command: defaultbranch
-  Regex: '(?i:default[ -]branch)'
+  # Regex: '(?i:default[ -]branch)'
+  SimpleMatcher: "default branch"
   Keywords: [ "config", "configuration", "branch", "default", "git" ]
   Usage: "default-branch"
   Summary: "switch to repository default branch, pull latest, and reload"
 - Command: protocollist
-  Regex: '(?i:protocol[ -]list)'
+  # Regex: '(?i:protocol[ -]list)'
+  SimpleMatcher: "protocol list"
   Keywords: [ "protocol", "status", "list" ]
   Usage: "protocol-list"
   Summary: "list configured protocol runtimes and states"
 - Command: protocolstart
-  Regex: '(?i:protocol[ -]start ([A-Za-z][\w-]*))'
+  # Regex: '(?i:protocol[ -]start ([A-Za-z][\w-]*))'
+  SimpleMatcher: "protocol start <name:ident>"
   Keywords: [ "protocol", "start" ]
   Usage: "protocol-start <name>"
   Summary: "start a configured secondary protocol"
 - Command: protocolstop
-  Regex: '(?i:protocol[ -]stop ([A-Za-z][\w-]*))'
+  # Regex: '(?i:protocol[ -]stop ([A-Za-z][\w-]*))'
+  SimpleMatcher: "protocol stop <name:ident>"
   Keywords: [ "protocol", "stop" ]
   Usage: "protocol-stop <name>"
   Summary: "stop a configured secondary protocol"
 - Command: protocolrestart
-  Regex: '(?i:protocol[ -]restart ([A-Za-z][\w-]*))'
+  # Regex: '(?i:protocol[ -]restart ([A-Za-z][\w-]*))'
+  SimpleMatcher: "protocol restart <name:ident>"
   Keywords: [ "protocol", "restart" ]
   Usage: "protocol-restart <name>"
   Summary: "restart a configured secondary protocol"
 - Command: gitinfo
-  Regex: '(?i:(?:git|branch)[ -]info|show[ -]branch)'
+  # Regex: '(?i:(?:git|branch)[ -]info|show[ -]branch)'
+  SimpleMatcher: "((git|branch) info|show branch)"
   Keywords: [ "git", "branch", "status", "config" ]
   Usage: "git-info | show-branch"
   Summary: "show current/default/startup branch for the config repository"
 - Command: quit
-  Regex: '(?i:quit|exit)'
+  # Regex: '(?i:quit|exit)'
+  SimpleMatcher: "(quit|exit)"
   Keywords: [ "quit" ]
   Usage: "quit"
   Summary: "request a graceful shutdown, waiting for all plugins to finish"
 - Command: restart
-  Regex: '(?i:restart)'
+  # Regex: '(?i:restart)'
+  SimpleMatcher: "restart"
   Keywords: [ "restart" ]
   Usage: "restart"
   Summary: "request a graceful shutdown and restart"
 - Command: abort
-  Regex: '(?i:abort)'
+  # Regex: '(?i:abort)'
+  SimpleMatcher: "abort"
   Keywords: [ "abort" ]
   Usage: "abort"
   Summary: "request an immediate shutdown without waiting for plugins to finish"
 - Command: ps
-  Regex: '(?i:ps)'
+  # Regex: '(?i:ps)'
+  SimpleMatcher: "ps"
   Keywords: [ "process", "processes", "ps", "pipeline", "pipelines" ]
   Usage: "ps"
   Summary: "list running pipelines"
 - Command: "kill"
-  Regex: '(?i:kill(?:[- ](?:job|pipeline|process))? ([\d]+))'
+  # Regex: '(?i:kill(?:[- ](?:job|pipeline|process))? ([\d]+))'
+  SimpleMatcher: "kill [job|pipeline|process] <wid:number>"
   Keywords: [ "kill", "process", "job" ]
   Usage: "kill-pipeline <wid>"
   Summary: "kill the current process for the pipeline identified by <wid>"
 - Command: "pause"
-  Regex: '(?i:pause(?:[- ]job)? ([A-Za-z][\w-]*))'
+  # Regex: '(?i:pause(?:[- ]job)? ([A-Za-z][\w-]*))'
+  SimpleMatcher: "pause [job] <job:ident>"
   Keywords: [ "pause", "job", "jobs" ]
   Usage: "pause-job <job>"
   Summary: "pause running of <job> as a scheduled task"
 - Command: "resume"
-  Regex: '(?i:resume(?:[- ]job)? ([A-Za-z][\w-]*))'
+  # Regex: '(?i:resume(?:[- ]job)? ([A-Za-z][\w-]*))'
+  SimpleMatcher: "resume [job] <job:ident>"
   Keywords: [ "pause", "resume", "job", "jobs", "unpause", "un-pause" ]
   Usage: "resume-job <job>"
   Summary: "resume running of <job> as a scheduled task"
 - Command: pauselist
-  Regex: '(?i:(list[- ])?paused[- ]jobs)'
+  # Regex: '(?i:(list[- ])?paused[- ]jobs)'
+  SimpleMatcher: "[list] paused jobs"
   Keywords: [ "pause", "resume", "job", "jobs" ]
   Usage: "paused-jobs"
   Summary: "list the paused jobs"
 - Command: "chanlog"
-  Regex: '(?i:log[- ]channel(?: ([A-Za-z][\w-]*))?)'
+  # Regex: '(?i:log[- ]channel(?: ([A-Za-z][\w-]*))?)'
+  SimpleMatcher: "log channel [<channel:ident>]"
   Keywords: [ "debug", "log", "channel" ]
   Usage: "log-channel (channel)"
   Summary: "start a log of the current or given channel"
 - Command: "stopchanlog"
-  Regex: '(?i:stop[- ]channel[- ]logging)'
+  # Regex: '(?i:stop[- ]channel[- ]logging)'
+  SimpleMatcher: "stop channel logging"
   Keywords: [ "debug", "log", "channel" ]
   Usage: "stop-channel-logging"
   Summary: "stop all channel logging"

@@ -1,7 +1,6 @@
 package slack
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -15,17 +14,17 @@ func TestFormatHelp(t *testing.T) {
 	}
 }
 
-func TestDefaultHelpIncludesCommands(t *testing.T) {
+func TestDefaultHelpUsesEngineDefault(t *testing.T) {
 	s := &slackConnector{}
 	lines := s.DefaultHelp()
-	found := false
-	for _, line := range lines {
-		if strings.Contains(line, "commands") {
-			found = true
-			break
-		}
+	if len(lines) != 0 {
+		t.Fatalf("DefaultHelp() = %#v, want nil/empty to defer to engine defaults", lines)
 	}
-	if !found {
-		t.Fatalf("DefaultHelp() did not include commands line: %#v", lines)
+}
+
+func TestFormatHiddenCommand(t *testing.T) {
+	s := &slackConnector{slashCommand: "clu"}
+	if got := s.FormatHiddenCommand("help ping"); got != "/clu help ping" {
+		t.Fatalf("FormatHiddenCommand() = %q", got)
 	}
 }
