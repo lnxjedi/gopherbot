@@ -392,6 +392,7 @@ func loadConfig(preConnect bool) error {
 		var bival *UserInfo
 		var crval []ChannelInfo
 		var tval map[string]TaskSettings
+		var oauth2val map[string]OAuth2ProviderConfig
 		var stval []ScheduledTask
 		var mailval botMailer
 		var boolval bool
@@ -413,6 +414,8 @@ func loadConfig(preConnect bool) error {
 			val = &intval
 		case "ExternalJobs", "ExternalPlugins", "ExternalTasks", "GoJobs", "GoPlugins", "GoTasks", "NameSpaces", "ParameterSets":
 			val = &tval
+		case "OAuth2Providers":
+			val = &oauth2val
 		case "ScheduledJobs":
 			val = &stval
 		case "DefaultChannels", "IgnoreUsers", "JoinChannels", "AdminUsers", "SecondaryProtocols":
@@ -500,6 +503,8 @@ func loadConfig(preConnect bool) error {
 			newconfig.NameSpaces = *(val.(*map[string]TaskSettings))
 		case "ParameterSets":
 			newconfig.ParameterSets = *(val.(*map[string]TaskSettings))
+		case "OAuth2Providers":
+			newconfig.OAuth2Providers = *(val.(*map[string]OAuth2ProviderConfig))
 		case "ScheduledJobs":
 			newconfig.ScheduledJobs = *(val.(*[]ScheduledTask))
 		case "AdminUsers":
