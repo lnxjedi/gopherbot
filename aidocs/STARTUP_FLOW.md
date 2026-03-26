@@ -209,7 +209,7 @@ OAuth2 provider definitions are loaded from the root `robot.yaml` key `OAuth2Pro
 
 - Providers are part of normal config processing in `bot/conf.go`.
 - Provider keys are normalized to lowercase and stored in processed config for runtime lookup.
-- Secrets can use normal template decryption, for example `ClientSecret: {{ decrypt "..." }}`.
+- Providers reference a `CredentialParameterSet` for refresh-time client credentials; the provider registry should not embed secrets directly.
 - The registry is configuration-only at startup; token storage and refresh state live in the brain at runtime.
 
 ### Config Merge Semantics (Installed Defaults + Custom Overrides)

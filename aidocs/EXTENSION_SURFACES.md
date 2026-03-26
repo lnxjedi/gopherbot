@@ -43,8 +43,8 @@ Concise map of extension types, where they live, and how they register/discover.
 - Registration: `robot/registrations.go` (func `RegisterPlugin`) called in plugin `init()` (e.g., `goplugins/help/help.go`), collected and wired by `bot/registrations.go` (func `ProcessRegistrations`), which is invoked in `main.go` (func `main`).
 - Examples: `goplugins/help/help.go` (func `init`), `goplugins/duo/duo.go` (func `init`), `goplugins/groups/groups.go` (func `init`).
 
-Built-in OAuth2 onboarding note:
-- `bot/oauth2_github_plugin.go` also registers a built-in Go plugin, `github-link`, which is enabled via `GoPlugins` in `conf/robot.yaml` and configured by `conf/plugins/github-link.yaml`.
+Shipped OAuth2 onboarding note:
+- `plugins/go-github-link/github_link.go` implements `github-link` as an external Go plugin, enabled via `ExternalPlugins` in `conf/robot.yaml` and configured by `conf/plugins/github-link.yaml`.
 
 ## Go tasks
 

@@ -54,7 +54,13 @@ WorkSpace: workspace
 Brain: mem
 DefaultAuthorizer: groups
 DefaultElevator: builtin-totp
+ParameterSets:
+  github_oauth:
+    Parameters:
+    - Name: CLIENT_ID
+      Value: "jsfull-client"
+    - Name: CLIENT_SECRET
+      Value: "jsfull-secret"
 OAuth2Providers:
   github:
-    DisplayName: GitHub
-    ClientID: "jsfull-client"
+    CredentialParameterSet: github_oauth

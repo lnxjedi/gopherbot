@@ -41,16 +41,9 @@ type oauth2TokenHTTPResponse struct {
 	Interval              int         `json:"interval"`
 }
 
-type oauth2DeviceAuthorizationResponse struct {
-	DeviceCode              string `json:"device_code"`
-	UserCode                string `json:"user_code"`
-	VerificationURI         string `json:"verification_uri"`
-	VerificationURIComplete string `json:"verification_uri_complete"`
-	ExpiresIn               int    `json:"expires_in"`
-	Interval                int    `json:"interval"`
-	Error                   string `json:"error"`
-	ErrorDescription        string `json:"error_description"`
-	Message                 string `json:"message"`
+type oauth2ClientCredentials struct {
+	ClientID     string
+	ClientSecret string
 }
 
 func normalizeOAuth2ProviderKey(provider string) string {
@@ -82,6 +75,45 @@ func getOAuth2ProviderConfig(provider string) (OAuth2ProviderConfig, bool) {
 func oauth2UserDatumKey(provider, user string) string {
 	sum := sha1.Sum([]byte(strings.ToLower(strings.TrimSpace(user))))
 	return fmt.Sprintf("bot:oauth2:v1:%s:user:%s", oauth2DatumKeySegment(provider), hex.EncodeToString(sum[:]))
+}
+
+func getOAuth2CredentialParameterSet(name string) (ParameterSet, bool) {
+	setName := strings.TrimSpace(name)
+	if setName == "" {
+		return ParameterSet{}, false
+	}
+	currentCfg.RLock()
+	ps, ok := currentCfg.parameterSets[setName]
+	currentCfg.RUnlock()
+	return ps, ok
+}
+
+func oauth2GetParameterValue(params []Parameter, name string) string {
+	for _, param := range params {
+		if strings.EqualFold(strings.TrimSpace(param.Name), name) {
+			return strings.TrimSpace(param.Value)
+		}
+	}
+	return ""
+}
+
+func oauth2ResolveClientCredentials(provider OAuth2ProviderConfig) (oauth2ClientCredentials, robot.RetVal, string) {
+	setName := strings.TrimSpace(provider.CredentialParameterSet)
+	if setName == "" {
+		return oauth2ClientCredentials{}, robot.OAuth2ConfigError, "provider missing CredentialParameterSet"
+	}
+	ps, ok := getOAuth2CredentialParameterSet(setName)
+	if !ok {
+		return oauth2ClientCredentials{}, robot.OAuth2ConfigError, fmt.Sprintf("provider credential ParameterSet %q not found", setName)
+	}
+	creds := oauth2ClientCredentials{
+		ClientID:     oauth2GetParameterValue(ps.Parameters, "CLIENT_ID"),
+		ClientSecret: oauth2GetParameterValue(ps.Parameters, "CLIENT_SECRET"),
+	}
+	if creds.ClientID == "" {
+		return oauth2ClientCredentials{}, robot.OAuth2ConfigError, fmt.Sprintf("provider credential ParameterSet %q is missing CLIENT_ID", setName)
+	}
+	return creds, robot.Ok, ""
 }
 
 func oauth2TimePtr(t time.Time) *time.Time {
@@ -266,7 +298,7 @@ func oauth2ReauthError(providerErr string) bool {
 }
 
 func oauth2ProviderConfigValid(provider OAuth2ProviderConfig) robot.RetVal {
-	if provider.Key == "" || strings.TrimSpace(provider.ClientID) == "" {
+	if provider.Key == "" || strings.TrimSpace(provider.CredentialParameterSet) == "" {
 		return robot.OAuth2ConfigError
 	}
 	return robot.Ok
@@ -274,7 +306,7 @@ func oauth2ProviderConfigValid(provider OAuth2ProviderConfig) robot.RetVal {
 
 func oauth2RefreshUserToken(provider OAuth2ProviderConfig, state *oauth2UserLink, now time.Time) robot.RetVal {
 	if ret := oauth2ProviderConfigValid(provider); ret != robot.Ok {
-		oauth2SetError(state, ret, "provider missing client_id or key", false, now)
+		oauth2SetError(state, ret, "provider missing key or credential ParameterSet", false, now)
 		return ret
 	}
 	if strings.TrimSpace(provider.Token.URL) == "" {
@@ -284,6 +316,11 @@ func oauth2RefreshUserToken(provider OAuth2ProviderConfig, state *oauth2UserLink
 	if strings.TrimSpace(state.Token.RefreshToken) == "" {
 		oauth2SetError(state, robot.OAuth2ReauthRequired, "token expired and no refresh token is stored", true, now)
 		return robot.OAuth2ReauthRequired
+	}
+	creds, ret, msg := oauth2ResolveClientCredentials(provider)
+	if ret != robot.Ok {
+		oauth2SetError(state, ret, msg, false, now)
+		return ret
 	}
 
 	values := url.Values{}
@@ -298,19 +335,19 @@ func oauth2RefreshUserToken(provider OAuth2ProviderConfig, state *oauth2UserLink
 	headers := map[string]string{}
 	switch oauth2AuthMethod(provider) {
 	case "client_secret_basic":
-		if provider.ClientSecret == "" {
-			oauth2SetError(state, robot.OAuth2ConfigError, "provider requires client_secret_basic but ClientSecret is empty", false, now)
+		if creds.ClientSecret == "" {
+			oauth2SetError(state, robot.OAuth2ConfigError, "provider requires client_secret_basic but CLIENT_SECRET is empty", false, now)
 			return robot.OAuth2ConfigError
 		}
-		headers["Authorization"] = oauth2BasicAuthValue(provider.ClientID, provider.ClientSecret)
+		headers["Authorization"] = oauth2BasicAuthValue(creds.ClientID, creds.ClientSecret)
 	case "client_id_only":
-		values.Set("client_id", provider.ClientID)
+		values.Set("client_id", creds.ClientID)
 	case "none":
 		// nothing
 	default:
-		values.Set("client_id", provider.ClientID)
-		if provider.ClientSecret != "" {
-			values.Set("client_secret", provider.ClientSecret)
+		values.Set("client_id", creds.ClientID)
+		if creds.ClientSecret != "" {
+			values.Set("client_secret", creds.ClientSecret)
 		}
 	}
 
@@ -502,82 +539,4 @@ func (r Robot) UnlinkOAuth2User(provider, user string) robot.RetVal {
 		return robot.OAuth2InvalidLinkRequest
 	}
 	return deleteDatum(oauth2UserDatumKey(cfg.Key, user))
-}
-
-func requestOAuth2DeviceAuthorization(provider OAuth2ProviderConfig, scopes []string) (*oauth2DeviceAuthorizationResponse, robot.RetVal) {
-	if ret := oauth2ProviderConfigValid(provider); ret != robot.Ok {
-		return nil, ret
-	}
-	if strings.TrimSpace(provider.DeviceAuthorization.URL) == "" {
-		return nil, robot.OAuth2ConfigError
-	}
-	if len(scopes) == 0 {
-		scopes = provider.DefaultScopes
-	}
-	values := url.Values{}
-	values.Set("client_id", provider.ClientID)
-	if len(scopes) > 0 {
-		values.Set("scope", strings.Join(scopes, " "))
-	}
-	payload, statusCode, err := oauth2DoFormPost(provider.DeviceAuthorization, nil, values)
-	if err != nil {
-		Log(robot.Error, "oauth2: device authorization request failed for provider=%s: %v", provider.Key, err)
-		return nil, robot.Failed
-	}
-	var resp oauth2DeviceAuthorizationResponse
-	if err := oauth2DecodeJSON(payload, &resp); err != nil {
-		Log(robot.Error, "oauth2: device authorization decode failed for provider=%s status=%d: %v", provider.Key, statusCode, err)
-		return nil, robot.Failed
-	}
-	if resp.Error != "" || resp.DeviceCode == "" {
-		Log(robot.Error, "oauth2: device authorization failed for provider=%s status=%d: %s", provider.Key, statusCode, resp.ErrorDescription)
-		return nil, robot.Failed
-	}
-	if resp.Interval <= 0 {
-		resp.Interval = 5
-	}
-	return &resp, robot.Ok
-}
-
-func exchangeOAuth2DeviceCode(provider OAuth2ProviderConfig, deviceCode string) (*oauth2TokenHTTPResponse, robot.RetVal) {
-	if ret := oauth2ProviderConfigValid(provider); ret != robot.Ok {
-		return nil, ret
-	}
-	if strings.TrimSpace(provider.Token.URL) == "" {
-		return nil, robot.OAuth2ConfigError
-	}
-	values := url.Values{}
-	values.Set("grant_type", "urn:ietf:params:oauth:grant-type:device_code")
-	values.Set("device_code", deviceCode)
-	headers := map[string]string{}
-	switch oauth2AuthMethod(provider) {
-	case "client_secret_basic":
-		if provider.ClientSecret == "" {
-			return nil, robot.OAuth2ConfigError
-		}
-		headers["Authorization"] = oauth2BasicAuthValue(provider.ClientID, provider.ClientSecret)
-	case "client_id_only":
-		values.Set("client_id", provider.ClientID)
-	case "none":
-	default:
-		values.Set("client_id", provider.ClientID)
-		if provider.ClientSecret != "" {
-			values.Set("client_secret", provider.ClientSecret)
-		}
-	}
-	payload, _, err := oauth2DoFormPost(provider.Token.OAuth2EndpointConfig, headers, values)
-	if err != nil {
-		Log(robot.Error, "oauth2: device token exchange failed for provider=%s: %v", provider.Key, err)
-		return nil, robot.Failed
-	}
-	var resp oauth2TokenHTTPResponse
-	if err := oauth2DecodeJSON(payload, &resp); err != nil {
-		Log(robot.Error, "oauth2: device token decode failed for provider=%s: %v", provider.Key, err)
-		return nil, robot.Failed
-	}
-	return &resp, robot.Ok
-}
-
-func oauth2BearerHeader(token string) string {
-	return "Bearer " + strings.TrimSpace(token)
 }

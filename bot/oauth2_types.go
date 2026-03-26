@@ -4,14 +4,9 @@ import "time"
 
 type OAuth2ProviderConfig struct {
 	Key                     string                    `yaml:"-"`
-	DisplayName             string                    `yaml:"DisplayName"`
-	ClientID                string                    `yaml:"ClientID"`
-	ClientSecret            string                    `yaml:"ClientSecret"`
-	DefaultScopes           []string                  `yaml:"DefaultScopes"`
+	CredentialParameterSet  string                    `yaml:"CredentialParameterSet"`
 	TokenEndpointAuthMethod string                    `yaml:"TokenEndpointAuthMethod"`
-	DeviceAuthorization     OAuth2EndpointConfig      `yaml:"DeviceAuthorization"`
 	Token                   OAuth2TokenEndpointConfig `yaml:"Token"`
-	UserInfo                OAuth2EndpointConfig      `yaml:"UserInfo"`
 }
 
 type OAuth2EndpointConfig struct {

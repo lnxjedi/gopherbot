@@ -111,6 +111,9 @@ func TestGoFull(t *testing.T) {
 			{null, general, "SETPARAM ADDTASK: queued", false},
 			{null, general, "PARAM-SHOW: PIPELINE_SENTINEL=nebula-42", false}},
 			[]Event{CommandTaskRan, GoPluginRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";go-oauth2-cycle", false, []TestMessage{
+			{null, general, "OAUTH2 FLOW: link=Ok token=go-token get=Ok unlink=Ok", false}},
+			[]Event{CommandTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 

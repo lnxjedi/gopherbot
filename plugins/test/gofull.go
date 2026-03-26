@@ -39,6 +39,8 @@ Commands:
   Command: identity
 - Regex: (?i:go-parameter-addtask)
   Command: parameteraddtask
+- Regex: (?i:go-oauth2-cycle)
+  Command: oauth2cycle
 - Regex: (?i:go-pipeline-ok)
   Command: pipelineok
 - Regex: (?i:go-pipeline-fail)
@@ -260,6 +262,18 @@ func PluginHandler(r robot.Robot, command string, args ...string) (retval robot.
 			return robot.Fail
 		}
 		r.Say("SETPARAM ADDTASK: queued")
+		return robot.Normal
+	case "oauth2cycle":
+		ret := r.LinkOAuth2User(&robot.OAuth2LinkRequest{
+			Provider:     "github",
+			User:         "alice",
+			AccessToken:  "go-token",
+			RefreshToken: "go-refresh",
+			TokenType:    "Bearer",
+		})
+		token, getRet := r.GetOAuth2Token("github", "alice")
+		unlinkRet := r.UnlinkOAuth2User("github", "alice")
+		r.Say("OAUTH2 FLOW: link=%s token=%s get=%s unlink=%s", ret, token, getRet, unlinkRet)
 		return robot.Normal
 	case "pipeaddcmd":
 		r.Say("PIPE ADD COMMAND: ran")

@@ -5,7 +5,7 @@ This document describes the engine-managed OAuth2 token system for Gopherbot. It
 Primary implementation files:
 - `bot/oauth2.go`
 - `bot/oauth2_types.go`
-- `bot/oauth2_github_plugin.go`
+- `plugins/go-github-link/github_link.go`
 - `robot/oauth2.go`
 - `robot/robot.go`
 
@@ -26,43 +26,49 @@ Why device flow is the default:
 - avoids redirect URI management and public callback endpoints
 - allows the robot to use its own client credentials during token exchange
 
-The current built-in onboarding plugin is GitHub-specific:
-- built-in Go plugin: `github-link`
+The current shipped onboarding plugin is GitHub-specific:
+- shipped external Go plugin: `github-link`
 - shipped config: `conf/plugins/github-link.yaml`
 
 ## Provider registry
 
 Providers are configured in `robot.yaml` under `OAuth2Providers`.
 
+The provider registry is internal engine config for refresh behavior. It is not exposed to plugins.
+
 Example:
 
 ```yaml
+ParameterSets:
+  github_oauth:
+    Parameters:
+    - Name: CLIENT_ID
+      Value: "Iv1..."
+    - Name: CLIENT_SECRET
+      Value: {{ decrypt "<encrypted github client secret>" }}
+
 OAuth2Providers:
   github:
-    DisplayName: GitHub
-    ClientID: "Iv1..."
-    ClientSecret: {{ decrypt "<encrypted github client secret>" }}
-    DefaultScopes: [ "read:user", "repo", "workflow" ]
-    TokenEndpointAuthMethod: client_id_only
-    DeviceAuthorization:
-      URL: https://github.com/login/device/code
-      Headers:
-        Accept: application/json
+    CredentialParameterSet: github_oauth
+    TokenEndpointAuthMethod: client_secret_post
     Token:
       URL: https://github.com/login/oauth/access_token
       Headers:
         Accept: application/json
-    UserInfo:
-      URL: https://api.github.com/user
-      Headers:
-        Accept: application/vnd.github+json
+
+ExternalPlugins:
+  "github-link":
+    Path: plugins/go-github-link/github_link.go
+    ParameterSets:
+    - github_oauth
 ```
 
 Notes:
 - Provider keys are normalized to lowercase during config load.
-- `ClientSecret` may be omitted for providers and flows that only require `client_id`.
+- `CredentialParameterSet` points to a standard parameter set containing `CLIENT_ID` and `CLIENT_SECRET`.
 - Secrets should be stored encrypted with `gopherbot encrypt <secret>` and loaded with `{{ decrypt "..." }}`.
 - `TokenEndpointAuthMethod` supports `client_secret_post`, `client_secret_basic`, `client_id_only`, and `none`.
+- Onboarding plugins should receive that same parameter set explicitly through their own `ParameterSets` config if they need the client credentials.
 
 ## Stored brain schema
 
@@ -118,11 +124,12 @@ Stored JSON shape:
 
 Behavior:
 1. load provider config from `currentCfg.oauth2Providers`
-2. load the user link datum from the bot namespace
-3. if the access token is present and not near expiry, return it
-4. if expired, take a brain write lock on that datum and re-check state
-5. if still expired, perform a refresh token grant when a refresh token exists
-6. atomically write the new token state back before releasing the lock
+2. resolve client credentials internally from the provider's `CredentialParameterSet`
+3. load the user link datum from the bot namespace
+4. if the access token is present and not near expiry, return it
+5. if expired, take a brain write lock on that datum and re-check state
+6. if still expired, perform a refresh token grant when a refresh token exists
+7. atomically write the new token state back before releasing the lock
 
 Refresh behavior:
 - refresh token rotation is handled automatically
@@ -170,9 +177,9 @@ Design note:
 - on failure, `GetOAuth2Token` returns `""` plus a machine-readable `RetVal`
 - deeper detail is logged in engine logs and stored in the record status
 
-## Built-in GitHub linker
+## Shipped GitHub linker
 
-`bot/oauth2_github_plugin.go` registers `github-link` as a built-in Go plugin.
+`plugins/go-github-link/github_link.go` implements `github-link` as a shipped external Go plugin.
 
 Shipped commands:
 - `link-github`
@@ -180,13 +187,18 @@ Shipped commands:
 - `github-whoami`
 
 Flow:
-1. start device authorization with the configured `github` provider
-2. DM the user a verification URL and user code
-3. poll the token endpoint until success, denial, or expiry
-4. fetch `/user` from the GitHub API to confirm identity
-5. persist the link with `LinkOAuth2User(...)`
+1. read `CLIENT_ID` and `CLIENT_SECRET` from the plugin's explicitly attached `ParameterSets`
+2. start device authorization against GitHub
+3. DM the user a verification URL and user code
+4. poll the token endpoint until success, denial, or expiry
+5. fetch `/user` from the GitHub API to confirm identity
+6. persist the link with `LinkOAuth2User(...)`
 
 This keeps the service-specific UX in the plugin while leaving token storage and refresh in the engine.
+
+Security boundary:
+- onboarding plugins get secrets only because the robot owner explicitly attached the credential parameter set to that plugin
+- `GetOAuth2Token` uses the provider registry internally for refresh, but plugins cannot read the registry back out through a robot method
 
 ## Sample extension usage
 

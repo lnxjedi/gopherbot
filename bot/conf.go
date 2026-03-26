@@ -96,7 +96,7 @@ type ConfigLoader struct {
 	JoinChannels         []string                        `yaml:"JoinChannels"`         // Channels the bot should join on login (not supported by all protocols)
 	DefaultJobChannel    string                          `yaml:"DefaultJobChannel"`    // Where job status is posted by default
 	TimeZone             string                          `yaml:"TimeZone"`             // For evaluating the hour in a job schedule
-	OAuth2Providers      map[string]OAuth2ProviderConfig `yaml:"OAuth2Providers"`      // Registry of OAuth2 providers available to the robot
+	OAuth2Providers      map[string]OAuth2ProviderConfig `yaml:"OAuth2Providers"`      // Internal OAuth2 refresh registry used by GetOAuth2Token
 	ExternalJobs         map[string]TaskSettings         `yaml:"ExternalJobs"`         // List of available jobs; config in conf/jobs/<jobname>.yaml
 	ExternalPlugins      map[string]TaskSettings         `yaml:"ExternalPlugins"`      // List of non-Go plugins to load; config in conf/plugins/<plugname>.yaml
 	ExternalTasks        map[string]TaskSettings         `yaml:"ExternalTasks"`        // List executables for pipeline addition (not as starters)
@@ -791,6 +791,14 @@ func loadConfig(preConnect bool) error {
 				continue
 			}
 			provider.Key = key
+			provider.CredentialParameterSet = strings.TrimSpace(provider.CredentialParameterSet)
+			if provider.CredentialParameterSet == "" {
+				Log(robot.Error, "OAuth2 provider '%s' has no CredentialParameterSet configured", key)
+			} else if newconfig.ParameterSets == nil {
+				Log(robot.Error, "OAuth2 provider '%s' references ParameterSet '%s', but no ParameterSets are configured", key, provider.CredentialParameterSet)
+			} else if _, ok := newconfig.ParameterSets[provider.CredentialParameterSet]; !ok {
+				Log(robot.Error, "OAuth2 provider '%s' references missing ParameterSet '%s'", key, provider.CredentialParameterSet)
+			}
 			providers[key] = provider
 		}
 		processed.oauth2Providers = providers

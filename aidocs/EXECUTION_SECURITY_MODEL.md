@@ -94,6 +94,19 @@ Key invariant in current model: dropping/raising privilege for task execution re
 - Adding privileged tasks/plugins/jobs to unprivileged pipelines is blocked (`bot/robot_pipecmd.go`).
 - Some pipeline parameters/secrets are gated by privilege checks in environment assembly (`bot/run_pipelines.go` comments + logic around inherited params).
 
+## Extension Secret Access Boundary
+
+Gopherbot treats extension secret access as explicit and scope-based.
+
+- An extension may receive secrets when the robot administrator explicitly assigns them to that extension through task/plugin configuration, `ParameterSets`, or task config retrieved through `GetTaskConfig()`.
+- An extension may also access secrets it previously stored inside brain/memory state owned by its own namespace.
+- Unprivileged robot methods must not expose shared/global secret-bearing configuration, nor provide discovery of secrets assigned to other extensions.
+
+Practical rule for engine APIs:
+
+- `GetTaskConfig()` is acceptable for extension-specific secrets because the robot owner explicitly attached that config to the calling extension.
+- Generic robot methods must not return provider registries, parameter-set contents, or other broad config objects that could disclose secrets to untrusted plugins.
+
 ## Practical Limitations (Current)
 
 - This is not yet a strict multi-process sandbox model for all task types.

@@ -118,7 +118,10 @@ ExternalPlugins:
 #     Description: Example JavaScript plugin using GetOAuth2Token plus GitHub HTTP APIs
 #     Path: plugins/samples/github-tools.js
 #   "github-link":
-#     Description: Built-in GitHub account linker using OAuth2 device flow
+#     Description: Shipped GitHub account linker using OAuth2 device flow
+#     Path: plugins/go-github-link/github_link.go
+#     ParameterSets:
+#     - github_oauth
 
 ## Note that modules for connectors, brains and history providers load automatically
 # LoadableModules:
@@ -149,23 +152,19 @@ DefaultMessageFormat: BasicMarkdown
 
 # OAuth2Providers:
 #   github:
-#     DisplayName: GitHub
-#     ClientID: "Iv1..."
-#     ClientSecret: {{ decrypt "<encrypted github client secret>" }}
-#     DefaultScopes: [ "read:user", "repo", "workflow" ]
-#     TokenEndpointAuthMethod: client_id_only
-#     DeviceAuthorization:
-#       URL: https://github.com/login/device/code
-#       Headers:
-#         Accept: application/json
+#     CredentialParameterSet: github_oauth
+#     TokenEndpointAuthMethod: client_secret_post
 #     Token:
 #       URL: https://github.com/login/oauth/access_token
 #       Headers:
 #         Accept: application/json
-#     UserInfo:
-#       URL: https://api.github.com/user
-#       Headers:
-#         Accept: application/vnd.github+json
+# ParameterSets:
+#   github_oauth:
+#     Parameters:
+#     - Name: CLIENT_ID
+#       Value: "Iv1..."
+#     - Name: CLIENT_SECRET
+#       Value: {{ decrypt "<encrypted github client secret>" }}
 # Users the bot should never listen to
 #IgnoreUsers: [ "otherbot", "slackbot" ]
 

@@ -13,7 +13,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Interpreter notes: `aidocs/INTERPRETERS.md`.
 - Extension surface map: `aidocs/EXTENSION_SURFACES.md`.
 - Test harness overview: `aidocs/TESTING_CURRENT.md`.
-- OAuth2 provider registry, brain schema, and token lifecycle: `aidocs/OAUTH2_TOKEN_MANAGEMENT.md`.
+- OAuth2 refresh registry, brain schema, and token lifecycle: `aidocs/OAUTH2_TOKEN_MANAGEMENT.md`.
 - Incoming message pipeline flow: `aidocs/PIPELINE_LIFECYCLE.md`.
 - Scheduled job pipeline flow: `aidocs/SCHEDULER_FLOW.md`.
 - AI-maintained backlog: `aidocs/TODO.md`.
@@ -29,8 +29,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Runtime git branch observability: `bot/git_runtime.go` (startup capture + runtime snapshot for info/admin commands), with privileged sync task registration in `bot/pipe_tasks.go` (`git-sync-state`).
 - AI-dev endpoint/auth helpers: `bot/aidev.go` (token + `.aiport`) and `bot/aidev_http.go` (authenticated `send_message` / `get_messages` routing).
 - Internal module initialization: `bot/modules_init.go` (func `initializeModules`) — initializes ssh-agent, ssh-git-helper, and yaegi interpreter modules.
-- OAuth2 token manager + device-flow helpers: `bot/oauth2.go`, `bot/oauth2_types.go`.
-- Built-in GitHub onboarding plugin: `bot/oauth2_github_plugin.go` (registers `github-link`).
+- OAuth2 token manager + internal refresh-registry handling: `bot/oauth2.go`, `bot/oauth2_types.go`.
 - Built-in connectors (not under `connectors/`): `bot/term_connector.go` (registers `"terminal"`), `bot/null_connector.go` (registers `"nullconn"`).
 
 ## brains/
@@ -100,6 +99,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 ## plugins/
 
 - External and interpreter-backed script plugins/samples: `plugins/README.txt`, `plugins/admin.gsh`, `plugins/ssh-admin.gsh`, `plugins/welcome.lua`, `plugins/welcome.sh`, `plugins/samples/README.txt`, `plugins/samples/hello.gsh`, `plugins/test/shfull.gsh`.
+- Shipped OAuth2 onboarding plugin: `plugins/go-github-link/github_link.go`.
 - OpenAI fallback plugin: `plugins/go-openai-fallback/ai.go` (func `PluginHandler`).
 
 ## resources/

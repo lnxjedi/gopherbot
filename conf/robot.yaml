@@ -169,29 +169,19 @@ NameSpaces:
 
 ParameterSets:
 
-## Optional registry of OAuth2 providers that engine-managed plugins and
-## custom extensions can use via GetOAuth2Token / LinkOAuth2User.
+## Optional registry of OAuth2 providers used internally by GetOAuth2Token for
+## refresh behavior. Onboarding plugins should get secrets only from explicit
+## task ParameterSets, not through a robot method.
 # OAuth2Providers:
 #   github:
-#     DisplayName: GitHub
-#     ClientID: "Iv1..."
-#     ClientSecret: {{ decrypt "<encrypted github client secret>" }}
-#     DefaultScopes: [ "read:user", "repo", "workflow" ]
-#     ## GitHub device flow commonly works with client_id only, but other
-#     ## providers may require client_secret_post or client_secret_basic.
-#     TokenEndpointAuthMethod: client_id_only
-#     DeviceAuthorization:
-#       URL: https://github.com/login/device/code
-#       Headers:
-#         Accept: application/json
+#     CredentialParameterSet: github_oauth
+#     ## GetOAuth2Token uses CLIENT_ID and CLIENT_SECRET from the referenced
+#     ## ParameterSet when a refresh grant needs client authentication.
+#     TokenEndpointAuthMethod: client_secret_post
 #     Token:
 #       URL: https://github.com/login/oauth/access_token
 #       Headers:
 #         Accept: application/json
-#     UserInfo:
-#       URL: https://api.github.com/user
-#       Headers:
-#         Accept: application/vnd.github+json
 
 {{- if ne $mode "demo" }}
 ScheduledJobs:
@@ -243,6 +233,12 @@ ExternalPlugins:
       Value: ""
     - Name: OPENAI_ORGANIZATION_ID
       Value: ""
+  "github-link":
+    Description: Link and verify a user's GitHub account with device authorization
+    Path: plugins/go-github-link/github_link.go
+    Homed: true
+    # ParameterSets:
+    # - github_oauth
 {{- if eq $mode "demo" }}
   {{- if or (eq $proto "terminal") (eq $proto "ssh") }}
   "welcome":
@@ -265,8 +261,6 @@ GoPlugins:
   "builtin-help":
     Description: A plugin providing help for commands
     NameSpace: manage
-  "github-link":
-    Description: Link and verify a user's GitHub account with device authorization
 
 ## Only for compiled-in Go jobs, all current Go jobs are external and dynamic, see
 ## below.

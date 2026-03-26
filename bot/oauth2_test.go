@@ -13,7 +13,7 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-func setupOAuth2BrainTest(t *testing.T, providers map[string]OAuth2ProviderConfig) *memBrain {
+func setupOAuth2BrainTest(t *testing.T, providers map[string]OAuth2ProviderConfig, parameterSets map[string]ParameterSet) *memBrain {
 	t.Helper()
 
 	oldBrain := interfaces.brain
@@ -41,11 +41,14 @@ func setupOAuth2BrainTest(t *testing.T, providers map[string]OAuth2ProviderConfi
 
 	currentCfg.Lock()
 	oldProviders := currentCfg.oauth2Providers
+	oldParameterSets := currentCfg.parameterSets
 	currentCfg.oauth2Providers = providers
+	currentCfg.parameterSets = parameterSets
 	currentCfg.Unlock()
 	t.Cleanup(func() {
 		currentCfg.Lock()
 		currentCfg.oauth2Providers = oldProviders
+		currentCfg.parameterSets = oldParameterSets
 		currentCfg.Unlock()
 	})
 
@@ -71,11 +74,18 @@ func (rt roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 func TestLinkOAuth2UserAndGetOAuth2TokenReturnsStoredAccessToken(t *testing.T) {
 	providers := map[string]OAuth2ProviderConfig{
 		"github-enterprise": {
-			Key:      "github-enterprise",
-			ClientID: "client-id",
+			Key:                    "github-enterprise",
+			CredentialParameterSet: "github_oauth",
 		},
 	}
-	testBrain := setupOAuth2BrainTest(t, providers)
+	testBrain := setupOAuth2BrainTest(t, providers, map[string]ParameterSet{
+		"github_oauth": {
+			Parameters: []Parameter{
+				{Name: "CLIENT_ID", Value: "client-id"},
+				{Name: "CLIENT_SECRET", Value: "client-secret"},
+			},
+		},
+	})
 
 	r := Robot{}
 	ret := r.LinkOAuth2User(&robot.OAuth2LinkRequest{
@@ -148,9 +158,8 @@ func TestGetOAuth2TokenRefreshesExpiredTokenAndRotatesRefreshToken(t *testing.T)
 
 	providers := map[string]OAuth2ProviderConfig{
 		"github": {
-			Key:          "github",
-			ClientID:     "client-id",
-			ClientSecret: "client-secret",
+			Key:                    "github",
+			CredentialParameterSet: "github_oauth",
 			Token: OAuth2TokenEndpointConfig{
 				OAuth2EndpointConfig: OAuth2EndpointConfig{
 					URL: "https://oauth2.invalid/token",
@@ -158,7 +167,14 @@ func TestGetOAuth2TokenRefreshesExpiredTokenAndRotatesRefreshToken(t *testing.T)
 			},
 		},
 	}
-	setupOAuth2BrainTest(t, providers)
+	setupOAuth2BrainTest(t, providers, map[string]ParameterSet{
+		"github_oauth": {
+			Parameters: []Parameter{
+				{Name: "CLIENT_ID", Value: "client-id"},
+				{Name: "CLIENT_SECRET", Value: "client-secret"},
+			},
+		},
+	})
 
 	r := Robot{}
 	ret := r.LinkOAuth2User(&robot.OAuth2LinkRequest{
@@ -226,5 +242,39 @@ func TestGetOAuth2TokenRefreshesExpiredTokenAndRotatesRefreshToken(t *testing.T)
 	}
 	if state.Token.ExpiresAt == nil || !state.Token.ExpiresAt.After(time.Now().UTC()) {
 		t.Fatalf("ExpiresAt = %v, want a future timestamp", state.Token.ExpiresAt)
+	}
+}
+
+func TestGetOAuth2TokenReturnsConfigErrorWhenCredentialParameterSetIsMissing(t *testing.T) {
+	setupOAuth2BrainTest(t, map[string]OAuth2ProviderConfig{
+		"github": {
+			Key:                    "github",
+			CredentialParameterSet: "github_oauth",
+			Token: OAuth2TokenEndpointConfig{
+				OAuth2EndpointConfig: OAuth2EndpointConfig{
+					URL: "https://oauth2.invalid/token",
+				},
+			},
+		},
+	}, nil)
+
+	ret := Robot{}.LinkOAuth2User(&robot.OAuth2LinkRequest{
+		Provider:     "github",
+		User:         "alice",
+		AccessToken:  "expired-access-token",
+		RefreshToken: "old-refresh-token",
+		TokenType:    "Bearer",
+		ExpiresAt:    time.Now().Add(-time.Minute).UTC().Format(time.RFC3339),
+	})
+	if ret != robot.Ok {
+		t.Fatalf("LinkOAuth2User ret = %v, want Ok", ret)
+	}
+
+	token, ret := Robot{}.GetOAuth2Token("github", "alice")
+	if ret != robot.OAuth2ConfigError {
+		t.Fatalf("GetOAuth2Token ret = %v, want OAuth2ConfigError", ret)
+	}
+	if token != "" {
+		t.Fatalf("GetOAuth2Token token = %q, want empty string", token)
 	}
 }

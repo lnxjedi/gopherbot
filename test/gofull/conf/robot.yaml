@@ -54,3 +54,13 @@ WorkSpace: workspace
 Brain: mem
 DefaultAuthorizer: groups
 DefaultElevator: builtin-totp
+ParameterSets:
+  github_oauth:
+    Parameters:
+    - Name: CLIENT_ID
+      Value: "gofull-client"
+    - Name: CLIENT_SECRET
+      Value: "gofull-secret"
+OAuth2Providers:
+  github:
+    CredentialParameterSet: github_oauth

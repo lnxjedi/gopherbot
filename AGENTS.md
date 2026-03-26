@@ -68,6 +68,7 @@ Unless explicitly updated in canonical docs, these must hold:
 - configuration precedence is explicit and documented
 - engine-shipped extension defaults remain authoritative; custom robot extension config stays delta-only unless behavior is intentionally redefined
 - multi-connector isolation prevents cascading failure
+- secret access is explicit and scope-based: unprivileged extensions must not discover shared secrets through generic robot methods
 
 ## Connector Rules (Critical for Multi-Protocol)
 
@@ -76,6 +77,12 @@ Unless explicitly updated in canonical docs, these must hold:
 - connectors map transport identity to canonical username deterministically
 - cross-protocol identity equivalence is canonical username, not heuristic transport-ID matching
 - connector failure isolation must be preserved when multiple connectors are enabled
+
+## Extension Secret Boundary
+
+- secrets may be exposed to an extension only through explicit administrator configuration for that extension, or through memory/brain state owned by that extension's authorized namespace
+- unprivileged robot methods must not reveal shared secret-bearing configuration, nor provide indirect discovery of secrets outside the caller's granted scope
+- do not add or document extension APIs that return provider registries, parameter-set contents, or other broad configuration objects containing secrets
 
 ## Documentation Discipline (Hard Mapping)
 

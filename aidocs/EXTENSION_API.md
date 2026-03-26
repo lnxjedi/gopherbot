@@ -61,9 +61,14 @@ Prompt timeout semantics:
 
 OAuth2 notes:
 - `GetOAuth2Token` returns the raw bearer token string, not a full `Authorization` header.
-- Token refresh/storage is engine-managed and uses provider config from `OAuth2Providers` in `robot.yaml`.
+- Token refresh/storage is engine-managed and uses internal provider config from `OAuth2Providers` in `robot.yaml`.
+- Onboarding plugins should receive OAuth client credentials only through explicit per-plugin configuration such as `ParameterSets`, not by reading shared robot config through an API.
 - `OAuth2LinkRequest` is defined in `robot/oauth2.go`.
 - Return codes include `OAuth2ProviderNotFound`, `OAuth2UserNotLinked`, `OAuth2ReauthRequired`, `OAuth2RefreshFailed`, `OAuth2InvalidLinkRequest`, and `OAuth2ConfigError`.
+
+Secret-access rule:
+- `GetTaskConfig` and attached `ParameterSets` may contain secrets because the robot administrator explicitly scoped them to the calling extension.
+- Generic unprivileged robot methods must not return shared secret-bearing configuration such as provider registries or other extensions' parameter sets.
 
 ### Pipeline control
 - `Exclusive(tag string, queueTask bool) bool`
