@@ -44,13 +44,13 @@ func TestPythonSecurity(t *testing.T) {
 		{aliceID, general, ";python-sec-adminonly", false, []TestMessage{
 			{null, general, "SECURITY CHECK: secadminonly", false}}, nil, 0},
 		{bobID, general, ";python-sec-adminonly", false, []TestMessage{
-			{null, general, `(?s:No command matched in channel.*Try: ;help pythondemo)`, true}}, nil, 0},
+			{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*)`, true}}, nil, 0},
 		{aliceID, general, ";python-sec-usersonly", false, []TestMessage{
 			{null, general, "SECURITY CHECK: secusersonly", false}}, nil, 0},
 		{bobID, general, ";python-sec-usersonly", false, []TestMessage{
-			{null, general, `(?s:No command matched in channel.*Try: ;help pythondemo)`, true}}, nil, 0},
+			{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*)`, true}}, nil, 0},
 		{aliceID, general, ";python-sec-auth-misconfig", false, []TestMessage{
-			{null, general, `(?s:No command matched in channel.*Try: ;help pythondemo)`, true}}, nil, 0},
+			{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*)`, true}}, nil, 0},
 	}
 
 	for _, step := range flow {

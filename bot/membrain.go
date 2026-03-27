@@ -54,5 +54,5 @@ func provider(r robot.Handler) robot.SimpleBrain {
 }
 
 func init() {
-	RegisterSimpleBrain("mem", provider)
+	robot.RegisterSimpleBrain("mem", provider)
 }

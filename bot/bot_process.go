@@ -9,7 +9,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"log"
 	"math/rand"
 	"net"
 	"net/http"
@@ -42,20 +41,6 @@ var botVersion VersionInfo
 
 // Seed the pseudo-random number generator, for plugin IDs, RandomString, etc.
 var random = rand.New(rand.NewSource(time.Now().UnixNano()))
-
-var connectors = make(map[string]func(robot.Handler, *log.Logger) robot.Connector)
-
-// RegisterConnector should be called in an init function to register a type
-// of connector. Currently only Slack is implemented.
-func RegisterConnector(name string, connstarter func(robot.Handler, *log.Logger) robot.Connector) {
-	if stopRegistrations {
-		return
-	}
-	if connectors[name] != nil {
-		log.Fatal("Attempted registration of duplicate connector:", name)
-	}
-	connectors[name] = connstarter
-}
 
 // Interfaces to external stuff, items should be set while single-threaded and never change
 var interfaces struct {
@@ -220,16 +205,19 @@ func initBot() {
 	stopRegistrations = true
 
 	if len(currentCfg.brainProvider) > 0 {
-		if bprovider, ok := brains[currentCfg.brainProvider]; !ok {
+		if registration, ok := brainProviderRegistration(currentCfg.brainProvider); !ok {
 			Log(robot.Fatal, "No provider registered for brain: \"%s\"", currentCfg.brainProvider)
 		} else {
-			brain := bprovider(handle)
+			brain := registration.Provider(handle)
 			interfaces.brain = brain
 			Log(robot.Info, "Initialized brain provider '%s'", currentCfg.brainProvider)
 		}
 	} else {
-		bprovider := brains["mem"]
-		interfaces.brain = bprovider(handle)
+		registration, ok := brainProviderRegistration("mem")
+		if !ok {
+			Log(robot.Fatal, "No provider registered for default brain: \"mem\"")
+		}
+		interfaces.brain = registration.Provider(handle)
 		Log(robot.Error, "No brain configured, falling back to default 'mem' brain - no memories will persist")
 	}
 	if !encryptionInitialized && len(currentCfg.encryptionKey) > 0 {
@@ -304,11 +292,12 @@ func enforceEncryptedKeyFilePermissions(keyFile string) error {
 
 func encryptedKeyFilePaths() (preferred string, fallback string) {
 	preferred = filepath.Join(configPath, encryptedKeyFile)
-	if deployEnvironment == "" || deployEnvironment == "production" {
+	environment := strings.TrimSpace(getEnv("GOPHER_ENVIRONMENT"))
+	if environment == "" || environment == "production" {
 		return preferred, ""
 	}
 	fallback = preferred
-	preferred = filepath.Join(configPath, encryptedKeyFile+"."+deployEnvironment)
+	preferred = filepath.Join(configPath, encryptedKeyFile+"."+environment)
 	return preferred, fallback
 }
 
@@ -335,8 +324,9 @@ func resolveEncryptedKeyFile() (loadPath string, createPath string, usedFallback
 
 func initCrypt() bool {
 	// Initialize encryption (new style for v2)
-	if deployEnvironment != "" && deployEnvironment != "production" {
-		Log(robot.Info, "Initializing encryption for the '%s' environment", deployEnvironment)
+	environment := strings.TrimSpace(getEnv("GOPHER_ENVIRONMENT"))
+	if environment != "" && environment != "production" {
+		Log(robot.Info, "Initializing encryption for the '%s' environment", environment)
 	}
 	keyFile, createKeyFile, usedFallback, err := resolveEncryptedKeyFile()
 	if err != nil {

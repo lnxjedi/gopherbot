@@ -3,7 +3,8 @@ AllChannels: true
 AllowDirect: false
 Commands:
 - Command: jobs
-  Regex: '(?i:list (all )?jobs)'
+  # Regex: '(?i:list (all )?jobs)'
+  SimpleMatcher: "list [all] jobs"
   Keywords: [ "jobs", "list", "job" ]
   Usage: "list-jobs (all)"
   Summary: "list the jobs you have access to, optionally in all channels"
@@ -11,7 +12,8 @@ Commands:
   - "(alias) list-jobs"
   - "(alias) list-jobs --all"
 - Command: jobs
-  Regex: '(?i:list[- ]jobs( -?-?all)?)'
+  # Regex: '(?i:list[- ]jobs( -?-?all)?)'
+  SimpleMatcher: "list jobs [all]"
   Keywords: [ "job", "jobs", "run" ]
   Usage: "run-job <name> (args...)"
   Summary: "manually start a job run"

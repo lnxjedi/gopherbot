@@ -9,9 +9,8 @@ import (
 	"time"
 
 	"github.com/chzyer/readline"
+	"github.com/lnxjedi/gopherbot/robot"
 	"golang.org/x/crypto/ssh"
-
-	botwrap "github.com/lnxjedi/gopherbot/v2/bot"
 )
 
 const (
@@ -251,6 +250,17 @@ func (c *sshClient) colorize(kind, s string) string {
 	return fmt.Sprintf("\x1b[38;5;%dm%s%s", code, s, ansiReset)
 }
 
+func (c *sshClient) colorStart(kind string) string {
+	if !c.color || c.colorScheme == nil {
+		return ""
+	}
+	code, ok := c.colorScheme[strings.ToLower(kind)]
+	if !ok {
+		return ""
+	}
+	return fmt.Sprintf("\x1b[38;5;%dm", code)
+}
+
 func (c *sshClient) colorizeHeader(stamp, prefix, channel, thread string, isBot, private bool) string {
 	var b strings.Builder
 	b.WriteString("(")
@@ -314,33 +324,23 @@ func (c *sshClient) dmLabel(evt bufferMsg) string {
 }
 
 func (c *sshClient) formatMessageBodyWithHeader(header, headerColored string, evt bufferMsg) string {
-	body := " " + evt.text
-	wrapped := c.wrapLine(header + body)
-	if !c.color || headerColored == "" {
-		return wrapped
-	}
-
 	bodyKind := "user"
 	if evt.isBot {
 		bodyKind = "bot"
 	}
-
-	lines := strings.Split(wrapped, "\n")
-	if len(lines) == 0 {
-		return wrapped
+	bodyText := evt.text
+	if c.color && evt.basicMarkdownSource != "" {
+		bodyRestore := c.colorStart(bodyKind)
+		bodyText = renderBasicMarkdownStyled(evt.basicMarkdownSource, basicMarkdownStyle{
+			inlineCodeANSI: [2]string{c.colorStart("inlinecode"), bodyRestore},
+			codeBlockANSI:  [2]string{c.colorStart("codeblock"), bodyRestore},
+		})
 	}
-	if strings.HasPrefix(lines[0], header) {
-		remainder := lines[0][len(header):]
-		lines[0] = headerColored + c.colorize(bodyKind, remainder)
-		for i := 1; i < len(lines); i++ {
-			lines[i] = c.colorize(bodyKind, lines[i])
-		}
-		return strings.Join(lines, "\n")
+	body := " " + bodyText
+	if !c.color || headerColored == "" {
+		return c.wrapLine(header + body)
 	}
-	for i := 0; i < len(lines); i++ {
-		lines[i] = c.colorize(bodyKind, lines[i])
-	}
-	return strings.Join(lines, "\n")
+	return c.wrapLine(headerColored + c.colorize(bodyKind, body))
 }
 
 func (c *sshClient) colorizeLines(kind, s string) string {
@@ -606,7 +606,7 @@ func (c *sshClient) wrapLine(s string) string {
 	if width <= 0 {
 		return s
 	}
-	wrapper := botwrap.NewWrapper()
+	wrapper := robot.NewWrapper()
 	wrapper.StripTrailingNewline = true
 	return wrapper.Wrap(s, width)
 }

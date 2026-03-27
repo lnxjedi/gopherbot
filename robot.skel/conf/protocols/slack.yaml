@@ -6,6 +6,10 @@ ProtocolConfig:
   MaxMessageSplit: {{ env "GOPHER_SLACK_MAX_MSGS" | default "2" }}
   AppToken: xapp-{{ decrypt "<slackappencrypted>" }}
   BotToken: xoxb-{{ decrypt "<slackbotencrypted>" }}
+  AcceptSlashCommands: false
+  # When AcceptSlashCommands is true, SlashCommand is required. Either
+  # "clu" or "/clu" is accepted and normalized to "/clu" for help/fallback.
+  # SlashCommand: clu
   HearSelf: false
   # UserMap:
   #   alice: U12345

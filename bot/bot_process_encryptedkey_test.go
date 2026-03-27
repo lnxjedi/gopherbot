@@ -8,14 +8,18 @@ import (
 
 func TestEncryptedKeyFilePathsProduction(t *testing.T) {
 	origConfigPath := configPath
-	origDeployEnv := deployEnvironment
+	origEnv := os.Getenv("GOPHER_ENVIRONMENT")
 	t.Cleanup(func() {
 		configPath = origConfigPath
-		deployEnvironment = origDeployEnv
+		if origEnv == "" {
+			os.Unsetenv("GOPHER_ENVIRONMENT")
+		} else {
+			os.Setenv("GOPHER_ENVIRONMENT", origEnv)
+		}
 	})
 
 	configPath = "custom"
-	deployEnvironment = "production"
+	os.Setenv("GOPHER_ENVIRONMENT", "production")
 
 	preferred, fallback := encryptedKeyFilePaths()
 	if preferred != filepath.Join("custom", encryptedKeyFile) {
@@ -28,14 +32,18 @@ func TestEncryptedKeyFilePathsProduction(t *testing.T) {
 
 func TestEncryptedKeyFilePathsNonProduction(t *testing.T) {
 	origConfigPath := configPath
-	origDeployEnv := deployEnvironment
+	origEnv := os.Getenv("GOPHER_ENVIRONMENT")
 	t.Cleanup(func() {
 		configPath = origConfigPath
-		deployEnvironment = origDeployEnv
+		if origEnv == "" {
+			os.Unsetenv("GOPHER_ENVIRONMENT")
+		} else {
+			os.Setenv("GOPHER_ENVIRONMENT", origEnv)
+		}
 	})
 
 	configPath = "custom"
-	deployEnvironment = "development"
+	os.Setenv("GOPHER_ENVIRONMENT", "development")
 
 	preferred, fallback := encryptedKeyFilePaths()
 	if preferred != filepath.Join("custom", encryptedKeyFile+".development") {
@@ -49,14 +57,18 @@ func TestEncryptedKeyFilePathsNonProduction(t *testing.T) {
 func TestResolveEncryptedKeyFileUsesEnvSpecificWhenPresent(t *testing.T) {
 	tmpDir := t.TempDir()
 	origConfigPath := configPath
-	origDeployEnv := deployEnvironment
+	origEnv := os.Getenv("GOPHER_ENVIRONMENT")
 	t.Cleanup(func() {
 		configPath = origConfigPath
-		deployEnvironment = origDeployEnv
+		if origEnv == "" {
+			os.Unsetenv("GOPHER_ENVIRONMENT")
+		} else {
+			os.Setenv("GOPHER_ENVIRONMENT", origEnv)
+		}
 	})
 
 	configPath = tmpDir
-	deployEnvironment = "development"
+	os.Setenv("GOPHER_ENVIRONMENT", "development")
 
 	envPath := filepath.Join(tmpDir, encryptedKeyFile+".development")
 	if err := os.WriteFile(envPath, []byte("env"), 0600); err != nil {
@@ -85,14 +97,18 @@ func TestResolveEncryptedKeyFileUsesEnvSpecificWhenPresent(t *testing.T) {
 func TestResolveEncryptedKeyFileFallsBackToBaseWhenEnvSpecificMissing(t *testing.T) {
 	tmpDir := t.TempDir()
 	origConfigPath := configPath
-	origDeployEnv := deployEnvironment
+	origEnv := os.Getenv("GOPHER_ENVIRONMENT")
 	t.Cleanup(func() {
 		configPath = origConfigPath
-		deployEnvironment = origDeployEnv
+		if origEnv == "" {
+			os.Unsetenv("GOPHER_ENVIRONMENT")
+		} else {
+			os.Setenv("GOPHER_ENVIRONMENT", origEnv)
+		}
 	})
 
 	configPath = tmpDir
-	deployEnvironment = "development"
+	os.Setenv("GOPHER_ENVIRONMENT", "development")
 
 	basePath := filepath.Join(tmpDir, encryptedKeyFile)
 	if err := os.WriteFile(basePath, []byte("base"), 0600); err != nil {
@@ -117,14 +133,18 @@ func TestResolveEncryptedKeyFileFallsBackToBaseWhenEnvSpecificMissing(t *testing
 func TestResolveEncryptedKeyFileCreatesBaseWhenNoCandidatesExist(t *testing.T) {
 	tmpDir := t.TempDir()
 	origConfigPath := configPath
-	origDeployEnv := deployEnvironment
+	origEnv := os.Getenv("GOPHER_ENVIRONMENT")
 	t.Cleanup(func() {
 		configPath = origConfigPath
-		deployEnvironment = origDeployEnv
+		if origEnv == "" {
+			os.Unsetenv("GOPHER_ENVIRONMENT")
+		} else {
+			os.Setenv("GOPHER_ENVIRONMENT", origEnv)
+		}
 	})
 
 	configPath = tmpDir
-	deployEnvironment = "development"
+	os.Setenv("GOPHER_ENVIRONMENT", "development")
 
 	loadPath, createPath, usedFallback, err := resolveEncryptedKeyFile()
 	if err != nil {

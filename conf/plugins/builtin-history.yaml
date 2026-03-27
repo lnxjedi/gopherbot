@@ -11,21 +11,24 @@ Commands:
   - "(alias) email-log ab12cd"
   - "(alias) email-log ab12cd to user alice"
 - Command: taillog
-  Regex: '(?i:(?:tail|view|show)[- ]?log ([A-Za-z0-9]+))'
+  # Regex: '(?i:(?:tail|view|show)[- ]?log ([A-Za-z0-9]+))'
+  SimpleMatcher: "(tail|view|show) log <ref:token>"
   Keywords: [ "history", "job", "mail", "email", "send", "log", "logs" ]
   Usage: "tail-log <ref>"
   Summary: "view the end of a log given the log ref"
   Examples:
   - "(alias) tail-log ab12cd"
 - Command: linklog
-  Regex: '(?i:(?:link|get)[- ]?log ([A-Za-z0-9]+))'
+  # Regex: '(?i:(?:link|get)[- ]?log ([A-Za-z0-9]+))'
+  SimpleMatcher: "(link|get) log <ref:token>"
   Keywords: [ "history", "job", "mail", "email", "send", "log", "logs" ]
   Usage: "link-log <ref>"
   Summary: "get a URL for a log"
   Examples:
   - "(alias) link-log ab12cd"
 - Command: joblogs
-  Regex: '(?i:job[- ]?logs(?: ([A-Za-z][\w-]*)))'
+  # Regex: '(?i:job[- ]?logs(?: ([A-Za-z][\w-]*)))'
+  SimpleMatcher: "job logs [<job:ident>]"
   Keywords: [ "list", "job", "jobs", "log", "logs", "history", "joblogs" ]
   Usage: "job-logs <jobname>"
   Summary: "list logs for a given job"

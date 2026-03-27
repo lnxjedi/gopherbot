@@ -3,7 +3,7 @@ DefaultChannels: [ "general", "random" ]
 DefaultJobChannel: general
 JoinChannels: [ ]
 AdminUsers: [ "alice" ]
-# Alias: ""
+Alias: ""
 LogLevel: debug
 PrimaryProtocol: {{ env "GOPHER_PROTOCOL" | default "test" }}
 

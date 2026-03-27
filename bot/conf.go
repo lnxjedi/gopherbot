@@ -881,16 +881,18 @@ func loadConfig(preConnect bool) error {
 		if len(newconfig.LogDest) > 0 {
 			processed.logDest = newconfig.LogDest
 		}
-		var hprovider func(robot.Handler) robot.HistoryProvider
-		var ok bool
 		if !cliOp { // CLI operations don't need a real history
-			if hprovider, ok = historyProviders[newconfig.HistoryProvider]; !ok {
+			registration, ok := historyProviderRegistration(newconfig.HistoryProvider)
+			if !ok {
 				Log(robot.Error, "No provider registered for history type: \"%s\", falling back to 'mem'", processed.historyProvider)
 				newconfig.HistoryProvider = "mem"
 				processed.historyProvider = "mem"
-				hprovider = historyProviders["mem"]
+				registration, ok = historyProviderRegistration("mem")
+				if !ok {
+					return fmt.Errorf("no provider registered for default history type: \"mem\"")
+				}
 			}
-			hp := hprovider(handler{})
+			hp := registration.Provider(handler{})
 			if hp == nil {
 				Log(robot.Error, "History provider '%s' initialization returned nil, falling back to 'mem'", newconfig.HistoryProvider)
 				newconfig.HistoryProvider = "mem"

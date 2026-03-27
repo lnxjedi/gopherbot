@@ -4,5 +4,6 @@ AllowDirect: true
 Users:
 - alice
 Commands:
-- Regex: (?i:go-sec-usersonly)
+- # Regex: (?i:go-sec-usersonly)
+  SimpleMatcher: go-sec-usersonly
   Command: secusersonly

@@ -59,6 +59,9 @@ var defaultConfig = []byte(`
 AllowDirect: true
 AllChannels: true
 CatchAll: true
+CatchAllModes:
+- name
+- direct
 Commands:
 - Command: "debug"
   Regex: '(?i:d(ebug[ -]ai)?)'

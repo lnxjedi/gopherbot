@@ -10,5 +10,6 @@ ElevatedCommands: []
 ElevateImmediateCommands: []
 AllowedHiddenCommands: []
 Commands:
-- Regex: (?i:python-sec-authall)
+- # Regex: (?i:python-sec-authall)
+  SimpleMatcher: python-sec-authall
   Command: secauthall

@@ -3,5 +3,6 @@ AllChannels: true
 AllowDirect: true
 RequireAdmin: true
 Commands:
-- Regex: (?i:lua-sec-adminonly)
+- # Regex: (?i:lua-sec-adminonly)
+  SimpleMatcher: lua-sec-adminonly
   Command: secadminonly

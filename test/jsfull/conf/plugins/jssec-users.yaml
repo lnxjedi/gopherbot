@@ -4,5 +4,6 @@ AllowDirect: true
 Users:
 - alice
 Commands:
-- Regex: (?i:js-sec-usersonly)
+- # Regex: (?i:js-sec-usersonly)
+  SimpleMatcher: js-sec-usersonly
   Command: secusersonly

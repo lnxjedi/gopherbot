@@ -1,7 +1,7 @@
 package cloudflarekv
 
-import "github.com/lnxjedi/gopherbot/v2/bot"
+import "github.com/lnxjedi/gopherbot/robot"
 
 func init() {
-	bot.RegisterSimpleBrain("cloudflare", provider)
+	robot.RegisterSimpleBrain("cloudflare", provider)
 }

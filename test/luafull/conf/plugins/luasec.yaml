@@ -13,17 +13,24 @@ ElevateImmediateCommands:
 AllowedHiddenCommands:
 - sechiddenok
 Commands:
-- Regex: (?i:lua-sec-open)
+- # Regex: (?i:lua-sec-open)
+  SimpleMatcher: lua-sec-open
   Command: secopen
-- Regex: (?i:lua-sec-admincmd)
+- # Regex: (?i:lua-sec-admincmd)
+  SimpleMatcher: lua-sec-admincmd
   Command: secadmincmd
-- Regex: (?i:lua-sec-authz)
+- # Regex: (?i:lua-sec-authz)
+  SimpleMatcher: lua-sec-authz
   Command: secauthz
-- Regex: (?i:lua-sec-elevated)
+- # Regex: (?i:lua-sec-elevated)
+  SimpleMatcher: lua-sec-elevated
   Command: secelevated
-- Regex: (?i:lua-sec-immediate)
+- # Regex: (?i:lua-sec-immediate)
+  SimpleMatcher: lua-sec-immediate
   Command: secimmediate
-- Regex: (?i:lua-sec-hidden-ok)
+- # Regex: (?i:lua-sec-hidden-ok)
+  SimpleMatcher: lua-sec-hidden-ok
   Command: sechiddenok
-- Regex: (?i:lua-sec-hidden-denied)
+- # Regex: (?i:lua-sec-hidden-denied)
+  SimpleMatcher: lua-sec-hidden-denied
   Command: sechiddendenied

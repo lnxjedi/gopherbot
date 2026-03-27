@@ -13,17 +13,24 @@ ElevateImmediateCommands:
 AllowedHiddenCommands:
 - sechiddenok
 Commands:
-- Regex: (?i:go-sec-open)
+- # Regex: (?i:go-sec-open)
+  SimpleMatcher: go-sec-open
   Command: secopen
-- Regex: (?i:go-sec-admincmd)
+- # Regex: (?i:go-sec-admincmd)
+  SimpleMatcher: go-sec-admincmd
   Command: secadmincmd
-- Regex: (?i:go-sec-authz)
+- # Regex: (?i:go-sec-authz)
+  SimpleMatcher: go-sec-authz
   Command: secauthz
-- Regex: (?i:go-sec-elevated)
+- # Regex: (?i:go-sec-elevated)
+  SimpleMatcher: go-sec-elevated
   Command: secelevated
-- Regex: (?i:go-sec-immediate)
+- # Regex: (?i:go-sec-immediate)
+  SimpleMatcher: go-sec-immediate
   Command: secimmediate
-- Regex: (?i:go-sec-hidden-ok)
+- # Regex: (?i:go-sec-hidden-ok)
+  SimpleMatcher: go-sec-hidden-ok
   Command: sechiddenok
-- Regex: (?i:go-sec-hidden-denied)
+- # Regex: (?i:go-sec-hidden-denied)
+  SimpleMatcher: go-sec-hidden-denied
   Command: sechiddendenied
