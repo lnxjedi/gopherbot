@@ -69,12 +69,12 @@ class Robot:
     CommandNotMatched = 27
     TaskDisabled = 28
     PrivilegeViolation = 29
-    OAuth2ProviderNotFound = 30
-    OAuth2UserNotLinked = 31
-    OAuth2ReauthRequired = 32
-    OAuth2RefreshFailed = 33
-    OAuth2InvalidLinkRequest = 34
-    OAuth2ConfigError = 35
+    IdentityProviderNotFound = 30
+    IdentityNotLinked = 31
+    IdentityReauthRequired = 32
+    IdentityRefreshFailed = 33
+    IdentityInvalidLinkRequest = 34
+    IdentityConfigError = 35
     Failed = 63
 
     # Plugin return values / exit codes
@@ -181,15 +181,15 @@ class Robot:
         ret = self.Call(sys._getframe().f_code.co_name, { "Parameter": name })
         return ret["StrVal"]
 
-    def GetOAuth2Token(self, provider, user):
+    def GetIdentityCredential(self, provider, user):
         ret = self.Call(sys._getframe().f_code.co_name, { "Provider": provider, "User": user })
-        return ret["StrVal"], ret["RetVal"]
+        return ret["Credential"], ret["RetVal"]
 
-    def LinkOAuth2User(self, link):
+    def LinkOAuth2Identity(self, link):
         ret = self.Call(sys._getframe().f_code.co_name, link)
         return ret["RetVal"]
 
-    def UnlinkOAuth2User(self, provider, user):
+    def UnlinkIdentity(self, provider, user):
         ret = self.Call(sys._getframe().f_code.co_name, { "Provider": provider, "User": user })
         return ret["RetVal"]
 

@@ -13,7 +13,7 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-func setupOAuth2BrainTest(t *testing.T, providers map[string]OAuth2ProviderConfig, parameterSets map[string]ParameterSet) *memBrain {
+func setupOAuth2BrainTest(t *testing.T, providers map[string]IdentityProviderConfig, parameterSets map[string]ParameterSet) *memBrain {
 	t.Helper()
 
 	oldBrain := interfaces.brain
@@ -40,14 +40,14 @@ func setupOAuth2BrainTest(t *testing.T, providers map[string]OAuth2ProviderConfi
 	})
 
 	currentCfg.Lock()
-	oldProviders := currentCfg.oauth2Providers
+	oldProviders := currentCfg.identityProviders
 	oldParameterSets := currentCfg.parameterSets
-	currentCfg.oauth2Providers = providers
+	currentCfg.identityProviders = providers
 	currentCfg.parameterSets = parameterSets
 	currentCfg.Unlock()
 	t.Cleanup(func() {
 		currentCfg.Lock()
-		currentCfg.oauth2Providers = oldProviders
+		currentCfg.identityProviders = oldProviders
 		currentCfg.parameterSets = oldParameterSets
 		currentCfg.Unlock()
 	})
@@ -71,11 +71,24 @@ func (rt roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return rt(req)
 }
 
-func TestLinkOAuth2UserAndGetOAuth2TokenReturnsStoredAccessToken(t *testing.T) {
-	providers := map[string]OAuth2ProviderConfig{
+func oauth2TestRobot(taskParameterSets ...string) Robot {
+	return Robot{
+		pipeContext: &pipeContext{
+			currentTask: &Task{
+				name:          "oauth2-test",
+				ParameterSets: taskParameterSets,
+			},
+		},
+	}
+}
+
+func TestLinkOAuth2IdentityAndGetIdentityCredentialReturnsStoredAccessToken(t *testing.T) {
+	providers := map[string]IdentityProviderConfig{
 		"github-enterprise": {
 			Key:                    "github-enterprise",
+			Type:                   "oauth2",
 			CredentialParameterSet: "github_oauth",
+			OAuth2:                 &OAuth2ProviderConfig{},
 		},
 	}
 	testBrain := setupOAuth2BrainTest(t, providers, map[string]ParameterSet{
@@ -87,8 +100,8 @@ func TestLinkOAuth2UserAndGetOAuth2TokenReturnsStoredAccessToken(t *testing.T) {
 		},
 	})
 
-	r := Robot{}
-	ret := r.LinkOAuth2User(&robot.OAuth2LinkRequest{
+	r := oauth2TestRobot("github_oauth")
+	ret := r.LinkOAuth2Identity(&robot.OAuth2IdentityLinkRequest{
 		Provider:     "github-enterprise",
 		User:         "Alice",
 		AccessToken:  "stored-access-token",
@@ -96,20 +109,20 @@ func TestLinkOAuth2UserAndGetOAuth2TokenReturnsStoredAccessToken(t *testing.T) {
 		SubjectLogin: "alice-gh",
 	})
 	if ret != robot.Ok {
-		t.Fatalf("LinkOAuth2User ret = %v, want Ok", ret)
+		t.Fatalf("LinkOAuth2Identity ret = %v, want Ok", ret)
 	}
 
-	token, ret := r.GetOAuth2Token("github-enterprise", "alice")
+	credential, ret := r.GetIdentityCredential("github-enterprise", "alice")
 	if ret != robot.Ok {
-		t.Fatalf("GetOAuth2Token ret = %v, want Ok", ret)
+		t.Fatalf("GetIdentityCredential ret = %v, want Ok", ret)
 	}
-	if token != "stored-access-token" {
-		t.Fatalf("GetOAuth2Token token = %q, want %q", token, "stored-access-token")
+	if credential == nil || credential.Value != "stored-access-token" {
+		t.Fatalf("GetIdentityCredential credential = %#v, want stored access token", credential)
 	}
 
 	found := false
 	for key := range testBrain.memories {
-		if strings.HasPrefix(key, "bot:oauth2:v1:github_enterprise:user:") {
+		if strings.HasPrefix(key, "bot:identity:v1:github_enterprise:user:") {
 			found = true
 			break
 		}
@@ -119,7 +132,7 @@ func TestLinkOAuth2UserAndGetOAuth2TokenReturnsStoredAccessToken(t *testing.T) {
 	}
 }
 
-func TestGetOAuth2TokenRefreshesExpiredTokenAndRotatesRefreshToken(t *testing.T) {
+func TestGetIdentityCredentialRefreshesExpiredTokenAndRotatesRefreshToken(t *testing.T) {
 	var seenForm url.Values
 	oldClientFactory := oauth2HTTPClientFactory
 	oauth2HTTPClientFactory = func() *http.Client {
@@ -156,13 +169,16 @@ func TestGetOAuth2TokenRefreshesExpiredTokenAndRotatesRefreshToken(t *testing.T)
 		oauth2HTTPClientFactory = oldClientFactory
 	})
 
-	providers := map[string]OAuth2ProviderConfig{
+	providers := map[string]IdentityProviderConfig{
 		"github": {
 			Key:                    "github",
+			Type:                   "oauth2",
 			CredentialParameterSet: "github_oauth",
-			Token: OAuth2TokenEndpointConfig{
-				OAuth2EndpointConfig: OAuth2EndpointConfig{
-					URL: "https://oauth2.invalid/token",
+			OAuth2: &OAuth2ProviderConfig{
+				Token: OAuth2TokenEndpointConfig{
+					OAuth2EndpointConfig: OAuth2EndpointConfig{
+						URL: "https://oauth2.invalid/token",
+					},
 				},
 			},
 		},
@@ -176,8 +192,8 @@ func TestGetOAuth2TokenRefreshesExpiredTokenAndRotatesRefreshToken(t *testing.T)
 		},
 	})
 
-	r := Robot{}
-	ret := r.LinkOAuth2User(&robot.OAuth2LinkRequest{
+	r := oauth2TestRobot("github_oauth")
+	ret := r.LinkOAuth2Identity(&robot.OAuth2IdentityLinkRequest{
 		Provider:     "github",
 		User:         "alice",
 		AccessToken:  "expired-access-token",
@@ -188,15 +204,15 @@ func TestGetOAuth2TokenRefreshesExpiredTokenAndRotatesRefreshToken(t *testing.T)
 		GrantType:    "device_code",
 	})
 	if ret != robot.Ok {
-		t.Fatalf("LinkOAuth2User ret = %v, want Ok", ret)
+		t.Fatalf("LinkOAuth2Identity ret = %v, want Ok", ret)
 	}
 
-	token, ret := r.GetOAuth2Token("github", "alice")
+	credential, ret := r.GetIdentityCredential("github", "alice")
 	if ret != robot.Ok {
-		t.Fatalf("GetOAuth2Token ret = %v, want Ok", ret)
+		t.Fatalf("GetIdentityCredential ret = %v, want Ok", ret)
 	}
-	if token != "fresh-access-token" {
-		t.Fatalf("GetOAuth2Token token = %q, want %q", token, "fresh-access-token")
+	if credential == nil || credential.Value != "fresh-access-token" {
+		t.Fatalf("GetIdentityCredential credential = %#v, want fresh access token", credential)
 	}
 	if got := seenForm.Get("grant_type"); got != "refresh_token" {
 		t.Fatalf("grant_type = %q, want %q", got, "refresh_token")
@@ -245,20 +261,24 @@ func TestGetOAuth2TokenRefreshesExpiredTokenAndRotatesRefreshToken(t *testing.T)
 	}
 }
 
-func TestGetOAuth2TokenReturnsConfigErrorWhenCredentialParameterSetIsMissing(t *testing.T) {
-	setupOAuth2BrainTest(t, map[string]OAuth2ProviderConfig{
+func TestGetIdentityCredentialReturnsConfigErrorWhenCredentialParameterSetIsMissing(t *testing.T) {
+	setupOAuth2BrainTest(t, map[string]IdentityProviderConfig{
 		"github": {
 			Key:                    "github",
+			Type:                   "oauth2",
 			CredentialParameterSet: "github_oauth",
-			Token: OAuth2TokenEndpointConfig{
-				OAuth2EndpointConfig: OAuth2EndpointConfig{
-					URL: "https://oauth2.invalid/token",
+			OAuth2: &OAuth2ProviderConfig{
+				Token: OAuth2TokenEndpointConfig{
+					OAuth2EndpointConfig: OAuth2EndpointConfig{
+						URL: "https://oauth2.invalid/token",
+					},
 				},
 			},
 		},
 	}, nil)
 
-	ret := Robot{}.LinkOAuth2User(&robot.OAuth2LinkRequest{
+	r := oauth2TestRobot("github_oauth")
+	ret := r.LinkOAuth2Identity(&robot.OAuth2IdentityLinkRequest{
 		Provider:     "github",
 		User:         "alice",
 		AccessToken:  "expired-access-token",
@@ -267,14 +287,55 @@ func TestGetOAuth2TokenReturnsConfigErrorWhenCredentialParameterSetIsMissing(t *
 		ExpiresAt:    time.Now().Add(-time.Minute).UTC().Format(time.RFC3339),
 	})
 	if ret != robot.Ok {
-		t.Fatalf("LinkOAuth2User ret = %v, want Ok", ret)
+		t.Fatalf("LinkOAuth2Identity ret = %v, want Ok", ret)
 	}
 
-	token, ret := Robot{}.GetOAuth2Token("github", "alice")
-	if ret != robot.OAuth2ConfigError {
-		t.Fatalf("GetOAuth2Token ret = %v, want OAuth2ConfigError", ret)
+	credential, ret := r.GetIdentityCredential("github", "alice")
+	if ret != robot.IdentityConfigError {
+		t.Fatalf("GetIdentityCredential ret = %v, want IdentityConfigError", ret)
 	}
-	if token != "" {
-		t.Fatalf("GetOAuth2Token token = %q, want empty string", token)
+	if credential != nil {
+		t.Fatalf("GetIdentityCredential credential = %#v, want nil", credential)
+	}
+}
+
+func TestIdentityMethodsRequireAttachedProviderParameterSet(t *testing.T) {
+	setupOAuth2BrainTest(t, map[string]IdentityProviderConfig{
+		"github": {
+			Key:                    "github",
+			Type:                   "oauth2",
+			CredentialParameterSet: "github_oauth",
+			OAuth2:                 &OAuth2ProviderConfig{},
+		},
+	}, map[string]ParameterSet{
+		"github_oauth": {
+			Parameters: []Parameter{
+				{Name: "CLIENT_ID", Value: "client-id"},
+				{Name: "CLIENT_SECRET", Value: "client-secret"},
+			},
+		},
+	})
+
+	r := oauth2TestRobot("different_set")
+	linkRet := r.LinkOAuth2Identity(&robot.OAuth2IdentityLinkRequest{
+		Provider:    "github",
+		User:        "alice",
+		AccessToken: "stored-access-token",
+	})
+	if linkRet != robot.IdentityConfigError {
+		t.Fatalf("LinkOAuth2Identity ret = %v, want IdentityConfigError", linkRet)
+	}
+
+	credential, getRet := r.GetIdentityCredential("github", "alice")
+	if getRet != robot.IdentityConfigError {
+		t.Fatalf("GetIdentityCredential ret = %v, want IdentityConfigError", getRet)
+	}
+	if credential != nil {
+		t.Fatalf("GetIdentityCredential credential = %#v, want nil", credential)
+	}
+
+	unlinkRet := r.UnlinkIdentity("github", "alice")
+	if unlinkRet != robot.IdentityConfigError {
+		t.Fatalf("UnlinkIdentity ret = %v, want IdentityConfigError", unlinkRet)
 	}
 }

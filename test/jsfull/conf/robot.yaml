@@ -28,6 +28,8 @@ LocalPort: 0
 ExternalPlugins:
   "jsfull":
     Path: plugins/test/jsfull.js
+    ParameterSets:
+    - github_oauth
   "jssec":
     Path: plugins/test/jsfull.js
   "jssec-authall":
@@ -61,6 +63,8 @@ ParameterSets:
       Value: "jsfull-client"
     - Name: CLIENT_SECRET
       Value: "jsfull-secret"
-OAuth2Providers:
+IdentityProviders:
   github:
+    Type: oauth2
     CredentialParameterSet: github_oauth
+    OAuth2: {}

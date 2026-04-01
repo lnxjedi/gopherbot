@@ -16,94 +16,95 @@ var Symbols = map[string]map[string]reflect.Value{}
 func init() {
 	Symbols["github.com/lnxjedi/gopherbot/robot/robot"] = map[string]reflect.Value{
 		// function, constant and variable definitions
-		"AttributeNotFound":        reflect.ValueOf(robot.AttributeNotFound),
-		"Audit":                    reflect.ValueOf(robot.Audit),
-		"BrainFailed":              reflect.ValueOf(robot.BrainFailed),
-		"ChannelNotFound":          reflect.ValueOf(robot.ChannelNotFound),
-		"CommandNotMatched":        reflect.ValueOf(robot.CommandNotMatched),
-		"ConfigurationError":       reflect.ValueOf(robot.ConfigurationError),
-		"DataFormatError":          reflect.ValueOf(robot.DataFormatError),
-		"DatumLockExpired":         reflect.ValueOf(robot.DatumLockExpired),
-		"DatumNotFound":            reflect.ValueOf(robot.DatumNotFound),
-		"Debug":                    reflect.ValueOf(robot.Debug),
-		"Error":                    reflect.ValueOf(robot.Error),
-		"Fail":                     reflect.ValueOf(robot.Fail),
-		"FailedChannelJoin":        reflect.ValueOf(robot.FailedChannelJoin),
-		"FailedMessageSend":        reflect.ValueOf(robot.FailedMessageSend),
-		"Fatal":                    reflect.ValueOf(robot.Fatal),
-		"Fixed":                    reflect.ValueOf(robot.Fixed),
-		"BasicMarkdown":            reflect.ValueOf(robot.BasicMarkdown),
-		"GetRegistrations":         reflect.ValueOf(robot.GetRegistrations),
-		"Info":                     reflect.ValueOf(robot.Info),
-		"Interrupted":              reflect.ValueOf(robot.Interrupted),
-		"InvalidConfigPointer":     reflect.ValueOf(robot.InvalidConfigPointer),
-		"InvalidDatumKey":          reflect.ValueOf(robot.InvalidDatumKey),
-		"ConfigUnmarshalError":     reflect.ValueOf(robot.ConfigUnmarshalError),
-		"InvalidStage":             reflect.ValueOf(robot.InvalidStage),
-		"InvalidTaskType":          reflect.ValueOf(robot.InvalidTaskType),
-		"MailError":                reflect.ValueOf(robot.MailError),
-		"MatcherNotFound":          reflect.ValueOf(robot.MatcherNotFound),
-		"MechanismFail":            reflect.ValueOf(robot.MechanismFail),
-		"MissingArguments":         reflect.ValueOf(robot.MissingArguments),
-		"NoBotEmail":               reflect.ValueOf(robot.NoBotEmail),
-		"NoConfigFound":            reflect.ValueOf(robot.NoConfigFound),
-		"NoUserEmail":              reflect.ValueOf(robot.NoUserEmail),
-		"Normal":                   reflect.ValueOf(robot.Normal),
-		"NotFound":                 reflect.ValueOf(robot.NotFound),
-		"Null":                     reflect.ValueOf(robot.Null),
-		"Ok":                       reflect.ValueOf(robot.Ok),
-		"OAuth2ConfigError":        reflect.ValueOf(robot.OAuth2ConfigError),
-		"OAuth2InvalidLinkRequest": reflect.ValueOf(robot.OAuth2InvalidLinkRequest),
-		"OAuth2ProviderNotFound":   reflect.ValueOf(robot.OAuth2ProviderNotFound),
-		"OAuth2ReauthRequired":     reflect.ValueOf(robot.OAuth2ReauthRequired),
-		"OAuth2RefreshFailed":      reflect.ValueOf(robot.OAuth2RefreshFailed),
-		"OAuth2UserNotLinked":      reflect.ValueOf(robot.OAuth2UserNotLinked),
-		"PipelineAborted":          reflect.ValueOf(robot.PipelineAborted),
-		"PrivilegeViolation":       reflect.ValueOf(robot.PrivilegeViolation),
-		"Failed":                   reflect.ValueOf(robot.Failed),
-		"Raw":                      reflect.ValueOf(robot.Raw),
-		"RegisterJob":              reflect.ValueOf(robot.RegisterJob),
-		"RegisterPlugin":           reflect.ValueOf(robot.RegisterPlugin),
-		"RegisterTask":             reflect.ValueOf(robot.RegisterTask),
-		"ReplyNotMatched":          reflect.ValueOf(robot.ReplyNotMatched),
-		"RetryPrompt":              reflect.ValueOf(robot.RetryPrompt),
-		"RobotStopping":            reflect.ValueOf(robot.RobotStopping),
-		"Rocket":                   reflect.ValueOf(robot.Rocket),
-		"Slack":                    reflect.ValueOf(robot.Slack),
-		"Success":                  reflect.ValueOf(constant.MakeFromLiteral("7", token.INT, 0)),
-		"TaskDisabled":             reflect.ValueOf(robot.TaskDisabled),
-		"TaskNotFound":             reflect.ValueOf(robot.TaskNotFound),
-		"Terminal":                 reflect.ValueOf(robot.Terminal),
-		"Test":                     reflect.ValueOf(robot.Test),
-		"TimeoutExpired":           reflect.ValueOf(robot.TimeoutExpired),
-		"Trace":                    reflect.ValueOf(robot.Trace),
-		"UseDefaultValue":          reflect.ValueOf(robot.UseDefaultValue),
-		"UserNotFound":             reflect.ValueOf(robot.UserNotFound),
-		"Variable":                 reflect.ValueOf(robot.Variable),
-		"Warn":                     reflect.ValueOf(robot.Warn),
+		"AttributeNotFound":          reflect.ValueOf(robot.AttributeNotFound),
+		"Audit":                      reflect.ValueOf(robot.Audit),
+		"BrainFailed":                reflect.ValueOf(robot.BrainFailed),
+		"ChannelNotFound":            reflect.ValueOf(robot.ChannelNotFound),
+		"CommandNotMatched":          reflect.ValueOf(robot.CommandNotMatched),
+		"ConfigurationError":         reflect.ValueOf(robot.ConfigurationError),
+		"DataFormatError":            reflect.ValueOf(robot.DataFormatError),
+		"DatumLockExpired":           reflect.ValueOf(robot.DatumLockExpired),
+		"DatumNotFound":              reflect.ValueOf(robot.DatumNotFound),
+		"Debug":                      reflect.ValueOf(robot.Debug),
+		"Error":                      reflect.ValueOf(robot.Error),
+		"Fail":                       reflect.ValueOf(robot.Fail),
+		"FailedChannelJoin":          reflect.ValueOf(robot.FailedChannelJoin),
+		"FailedMessageSend":          reflect.ValueOf(robot.FailedMessageSend),
+		"Fatal":                      reflect.ValueOf(robot.Fatal),
+		"Fixed":                      reflect.ValueOf(robot.Fixed),
+		"BasicMarkdown":              reflect.ValueOf(robot.BasicMarkdown),
+		"GetRegistrations":           reflect.ValueOf(robot.GetRegistrations),
+		"Info":                       reflect.ValueOf(robot.Info),
+		"Interrupted":                reflect.ValueOf(robot.Interrupted),
+		"InvalidConfigPointer":       reflect.ValueOf(robot.InvalidConfigPointer),
+		"InvalidDatumKey":            reflect.ValueOf(robot.InvalidDatumKey),
+		"ConfigUnmarshalError":       reflect.ValueOf(robot.ConfigUnmarshalError),
+		"InvalidStage":               reflect.ValueOf(robot.InvalidStage),
+		"InvalidTaskType":            reflect.ValueOf(robot.InvalidTaskType),
+		"MailError":                  reflect.ValueOf(robot.MailError),
+		"MatcherNotFound":            reflect.ValueOf(robot.MatcherNotFound),
+		"MechanismFail":              reflect.ValueOf(robot.MechanismFail),
+		"MissingArguments":           reflect.ValueOf(robot.MissingArguments),
+		"NoBotEmail":                 reflect.ValueOf(robot.NoBotEmail),
+		"NoConfigFound":              reflect.ValueOf(robot.NoConfigFound),
+		"NoUserEmail":                reflect.ValueOf(robot.NoUserEmail),
+		"Normal":                     reflect.ValueOf(robot.Normal),
+		"NotFound":                   reflect.ValueOf(robot.NotFound),
+		"Null":                       reflect.ValueOf(robot.Null),
+		"Ok":                         reflect.ValueOf(robot.Ok),
+		"IdentityConfigError":        reflect.ValueOf(robot.IdentityConfigError),
+		"IdentityCredential":         reflect.ValueOf((*robot.IdentityCredential)(nil)),
+		"IdentityInvalidLinkRequest": reflect.ValueOf(robot.IdentityInvalidLinkRequest),
+		"IdentityNotLinked":          reflect.ValueOf(robot.IdentityNotLinked),
+		"IdentityProviderNotFound":   reflect.ValueOf(robot.IdentityProviderNotFound),
+		"IdentityReauthRequired":     reflect.ValueOf(robot.IdentityReauthRequired),
+		"IdentityRefreshFailed":      reflect.ValueOf(robot.IdentityRefreshFailed),
+		"PipelineAborted":            reflect.ValueOf(robot.PipelineAborted),
+		"PrivilegeViolation":         reflect.ValueOf(robot.PrivilegeViolation),
+		"Failed":                     reflect.ValueOf(robot.Failed),
+		"Raw":                        reflect.ValueOf(robot.Raw),
+		"RegisterJob":                reflect.ValueOf(robot.RegisterJob),
+		"RegisterPlugin":             reflect.ValueOf(robot.RegisterPlugin),
+		"RegisterTask":               reflect.ValueOf(robot.RegisterTask),
+		"ReplyNotMatched":            reflect.ValueOf(robot.ReplyNotMatched),
+		"RetryPrompt":                reflect.ValueOf(robot.RetryPrompt),
+		"RobotStopping":              reflect.ValueOf(robot.RobotStopping),
+		"Rocket":                     reflect.ValueOf(robot.Rocket),
+		"Slack":                      reflect.ValueOf(robot.Slack),
+		"Success":                    reflect.ValueOf(constant.MakeFromLiteral("7", token.INT, 0)),
+		"TaskDisabled":               reflect.ValueOf(robot.TaskDisabled),
+		"TaskNotFound":               reflect.ValueOf(robot.TaskNotFound),
+		"Terminal":                   reflect.ValueOf(robot.Terminal),
+		"Test":                       reflect.ValueOf(robot.Test),
+		"TimeoutExpired":             reflect.ValueOf(robot.TimeoutExpired),
+		"Trace":                      reflect.ValueOf(robot.Trace),
+		"UseDefaultValue":            reflect.ValueOf(robot.UseDefaultValue),
+		"UserNotFound":               reflect.ValueOf(robot.UserNotFound),
+		"Variable":                   reflect.ValueOf(robot.Variable),
+		"Warn":                       reflect.ValueOf(robot.Warn),
 
 		// type definitions
-		"AttrRet":           reflect.ValueOf((*robot.AttrRet)(nil)),
-		"Connector":         reflect.ValueOf((*robot.Connector)(nil)),
-		"ConnectorMessage":  reflect.ValueOf((*robot.ConnectorMessage)(nil)),
-		"Handler":           reflect.ValueOf((*robot.Handler)(nil)),
-		"HistoryLogger":     reflect.ValueOf((*robot.HistoryLogger)(nil)),
-		"HistoryProvider":   reflect.ValueOf((*robot.HistoryProvider)(nil)),
-		"JobHandler":        reflect.ValueOf((*robot.JobHandler)(nil)),
-		"LogLevel":          reflect.ValueOf((*robot.LogLevel)(nil)),
-		"Logger":            reflect.ValueOf((*robot.Logger)(nil)),
-		"Message":           reflect.ValueOf((*robot.Message)(nil)),
-		"MessageFormat":     reflect.ValueOf((*robot.MessageFormat)(nil)),
-		"OAuth2LinkRequest": reflect.ValueOf((*robot.OAuth2LinkRequest)(nil)),
-		"PluginHandler":     reflect.ValueOf((*robot.PluginHandler)(nil)),
-		"Protocol":          reflect.ValueOf((*robot.Protocol)(nil)),
-		"Registrations":     reflect.ValueOf((*robot.Registrations)(nil)),
-		"RetVal":            reflect.ValueOf((*robot.RetVal)(nil)),
-		"Robot":             reflect.ValueOf((*robot.Robot)(nil)),
-		"SimpleBrain":       reflect.ValueOf((*robot.SimpleBrain)(nil)),
-		"TaskHandler":       reflect.ValueOf((*robot.TaskHandler)(nil)),
-		"TaskRegistration":  reflect.ValueOf((*robot.TaskRegistration)(nil)),
-		"TaskRetVal":        reflect.ValueOf((*robot.TaskRetVal)(nil)),
+		"AttrRet":                   reflect.ValueOf((*robot.AttrRet)(nil)),
+		"Connector":                 reflect.ValueOf((*robot.Connector)(nil)),
+		"ConnectorMessage":          reflect.ValueOf((*robot.ConnectorMessage)(nil)),
+		"Handler":                   reflect.ValueOf((*robot.Handler)(nil)),
+		"HistoryLogger":             reflect.ValueOf((*robot.HistoryLogger)(nil)),
+		"HistoryProvider":           reflect.ValueOf((*robot.HistoryProvider)(nil)),
+		"JobHandler":                reflect.ValueOf((*robot.JobHandler)(nil)),
+		"LogLevel":                  reflect.ValueOf((*robot.LogLevel)(nil)),
+		"Logger":                    reflect.ValueOf((*robot.Logger)(nil)),
+		"Message":                   reflect.ValueOf((*robot.Message)(nil)),
+		"MessageFormat":             reflect.ValueOf((*robot.MessageFormat)(nil)),
+		"OAuth2IdentityLinkRequest": reflect.ValueOf((*robot.OAuth2IdentityLinkRequest)(nil)),
+		"PluginHandler":             reflect.ValueOf((*robot.PluginHandler)(nil)),
+		"Protocol":                  reflect.ValueOf((*robot.Protocol)(nil)),
+		"Registrations":             reflect.ValueOf((*robot.Registrations)(nil)),
+		"RetVal":                    reflect.ValueOf((*robot.RetVal)(nil)),
+		"Robot":                     reflect.ValueOf((*robot.Robot)(nil)),
+		"SimpleBrain":               reflect.ValueOf((*robot.SimpleBrain)(nil)),
+		"TaskHandler":               reflect.ValueOf((*robot.TaskHandler)(nil)),
+		"TaskRegistration":          reflect.ValueOf((*robot.TaskRegistration)(nil)),
+		"TaskRetVal":                reflect.ValueOf((*robot.TaskRetVal)(nil)),
 
 		// interface wrapper definitions
 		"_Connector":       reflect.ValueOf((*_github_com_lnxjedi_gopherbot_robot_Connector)(nil)),
@@ -304,11 +305,11 @@ type _github_com_lnxjedi_gopherbot_robot_Robot struct {
 	WGetHelpMetadata                 func(query string) string
 	WGetMessage                      func() *robot.Message
 	WGetParameter                    func(name string) string
-	WGetOAuth2Token                  func(provider string, user string) (token string, ret robot.RetVal)
+	WGetIdentityCredential           func(provider string, user string) (credential *robot.IdentityCredential, ret robot.RetVal)
 	WGetSenderAttribute              func(a string) *robot.AttrRet
 	WGetTaskConfig                   func(cfgptr interface{}) robot.RetVal
 	WGetUserAttribute                func(u string, a string) *robot.AttrRet
-	WLinkOAuth2User                  func(link *robot.OAuth2LinkRequest) robot.RetVal
+	WLinkOAuth2Identity              func(link *robot.OAuth2IdentityLinkRequest) robot.RetVal
 	WLog                             func(l robot.LogLevel, m string, v ...interface{}) bool
 	WMessageFormat                   func(f robot.MessageFormat) robot.Robot
 	WPause                           func(s float64)
@@ -341,7 +342,7 @@ type _github_com_lnxjedi_gopherbot_robot_Robot struct {
 	WSetWorkingDirectory             func(a0 string) bool
 	WSpawnJob                        func(a0 string, a1 ...string) robot.RetVal
 	WThreaded                        func() robot.Robot
-	WUnlinkOAuth2User                func(provider string, user string) robot.RetVal
+	WUnlinkIdentity                  func(provider string, user string) robot.RetVal
 	WUpdateDatum                     func(key string, locktoken string, datum interface{}) (ret robot.RetVal)
 }
 
@@ -414,8 +415,8 @@ func (W _github_com_lnxjedi_gopherbot_robot_Robot) GetMessage() *robot.Message {
 func (W _github_com_lnxjedi_gopherbot_robot_Robot) GetParameter(name string) string {
 	return W.WGetParameter(name)
 }
-func (W _github_com_lnxjedi_gopherbot_robot_Robot) GetOAuth2Token(provider string, user string) (token string, ret robot.RetVal) {
-	return W.WGetOAuth2Token(provider, user)
+func (W _github_com_lnxjedi_gopherbot_robot_Robot) GetIdentityCredential(provider string, user string) (credential *robot.IdentityCredential, ret robot.RetVal) {
+	return W.WGetIdentityCredential(provider, user)
 }
 func (W _github_com_lnxjedi_gopherbot_robot_Robot) GetSenderAttribute(a string) *robot.AttrRet {
 	return W.WGetSenderAttribute(a)
@@ -429,8 +430,8 @@ func (W _github_com_lnxjedi_gopherbot_robot_Robot) GetUserAttribute(u string, a 
 func (W _github_com_lnxjedi_gopherbot_robot_Robot) Log(l robot.LogLevel, m string, v ...interface{}) bool {
 	return W.WLog(l, m, v...)
 }
-func (W _github_com_lnxjedi_gopherbot_robot_Robot) LinkOAuth2User(link *robot.OAuth2LinkRequest) robot.RetVal {
-	return W.WLinkOAuth2User(link)
+func (W _github_com_lnxjedi_gopherbot_robot_Robot) LinkOAuth2Identity(link *robot.OAuth2IdentityLinkRequest) robot.RetVal {
+	return W.WLinkOAuth2Identity(link)
 }
 func (W _github_com_lnxjedi_gopherbot_robot_Robot) MessageFormat(f robot.MessageFormat) robot.Robot {
 	return W.WMessageFormat(f)
@@ -525,8 +526,8 @@ func (W _github_com_lnxjedi_gopherbot_robot_Robot) SpawnJob(a0 string, a1 ...str
 func (W _github_com_lnxjedi_gopherbot_robot_Robot) Threaded() robot.Robot {
 	return W.WThreaded()
 }
-func (W _github_com_lnxjedi_gopherbot_robot_Robot) UnlinkOAuth2User(provider string, user string) robot.RetVal {
-	return W.WUnlinkOAuth2User(provider, user)
+func (W _github_com_lnxjedi_gopherbot_robot_Robot) UnlinkIdentity(provider string, user string) robot.RetVal {
+	return W.WUnlinkIdentity(provider, user)
 }
 func (W _github_com_lnxjedi_gopherbot_robot_Robot) UpdateDatum(key string, locktoken string, datum interface{}) (ret robot.RetVal) {
 	return W.WUpdateDatum(key, locktoken, datum)

@@ -538,7 +538,7 @@ func handlePipelineRPCRobotCall(paramsRaw json.RawMessage, base robot.Robot) (ma
 			return nil, err
 		}
 		return map[string]interface{}{"string": r.GetParameter(name)}, nil
-	case "GetOAuth2Token":
+	case "GetIdentityCredential":
 		provider, err := pipelineRPCArgString(args, 0)
 		if err != nil {
 			return nil, err
@@ -547,14 +547,14 @@ func handlePipelineRPCRobotCall(paramsRaw json.RawMessage, base robot.Robot) (ma
 		if err != nil {
 			return nil, err
 		}
-		token, ret := r.GetOAuth2Token(provider, user)
-		return map[string]interface{}{"token": token, "ret_val": int(ret)}, nil
-	case "LinkOAuth2User":
+		credential, ret := r.GetIdentityCredential(provider, user)
+		return map[string]interface{}{"credential": credential, "ret_val": int(ret)}, nil
+	case "LinkOAuth2Identity":
 		raw, err := pipelineRPCArgAny(args, 0)
 		if err != nil {
 			return nil, err
 		}
-		var req robot.OAuth2LinkRequest
+		var req robot.OAuth2IdentityLinkRequest
 		blob, err := json.Marshal(raw)
 		if err != nil {
 			return nil, err
@@ -562,8 +562,8 @@ func handlePipelineRPCRobotCall(paramsRaw json.RawMessage, base robot.Robot) (ma
 		if err := json.Unmarshal(blob, &req); err != nil {
 			return nil, err
 		}
-		return map[string]interface{}{"ret_val": int(r.LinkOAuth2User(&req))}, nil
-	case "UnlinkOAuth2User":
+		return map[string]interface{}{"ret_val": int(r.LinkOAuth2Identity(&req))}, nil
+	case "UnlinkIdentity":
 		provider, err := pipelineRPCArgString(args, 0)
 		if err != nil {
 			return nil, err
@@ -572,7 +572,7 @@ func handlePipelineRPCRobotCall(paramsRaw json.RawMessage, base robot.Robot) (ma
 		if err != nil {
 			return nil, err
 		}
-		return map[string]interface{}{"ret_val": int(r.UnlinkOAuth2User(provider, user))}, nil
+		return map[string]interface{}{"ret_val": int(r.UnlinkIdentity(provider, user))}, nil
 	case "Email":
 		subject, err := pipelineRPCArgString(args, 0)
 		if err != nil {
@@ -1255,24 +1255,40 @@ func (c *pipelineRPCInterpreterRobotClient) GetParameter(name string) string {
 	return pipelineRPCMapString(res, "string")
 }
 
-func (c *pipelineRPCInterpreterRobotClient) GetOAuth2Token(provider, user string) (string, robot.RetVal) {
-	res, err := c.call("GetOAuth2Token", provider, user)
-	if err != nil {
-		return "", robot.Failed
+func pipelineRPCMapIdentityCredential(res map[string]interface{}, key string) *robot.IdentityCredential {
+	raw, ok := res[key]
+	if !ok || raw == nil {
+		return nil
 	}
-	return pipelineRPCMapString(res, "token"), robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
+	blob, err := json.Marshal(raw)
+	if err != nil {
+		return nil
+	}
+	var credential robot.IdentityCredential
+	if err := json.Unmarshal(blob, &credential); err != nil {
+		return nil
+	}
+	return &credential
 }
 
-func (c *pipelineRPCInterpreterRobotClient) LinkOAuth2User(link *robot.OAuth2LinkRequest) robot.RetVal {
-	res, err := c.call("LinkOAuth2User", link)
+func (c *pipelineRPCInterpreterRobotClient) GetIdentityCredential(provider, user string) (*robot.IdentityCredential, robot.RetVal) {
+	res, err := c.call("GetIdentityCredential", provider, user)
+	if err != nil {
+		return nil, robot.Failed
+	}
+	return pipelineRPCMapIdentityCredential(res, "credential"), robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
+}
+
+func (c *pipelineRPCInterpreterRobotClient) LinkOAuth2Identity(link *robot.OAuth2IdentityLinkRequest) robot.RetVal {
+	res, err := c.call("LinkOAuth2Identity", link)
 	if err != nil {
 		return robot.Failed
 	}
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCInterpreterRobotClient) UnlinkOAuth2User(provider, user string) robot.RetVal {
-	res, err := c.call("UnlinkOAuth2User", provider, user)
+func (c *pipelineRPCInterpreterRobotClient) UnlinkIdentity(provider, user string) robot.RetVal {
+	res, err := c.call("UnlinkIdentity", provider, user)
 	if err != nil {
 		return robot.Failed
 	}

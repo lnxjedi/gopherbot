@@ -30,7 +30,7 @@ type parameter struct {
 	Parameter string
 }
 
-type oauth2tokenrequest struct {
+type identityrequest struct {
 	Provider string
 	User     string
 }
@@ -162,6 +162,11 @@ type stringresponse struct {
 type stringretvalresponse struct {
 	StrVal string
 	RetVal int
+}
+
+type identitycredentialresponse struct {
+	Credential *robot.IdentityCredential
+	RetVal     int
 }
 
 type botretvalresponse struct {
@@ -491,27 +496,27 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		s := r.GetParameter(p.Parameter)
 		sendReturn(r, rw, &stringresponse{s})
 		return
-	case "GetOAuth2Token":
-		var req oauth2tokenrequest
+	case "GetIdentityCredential":
+		var req identityrequest
 		if !getArgs(rw, &f.FuncArgs, &req) {
 			return
 		}
-		token, ret := r.GetOAuth2Token(req.Provider, req.User)
-		sendReturn(r, rw, &stringretvalresponse{StrVal: token, RetVal: int(ret)})
+		credential, ret := r.GetIdentityCredential(req.Provider, req.User)
+		sendReturn(r, rw, &identitycredentialresponse{Credential: credential, RetVal: int(ret)})
 		return
-	case "LinkOAuth2User":
-		var req robot.OAuth2LinkRequest
+	case "LinkOAuth2Identity":
+		var req robot.OAuth2IdentityLinkRequest
 		if !getArgs(rw, &f.FuncArgs, &req) {
 			return
 		}
-		sendReturn(r, rw, &botretvalresponse{int(r.LinkOAuth2User(&req))})
+		sendReturn(r, rw, &botretvalresponse{int(r.LinkOAuth2Identity(&req))})
 		return
-	case "UnlinkOAuth2User":
-		var req oauth2tokenrequest
+	case "UnlinkIdentity":
+		var req identityrequest
 		if !getArgs(rw, &f.FuncArgs, &req) {
 			return
 		}
-		sendReturn(r, rw, &botretvalresponse{int(r.UnlinkOAuth2User(req.Provider, req.User))})
+		sendReturn(r, rw, &botretvalresponse{int(r.UnlinkIdentity(req.Provider, req.User))})
 		return
 	case "GetHelpMetadata":
 		var q helpmetadataquery

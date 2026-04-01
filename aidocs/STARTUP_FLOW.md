@@ -172,7 +172,7 @@ The default `robot.yaml` uses Go templates to derive configuration values from s
 
 - `PrimaryProtocol` in `robot.yaml` (required)
 - `DefaultProtocol` in `robot.yaml` (optional; defaults to `PrimaryProtocol`)
-- `OAuth2Providers` in `robot.yaml` (optional; engine-managed provider registry for device-flow onboarding and token refresh)
+- `IdentityProviders` in `robot.yaml` (optional; engine-managed provider registry for user-linked identity refresh and storage)
 
 If `DefaultProtocol` is set, it must be the primary protocol or one of `SecondaryProtocols`; otherwise startup logs a warning and falls back to `PrimaryProtocol`.
 
@@ -221,14 +221,15 @@ Provider-specific configuration is loaded by selected provider name:
 
 If a selected provider file is missing, or missing its required top-level key, startup/reload config load fails.
 
-### OAuth2 Provider Registry
+### Identity Provider Registry
 
-OAuth2 provider definitions are loaded from the root `robot.yaml` key `OAuth2Providers`.
+Identity provider definitions are loaded from the root `robot.yaml` key `IdentityProviders`.
 
 - Providers are part of normal config processing in `bot/conf.go`.
 - Provider keys are normalized to lowercase and stored in processed config for runtime lookup.
+- Each provider declares a high-level `Type`; currently the engine supports `oauth2`.
 - Providers reference a `CredentialParameterSet` for refresh-time client credentials; the provider registry should not embed secrets directly.
-- The registry is configuration-only at startup; token storage and refresh state live in the brain at runtime.
+- The registry is configuration-only at startup; linked identity state lives in the brain at runtime.
 
 ### Config Merge Semantics (Installed Defaults + Custom Overrides)
 
@@ -250,6 +251,8 @@ For extensions shipped with Gopherbot (compiled or default external extensions):
 
 - installed defaults are authoritative (`conf/plugins/*.yaml`, `conf/jobs/*.yaml`, extension `Configure()` defaults)
 - custom robot extension config should be minimal and local: enable/disable, local parameters/secrets, and intentional local behavior deltas
+- shipped with the engine does not imply active in the default robot; credential-requiring shipped extensions should stay disabled or absent from the default robot until a custom robot owner explicitly enables them
+- credentialed shipped examples belong in custom robot config as explicit opt-ins after the owner supplies secrets/ParameterSets; they should not be assumed usable in stock defaults
 - avoid copying full default command lists or policy lists (`Commands`, `AdminCommands`, `AuthorizedCommands`, etc.) into `custom/conf` unless behavior is intentionally being redefined
 - prefer `Append*` keys when adding list entries to preserve upstream defaults and reduce drift
 

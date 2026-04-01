@@ -60,12 +60,12 @@ function handler(argv) {
     bot.Say("github-review-digest requires Config.User to be set.");
     return task.Fail;
   }
-  const tokenResult = bot.GetOAuth2Token(cfg.Provider || "github", targetUser);
-  if (tokenResult.retVal !== ret.Ok || !tokenResult.token) {
+  const tokenResult = bot.GetIdentityCredential(cfg.Provider || "github", targetUser);
+  if (tokenResult.retVal !== ret.Ok || !tokenResult.credential || !tokenResult.credential.value) {
     bot.Say(`I couldn't get a GitHub token for ${targetUser}.`);
     return task.Fail;
   }
-  const client = githubClient(cfg, tokenResult.token);
+  const client = githubClient(cfg, tokenResult.credential.value);
   const limit = cfg.MaxItems || 5;
   const data = client.getJSON("/search/issues", {
     query: {

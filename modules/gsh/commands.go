@@ -81,9 +81,9 @@ func (c *shellContext) commandMap() map[string]commandHandler {
 		"recall":                          c.cmdRecall,
 		"deletememory":                    c.cmdDeleteMemory,
 		"getparameter":                    c.cmdGetParameter,
-		"getoauth2token":                  c.cmdGetOAuth2Token,
-		"linkoauth2user":                  c.cmdLinkOAuth2User,
-		"unlinkoauth2user":                c.cmdUnlinkOAuth2User,
+		"getidentitycredential":           c.cmdGetIdentityCredential,
+		"linkoauth2identity":              c.cmdLinkOAuth2Identity,
+		"unlinkidentity":                  c.cmdUnlinkIdentity,
 		"setparameter":                    c.cmdSetParameter,
 		"setworkingdirectory":             c.cmdSetWorkingDirectory,
 		"addtask":                         c.cmdAddTask,
@@ -377,20 +377,25 @@ func (c *shellContext) cmdGetParameter(ctx context.Context, args []string) error
 	return nil
 }
 
-func (c *shellContext) cmdGetOAuth2Token(ctx context.Context, args []string) error {
+func (c *shellContext) cmdGetIdentityCredential(ctx context.Context, args []string) error {
 	if len(args) != 2 {
-		return usageError(ctx, "GetOAuth2Token requires provider and user")
+		return usageError(ctx, "GetIdentityCredential requires provider and user")
 	}
-	token, ret := c.bot.GetOAuth2Token(args[0], args[1])
-	_, _ = io.WriteString(interp.HandlerCtx(ctx).Stdout, token)
+	credential, ret := c.bot.GetIdentityCredential(args[0], args[1])
+	if credential != nil {
+		payload, err := json.Marshal(credential)
+		if err == nil {
+			_, _ = io.WriteString(interp.HandlerCtx(ctx).Stdout, string(payload))
+		}
+	}
 	return retCodeError(ret)
 }
 
-func (c *shellContext) cmdLinkOAuth2User(ctx context.Context, args []string) error {
+func (c *shellContext) cmdLinkOAuth2Identity(ctx context.Context, args []string) error {
 	if len(args) < 3 || len(args) > 6 {
-		return usageError(ctx, "LinkOAuth2User requires provider, user, accessToken, and optional refreshToken, expiresIn, tokenType")
+		return usageError(ctx, "LinkOAuth2Identity requires provider, user, accessToken, and optional refreshToken, expiresIn, tokenType")
 	}
-	link := &robot.OAuth2LinkRequest{
+	link := &robot.OAuth2IdentityLinkRequest{
 		Provider:    args[0],
 		User:        args[1],
 		AccessToken: args[2],
@@ -402,21 +407,21 @@ func (c *shellContext) cmdLinkOAuth2User(ctx context.Context, args []string) err
 	if len(args) > 4 {
 		expiresIn, err := strconv.Atoi(args[4])
 		if err != nil {
-			return usageError(ctx, "LinkOAuth2User expiresIn must be numeric")
+			return usageError(ctx, "LinkOAuth2Identity expiresIn must be numeric")
 		}
 		link.ExpiresIn = expiresIn
 	}
 	if len(args) > 5 && args[5] != "" {
 		link.TokenType = args[5]
 	}
-	return retCodeError(c.bot.LinkOAuth2User(link))
+	return retCodeError(c.bot.LinkOAuth2Identity(link))
 }
 
-func (c *shellContext) cmdUnlinkOAuth2User(ctx context.Context, args []string) error {
+func (c *shellContext) cmdUnlinkIdentity(ctx context.Context, args []string) error {
 	if len(args) != 2 {
-		return usageError(ctx, "UnlinkOAuth2User requires provider and user")
+		return usageError(ctx, "UnlinkIdentity requires provider and user")
 	}
-	return retCodeError(c.bot.UnlinkOAuth2User(args[0], args[1]))
+	return retCodeError(c.bot.UnlinkIdentity(args[0], args[1]))
 }
 
 func (c *shellContext) cmdSetParameter(ctx context.Context, args []string) error {

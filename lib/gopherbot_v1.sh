@@ -36,12 +36,12 @@ GBRET_InvalidTaskType=26
 GBRET_CommandNotMatched=27
 GBRET_TaskDisabled=28
 GBRET_PrivilegeViolation=29
-GBRET_OAuth2ProviderNotFound=30
-GBRET_OAuth2UserNotLinked=31
-GBRET_OAuth2ReauthRequired=32
-GBRET_OAuth2RefreshFailed=33
-GBRET_OAuth2InvalidLinkRequest=34
-GBRET_OAuth2ConfigError=35
+GBRET_IdentityProviderNotFound=30
+GBRET_IdentityNotLinked=31
+GBRET_IdentityReauthRequired=32
+GBRET_IdentityRefreshFailed=33
+GBRET_IdentityInvalidLinkRequest=34
+GBRET_IdentityConfigError=35
 GBRET_Failed=63
 
 # Plugin return values / exit codes
@@ -275,7 +275,7 @@ EOF
 	echo -n "$RETVAL"
 }
 
-GetOAuth2Token() {
+GetIdentityCredential() {
 	local PROVIDER="$1"
 	local USER="$2"
 	local GB_FUNCARGS=$(cat <<EOF
@@ -287,11 +287,15 @@ EOF
 )
 	local GB_RET
 	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
-	echo -n "$(echo "$GB_RET" | jq -r .StrVal)"
+	local CREDENTIAL
+	CREDENTIAL=$(echo "$GB_RET" | jq -c .Credential)
+	if [ "$CREDENTIAL" != "null" ]; then
+		echo -n "$CREDENTIAL"
+	fi
 	return "$(echo "$GB_RET" | jq -r .RetVal)"
 }
 
-LinkOAuth2User() {
+LinkOAuth2Identity() {
 	local PROVIDER="$1"
 	local USER="$2"
 	local ACCESS_TOKEN="$3"
@@ -314,7 +318,7 @@ EOF
 	return "$(echo "$GB_RET" | jq -r .RetVal)"
 }
 
-UnlinkOAuth2User() {
+UnlinkIdentity() {
 	local PROVIDER="$1"
 	local USER="$2"
 	local GB_FUNCARGS=$(cat <<EOF

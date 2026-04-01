@@ -169,19 +169,21 @@ NameSpaces:
 
 ParameterSets:
 
-## Optional registry of OAuth2 providers used internally by GetOAuth2Token for
-## refresh behavior. Onboarding plugins should get secrets only from explicit
-## task ParameterSets, not through a robot method.
-# OAuth2Providers:
+## Optional registry of user-linked identity providers used internally by
+## GetIdentityCredential for refresh behavior. Onboarding plugins should get
+## secrets only from explicit task ParameterSets, not through a robot method.
+# IdentityProviders:
 #   github:
+#     Type: oauth2
 #     CredentialParameterSet: github_oauth
-#     ## GetOAuth2Token uses CLIENT_ID and CLIENT_SECRET from the referenced
+#     ## GetIdentityCredential uses CLIENT_ID and CLIENT_SECRET from the referenced
 #     ## ParameterSet when a refresh grant needs client authentication.
-#     TokenEndpointAuthMethod: client_secret_post
-#     Token:
-#       URL: https://github.com/login/oauth/access_token
-#       Headers:
-#         Accept: application/json
+#     OAuth2:
+#       TokenEndpointAuthMethod: client_secret_post
+#       Token:
+#         URL: https://github.com/login/oauth/access_token
+#         Headers:
+#           Accept: application/json
 
 {{- if ne $mode "demo" }}
 ScheduledJobs:
@@ -233,12 +235,15 @@ ExternalPlugins:
       Value: ""
     - Name: OPENAI_ORGANIZATION_ID
       Value: ""
-  "github-link":
-    Description: Link and verify a user's GitHub account with device authorization
-    Path: plugins/go-github-link/github_link.go
-    Homed: true
-    # ParameterSets:
-    # - github_oauth
+  ## Credentialed extensions such as github-link are shipped with the engine
+  ## but are not enabled in the default robot. Enable them only in a custom
+  ## robot after creating the required ParameterSet and attaching it explicitly.
+  # "github-link":
+  #   Description: Link and verify a user's GitHub account with device authorization
+  #   Path: plugins/go-github-link/github_link.go
+  #   Homed: true
+  #   ParameterSets:
+  #   - github_oauth
 {{- if eq $mode "demo" }}
   {{- if or (eq $proto "terminal") (eq $proto "ssh") }}
   "welcome":

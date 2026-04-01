@@ -333,17 +333,17 @@ function handler(argv) {
     case 'oauth2cycle':
       {
         const bot = new Robot();
-        const linkRet = bot.LinkOAuth2User({
+        const linkRet = bot.LinkOAuth2Identity({
           Provider: "github",
           User: bot.user,
           AccessToken: "js-token",
           RefreshToken: "js-refresh",
           TokenType: "Bearer",
         });
-        const tokenResult = bot.GetOAuth2Token("github", bot.user);
-        const unlinkRet = bot.UnlinkOAuth2User("github", bot.user);
+        const tokenResult = bot.GetIdentityCredential("github", bot.user);
+        const unlinkRet = bot.UnlinkIdentity("github", bot.user);
         bot.Say(
-          `OAUTH2 FLOW: link=${ret.string(linkRet)} token=${tokenResult.token} get=${ret.string(tokenResult.retVal)} unlink=${ret.string(unlinkRet)}`
+          `IDENTITY FLOW: link=${ret.string(linkRet)} token=${tokenResult.credential ? tokenResult.credential.value : ""} get=${ret.string(tokenResult.retVal)} unlink=${ret.string(unlinkRet)}`
         );
         return task.Normal;
       }

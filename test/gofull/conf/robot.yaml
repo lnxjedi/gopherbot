@@ -28,6 +28,8 @@ LocalPort: 0
 ExternalPlugins:
   "gofull":
     Path: plugins/test/gofull.go
+    ParameterSets:
+    - github_oauth
   "gosec":
     Path: plugins/test/gofull.go
   "gosec-authall":
@@ -61,6 +63,8 @@ ParameterSets:
       Value: "gofull-client"
     - Name: CLIENT_SECRET
       Value: "gofull-secret"
-OAuth2Providers:
+IdentityProviders:
   github:
+    Type: oauth2
     CredentialParameterSet: github_oauth
+    OAuth2: {}

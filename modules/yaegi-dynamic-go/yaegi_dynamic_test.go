@@ -139,8 +139,8 @@ func TestRunPluginHandlerYaegiRobotHelpMetadataMethodCompiles(t *testing.T) {
 	}
 }
 
-func TestRunPluginHandlerYaegiOAuth2LinkRequestAndRetValsWork(t *testing.T) {
-	pluginPath := writeTempPlugin(t, yaegiPluginUsingOAuth2LinkRequestAndRetVals())
+func TestRunPluginHandlerYaegiIdentityLinkRequestAndRetValsWork(t *testing.T) {
+	pluginPath := writeTempPlugin(t, yaegiPluginUsingIdentityLinkRequestAndRetVals())
 	logger := &testLogger{}
 
 	ret, err := RunPluginHandler(pluginPath, "oauth2-linkrequest-repro", nil, nil, logger, false, "probe")
@@ -505,7 +505,7 @@ func yaegiPluginUsingHelpMetadata() string {
 	}, "\n")
 }
 
-func yaegiPluginUsingOAuth2LinkRequestAndRetVals() string {
+func yaegiPluginUsingIdentityLinkRequestAndRetVals() string {
 	return strings.Join([]string{
 		"package main",
 		"",
@@ -516,7 +516,7 @@ func yaegiPluginUsingOAuth2LinkRequestAndRetVals() string {
 		"}",
 		"",
 		"func PluginHandler(r robot.Robot, command string, args ...string) robot.TaskRetVal {",
-		"    _ = &robot.OAuth2LinkRequest{",
+		"    _ = &robot.OAuth2IdentityLinkRequest{",
 		"        Provider: \"github\",",
 		"        User: \"alice\",",
 		"        AccessToken: \"token\",",
@@ -526,12 +526,12 @@ func yaegiPluginUsingOAuth2LinkRequestAndRetVals() string {
 		"    values := []robot.RetVal{",
 		"        robot.Ok,",
 		"        robot.Failed,",
-		"        robot.OAuth2ProviderNotFound,",
-		"        robot.OAuth2UserNotLinked,",
-		"        robot.OAuth2ReauthRequired,",
-		"        robot.OAuth2RefreshFailed,",
-		"        robot.OAuth2InvalidLinkRequest,",
-		"        robot.OAuth2ConfigError,",
+		"        robot.IdentityProviderNotFound,",
+		"        robot.IdentityNotLinked,",
+		"        robot.IdentityReauthRequired,",
+		"        robot.IdentityRefreshFailed,",
+		"        robot.IdentityInvalidLinkRequest,",
+		"        robot.IdentityConfigError,",
 		"    }",
 		"    if len(values) != 8 {",
 		"        return robot.Fail",
@@ -540,8 +540,8 @@ func yaegiPluginUsingOAuth2LinkRequestAndRetVals() string {
 		"    if failedProbe.Ret != robot.Failed {",
 		"        return robot.Fail",
 		"    }",
-		"    probe := oauthRetProbe{Ret: robot.OAuth2ConfigError}",
-		"    if probe.Ret != robot.OAuth2ConfigError {",
+		"    probe := oauthRetProbe{Ret: robot.IdentityConfigError}",
+		"    if probe.Ret != robot.IdentityConfigError {",
 		"        return robot.Fail",
 		"    }",
 		"    return robot.Normal",

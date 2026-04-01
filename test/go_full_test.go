@@ -112,7 +112,7 @@ func TestGoFull(t *testing.T) {
 			{null, general, "PARAM-SHOW: PIPELINE_SENTINEL=nebula-42", false}},
 			[]Event{CommandTaskRan, GoPluginRan, ExternalTaskRan}, 0},
 		{aliceID, general, ";go-oauth2-cycle", false, []TestMessage{
-			{null, general, "OAUTH2 FLOW: link=Ok token=go-token get=Ok unlink=Ok", false}},
+			{null, general, "IDENTITY FLOW: link=Ok token=go-token get=Ok unlink=Ok", false}},
 			[]Event{CommandTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
@@ -200,6 +200,8 @@ func TestGoFullSecurity(t *testing.T) {
 			{null, general, "\\(SECURITY CHECK: sechiddenok\\)", false}}, nil, 0},
 		{aliceID, general, "/bender go-sec-hidden-denied", false, []TestMessage{
 			{alice, general, "\\(?Sorry, 'gosec/sechiddendenied' cannot be run as a hidden command - use the robot's name or alias\\)?", false}}, nil, 0},
+		{aliceID, general, ";go-sec-oauth2-denied", false, []TestMessage{
+			{null, general, "IDENTITY FLOW: link=IdentityConfigError token= get=IdentityConfigError unlink=IdentityConfigError", false}}, nil, 0},
 		{aliceID, general, ";go-sec-adminonly", false, []TestMessage{
 			{null, general, "SECURITY CHECK: secadminonly", false}}, nil, 0},
 		{bobID, general, ";go-sec-adminonly", false, []TestMessage{

@@ -105,6 +105,7 @@ Gopherbot treats extension secret access as explicit and scope-based.
 Practical rule for engine APIs:
 
 - `GetTaskConfig()` is acceptable for extension-specific secrets because the robot owner explicitly attached that config to the calling extension.
+- Identity provider access must follow the same explicit-scoping rule: an extension may call identity credential/link methods only for providers whose credential `ParameterSet` is also attached to that extension.
 - Generic robot methods must not return provider registries, parameter-set contents, or other broad config objects that could disclose secrets to untrusted plugins.
 
 ## Practical Limitations (Current)

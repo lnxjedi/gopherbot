@@ -12,9 +12,9 @@ type BotAPI interface {
 	GetSenderAttribute(a string) *robot.AttrRet
 	GetTaskConfig(cfgptr interface{}) robot.RetVal
 	GetParameter(name string) string
-	GetOAuth2Token(provider, user string) (string, robot.RetVal)
-	LinkOAuth2User(link *robot.OAuth2LinkRequest) robot.RetVal
-	UnlinkOAuth2User(provider, user string) robot.RetVal
+	GetIdentityCredential(provider, user string) (*robot.IdentityCredential, robot.RetVal)
+	LinkOAuth2Identity(link *robot.OAuth2IdentityLinkRequest) robot.RetVal
+	UnlinkIdentity(provider, user string) robot.RetVal
 	Exclusive(tag string, queueTask bool) bool
 	Fixed() BotAPI
 	MessageFormat(f robot.MessageFormat) BotAPI

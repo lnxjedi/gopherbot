@@ -49,13 +49,13 @@ function githubClient(cfg, token) {
 }
 
 function requireToken(bot, provider, user) {
-  const tokenResult = bot.GetOAuth2Token(provider, user);
-  if (tokenResult.retVal !== ret.Ok || !tokenResult.token) {
+  const tokenResult = bot.GetIdentityCredential(provider, user);
+  if (tokenResult.retVal !== ret.Ok || !tokenResult.credential || !tokenResult.credential.value) {
     switch (tokenResult.retVal) {
-      case ret.OAuth2UserNotLinked:
+      case ret.IdentityNotLinked:
         bot.Say("You don't have a linked GitHub account yet. Try `link-github` first.");
         break;
-      case ret.OAuth2ReauthRequired:
+      case ret.IdentityReauthRequired:
         bot.Say("Your linked GitHub account needs to be linked again. Try `link-github`.");
         break;
       default:
@@ -64,7 +64,7 @@ function requireToken(bot, provider, user) {
     }
     return null;
   }
-  return tokenResult.token;
+  return tokenResult.credential.value;
 }
 
 function repoLabel(item) {

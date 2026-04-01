@@ -3,10 +3,15 @@ package bot
 import "time"
 
 type OAuth2ProviderConfig struct {
-	Key                     string                    `yaml:"-"`
-	CredentialParameterSet  string                    `yaml:"CredentialParameterSet"`
 	TokenEndpointAuthMethod string                    `yaml:"TokenEndpointAuthMethod"`
 	Token                   OAuth2TokenEndpointConfig `yaml:"Token"`
+}
+
+type IdentityProviderConfig struct {
+	Key                    string                `yaml:"-"`
+	Type                   string                `yaml:"Type"`
+	CredentialParameterSet string                `yaml:"CredentialParameterSet"`
+	OAuth2                 *OAuth2ProviderConfig `yaml:"OAuth2"`
 }
 
 type OAuth2EndpointConfig struct {

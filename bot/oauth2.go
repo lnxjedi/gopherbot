@@ -64,17 +64,36 @@ func oauth2DatumKeySegment(value string) string {
 	return value
 }
 
-func getOAuth2ProviderConfig(provider string) (OAuth2ProviderConfig, bool) {
+func getIdentityProviderConfig(provider string) (IdentityProviderConfig, bool) {
 	key := normalizeOAuth2ProviderKey(provider)
 	currentCfg.RLock()
-	cfg, ok := currentCfg.oauth2Providers[key]
+	cfg, ok := currentCfg.identityProviders[key]
 	currentCfg.RUnlock()
 	return cfg, ok
 }
 
+func (r Robot) identityCheckProviderAccess(provider IdentityProviderConfig) robot.RetVal {
+	setName := strings.TrimSpace(provider.CredentialParameterSet)
+	if setName == "" {
+		return robot.IdentityConfigError
+	}
+	if r.currentTask == nil {
+		Log(robot.Error, "identity: provider=%s denied because no current task context is available; required ParameterSet=%s", provider.Key, setName)
+		return robot.IdentityConfigError
+	}
+	task, _, _ := getTask(r.currentTask)
+	for _, attached := range task.ParameterSets {
+		if strings.TrimSpace(attached) == setName {
+			return robot.Ok
+		}
+	}
+	Log(robot.Error, "identity: task '%s' attempted provider=%s without attached credential ParameterSet '%s'; attached ParameterSets=%v", task.name, provider.Key, setName, task.ParameterSets)
+	return robot.IdentityConfigError
+}
+
 func oauth2UserDatumKey(provider, user string) string {
 	sum := sha1.Sum([]byte(strings.ToLower(strings.TrimSpace(user))))
-	return fmt.Sprintf("bot:oauth2:v1:%s:user:%s", oauth2DatumKeySegment(provider), hex.EncodeToString(sum[:]))
+	return fmt.Sprintf("bot:identity:v1:%s:user:%s", oauth2DatumKeySegment(provider), hex.EncodeToString(sum[:]))
 }
 
 func getOAuth2CredentialParameterSet(name string) (ParameterSet, bool) {
@@ -97,21 +116,21 @@ func oauth2GetParameterValue(params []Parameter, name string) string {
 	return ""
 }
 
-func oauth2ResolveClientCredentials(provider OAuth2ProviderConfig) (oauth2ClientCredentials, robot.RetVal, string) {
+func oauth2ResolveClientCredentials(provider IdentityProviderConfig) (oauth2ClientCredentials, robot.RetVal, string) {
 	setName := strings.TrimSpace(provider.CredentialParameterSet)
 	if setName == "" {
-		return oauth2ClientCredentials{}, robot.OAuth2ConfigError, "provider missing CredentialParameterSet"
+		return oauth2ClientCredentials{}, robot.IdentityConfigError, "provider missing CredentialParameterSet"
 	}
 	ps, ok := getOAuth2CredentialParameterSet(setName)
 	if !ok {
-		return oauth2ClientCredentials{}, robot.OAuth2ConfigError, fmt.Sprintf("provider credential ParameterSet %q not found", setName)
+		return oauth2ClientCredentials{}, robot.IdentityConfigError, fmt.Sprintf("provider credential ParameterSet %q not found", setName)
 	}
 	creds := oauth2ClientCredentials{
 		ClientID:     oauth2GetParameterValue(ps.Parameters, "CLIENT_ID"),
 		ClientSecret: oauth2GetParameterValue(ps.Parameters, "CLIENT_SECRET"),
 	}
 	if creds.ClientID == "" {
-		return oauth2ClientCredentials{}, robot.OAuth2ConfigError, fmt.Sprintf("provider credential ParameterSet %q is missing CLIENT_ID", setName)
+		return oauth2ClientCredentials{}, robot.IdentityConfigError, fmt.Sprintf("provider credential ParameterSet %q is missing CLIENT_ID", setName)
 	}
 	return creds, robot.Ok, ""
 }
@@ -206,13 +225,42 @@ func oauth2ClearError(state *oauth2UserLink) {
 	state.Status.ReauthRequired = false
 }
 
+func oauth2BuildIdentityCredential(state *oauth2UserLink) *robot.IdentityCredential {
+	if state == nil {
+		return nil
+	}
+	token := strings.TrimSpace(state.Token.AccessToken)
+	if token == "" {
+		return nil
+	}
+	scheme := strings.TrimSpace(state.Token.TokenType)
+	if scheme == "" {
+		scheme = "Bearer"
+	}
+	credential := &robot.IdentityCredential{
+		Type:       "bearer_token",
+		Value:      token,
+		Scheme:     scheme,
+		HeaderName: "Authorization",
+		ExpiresAt:  "",
+	}
+	credential.HeaderValue = scheme + " " + token
+	if state.Token.ExpiresAt != nil && !state.Token.ExpiresAt.IsZero() {
+		credential.ExpiresAt = state.Token.ExpiresAt.UTC().Format(time.RFC3339)
+	}
+	return credential
+}
+
 func oauth2BasicAuthValue(clientID, clientSecret string) string {
 	raw := clientID + ":" + clientSecret
 	return "Basic " + base64.StdEncoding.EncodeToString([]byte(raw))
 }
 
-func oauth2AuthMethod(provider OAuth2ProviderConfig) string {
-	method := strings.TrimSpace(strings.ToLower(provider.TokenEndpointAuthMethod))
+func oauth2AuthMethod(provider IdentityProviderConfig) string {
+	if provider.OAuth2 == nil {
+		return "client_secret_post"
+	}
+	method := strings.TrimSpace(strings.ToLower(provider.OAuth2.TokenEndpointAuthMethod))
 	if method == "" {
 		return "client_secret_post"
 	}
@@ -297,25 +345,33 @@ func oauth2ReauthError(providerErr string) bool {
 	}
 }
 
-func oauth2ProviderConfigValid(provider OAuth2ProviderConfig) robot.RetVal {
+func identityProviderConfigValid(provider IdentityProviderConfig) robot.RetVal {
 	if provider.Key == "" || strings.TrimSpace(provider.CredentialParameterSet) == "" {
-		return robot.OAuth2ConfigError
+		return robot.IdentityConfigError
+	}
+	switch strings.TrimSpace(strings.ToLower(provider.Type)) {
+	case "oauth2":
+		if provider.OAuth2 == nil {
+			return robot.IdentityConfigError
+		}
+	default:
+		return robot.IdentityConfigError
 	}
 	return robot.Ok
 }
 
-func oauth2RefreshUserToken(provider OAuth2ProviderConfig, state *oauth2UserLink, now time.Time) robot.RetVal {
-	if ret := oauth2ProviderConfigValid(provider); ret != robot.Ok {
+func oauth2RefreshUserToken(provider IdentityProviderConfig, state *oauth2UserLink, now time.Time) robot.RetVal {
+	if ret := identityProviderConfigValid(provider); ret != robot.Ok {
 		oauth2SetError(state, ret, "provider missing key or credential ParameterSet", false, now)
 		return ret
 	}
-	if strings.TrimSpace(provider.Token.URL) == "" {
-		oauth2SetError(state, robot.OAuth2ConfigError, "provider missing token endpoint URL", false, now)
-		return robot.OAuth2ConfigError
+	if provider.OAuth2 == nil || strings.TrimSpace(provider.OAuth2.Token.URL) == "" {
+		oauth2SetError(state, robot.IdentityConfigError, "provider missing token endpoint URL", false, now)
+		return robot.IdentityConfigError
 	}
 	if strings.TrimSpace(state.Token.RefreshToken) == "" {
-		oauth2SetError(state, robot.OAuth2ReauthRequired, "token expired and no refresh token is stored", true, now)
-		return robot.OAuth2ReauthRequired
+		oauth2SetError(state, robot.IdentityReauthRequired, "token expired and no refresh token is stored", true, now)
+		return robot.IdentityReauthRequired
 	}
 	creds, ret, msg := oauth2ResolveClientCredentials(provider)
 	if ret != robot.Ok {
@@ -326,7 +382,7 @@ func oauth2RefreshUserToken(provider OAuth2ProviderConfig, state *oauth2UserLink
 	values := url.Values{}
 	values.Set("grant_type", "refresh_token")
 	values.Set("refresh_token", state.Token.RefreshToken)
-	for key, value := range provider.Token.RefreshParameters {
+	for key, value := range provider.OAuth2.Token.RefreshParameters {
 		if strings.TrimSpace(key) != "" && value != "" {
 			values.Set(key, value)
 		}
@@ -336,8 +392,8 @@ func oauth2RefreshUserToken(provider OAuth2ProviderConfig, state *oauth2UserLink
 	switch oauth2AuthMethod(provider) {
 	case "client_secret_basic":
 		if creds.ClientSecret == "" {
-			oauth2SetError(state, robot.OAuth2ConfigError, "provider requires client_secret_basic but CLIENT_SECRET is empty", false, now)
-			return robot.OAuth2ConfigError
+			oauth2SetError(state, robot.IdentityConfigError, "provider requires client_secret_basic but CLIENT_SECRET is empty", false, now)
+			return robot.IdentityConfigError
 		}
 		headers["Authorization"] = oauth2BasicAuthValue(creds.ClientID, creds.ClientSecret)
 	case "client_id_only":
@@ -351,40 +407,40 @@ func oauth2RefreshUserToken(provider OAuth2ProviderConfig, state *oauth2UserLink
 		}
 	}
 
-	payload, statusCode, err := oauth2DoFormPost(provider.Token.OAuth2EndpointConfig, headers, values)
+	payload, statusCode, err := oauth2DoFormPost(provider.OAuth2.Token.OAuth2EndpointConfig, headers, values)
 	if err != nil {
-		oauth2SetError(state, robot.OAuth2RefreshFailed, fmt.Sprintf("refresh HTTP request failed: %v", err), false, now)
-		return robot.OAuth2RefreshFailed
+		oauth2SetError(state, robot.IdentityRefreshFailed, fmt.Sprintf("refresh HTTP request failed: %v", err), false, now)
+		return robot.IdentityRefreshFailed
 	}
 
 	var tokenResp oauth2TokenHTTPResponse
 	if err := oauth2DecodeJSON(payload, &tokenResp); err != nil {
-		oauth2SetError(state, robot.OAuth2RefreshFailed, fmt.Sprintf("refresh response decode failed (%d): %v", statusCode, err), false, now)
-		return robot.OAuth2RefreshFailed
+		oauth2SetError(state, robot.IdentityRefreshFailed, fmt.Sprintf("refresh response decode failed (%d): %v", statusCode, err), false, now)
+		return robot.IdentityRefreshFailed
 	}
 	if tokenResp.Error != "" {
 		msg := oauth2ProviderErrorMessage(tokenResp)
 		if oauth2ReauthError(tokenResp.Error) {
-			oauth2SetError(state, robot.OAuth2ReauthRequired, msg, true, now)
-			return robot.OAuth2ReauthRequired
+			oauth2SetError(state, robot.IdentityReauthRequired, msg, true, now)
+			return robot.IdentityReauthRequired
 		}
-		oauth2SetError(state, robot.OAuth2RefreshFailed, msg, false, now)
-		return robot.OAuth2RefreshFailed
+		oauth2SetError(state, robot.IdentityRefreshFailed, msg, false, now)
+		return robot.IdentityRefreshFailed
 	}
 	if strings.TrimSpace(tokenResp.AccessToken) == "" {
-		oauth2SetError(state, robot.OAuth2RefreshFailed, fmt.Sprintf("refresh response missing access_token (status %d)", statusCode), false, now)
-		return robot.OAuth2RefreshFailed
+		oauth2SetError(state, robot.IdentityRefreshFailed, fmt.Sprintf("refresh response missing access_token (status %d)", statusCode), false, now)
+		return robot.IdentityRefreshFailed
 	}
 
 	expiresAt, err := oauth2ResolveTime("", tokenResp.ExpiresIn, now)
 	if err != nil {
-		oauth2SetError(state, robot.OAuth2RefreshFailed, fmt.Sprintf("refresh expires_in conversion failed: %v", err), false, now)
-		return robot.OAuth2RefreshFailed
+		oauth2SetError(state, robot.IdentityRefreshFailed, fmt.Sprintf("refresh expires_in conversion failed: %v", err), false, now)
+		return robot.IdentityRefreshFailed
 	}
 	refreshExpiresAt, err := oauth2ResolveTime("", tokenResp.RefreshTokenExpiresIn, now)
 	if err != nil {
-		oauth2SetError(state, robot.OAuth2RefreshFailed, fmt.Sprintf("refresh token expiry conversion failed: %v", err), false, now)
-		return robot.OAuth2RefreshFailed
+		oauth2SetError(state, robot.IdentityRefreshFailed, fmt.Sprintf("refresh token expiry conversion failed: %v", err), false, now)
+		return robot.IdentityRefreshFailed
 	}
 
 	state.Token.AccessToken = tokenResp.AccessToken
@@ -410,16 +466,27 @@ func oauth2RefreshUserToken(provider OAuth2ProviderConfig, state *oauth2UserLink
 }
 
 func (r Robot) GetOAuth2Token(provider, user string) (token string, ret robot.RetVal) {
-	cfg, ok := getOAuth2ProviderConfig(provider)
-	if !ok {
-		return "", robot.OAuth2ProviderNotFound
-	}
-	if ret = oauth2ProviderConfigValid(cfg); ret != robot.Ok {
+	credential, ret := r.GetIdentityCredential(provider, user)
+	if ret != robot.Ok || credential == nil {
 		return "", ret
+	}
+	return credential.Value, robot.Ok
+}
+
+func (r Robot) GetIdentityCredential(provider, user string) (credential *robot.IdentityCredential, ret robot.RetVal) {
+	cfg, ok := getIdentityProviderConfig(provider)
+	if !ok {
+		return nil, robot.IdentityProviderNotFound
+	}
+	if ret = identityProviderConfigValid(cfg); ret != robot.Ok {
+		return nil, ret
+	}
+	if ret = r.identityCheckProviderAccess(cfg); ret != robot.Ok {
+		return nil, ret
 	}
 	user = strings.ToLower(strings.TrimSpace(user))
 	if user == "" {
-		return "", robot.OAuth2InvalidLinkRequest
+		return nil, robot.IdentityInvalidLinkRequest
 	}
 	key := oauth2UserDatumKey(cfg.Key, user)
 	now := time.Now().UTC()
@@ -427,73 +494,76 @@ func (r Robot) GetOAuth2Token(provider, user string) (token string, ret robot.Re
 	var state oauth2UserLink
 	_, exists, ret := checkoutDatum(key, &state, false)
 	if ret != robot.Ok {
-		return "", ret
+		return nil, ret
 	}
 	if !exists {
-		return "", robot.OAuth2UserNotLinked
+		return nil, robot.IdentityNotLinked
 	}
 	if state.Status.ReauthRequired {
-		return "", robot.OAuth2ReauthRequired
+		return nil, robot.IdentityReauthRequired
 	}
 	if oauth2TokenUsable(&state, now) {
-		return state.Token.AccessToken, robot.Ok
+		return oauth2BuildIdentityCredential(&state), robot.Ok
 	}
 
 	lockToken, exists, ret := checkoutDatum(key, &state, true)
 	if ret != robot.Ok {
-		return "", ret
+		return nil, ret
 	}
 	if !exists {
 		checkinDatum(key, lockToken)
-		return "", robot.OAuth2UserNotLinked
+		return nil, robot.IdentityNotLinked
 	}
 	if state.Status.ReauthRequired {
 		checkinDatum(key, lockToken)
-		return "", robot.OAuth2ReauthRequired
+		return nil, robot.IdentityReauthRequired
 	}
 	if oauth2TokenUsable(&state, now) {
 		checkinDatum(key, lockToken)
-		return state.Token.AccessToken, robot.Ok
+		return oauth2BuildIdentityCredential(&state), robot.Ok
 	}
 
 	ret = oauth2RefreshUserToken(cfg, &state, now)
 	updateRet := updateDatum(key, lockToken, state)
 	if updateRet != robot.Ok {
-		Log(robot.Error, "oauth2: failed updating token state for provider=%s user=%s: %s", cfg.Key, user, updateRet)
+		Log(robot.Error, "identity: failed updating token state for provider=%s user=%s: %s", cfg.Key, user, updateRet)
 		if ret == robot.Ok {
 			ret = updateRet
 		}
 	}
 	if ret != robot.Ok {
-		Log(robot.Warn, "oauth2: token retrieval failed for provider=%s user=%s: %s (%s)", cfg.Key, user, ret, state.Status.LastError)
-		return "", ret
+		Log(robot.Warn, "identity: credential retrieval failed for provider=%s user=%s: %s (%s)", cfg.Key, user, ret, state.Status.LastError)
+		return nil, ret
 	}
-	return state.Token.AccessToken, robot.Ok
+	return oauth2BuildIdentityCredential(&state), robot.Ok
 }
 
-func (r Robot) LinkOAuth2User(link *robot.OAuth2LinkRequest) robot.RetVal {
+func (r Robot) LinkOAuth2Identity(link *robot.OAuth2IdentityLinkRequest) robot.RetVal {
 	if link == nil {
-		return robot.OAuth2InvalidLinkRequest
+		return robot.IdentityInvalidLinkRequest
 	}
-	cfg, ok := getOAuth2ProviderConfig(link.Provider)
+	cfg, ok := getIdentityProviderConfig(link.Provider)
 	if !ok {
-		return robot.OAuth2ProviderNotFound
+		return robot.IdentityProviderNotFound
 	}
-	if ret := oauth2ProviderConfigValid(cfg); ret != robot.Ok {
+	if ret := identityProviderConfigValid(cfg); ret != robot.Ok {
+		return ret
+	}
+	if ret := r.identityCheckProviderAccess(cfg); ret != robot.Ok {
 		return ret
 	}
 	user := strings.ToLower(strings.TrimSpace(link.User))
 	if user == "" || strings.TrimSpace(link.AccessToken) == "" {
-		return robot.OAuth2InvalidLinkRequest
+		return robot.IdentityInvalidLinkRequest
 	}
 	now := time.Now().UTC()
 	expiresAt, err := oauth2ResolveTime(link.ExpiresAt, link.ExpiresIn, now)
 	if err != nil {
-		return robot.OAuth2InvalidLinkRequest
+		return robot.IdentityInvalidLinkRequest
 	}
 	refreshExpiresAt, err := oauth2ResolveTime(link.RefreshExpiresAt, link.RefreshExpiresIn, now)
 	if err != nil {
-		return robot.OAuth2InvalidLinkRequest
+		return robot.IdentityInvalidLinkRequest
 	}
 	state := oauth2UserLink{
 		SchemaVersion: oauth2DatumSchemaVersion,
@@ -529,14 +599,28 @@ func (r Robot) LinkOAuth2User(link *robot.OAuth2LinkRequest) robot.RetVal {
 	return updateDatum(key, lockToken, state)
 }
 
-func (r Robot) UnlinkOAuth2User(provider, user string) robot.RetVal {
-	cfg, ok := getOAuth2ProviderConfig(provider)
+func (r Robot) LinkOAuth2User(link *robot.OAuth2IdentityLinkRequest) robot.RetVal {
+	return r.LinkOAuth2Identity(link)
+}
+
+func (r Robot) UnlinkIdentity(provider, user string) robot.RetVal {
+	cfg, ok := getIdentityProviderConfig(provider)
 	if !ok {
-		return robot.OAuth2ProviderNotFound
+		return robot.IdentityProviderNotFound
+	}
+	if ret := identityProviderConfigValid(cfg); ret != robot.Ok {
+		return ret
+	}
+	if ret := r.identityCheckProviderAccess(cfg); ret != robot.Ok {
+		return ret
 	}
 	user = strings.ToLower(strings.TrimSpace(user))
 	if user == "" {
-		return robot.OAuth2InvalidLinkRequest
+		return robot.IdentityInvalidLinkRequest
 	}
 	return deleteDatum(oauth2UserDatumKey(cfg.Key, user))
+}
+
+func (r Robot) UnlinkOAuth2User(provider, user string) robot.RetVal {
+	return r.UnlinkIdentity(provider, user)
 }

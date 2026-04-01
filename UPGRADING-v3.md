@@ -36,6 +36,22 @@ Notes:
 - `Raw`, `Fixed`, and `Variable` remain supported.
 - `BasicMarkdown` is additive and does not renumber existing format values.
 
+## 2026-03-27 Credentialed Shipped Extensions Activation Rule
+
+Credentialed extensions shipped with the engine are no longer assumed active in the default robot.
+
+Behavior and config guidance:
+
+- Extensions that need owner-supplied API credentials, OAuth client secrets, or similar secret material should be enabled explicitly in custom robot config only after the owner provides those credentials.
+- For user-linked identity providers, any plugin/job/task that calls `GetIdentityCredential`, `LinkOAuth2Identity`, or `UnlinkIdentity` must have the provider's `CredentialParameterSet` attached in its own `ParameterSets`.
+- If that attachment is missing, the identity methods return `IdentityConfigError` and the engine logs the missing attachment details for operators.
+
+Upgrade actions:
+
+1. Move credentialed opt-in extensions such as `github-link` into custom robot config if you want to use them.
+2. Create the required `ParameterSets` in custom config and attach them explicitly to each extension/job/task that uses that provider.
+3. Do not rely on stock defaults to activate credentialed extensions automatically.
+
 ## 2026-02-18 Provider Config Layout Update (Slice 1)
 
 Provider-specific configuration moved out of `conf/robot.yaml`:

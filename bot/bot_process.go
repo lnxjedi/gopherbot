@@ -97,7 +97,7 @@ type configuration struct {
 	workSpace            string              // Read/Write directory where the robot does work
 	defaultElevator      string              // Plugin name for performing elevation
 	defaultAuthorizer    string              // Plugin name for performing authorization
-	oauth2Providers      map[string]OAuth2ProviderConfig
+	identityProviders    map[string]IdentityProviderConfig
 	externalPlugins      []TaskSettings  // List of external plugins to load
 	externalJobs         []TaskSettings  // List of external jobs to load
 	externalTasks        []TaskSettings  // List of external tasks to load

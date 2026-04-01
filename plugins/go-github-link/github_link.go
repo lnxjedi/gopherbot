@@ -102,18 +102,18 @@ func Configure() *[]byte {
 
 func githubLinkRetMessage(ret robot.RetVal) string {
 	switch ret {
-	case robot.OAuth2ProviderNotFound:
-		return "GitHub OAuth is not configured for this robot yet."
-	case robot.OAuth2UserNotLinked:
+	case robot.IdentityProviderNotFound:
+		return "GitHub identity is not configured for this robot yet."
+	case robot.IdentityNotLinked:
 		return "I don't have a linked GitHub account for you yet."
-	case robot.OAuth2ReauthRequired:
+	case robot.IdentityReauthRequired:
 		return "Your linked GitHub account needs to be linked again."
-	case robot.OAuth2RefreshFailed:
-		return "I couldn't refresh your GitHub token right now."
-	case robot.OAuth2ConfigError:
-		return "The robot's GitHub OAuth provider configuration is incomplete."
+	case robot.IdentityRefreshFailed:
+		return "I couldn't refresh your GitHub credential right now."
+	case robot.IdentityConfigError:
+		return "The robot's GitHub identity provider configuration is incomplete."
 	default:
-		return "I ran into a GitHub OAuth error."
+		return "I ran into a GitHub identity error."
 	}
 }
 
@@ -124,7 +124,7 @@ func githubClientCredentials(r robot.Robot) githubCredentialResult {
 		Ret:          robot.Ok,
 	}
 	if result.ClientID == "" || result.ClientSecret == "" {
-		result.Ret = robot.OAuth2ConfigError
+		result.Ret = robot.IdentityConfigError
 	}
 	return result
 }
@@ -230,7 +230,7 @@ func oauth2BearerHeader(token string) string {
 
 func requestOAuth2DeviceAuthorization(clientID string, scopes []string) githubDeviceAuthorizationResult {
 	if strings.TrimSpace(clientID) == "" {
-		return githubDeviceAuthorizationResult{Ret: robot.OAuth2ConfigError}
+		return githubDeviceAuthorizationResult{Ret: robot.IdentityConfigError}
 	}
 	if len(scopes) == 0 {
 		scopes = append([]string(nil), githubDefaultScopes...)
@@ -261,10 +261,10 @@ func requestOAuth2DeviceAuthorization(clientID string, scopes []string) githubDe
 
 func exchangeOAuth2DeviceCode(clientID, clientSecret, deviceCode string) githubTokenExchangeResult {
 	if strings.TrimSpace(clientID) == "" || strings.TrimSpace(clientSecret) == "" {
-		return githubTokenExchangeResult{Ret: robot.OAuth2ConfigError}
+		return githubTokenExchangeResult{Ret: robot.IdentityConfigError}
 	}
 	if strings.TrimSpace(deviceCode) == "" {
-		return githubTokenExchangeResult{Ret: robot.OAuth2ConfigError}
+		return githubTokenExchangeResult{Ret: robot.IdentityConfigError}
 	}
 	values := url.Values{}
 	values.Set("grant_type", "urn:ietf:params:oauth:grant-type:device_code")
@@ -339,12 +339,16 @@ func PluginHandler(r robot.Robot, command string, args ...string) robot.TaskRetV
 
 	switch command {
 	case "whoami":
-		token, ret := r.GetOAuth2Token(githubProviderKey, user)
+		credential, ret := r.GetIdentityCredential(githubProviderKey, user)
 		if ret != robot.Ok {
 			r.Say(githubLinkRetMessage(ret))
 			return robot.Fail
 		}
-		info, err := githubFetchUserInfo(token)
+		if credential == nil || strings.TrimSpace(credential.Value) == "" {
+			r.Say("I got an empty GitHub credential back from the engine.")
+			return robot.Fail
+		}
+		info, err := githubFetchUserInfo(credential.Value)
 		if err != nil {
 			r.Log(robot.Error, "github-link: whoami user info lookup failed for %s: %v", user, err)
 			r.Say("I got a GitHub token, but I couldn't verify your GitHub profile right now.")
@@ -360,7 +364,7 @@ func PluginHandler(r robot.Robot, command string, args ...string) robot.TaskRetV
 		r.Say(reply)
 		return robot.Normal
 	case "unlink":
-		ret := r.UnlinkOAuth2User(githubProviderKey, user)
+		ret := r.UnlinkIdentity(githubProviderKey, user)
 		if ret != robot.Ok {
 			r.Log(robot.Error, "github-link: unlink failed for %s: %s", user, ret)
 			r.Say("I couldn't unlink your GitHub account right now.")
@@ -374,14 +378,14 @@ func PluginHandler(r robot.Robot, command string, args ...string) robot.TaskRetV
 			r.Say("The GitHub link plugin needs a ParameterSet providing CLIENT_ID and CLIENT_SECRET.")
 			return robot.Fail
 		}
-		token, ret := r.GetOAuth2Token(githubProviderKey, user)
+		credential, ret := r.GetIdentityCredential(githubProviderKey, user)
 		switch ret {
 		case robot.Ok:
-			if strings.TrimSpace(token) != "" {
+			if credential != nil && strings.TrimSpace(credential.Value) != "" {
 				r.Say("You already have a linked GitHub account. Use 'unlink-github' first if you want to replace it.")
 				return robot.Normal
 			}
-		case robot.OAuth2UserNotLinked, robot.OAuth2ReauthRequired:
+		case robot.IdentityNotLinked, robot.IdentityReauthRequired:
 			// Continue into the link flow.
 		default:
 			r.Say(githubLinkRetMessage(ret))
@@ -453,7 +457,7 @@ func PluginHandler(r robot.Robot, command string, args ...string) robot.TaskRetV
 				directBot.Say("GitHub authorization succeeded, but I couldn't verify the linked account profile.")
 				return robot.Fail
 			}
-			ret = r.LinkOAuth2User(&robot.OAuth2LinkRequest{
+			ret = r.LinkOAuth2Identity(&robot.OAuth2IdentityLinkRequest{
 				Provider:         githubProviderKey,
 				User:             user,
 				AccessToken:      tokenResp.Response.AccessToken,

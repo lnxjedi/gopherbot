@@ -32,7 +32,7 @@ The current shipped onboarding plugin is GitHub-specific:
 
 ## Provider registry
 
-Providers are configured in `robot.yaml` under `OAuth2Providers`.
+Providers are configured in `robot.yaml` under `IdentityProviders`.
 
 The provider registry is internal engine config for refresh behavior. It is not exposed to plugins.
 
@@ -47,14 +47,16 @@ ParameterSets:
     - Name: CLIENT_SECRET
       Value: {{ decrypt "<encrypted github client secret>" }}
 
-OAuth2Providers:
+IdentityProviders:
   github:
+    Type: oauth2
     CredentialParameterSet: github_oauth
-    TokenEndpointAuthMethod: client_secret_post
-    Token:
-      URL: https://github.com/login/oauth/access_token
-      Headers:
-        Accept: application/json
+    OAuth2:
+      TokenEndpointAuthMethod: client_secret_post
+      Token:
+        URL: https://github.com/login/oauth/access_token
+        Headers:
+          Accept: application/json
 
 ExternalPlugins:
   "github-link":
@@ -68,14 +70,15 @@ Notes:
 - `CredentialParameterSet` points to a standard parameter set containing `CLIENT_ID` and `CLIENT_SECRET`.
 - Secrets should be stored encrypted with `gopherbot encrypt <secret>` and loaded with `{{ decrypt "..." }}`.
 - `TokenEndpointAuthMethod` supports `client_secret_post`, `client_secret_basic`, `client_id_only`, and `none`.
-- Onboarding plugins should receive that same parameter set explicitly through their own `ParameterSets` config if they need the client credentials.
+- Any extension that calls `GetIdentityCredential`, `LinkOAuth2Identity`, or `UnlinkIdentity` must have that same parameter set attached through its own `ParameterSets` config.
+- Shipped credentialed extensions are opt-in for custom robots; they should not be assumed active in the default robot.
 
 ## Stored brain schema
 
 User link records are stored in the bot namespace, not plugin namespaces.
 
 Datum key pattern:
-- `bot:oauth2:v1:<provider-segment>:user:<sha1(username)>`
+- `bot:identity:v1:<provider-segment>:user:<sha1(username)>`
 
 Storage notes:
 - the provider segment is sanitized for brain/file safety
@@ -118,18 +121,19 @@ Stored JSON shape:
 }
 ```
 
-## Runtime token retrieval
+## Runtime credential retrieval
 
-`GetOAuth2Token(provider, user)` is the central retrieval helper.
+`GetIdentityCredential(provider, user)` is the central retrieval helper for user-linked identity providers.
 
 Behavior:
-1. load provider config from `currentCfg.oauth2Providers`
-2. resolve client credentials internally from the provider's `CredentialParameterSet`
-3. load the user link datum from the bot namespace
-4. if the access token is present and not near expiry, return it
-5. if expired, take a brain write lock on that datum and re-check state
-6. if still expired, perform a refresh token grant when a refresh token exists
-7. atomically write the new token state back before releasing the lock
+1. load provider config from `currentCfg.identityProviders`
+2. verify the calling task/plugin/job has the provider's `CredentialParameterSet` attached
+3. resolve client credentials internally from the provider's `CredentialParameterSet`
+4. load the user link datum from the bot namespace
+5. if the access token is present and not near expiry, return a structured credential envelope
+6. if expired, take a brain write lock on that datum and re-check state
+7. if still expired, perform a refresh token grant when a refresh token exists
+8. atomically write the new token state back before releasing the lock
 
 Refresh behavior:
 - refresh token rotation is handled automatically
@@ -144,11 +148,19 @@ This locking model prevents two concurrent pipelines from racing the same refres
 
 The engine exposes three public robot methods:
 
-- `GetOAuth2Token(provider, user) (token string, ret RetVal)`
-- `LinkOAuth2User(link *OAuth2LinkRequest) RetVal`
-- `UnlinkOAuth2User(provider, user) RetVal`
+- `GetIdentityCredential(provider, user) (*IdentityCredential, RetVal)`
+- `LinkOAuth2Identity(link *OAuth2IdentityLinkRequest) RetVal`
+- `UnlinkIdentity(provider, user) RetVal`
 
-`OAuth2LinkRequest` fields:
+`GetIdentityCredential` returns an `IdentityCredential` object with fields such as:
+- `Type`
+- `Value`
+- `Scheme`
+- `HeaderName`
+- `HeaderValue`
+- `ExpiresAt`
+
+`OAuth2IdentityLinkRequest` fields:
 - `Provider`
 - `User`
 - `AccessToken`
@@ -166,20 +178,21 @@ The engine exposes three public robot methods:
 - `SubjectEmail`
 
 Return codes:
-- `OAuth2ProviderNotFound`
-- `OAuth2UserNotLinked`
-- `OAuth2ReauthRequired`
-- `OAuth2RefreshFailed`
-- `OAuth2InvalidLinkRequest`
-- `OAuth2ConfigError`
+- `IdentityProviderNotFound`
+- `IdentityNotLinked`
+- `IdentityReauthRequired`
+- `IdentityRefreshFailed`
+- `IdentityInvalidLinkRequest`
+- `IdentityConfigError`
 
 Design note:
-- on failure, `GetOAuth2Token` returns `""` plus a machine-readable `RetVal`
+- on failure, `GetIdentityCredential` returns `nil` plus a machine-readable `RetVal`
 - deeper detail is logged in engine logs and stored in the record status
+- missing caller `ParameterSet` attachment is reported as `IdentityConfigError` with engine logs naming the provider, caller, required `CredentialParameterSet`, and attached `ParameterSets`
 
 ## Shipped GitHub linker
 
-`plugins/go-github-link/github_link.go` implements `github-link` as a shipped external Go plugin.
+`plugins/go-github-link/github_link.go` implements `github-link` as a shipped external Go plugin for custom robots.
 
 Shipped commands:
 - `link-github`
@@ -192,23 +205,24 @@ Flow:
 3. DM the user a verification URL and user code
 4. poll the token endpoint until success, denial, or expiry
 5. fetch `/user` from the GitHub API to confirm identity
-6. persist the link with `LinkOAuth2User(...)`
+6. persist the link with `LinkOAuth2Identity(...)`
 
 This keeps the service-specific UX in the plugin while leaving token storage and refresh in the engine.
 
 Security boundary:
 - onboarding plugins get secrets only because the robot owner explicitly attached the credential parameter set to that plugin
-- `GetOAuth2Token` uses the provider registry internally for refresh, but plugins cannot read the registry back out through a robot method
+- any extension calling the identity methods must also have that same provider credential `ParameterSet` attached
+- `GetIdentityCredential` uses the provider registry internally for refresh, but plugins cannot read the registry back out through a robot method
 
 ## Sample extension usage
 
-Shipped examples use `GetOAuth2Token(...)` plus plain HTTP:
+Shipped examples use `GetIdentityCredential(...)` plus plain HTTP:
 - `plugins/samples/github-tools.js`
 - `jobs/samples/github-review-digest.js`
 
 The intended model is:
 - user links once with `link-github`
-- plugin/job calls `GetOAuth2Token("github", bot.user)`
-- plugin/job sends direct API requests with `Authorization: Bearer <token>`
+- plugin/job with `github_oauth` attached calls `GetIdentityCredential("github", bot.user)`
+- plugin/job sends direct API requests with `credential.header_value` or `credential.value`
 
 No service-specific OAuth library is required for those extensions.

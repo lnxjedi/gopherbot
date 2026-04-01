@@ -60,8 +60,8 @@ Concise map of extension types, where they live, and how they register/discover.
 - Registration: `robot/registrations.go` (func `RegisterPlugin`) called in plugin `init()` (e.g., `goplugins/help/help.go`), collected and wired by `bot/registrations.go` (func `ProcessRegistrations`), which is invoked in `main.go` (func `main`).
 - Examples: `goplugins/help/help.go` (func `init`), `goplugins/duo/duo.go` (func `init`), `goplugins/groups/groups.go` (func `init`).
 
-Shipped OAuth2 onboarding note:
-- `plugins/go-github-link/github_link.go` implements `github-link` as an external Go plugin, enabled via `ExternalPlugins` in `conf/robot.yaml` and configured by `conf/plugins/github-link.yaml`.
+Shipped identity onboarding note:
+- `plugins/go-github-link/github_link.go` implements `github-link` as an external Go plugin with shipped config in `conf/plugins/github-link.yaml`, but it is intended as an explicit custom-robot opt-in once the owner supplies credentials and enables it.
 
 ## Go tasks
 
@@ -82,8 +82,9 @@ Shipped OAuth2 onboarding note:
 - Examples: Lua `plugins/samples/hello.lua`, JavaScript `plugins/samples/hello.js`, Gopherbot shell `plugins/samples/hello.gsh`, shipped Gopherbot shell defaults like `plugins/admin.gsh` and `tasks/status.gsh`, dynamic Go `plugins/go-lists/lists.go` (funcs `Configure`, `PluginHandler`).
 - See also: `aidocs/INTERPRETERS.md`.
 
-Shared OAuth2 method surface:
-- Interpreter-backed extensions can call `GetOAuth2Token`, `LinkOAuth2User`, and `UnlinkOAuth2User` through the same robot API surface exposed by `modules/javascript/`, `modules/lua/`, `modules/gsh/`, and `bot/pipeline_rpc_interpreter.go`.
+Shared identity method surface:
+- Interpreter-backed extensions can call `GetIdentityCredential`, `LinkOAuth2Identity`, and `UnlinkIdentity` through the same robot API surface exposed by `modules/javascript/`, `modules/lua/`, `modules/gsh/`, and `bot/pipeline_rpc_interpreter.go`.
+- Provider-backed identity access is still explicitly scoped: the calling task/plugin/job must have the provider's credential `ParameterSet` attached, or the engine returns `IdentityConfigError` and logs the missing attachment.
 
 ## Build Mechanics Note
 

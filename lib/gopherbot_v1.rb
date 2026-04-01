@@ -73,12 +73,12 @@ class BaseBot
 	CommandNotMatched = 27
 	TaskDisabled = 28
 	PrivilegeViolation = 29
-	OAuth2ProviderNotFound = 30
-	OAuth2UserNotLinked = 31
-	OAuth2ReauthRequired = 32
-	OAuth2RefreshFailed = 33
-	OAuth2InvalidLinkRequest = 34
-	OAuth2ConfigError = 35
+	IdentityProviderNotFound = 30
+	IdentityNotLinked = 31
+	IdentityReauthRequired = 32
+	IdentityRefreshFailed = 33
+	IdentityInvalidLinkRequest = 34
+	IdentityConfigError = 35
 	Failed = 63
 
 	# Plugin return values / exit codes
@@ -159,18 +159,18 @@ class BaseBot
 		return callBotFunc(__method__, args)["StrVal"]
 	end
 
-	def GetOAuth2Token(provider, user)
+	def GetIdentityCredential(provider, user)
 		args = { "Provider" => provider, "User" => user }
 		ret = callBotFunc(__method__, args)
-		return ret["StrVal"], ret["RetVal"]
+		return ret["Credential"], ret["RetVal"]
 	end
 
-	def LinkOAuth2User(link)
+	def LinkOAuth2Identity(link)
 		ret = callBotFunc(__method__, link)
 		return ret["RetVal"]
 	end
 
-	def UnlinkOAuth2User(provider, user)
+	def UnlinkIdentity(provider, user)
 		ret = callBotFunc(__method__, { "Provider" => provider, "User" => user })
 		return ret["RetVal"]
 	end
