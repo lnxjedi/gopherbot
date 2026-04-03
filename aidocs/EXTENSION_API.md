@@ -94,6 +94,17 @@ Secret-access rule:
 - Identity provider-backed credential access uses the same explicit-scoping model; the provider's credential `ParameterSet` must be attached to the caller.
 - Generic unprivileged robot methods must not return shared secret-bearing configuration such as provider registries or other extensions' parameter sets.
 
+### Secret helpers
+- `EncryptSecret(plaintext string) (string, RetVal)`
+
+`EncryptSecret` returns a base64 ciphertext suitable for `{{ decrypt "..." }}` in robot config templates.
+
+Important semantics:
+- It is only available in privileged pipelines.
+- On success it returns `(ciphertext, Ok)`.
+- On privilege or mechanism failure it returns `("", RetVal)` and logs operator detail in the engine.
+- The ciphertext format is engine-owned and should be treated as opaque by extensions.
+
 ### Pipeline control
 - `Exclusive(tag string, queueTask bool) bool`
 - `SpawnJob(name string, args ...string) RetVal`
@@ -131,7 +142,7 @@ Supported `FuncName` values in `bot/http.go`:
 - `AddTask`, `AddJob`, `FinalTask`, `FailTask`, `SpawnJob`
 - `AddCommand`, `FinalCommand`, `FailCommand`
 - `SetParameter`, `SetWorkingDirectory`
-- `Exclusive`, `Elevate`
+- `Exclusive`, `Elevate`, `EncryptSecret`
 - `GetIdentityCredential`, `LinkOAuth2Identity`, `UnlinkIdentity`
 - `CheckoutDatum`, `CheckinDatum`, `UpdateDatum`, `DeleteDatum`
 - `Remember`, `RememberThread`, `Recall`, `DeleteMemory`
@@ -158,12 +169,17 @@ Both wrappers use the `GBOT` global injected by the interpreter modules (`lib/go
 Identity parity note:
 - Lua and JavaScript both expose `GetIdentityCredential`, `LinkOAuth2Identity`, and `UnlinkIdentity`.
 
+EncryptSecret parity note:
+- Lua returns `(ciphertext, retVal)`.
+- JavaScript returns `{ ciphertext, retVal }`, with `retVal` normalized to a plain JS number.
+
 Gopherbot shell uses `modules/gsh/assets/gopherbot_v1.gsh` as a compatibility shim, but the primary interface is builtin shell commands rather than a loaded language object:
 
 - Robot methods are exposed as shell builtins (`say`, `Reply`, `PromptForReply`, `CheckAdmin`, `AddTask`, `GetTaskConfig`, etc.).
 - Common utility commands are also builtin (`base64`, `cat`, `cp`, `find`, `grep`, `jq`, `ls`, `mktemp`, `mv`, `rm`, `sort`, `tar`, `touch`, `tr`, `uniq`, `wc`, `xargs`, and related helpers).
 - `say` / `Say` style variants are equivalent because command lookup normalizes case plus `-` / `_`.
 - `.gsh` does not use `bot/http.go`; Robot methods traverse the internal pipeline RPC robot bridge instead.
+- `.gsh` exposes `EncryptSecret` as a builtin command that prints ciphertext on stdout and returns the Robot `RetVal` as shell exit status.
 
 ## External interpreter libraries (Bash / Python / Ruby)
 
@@ -173,8 +189,14 @@ External interpreters call the HTTP API and wrap it in language-appropriate help
 - Python 3: `lib/gopherbot_v2.py` defines `class Robot` with the same core methods, plus `Subscribe`, `Unsubscribe`, and `SetWorkingDirectory`.
 - Ruby: `lib/gopherbot_v1.rb` defines `class Robot` (via `BaseBot`) with the same core methods, plus `Subscribe`, `Unsubscribe`, and `SetWorkingDirectory`.
 - Bash, Python, Ruby, and compatibility JS/Lua libraries also expose the identity methods above.
+- Bash, Python, and Ruby also expose `EncryptSecret`.
 - Python 3: `lib/gopherbot_v2.py` defines `class Robot` with the same core methods, plus `Subscribe`, `Unsubscribe`, `SetWorkingDirectory`, `GetHelpMetadata`, and the identity methods above.
 - Ruby: `lib/gopherbot_v1.rb` defines `class Robot` (via `BaseBot`) with the same core methods, plus `Subscribe`, `Unsubscribe`, `SetWorkingDirectory`, `GetHelpMetadata`, and the identity methods above.
+
+EncryptSecret return-shape note for external libraries:
+- Bash: `EncryptSecret plaintext` prints ciphertext and uses the Robot `RetVal` as the shell function exit code.
+- Python: `ciphertext, ret = bot.EncryptSecret("...")`
+- Ruby: `ciphertext, ret = bot.EncryptSecret("...")`
 
 ## Parity notes and known gaps
 

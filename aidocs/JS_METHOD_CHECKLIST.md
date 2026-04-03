@@ -74,6 +74,7 @@ Sources:
 
 ### Workspace + privilege
 - [x] `SetParameter(name, value)`
+- [x] `EncryptSecret(plaintext)`
 - [ ] `SetWorkingDirectory(path)`
 - [ ] `RaisePriv(path)` (if JS should expose it)
 
@@ -113,6 +114,7 @@ Track coverage for the JS full test extension under `test/` once it exists.
   - Verified: next-task pipeline visibility works (`SetParameter` -> `AddTask`), while immediate same-task `GetParameter` is not the primary contract.
 - [x] Pipeline control: Add/Final/Fail task/job/command, SpawnJob
 - [x] Admin + Elevate
+- [x] EncryptSecret
 - [x] Subscribe/Unsubscribe
 - [ ] File helpers
 - [ ] Exec helpers (success + failure + timeout)
