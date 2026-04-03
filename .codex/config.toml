@@ -9,3 +9,19 @@ writable_roots = [
 
 [mcp_servers.gopherbot-mcp]
 command = "gopherbot-mcp"
+default_tools_approval_mode = "approve"
+
+[mcp_servers.gopherbot-mcp.tools.robot_status]
+approval_mode = "approve"
+
+[mcp_servers.gopherbot-mcp.tools.restart_robot]
+approval_mode = "approve"
+
+[mcp_servers.gopherbot-mcp.tools.get_messages]
+approval_mode = "approve"
+
+[mcp_servers.gopherbot-mcp.tools.send_message]
+approval_mode = "approve"
+
+[mcp_servers.gopherbot-mcp.tools.tail_robot_log]
+approval_mode = "approve"

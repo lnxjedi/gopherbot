@@ -30,6 +30,9 @@ ExternalPlugins:
     Path: plugins/test/gofull.go
     ParameterSets:
     - github_oauth
+  "goprivfull":
+    Path: plugins/test/gofull.go
+    Privileged: true
   "gosec":
     Path: plugins/test/gofull.go
   "gosec-authall":

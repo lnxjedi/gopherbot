@@ -39,6 +39,7 @@ type BotAPI interface {
 	PromptUserForReply(regexID string, user string, prompt string, v ...interface{}) (string, robot.RetVal)
 	PromptUserChannelForReply(regexID string, user, channel string, prompt string, v ...interface{}) (string, robot.RetVal)
 	PromptUserChannelThreadForReply(regexID string, user, channel, thread string, prompt string, v ...interface{}) (string, robot.RetVal)
+	EncryptSecret(plaintext string) (string, robot.RetVal)
 	CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret robot.RetVal)
 	CheckinDatum(key, locktoken string)
 	UpdateDatum(key, locktoken string, datum interface{}) (ret robot.RetVal)

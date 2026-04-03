@@ -295,6 +295,7 @@ type _github_com_lnxjedi_gopherbot_robot_Robot struct {
 	WEmail                           func(subject string, messageBody *bytes.Buffer, html ...bool) (ret robot.RetVal)
 	WEmailAddress                    func(address string, subject string, messageBody *bytes.Buffer, html ...bool) (ret robot.RetVal)
 	WEmailUser                       func(user string, subject string, messageBody *bytes.Buffer, html ...bool) (ret robot.RetVal)
+	WEncryptSecret                   func(plaintext string) (string, robot.RetVal)
 	WExclusive                       func(tag string, queueTask bool) (success bool)
 	WFailCommand                     func(a0 string, a1 string) robot.RetVal
 	WFailTask                        func(a0 string, a1 ...string) robot.RetVal
@@ -384,6 +385,9 @@ func (W _github_com_lnxjedi_gopherbot_robot_Robot) EmailAddress(address string, 
 }
 func (W _github_com_lnxjedi_gopherbot_robot_Robot) EmailUser(user string, subject string, messageBody *bytes.Buffer, html ...bool) (ret robot.RetVal) {
 	return W.WEmailUser(user, subject, messageBody, html...)
+}
+func (W _github_com_lnxjedi_gopherbot_robot_Robot) EncryptSecret(plaintext string) (string, robot.RetVal) {
+	return W.WEncryptSecret(plaintext)
 }
 func (W _github_com_lnxjedi_gopherbot_robot_Robot) Exclusive(tag string, queueTask bool) (success bool) {
 	return W.WExclusive(tag, queueTask)

@@ -81,6 +81,11 @@ type wdcall struct {
 	Path string
 }
 
+type secretrequest struct {
+	Plaintext string
+	Base64    bool
+}
+
 // Something to be placed in ephemeral memory
 type ephemeralmemory struct {
 	Key, Value string
@@ -390,6 +395,17 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 		success := r.Exclusive(e.Tag, e.QueueTask)
 		sendReturn(r, rw, boolresponse{Boolean: success})
+	case "EncryptSecret":
+		var s secretrequest
+		if !getArgs(rw, &f.FuncArgs, &s) {
+			return
+		}
+		if s.Base64 {
+			s.Plaintext = decode(s.Plaintext)
+		}
+		ciphertext, ret := r.EncryptSecret(s.Plaintext)
+		sendReturn(r, rw, &stringretvalresponse{StrVal: ciphertext, RetVal: int(ret)})
+		return
 	case "Elevate":
 		var e elevate
 		if !getArgs(rw, &f.FuncArgs, &e) {

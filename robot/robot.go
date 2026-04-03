@@ -303,6 +303,12 @@ type Robot interface {
 	// for e.g. emailing the job history. The command string
 	// argument should match a CommandMatcher for the given plugin.
 	FailCommand(string, string) RetVal
+	// EncryptSecret encrypts a plaintext string using the robot's configured
+	// encryption key and returns a base64-encoded ciphertext suitable for use
+	// with {{ decrypt "<ciphertext>" }} in robot configuration templates.
+	// Only available in privileged pipelines; returns Failed with a log entry
+	// on any encryption error.
+	EncryptSecret(plaintext string) (string, RetVal)
 	// RaisePriv lets go plugins raise privilege for a thread, allowing filesystem
 	// access in GOPHER_HOME.
 	RaisePriv(string)

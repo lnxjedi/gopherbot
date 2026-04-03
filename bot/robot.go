@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
@@ -339,6 +340,30 @@ func (r Robot) GetBotAttribute(a string) *robot.AttrRet {
 		ret = robot.AttributeNotFound
 	}
 	return &robot.AttrRet{attr, ret}
+}
+
+// see robot/robot.go
+func (r Robot) EncryptSecret(plaintext string) (string, robot.RetVal) {
+	w := getLockedWorker(r.tid)
+	w.Unlock()
+	if !r.privileged {
+		w.Log(robot.Error, "EncryptSecret called from unprivileged pipeline")
+		return "", robot.PrivilegeViolation
+	}
+	cryptKey.RLock()
+	initialized := cryptKey.initialized
+	key := cryptKey.key
+	cryptKey.RUnlock()
+	if !initialized {
+		w.Log(robot.Error, "EncryptSecret called but encryption not initialized")
+		return "", robot.Failed
+	}
+	ct, err := encrypt([]byte(plaintext), key)
+	if err != nil {
+		w.Log(robot.Error, "EncryptSecret: encryption failed: %v", err)
+		return "", robot.Failed
+	}
+	return base64.StdEncoding.EncodeToString(ct), robot.Ok
 }
 
 // see robot/robot.go

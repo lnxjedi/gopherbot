@@ -225,3 +225,21 @@ func TestShFullSecurity(t *testing.T) {
 
 	teardown(t, done, conn)
 }
+
+func TestShFullEncryptSecret(t *testing.T) {
+	if !wantFull("sh") {
+		t.Skip("skipping Sh full encrypt secret test; set RUN_FULL=sh (or RUN_SHFULL=1)")
+	}
+	done, conn := setup("test/shfull", "/tmp/bottest.log", t)
+
+	flow := []testItem{
+		{aliceID, general, ";sh-encrypt-secret", false, []TestMessage{
+			{null, general, "ENCRYPT SECRET: ok", false}}, nil, 0},
+	}
+
+	for _, step := range flow {
+		testcaseRepliesOnly(t, conn, step)
+	}
+
+	teardown(t, done, conn)
+}

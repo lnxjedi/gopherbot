@@ -96,6 +96,7 @@ func (c *shellContext) commandMap() map[string]commandHandler {
 		"failcommand":                     c.cmdFailCommand,
 		"exclusive":                       c.cmdExclusive,
 		"elevate":                         c.cmdElevate,
+		"encryptsecret":                   c.cmdEncryptSecret,
 		"getbotattribute":                 c.cmdGetBotAttribute,
 		"getsenderattribute":              c.cmdGetSenderAttribute,
 		"getuserattribute":                c.cmdGetUserAttribute,
@@ -506,6 +507,18 @@ func (c *shellContext) cmdElevate(ctx context.Context, args []string) error {
 		return nil
 	}
 	return interp.ExitStatus(1)
+}
+
+func (c *shellContext) cmdEncryptSecret(ctx context.Context, args []string) error {
+	if len(args) != 1 {
+		return usageError(ctx, "EncryptSecret requires exactly one argument (plaintext)")
+	}
+	ciphertext, ret := c.bot.EncryptSecret(args[0])
+	if ret != robot.Ok {
+		return interp.ExitStatus(uint8(ret))
+	}
+	_, _ = io.WriteString(interp.HandlerCtx(ctx).Stdout, ciphertext)
+	return nil
 }
 
 func (c *shellContext) cmdGetBotAttribute(ctx context.Context, args []string) error {

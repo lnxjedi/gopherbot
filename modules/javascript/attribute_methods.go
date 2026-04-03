@@ -7,6 +7,29 @@ import (
 	"github.com/dop251/goja"
 )
 
+// botEncryptSecret encrypts a plaintext string using the robot's configured
+// encryption key. Only usable in privileged pipelines.
+// Usage in JS:
+//
+//	let result = bot.EncryptSecret("mysecret");
+//	// result.ciphertext, result.retVal
+func (jr *jsBot) botEncryptSecret(call goja.FunctionCall) goja.Value {
+	const methodName = "EncryptSecret"
+
+	plaintext := jr.requireStringArg(methodName, call, 0)
+
+	ciphertext, ret := jr.r.EncryptSecret(plaintext)
+
+	resultObj := jr.ctx.vm.NewObject()
+	if err := resultObj.Set("ciphertext", ciphertext); err != nil {
+		panic(jr.ctx.vm.ToValue(fmt.Sprintf("%s: failed to set 'ciphertext': %v", methodName, err)))
+	}
+	if err := resultObj.Set("retVal", int(ret)); err != nil {
+		panic(jr.ctx.vm.ToValue(fmt.Sprintf("%s: failed to set 'retVal': %v", methodName, err)))
+	}
+	return resultObj
+}
+
 // botGetBotAttribute retrieves a bot attribute.
 // Usage in JS:
 //

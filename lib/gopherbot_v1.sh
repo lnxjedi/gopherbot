@@ -333,6 +333,24 @@ EOF
 	return "$(echo "$GB_RET" | jq -r .RetVal)"
 }
 
+EncryptSecret() {
+	local PLAINTEXT
+	PLAINTEXT=$(base64_encode "$1")
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Plaintext": "$PLAINTEXT",
+	"Base64": true
+}
+EOF
+)
+	local GB_RET
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
+	local CIPHERTEXT
+	CIPHERTEXT=$(echo "$GB_RET" | jq -r .StrVal)
+	echo -n "$CIPHERTEXT"
+	return "$(echo "$GB_RET" | jq -r .RetVal)"
+}
+
 GetHelpMetadata() {
 	local QUERY=$(base64_encode "$1")
 	local GB_FUNCARGS=$(cat <<EOF

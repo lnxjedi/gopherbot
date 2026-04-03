@@ -54,6 +54,8 @@ Commands:
   Command: pipefinalcmd
 - Regex: (?i:pc-fail-cmd)
   Command: pipefailcmd
+- Regex: (?i:js-encrypt-secret-unpriv)
+  Command: encryptsecret
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -439,6 +441,17 @@ function handler(argv) {
       {
         const bot = new Robot();
         bot.Say(`SECURITY CHECK: ${cmd}`);
+        return task.Normal;
+      }
+    case 'encryptsecret':
+      {
+        const bot = new Robot();
+        const result = bot.EncryptSecret('test-secret');
+        if (result.retVal === ret.Ok && result.ciphertext !== '') {
+          bot.Say('ENCRYPT SECRET: ok');
+        } else {
+          bot.Say('ENCRYPT SECRET: failed');
+        }
         return task.Normal;
       }
 

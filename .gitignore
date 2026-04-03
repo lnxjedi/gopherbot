@@ -24,3 +24,6 @@ binary-encrypted-key*
 .ssh
 .ssh-connect
 .gopath
+# AI scratch directory
+/tmp/*
+!/tmp/.gitkeep

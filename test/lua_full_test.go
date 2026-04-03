@@ -225,3 +225,21 @@ func TestLuaFullSecurity(t *testing.T) {
 
 	teardown(t, done, conn)
 }
+
+func TestLuaFullEncryptSecret(t *testing.T) {
+	if !wantFull("lua") {
+		t.Skip("skipping Lua full encrypt secret test; set RUN_FULL=lua (or RUN_LUAFULL=1)")
+	}
+	done, conn := setup("test/luafull", "/tmp/bottest.log", t)
+
+	flow := []testItem{
+		{aliceID, general, ";lua-encrypt-secret", false, []TestMessage{
+			{null, general, "ENCRYPT SECRET: ok", false}}, nil, 0},
+	}
+
+	for _, step := range flow {
+		testcaseRepliesOnly(t, conn, step)
+	}
+
+	teardown(t, done, conn)
+}

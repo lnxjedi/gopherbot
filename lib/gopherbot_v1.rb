@@ -170,6 +170,11 @@ class BaseBot
 		return ret["RetVal"]
 	end
 
+	def EncryptSecret(plaintext)
+		ret = callBotFunc(__method__, { "Plaintext" => plaintext })
+		return ret["StrVal"], ret["RetVal"]
+	end
+
 	def UnlinkIdentity(provider, user)
 		ret = callBotFunc(__method__, { "Provider" => provider, "User" => user })
 		return ret["RetVal"]

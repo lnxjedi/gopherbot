@@ -209,6 +209,27 @@ EncryptSecret return-shape note for external libraries:
 - For external Go plugins running under Yaegi, prefer returning a single wrapper struct when state must carry multiple logically-related values across helper boundaries. The `plugins/go-openai-fallback` compaction path now uses `compactionResult{State, Older}` for this reason.
 - As of March 11, 2026, no exact upstream Yaegi issue was identified for this specific panic. The behavior is consistent with Yaegi's documented limitation that `reflect` type representation can differ between compiled and interpreted execution.
 
+## Adding a New Robot API Method (Checklist)
+
+When adding a method to the Robot API, update ALL of these locations:
+
+1. **Go interface**: `robot/robot.go` (type `Robot`)
+2. **Engine implementation**: `bot/robot.go` (method on `Robot`)
+3. **HTTP handler** (for external scripts): `bot/http.go` (`FuncName` dispatch)
+4. **Lua bridge**: `modules/lua/bot_api.go` + `modules/lua/attribute_methods.go`
+5. **JS bridge**: `modules/javascript/bot_api.go` + `modules/javascript/bot_object.go` + `modules/javascript/attribute_methods.go`
+6. **Gsh bridge**: `modules/gsh/commands.go`
+7. **Yaegi symbols**: `modules/yaegi-dynamic-go/yaegi_symbols.go`
+8. **RPC interpreter dispatch**: `bot/pipeline_rpc_interpreter.go`
+9. **External libraries** (use HTTP API):
+   - Python: `lib/gopherbot_v2.py`
+   - Ruby: `lib/gopherbot_v1.rb`
+   - Bash: `lib/gopherbot_v1.sh`
+   - Compat Lua: `lib/gopherbot_v1.lua`
+   - Compat JS: `lib/gopherbot_v1.js`
+10. **Docs**: `aidocs/EXTENSION_API.md` (method catalog + parity notes)
+11. **Tests**: add coverage in appropriate `test/*_full_test.go` + `plugins/test/*`
+
 ## Related docs
 
 - `aidocs/INTERPRETERS.md` – execution model and interpreter categories

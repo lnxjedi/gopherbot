@@ -189,6 +189,10 @@ class Robot:
         ret = self.Call(sys._getframe().f_code.co_name, link)
         return ret["RetVal"]
 
+    def EncryptSecret(self, plaintext):
+        ret = self.Call(sys._getframe().f_code.co_name, { "Plaintext": plaintext })
+        return ret["StrVal"], ret["RetVal"]
+
     def UnlinkIdentity(self, provider, user):
         ret = self.Call(sys._getframe().f_code.co_name, { "Provider": provider, "User": user })
         return ret["RetVal"]

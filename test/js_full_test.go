@@ -230,3 +230,21 @@ func TestJSFullSecurity(t *testing.T) {
 
 	teardown(t, done, conn)
 }
+
+func TestJSFullEncryptSecret(t *testing.T) {
+	if !wantFull("js") {
+		t.Skip("skipping JS full encrypt secret test; set RUN_FULL=js (or RUN_JSFULL=1)")
+	}
+	done, conn := setup("test/jsfull", "/tmp/bottest.log", t)
+
+	flow := []testItem{
+		{aliceID, general, ";js-encrypt-secret", false, []TestMessage{
+			{null, general, "ENCRYPT SECRET: ok", false}}, nil, 0},
+	}
+
+	for _, step := range flow {
+		testcaseRepliesOnly(t, conn, step)
+	}
+
+	teardown(t, done, conn)
+}

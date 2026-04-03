@@ -30,6 +30,9 @@ ExternalPlugins:
     Path: plugins/test/jsfull.js
     ParameterSets:
     - github_oauth
+  "jsprivfull":
+    Path: plugins/test/jsfull.js
+    Privileged: true
   "jssec":
     Path: plugins/test/jsfull.js
   "jssec-authall":

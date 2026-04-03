@@ -235,6 +235,7 @@ func initBot() {
 		return
 	}
 
+	acquireBrainLock()
 	initializeModules(handle)
 
 	if !listening {
@@ -490,6 +491,7 @@ func stop() {
 	Log(robot.Info, "Stop called with %d pipelines running", pr)
 	triggerPromptShutdownSignal()
 	state.Wait()
+	releaseBrainLock()
 	brainQuit()
 	shutdownConnectorRuntimes()
 	signalBreak.Lock()

@@ -499,6 +499,14 @@ function Robot:LinkOAuth2Identity(link)
     return self.gbot:LinkOAuth2Identity(link)
 end
 
+---Encrypt plaintext for safe use with {{ decrypt "..." }} in robot config templates.
+---@param plaintext string
+---@return string ciphertext
+---@return number retVal
+function Robot:EncryptSecret(plaintext)
+    return self.gbot:EncryptSecret(plaintext)
+end
+
 ---Remove a linked identity provider for a user.
 ---@param provider string
 ---@param user string

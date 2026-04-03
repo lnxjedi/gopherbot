@@ -463,6 +463,13 @@ func handlePipelineRPCRobotCall(paramsRaw json.RawMessage, base robot.Robot) (ma
 			return nil, err
 		}
 		return map[string]interface{}{"bool": r.Elevate(immediate)}, nil
+	case "EncryptSecret":
+		plaintext, err := pipelineRPCArgString(args, 0)
+		if err != nil {
+			return nil, err
+		}
+		ciphertext, ret := r.EncryptSecret(plaintext)
+		return map[string]interface{}{"ciphertext": ciphertext, "ret_val": int(ret)}, nil
 	case "GetBotAttribute":
 		a, err := pipelineRPCArgString(args, 0)
 		if err != nil {
@@ -1193,6 +1200,14 @@ func (c *pipelineRPCInterpreterRobotClient) Elevate(immediate bool) bool {
 		return false
 	}
 	return pipelineRPCMapBool(res, "bool")
+}
+
+func (c *pipelineRPCInterpreterRobotClient) EncryptSecret(plaintext string) (string, robot.RetVal) {
+	res, err := c.call("EncryptSecret", plaintext)
+	if err != nil {
+		return "", robot.Failed
+	}
+	return pipelineRPCMapString(res, "ciphertext"), robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
 func (c *pipelineRPCInterpreterRobotClient) GetBotAttribute(a string) *robot.AttrRet {

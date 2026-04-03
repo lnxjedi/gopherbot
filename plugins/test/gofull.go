@@ -57,6 +57,8 @@ Commands:
   Command: pipefinalcmd
 - Regex: (?i:pc-fail-cmd)
   Command: pipefailcmd
+- Regex: (?i:go-encrypt-secret-unpriv)
+  Command: encryptsecret
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -326,6 +328,14 @@ func PluginHandler(r robot.Robot, command string, args ...string) (retval robot.
 		if r.SpawnJob("pipe-spawn-job", "spawn-step") != robot.Ok {
 			r.Say("SPAWN JOB: queue=false")
 			return robot.Fail
+		}
+		return robot.Normal
+	case "encryptsecret":
+		ct, ret := r.EncryptSecret("test-secret")
+		if ret == robot.Ok && ct != "" {
+			r.Say("ENCRYPT SECRET: ok")
+		} else {
+			r.Say("ENCRYPT SECRET: failed")
 		}
 		return robot.Normal
 	case "admincheck":

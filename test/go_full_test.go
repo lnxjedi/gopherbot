@@ -218,3 +218,25 @@ func TestGoFullSecurity(t *testing.T) {
 
 	teardown(t, done, conn)
 }
+
+func TestGoFullEncryptSecret(t *testing.T) {
+	if !wantFull("go") {
+		t.Skip("skipping Go full encrypt secret test; set RUN_FULL=go (or RUN_GOFULL=1)")
+	}
+	done, conn := setup("test/gofull", "/tmp/bottest.log", t)
+
+	flow := []testItem{
+		// Happy path: privileged pipeline via goprivfull (alice is admin, RequireAdmin: true)
+		{aliceID, general, ";go-encrypt-secret", false, []TestMessage{
+			{null, general, "ENCRYPT SECRET: ok", false}}, nil, 0},
+		// Negative: unprivileged pipeline (regular gofull plugin, not Privileged: true)
+		{aliceID, general, ";go-encrypt-secret-unpriv", false, []TestMessage{
+			{null, general, "ENCRYPT SECRET: failed", false}}, nil, 0},
+	}
+
+	for _, step := range flow {
+		testcaseRepliesOnly(t, conn, step)
+	}
+
+	teardown(t, done, conn)
+}

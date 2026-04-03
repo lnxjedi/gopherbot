@@ -54,6 +54,7 @@ func (jr *jsBot) createBotObject() *goja.Object {
 	botObj.Set("UpdateDatum", jr.botUpdateDatum)
 	botObj.Set("CheckinDatum", jr.botCheckinDatum)
 	botObj.Set("DeleteDatum", jr.botDeleteDatum)
+	botObj.Set("EncryptSecret", jr.botEncryptSecret)
 	botObj.Set("GetBotAttribute", jr.botGetBotAttribute)
 	botObj.Set("GetUserAttribute", jr.botGetUserAttribute)
 	botObj.Set("GetSenderAttribute", jr.botGetSenderAttribute)

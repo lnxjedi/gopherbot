@@ -46,6 +46,8 @@ Commands:
   Command: pipefinalcmd
 - Regex: (?i:pc-fail-cmd)
   Command: pipefailcmd
+- Regex: (?i:sh-encrypt-secret-unpriv)
+  Command: encryptsecret
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -374,6 +376,17 @@ secusersonly() {
 	return $PLUGRET_Normal
 }
 
+encryptsecret() {
+	ct=$(EncryptSecret "test-secret")
+	ret=$?
+	if [ $ret -eq 0 ] && [ -n "$ct" ]; then
+		say "ENCRYPT SECRET: ok"
+	else
+		say "ENCRYPT SECRET: failed"
+	fi
+	return $PLUGRET_Normal
+}
+
 command=$1
 shift
 
@@ -384,7 +397,7 @@ case "$command" in
 	init)
 		exit 0
 		;;
-	sendmsg|configtest|subscribe|prompts|memoryseed|memorycheck|memorythreadcheck|memorydelete|memorythreaddelete|identity|parameteraddtask|utilities|defaulttasks|admincheck|elevatecheck|pipelineok|pipelinefail|spawnjob|pipeaddcmd|pipefinalcmd|pipefailcmd|secopen|secadmincmd|secauthz|secauthall|secelevated|secimmediate|sechiddenok|sechiddendenied|secadminonly|secusersonly)
+	sendmsg|configtest|subscribe|prompts|memoryseed|memorycheck|memorythreadcheck|memorydelete|memorythreaddelete|identity|parameteraddtask|utilities|defaulttasks|admincheck|elevatecheck|pipelineok|pipelinefail|spawnjob|pipeaddcmd|pipefinalcmd|pipefailcmd|secopen|secadmincmd|secauthz|secauthall|secelevated|secimmediate|sechiddenok|sechiddendenied|secadminonly|secusersonly|encryptsecret)
 		"$command" "$@"
 		;;
 	*)
