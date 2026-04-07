@@ -22,14 +22,12 @@ Then load only the canonical docs needed for the task scope.
 
 ### Tier B: Escalated Orientation (hard requirement when triggered)
 
-You must run full architecture preflight before coding when **any** trigger applies.
+In addition you must run full architecture preflight before coding when **any** trigger applies.
 
 Read in order:
-1. `aidocs/README.md`
-2. `aidocs/COMPONENT_MAP.md`
-3. `aidocs/STARTUP_FLOW.md`
-4. root `GOALS_v3.md`
-5. `aidocs/TESTING_CURRENT.md`
+1. `aidocs/STARTUP_FLOW.md`
+2. root `GOALS_v3.md`
+3. `aidocs/TESTING_CURRENT.md`
 
 Then summarize in your own words:
 - core architectural invariants
@@ -188,7 +186,7 @@ Required stance:
 
 ## Change Hygiene
 
-- one logical change per branch
+- one logical change per branch unless manually overridden by project owner
 - planning before implementation for cross-cutting changes
 - no silent refactors
 - preserve behavior unless explicitly redefining it

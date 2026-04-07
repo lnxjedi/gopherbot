@@ -473,9 +473,9 @@ func startupSSHHint(mode, protocol string, adminUsers []string) string {
 	}
 	switch mode {
 	case "demo":
-		return fmt.Sprintf("Running in DEMO mode; in another terminal window, connect as %s with 'bot-ssh -l %s'", loginUser, loginUser)
+		return fmt.Sprintf("Running in DEMO mode; in another terminal window, connect as %s with 'bot-ssh -d %s'", loginUser, loginUser)
 	case "test-dev":
-		return fmt.Sprintf("Default robot running in test-dev mode with ssh-connector; connect with e.g. 'bot-ssh -l %s'", loginUser)
+		return fmt.Sprintf("Default robot running in test-dev mode with ssh-connector; connect with e.g. 'bot-ssh -d %s'", loginUser)
 	default:
 		return ""
 	}

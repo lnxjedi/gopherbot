@@ -310,8 +310,33 @@ func (r Robot) PromptUserChannelThreadForReply(regexID string, user, channel, th
 	return rep, ret
 }
 
+// promptForJobArgument is a variant of PromptForReply that is used when prompting for job arguments.
+// It looks up the regexID in the job's Arguments list instead of the task's ReplyMatchers.
+func (r Robot) promptForJobArgument(regexID string, prompt string, v ...interface{}) (string, robot.RetVal) {
+	var rep string
+	var ret robot.RetVal
+	if len(v) > 0 {
+		prompt = fmt.Sprintf(prompt, v...)
+	}
+	for i := 0; i < 3; i++ {
+		var thread string
+		if r.Incoming.ThreadedMessage {
+			thread = r.Incoming.ThreadID
+		}
+		rep, ret = r.promptInternal(regexID, r.User, r.Channel, thread, prompt, true)
+		if ret == robot.RetryPrompt {
+			continue
+		}
+		return rep, ret
+	}
+	if ret == robot.RetryPrompt {
+		return rep, robot.Interrupted
+	}
+	return rep, ret
+}
+
 // promptInternal can return 'RetryPrompt'
-func (r Robot) promptInternal(regexID, user, channel, thread, prompt string) (string, robot.RetVal) {
+func (r Robot) promptInternal(regexID, user, channel, thread, prompt string, jobArgs ...bool) (string, robot.RetVal) {
 	protocol := protocolFromIncoming(r.Incoming, r.Protocol)
 	resolvedUser := r.tryResolveUserForProtocol(protocol, user)
 	matcher := replyMatcher{
@@ -335,7 +360,11 @@ func (r Robot) promptInternal(regexID, user, channel, thread, prompt string) (st
 	} else {
 		var rm []InputMatcher
 		if isJob {
-			rm = job.Arguments
+			if len(jobArgs) > 0 && jobArgs[0] {
+				rm = job.Arguments
+			} else {
+				rm = task.ReplyMatchers
+			}
 		} else {
 			rm = task.ReplyMatchers
 		}

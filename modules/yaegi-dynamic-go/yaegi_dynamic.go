@@ -18,6 +18,11 @@ var (
 	initErr  error
 )
 
+const (
+	robotImportPath = "github.com/lnxjedi/gopherbot/robot"
+	goLibImportRoot = "github.com/lnxjedi/gopherbot/v2/lib"
+)
+
 func copyDir(src string, dst string) error {
 	srcInfo, err := os.Stat(src)
 	if err != nil {
@@ -74,6 +79,48 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return fmt.Errorf("failed to copy from '%s' to '%s': %w", src, dst, err)
 	}
+	return nil
+}
+
+func stageDirIfExists(src, dst string) error {
+	info, err := os.Stat(src)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to stat %s: %w", src, err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("%s is not a directory", src)
+	}
+	return copyDir(src, dst)
+}
+
+func prepareGoPath(root, robotSrcDir, installLibDir, configLibDir string) error {
+	if _, err := os.Stat(root); err == nil {
+		if err := os.RemoveAll(root); err != nil {
+			return fmt.Errorf("failed to remove existing GOPATH %s: %w", root, err)
+		}
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("failed to stat GOPATH %s: %w", root, err)
+	}
+
+	robotDst := filepath.Join(root, "src", filepath.FromSlash(robotImportPath))
+	if err := os.MkdirAll(filepath.Dir(robotDst), 0755); err != nil {
+		return fmt.Errorf("failed to create robot GOPATH parent: %w", err)
+	}
+	if err := copyDir(robotSrcDir, robotDst); err != nil {
+		return fmt.Errorf("failed to stage robot package: %w", err)
+	}
+
+	libDst := filepath.Join(root, "src", filepath.FromSlash(goLibImportRoot))
+	if err := stageDirIfExists(installLibDir, libDst); err != nil {
+		return fmt.Errorf("failed to stage install lib packages: %w", err)
+	}
+	if err := stageDirIfExists(configLibDir, libDst); err != nil {
+		return fmt.Errorf("failed to stage config lib packages: %w", err)
+	}
+
 	return nil
 }
 

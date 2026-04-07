@@ -15,27 +15,7 @@ func JobHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 	if user == "" || channel == "" {
 		return robot.Normal
 	}
-	if newrobotflow.HasAnySetupState() {
-		return robot.Normal
-	}
-	if user != "alice" {
-		return robot.Normal
-	}
-
-	alias := strings.TrimSpace(r.GetBotAttribute("alias").String())
-	if alias == "" {
-		alias = ";"
-	}
-	name := strings.TrimSpace(r.GetBotAttribute("name").String())
-	if name == "" {
-		name = "floyd"
-	}
-
-	send := r.MessageFormat(robot.BasicMarkdown)
-	send.Pause(0.5)
-	send.SendUserChannelMessage(user, channel, "Welcome to the *Gopherbot* ssh connector, @%s! Since no configuration was detected, you're connected to '%s', the default robot.", user, name)
-	send.Pause(0.4)
-	send.SendUserChannelMessage(user, channel, "If you've started the robot by mistake, just hit ctrl-D to exit and try 'gopherbot --help'; otherwise feel free to play around with the default robot - you can start by typing 'help'. If you'd like to start configuring a new robot, type: '%snew robot'.", alias)
+	newrobotflow.HandleResumeJoin(r, user, channel, "ssh")
 	return robot.Normal
 }
 

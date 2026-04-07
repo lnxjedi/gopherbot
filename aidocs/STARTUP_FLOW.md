@@ -424,6 +424,11 @@ ScheduledJobs:
 {{- end }}
 ```
 
+Notes:
+- This snippet describes the stock default-config behavior: the built-in onboarding hooks are only present in demo mode.
+- In SSH demo mode, the default config also enables trigger jobs that welcome joining users and resume any `.setup-state` onboarding session when that user reconnects.
+- The `new-robot` flow can temporarily copy a resume-on-join job into generated `custom/` config so the final post-restart bootstrap instructions still run after the robot comes back with its real configuration. That is scaffold-specific behavior layered on top of the normal startup rules above; it does not change the default-config mode gate.
+
 ## Goroutine Startup
 
 ### Where: `bot/bot_process.go` – `run()`

@@ -1,0 +1,20 @@
+---
+Quiet: true
+KeepLogs: 2
+Triggers:
+- User: {{ env "GOPHER_BOTNAME" | default "floyd" }}
+  Channel: general
+  Regex: '(?i:^@([a-z][a-z0-9_-]{0,31}) has joined #([a-z0-9_-]+)$)'
+ReplyMatchers:
+- Label: botname
+  Regex: '(?i:[a-z][a-z0-9_-]{0,31})'
+- Label: botalias
+  Regex: '[^[:space:]]'
+- Label: jobchannel
+  Regex: '(?i:#?[a-z0-9][a-z0-9_-]{0,63})'
+- Label: username
+  Regex: '(?i:[a-z][a-z0-9_-]{0,31})'
+- Label: sshpubkey
+  Regex: '(?i:ssh-(?:ed25519|rsa|ecdsa|dss)[[:space:]]+[A-Za-z0-9+/=]+(?:[[:space:]]+[-._@A-Za-z0-9]+)?)'
+- Label: repourl
+  Regex: '[^[:space:]]+'

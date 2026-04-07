@@ -1,6 +1,4 @@
-# CLAUDE.md — Gopherbot
-
-Optimized for Claude Code context efficiency. For the full-detail version used by other AI agents, see `AGENTS.md`.
+# Gopherbot Rules
 
 ## Build and Test
 

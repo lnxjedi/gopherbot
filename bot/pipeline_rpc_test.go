@@ -3,14 +3,33 @@ package bot
 import (
 	"bytes"
 	"encoding/json"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
 	"testing"
 )
 
 func TestNewPipelineChildRPCCommand(t *testing.T) {
+	oldInstallPath := installPath
+	oldConfigFull := configFull
+	installPath = "/tmp/test-install"
+	configFull = "/tmp/test-config"
+	t.Cleanup(func() {
+		installPath = oldInstallPath
+		configFull = oldConfigFull
+	})
+
 	cmd := newPipelineChildRPCCommand()
 	if len(cmd.Args) < 2 || cmd.Args[1] != pipelineChildRPCCommand {
 		t.Fatalf("child rpc command args = %#v, want second arg %q", cmd.Args, pipelineChildRPCCommand)
+	}
+	if !envContains(cmd.Env, "GOPHER_INSTALLDIR="+installPath) {
+		t.Fatalf("child rpc env missing GOPHER_INSTALLDIR=%s: %#v", installPath, cmd.Env)
+	}
+	if !envContains(cmd.Env, "GOPHER_CONFIGDIR="+configFull) {
+		t.Fatalf("child rpc env missing GOPHER_CONFIGDIR=%s: %#v", configFull, cmd.Env)
 	}
 }
 
@@ -63,4 +82,78 @@ func TestRunPipelineChildRPCWithIORequiresHello(t *testing.T) {
 	if msg.Type != "error" || msg.Error == nil || msg.Error.Code != "protocol_error" {
 		t.Fatalf("msg = %#v, want protocol_error response", msg)
 	}
+}
+
+func TestEnsurePipelineRPCGoInitializedUsesChildEnv(t *testing.T) {
+	_, thisFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller(0) failed")
+	}
+	repoRoot := filepath.Clean(filepath.Dir(filepath.Dir(thisFile)))
+	configDir := t.TempDir()
+
+	oldInstallPath := installPath
+	oldConfigFull := configFull
+	oldInitOnce := pipelineRPCGoInitOnce
+	oldInitErr := pipelineRPCGoInitErr
+	t.Setenv("GOPHER_INSTALLDIR", repoRoot)
+	t.Setenv("GOPHER_CONFIGDIR", configDir)
+	installPath = ""
+	configFull = ""
+	pipelineRPCGoInitOnce = sync.Once{}
+	pipelineRPCGoInitErr = nil
+	t.Cleanup(func() {
+		installPath = oldInstallPath
+		configFull = oldConfigFull
+		pipelineRPCGoInitOnce = oldInitOnce
+		pipelineRPCGoInitErr = oldInitErr
+	})
+
+	oldWD, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	workDir := t.TempDir()
+	if err := os.Chdir(workDir); err != nil {
+		t.Fatalf("chdir temp workdir: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chdir(oldWD)
+	})
+
+	if err := ensurePipelineRPCGoInitialized(); err != nil {
+		t.Fatalf("ensurePipelineRPCGoInitialized() error = %v", err)
+	}
+	if installPath != repoRoot {
+		t.Fatalf("installPath = %q, want %q", installPath, repoRoot)
+	}
+	if configFull != configDir {
+		t.Fatalf("configFull = %q, want %q", configFull, configDir)
+	}
+	entries, err := os.ReadDir(workDir)
+	if err != nil {
+		t.Fatalf("readdir(%s): %v", workDir, err)
+	}
+	found := ""
+	for _, entry := range entries {
+		if entry.IsDir() && strings.HasPrefix(entry.Name(), ".gopath-") {
+			found = filepath.Join(workDir, entry.Name())
+			break
+		}
+	}
+	if found == "" {
+		t.Fatalf("expected staged .gopath-* directory in %s", workDir)
+	}
+	if _, err := os.Stat(found); err != nil {
+		t.Fatalf("expected staged goPath %q: %v", found, err)
+	}
+}
+
+func envContains(env []string, want string) bool {
+	for _, candidate := range env {
+		if candidate == want {
+			return true
+		}
+	}
+	return false
 }

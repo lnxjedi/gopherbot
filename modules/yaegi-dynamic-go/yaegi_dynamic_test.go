@@ -152,6 +152,19 @@ func TestRunPluginHandlerYaegiIdentityLinkRequestAndRetValsWork(t *testing.T) {
 	}
 }
 
+func TestRunPluginHandlerYaegiCanImportInstallLibPackage(t *testing.T) {
+	pluginPath := writeTempPlugin(t, yaegiPluginImportingInstallLibPackage())
+	logger := &testLogger{}
+
+	ret, err := RunPluginHandler(pluginPath, "install-lib-import", nil, nil, logger, false, "probe")
+	if err != nil {
+		t.Fatalf("RunPluginHandler install-lib import error = %v", err)
+	}
+	if ret != robot.Normal {
+		t.Fatalf("RunPluginHandler install-lib import ret = %v, want %v", ret, robot.Normal)
+	}
+}
+
 func writeTempPlugin(t *testing.T, src string) string {
 	t.Helper()
 	ensureYaegiInitialized(t)
@@ -170,12 +183,13 @@ func ensureYaegiInitialized(t *testing.T) {
 	}
 	repoRoot := filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", ".."))
 	tmpGoPath := filepath.Join(t.TempDir(), "gopath")
-	robotSrcPath := filepath.Join(tmpGoPath, "src", "github.com", "lnxjedi", "gopherbot", "robot")
-	if err := os.MkdirAll(filepath.Dir(robotSrcPath), 0o755); err != nil {
-		t.Fatalf("mkdir gopath parents: %v", err)
-	}
-	if err := copyDir(filepath.Join(repoRoot, "robot"), robotSrcPath); err != nil {
-		t.Fatalf("copy robot package into temp gopath: %v", err)
+	if err := prepareGoPath(
+		tmpGoPath,
+		filepath.Join(repoRoot, "robot"),
+		filepath.Join(repoRoot, "lib"),
+		filepath.Join(repoRoot, "custom", "lib"),
+	); err != nil {
+		t.Fatalf("prepare temp gopath: %v", err)
 	}
 	goPath = tmpGoPath
 	initErr = nil
@@ -327,6 +341,24 @@ func yaegiPluginWithMultiReturn() string {
 		"    compacted, older := forceCompactConversationDeterministic(state, cfg)",
 		"    if len(compacted.Exchanges) != 2 || len(older) != 1 {",
 		"        return robot.Fail",
+		"    }",
+		"    return robot.Normal",
+		"}",
+	}, "\n")
+}
+
+func yaegiPluginImportingInstallLibPackage() string {
+	return strings.Join([]string{
+		"package main",
+		"",
+		"import (",
+		"    \"github.com/lnxjedi/gopherbot/robot\"",
+		"    \"github.com/lnxjedi/gopherbot/v2/lib/newrobotflow\"",
+		")",
+		"",
+		"func PluginHandler(r robot.Robot, command string, args ...string) robot.TaskRetVal {",
+		"    if newrobotflow.StateFileName == \"\" {",
+		"        return robot.MechanismFail",
 		"    }",
 		"    return robot.Normal",
 		"}",

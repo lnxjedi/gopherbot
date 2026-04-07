@@ -85,11 +85,13 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - External shell job scripts: `jobs/logrotate.sh`.
 - Go job entrypoint example: `jobs/updatecfg/updatecfg.go` (func `JobHandler`).
 - AI conversation retention prune job: `jobs/go-openai-prune/go_openai_prune_job.go` (func `JobHandler`).
-- SSH demo welcome trigger job: `jobs/go-welcome-join/welcome_join.go` (func `JobHandler`).
+- SSH onboarding welcome trigger job: `jobs/go-welcome-join/welcome_join.go` (func `JobHandler`).
+- SSH onboarding resume-on-join job: `jobs/go-resume-setup/resume_setup.go` (func `JobHandler`).
 
 ## lib/
 
 - Plugin language libraries: `lib/README.txt`, `lib/gopherbot_v1.sh`, `lib/gopherbot_v1.py`, `lib/gopherbot_v1.rb`, `lib/gopherbot_v1.js`, `lib/gopherbot_v1.lua`, `lib/GopherbotV1.jl`.
+- Shared Go onboarding flow/state helpers: `lib/newrobotflow/onboarding.go`.
 
 ## licenses/
 
