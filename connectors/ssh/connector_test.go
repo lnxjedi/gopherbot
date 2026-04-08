@@ -2,7 +2,12 @@ package ssh
 
 import (
 	"bytes"
+	"fmt"
 	"io"
+	"net"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -29,16 +34,16 @@ func (t *testHandler) GetHistoryConfig(_ interface{}) error  { return nil }
 func (t *testHandler) GetBotInfo() robot.BotInfo {
 	return robot.BotInfo{UserName: "floyd", FullName: "Floyd Gopherbot"}
 }
-func (t *testHandler) SetBotID(_ string)                     {}
-func (t *testHandler) SetTerminalWriter(_ io.Writer)         {}
-func (t *testHandler) SetBotMention(_ string)                {}
-func (t *testHandler) GetLogLevel() robot.LogLevel           { return robot.Info }
-func (t *testHandler) GetInstallPath() string                { return "" }
-func (t *testHandler) GetConfigPath() string                 { return "" }
-func (t *testHandler) Log(_ robot.LogLevel, m string, _ ...interface{}) {
+func (t *testHandler) SetBotID(_ string)             {}
+func (t *testHandler) SetTerminalWriter(_ io.Writer) {}
+func (t *testHandler) SetBotMention(_ string)        {}
+func (t *testHandler) GetLogLevel() robot.LogLevel   { return robot.Info }
+func (t *testHandler) GetInstallPath() string        { return "" }
+func (t *testHandler) GetConfigPath() string         { return "" }
+func (t *testHandler) Log(_ robot.LogLevel, m string, args ...interface{}) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	t.logs = append(t.logs, m)
+	t.logs = append(t.logs, fmt.Sprintf(m, args...))
 }
 func (t *testHandler) GetDirectory(_ string) error { return nil }
 func (t *testHandler) ExtractID(_ string) (string, bool) {
@@ -603,4 +608,136 @@ func TestGetMessagesWaitsForNewMessage(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatalf("timed out waiting for GetMessages result")
 	}
+}
+
+func TestListenAllSkipsInUsePorts(t *testing.T) {
+	basePort := findContiguousFreePortBlock(t, 4)
+	occupied := occupyPorts(t, basePort, 3)
+	defer closeListeners(occupied)
+
+	h := &testHandler{}
+	sc := &sshConnector{
+		handler: h,
+		cfg: sshConfig{
+			ListenHost: "127.0.0.1",
+			ListenPort: basePort,
+		},
+	}
+
+	listeners, host, port := sc.listenAll()
+	if len(listeners) != 1 {
+		t.Fatalf("expected 1 listener, got %d", len(listeners))
+	}
+	defer closeListeners(listeners)
+
+	if host != "127.0.0.1" {
+		t.Fatalf("expected listen host 127.0.0.1, got %q", host)
+	}
+	if want := basePort + 3; port != want {
+		t.Fatalf("expected selected port %d, got %d", want, port)
+	}
+	if !containsLog(h.logs, "skipped 3 in-use ports") {
+		t.Fatalf("expected skip log, got %v", h.logs)
+	}
+}
+
+func TestListenAllFailsAfterSevenIncrements(t *testing.T) {
+	basePort := findContiguousFreePortBlock(t, maxListenPortSkips+1)
+	occupied := occupyPorts(t, basePort, maxListenPortSkips+1)
+	defer closeListeners(occupied)
+
+	h := &testHandler{}
+	sc := &sshConnector{
+		handler: h,
+		cfg: sshConfig{
+			ListenHost: "127.0.0.1",
+			ListenPort: basePort,
+		},
+	}
+
+	listeners, host, port := sc.listenAll()
+	closeListeners(listeners)
+	if len(listeners) != 0 {
+		t.Fatalf("expected no listeners, got %d", len(listeners))
+	}
+	if host != "" || port != 0 {
+		t.Fatalf("expected empty bind result on failure, got host=%q port=%d", host, port)
+	}
+	if !containsLog(h.logs, fmt.Sprintf("ports %d-%d", basePort, basePort+maxListenPortSkips)) {
+		t.Fatalf("expected exhausted-range log, got %v", h.logs)
+	}
+}
+
+func TestWriteConnectFileUsesActualPort(t *testing.T) {
+	h := &testHandler{}
+	sc := &sshConnector{handler: h}
+	dir := t.TempDir()
+	oldwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd: %v", err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("Chdir temp dir: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(oldwd); err != nil {
+			t.Fatalf("restore cwd: %v", err)
+		}
+	}()
+
+	sc.writeConnectFile("127.0.0.1", 4224, "ssh-ed25519 AAAATEST")
+
+	data, err := os.ReadFile(filepath.Join(dir, ".ssh-connect"))
+	if err != nil {
+		t.Fatalf("ReadFile(.ssh-connect): %v", err)
+	}
+	content := string(data)
+	if !strings.Contains(content, "BOT_SSH_PORT=127.0.0.1:4224") {
+		t.Fatalf("expected actual port in metadata file, got %q", content)
+	}
+}
+
+func findContiguousFreePortBlock(t *testing.T, size int) int {
+	t.Helper()
+	for basePort := 30000; basePort <= 60000-size; basePort++ {
+		listeners := make([]net.Listener, 0, size)
+		ok := true
+		for offset := 0; offset < size; offset++ {
+			ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", basePort+offset))
+			if err != nil {
+				ok = false
+				break
+			}
+			listeners = append(listeners, ln)
+		}
+		closeListeners(listeners)
+		if ok {
+			return basePort
+		}
+	}
+	t.Fatalf("unable to find %d contiguous free ports", size)
+	return 0
+}
+
+func occupyPorts(t *testing.T, basePort, count int) []net.Listener {
+	t.Helper()
+	listeners := make([]net.Listener, 0, count)
+	for offset := 0; offset < count; offset++ {
+		ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", basePort+offset))
+		if err != nil {
+			closeListeners(listeners)
+			t.Fatalf("occupy port %d: %v", basePort+offset, err)
+		}
+		listeners = append(listeners, ln)
+	}
+	return listeners
+}
+
+func containsLog(logs []string, want string) bool {
+	for _, log := range logs {
+		if strings.Contains(log, want) {
+			return true
+		}
+	}
+	return false
 }

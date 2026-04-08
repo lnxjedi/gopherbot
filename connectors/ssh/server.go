@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"syscall"
 
 	"github.com/chzyer/readline"
 	"golang.org/x/crypto/ssh"
@@ -253,17 +254,21 @@ func normalizeKeyLine(line string) string {
 	return parts[0] + " " + parts[1]
 }
 
-func (sc *sshConnector) listenAll() ([]net.Listener, string) {
-	addr := sc.cfg.ListenHost
-	port := sc.cfg.ListenPort
+func isAddrInUse(err error) bool {
+	return errors.Is(err, syscall.EADDRINUSE)
+}
 
-	if port == 0 {
-		port = defaultListenPort
+func closeListeners(listeners []net.Listener) {
+	for _, ln := range listeners {
+		_ = ln.Close()
 	}
+}
 
-	var listeners []net.Listener
-	var listenHost string
+func (sc *sshConnector) listenOnPort(addr string, port int) ([]net.Listener, string, error, bool) {
 	if addr == "all" {
+		var listeners []net.Listener
+		var listenHost string
+
 		ln4, err4 := net.Listen("tcp4", fmt.Sprintf("0.0.0.0:%d", port))
 		if err4 == nil {
 			listeners = append(listeners, ln4)
@@ -276,10 +281,11 @@ func (sc *sshConnector) listenAll() ([]net.Listener, string) {
 				listenHost = "[::]"
 			}
 		}
-		if len(listeners) == 0 {
-			sc.handler.Log(robot.Fatal, "Unable to bind to 0.0.0.0 or [::]: %v / %v", err4, err6)
+		if len(listeners) > 0 {
+			return listeners, listenHost, nil, false
 		}
-		return listeners, listenHost
+		err := fmt.Errorf("Unable to bind to 0.0.0.0 or [::] on port %d: %v / %v", port, err4, err6)
+		return nil, "", err, isAddrInUse(err4) && isAddrInUse(err6)
 	}
 
 	if addr == "localhost" {
@@ -287,10 +293,46 @@ func (sc *sshConnector) listenAll() ([]net.Listener, string) {
 	}
 	ln, err := net.Listen("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
-		sc.handler.Log(robot.Fatal, "Unable to bind SSH connector on %s:%d: %v", addr, port, err)
-		return nil, addr
+		return nil, addr, fmt.Errorf("Unable to bind SSH connector on %s:%d: %v", addr, port, err), isAddrInUse(err)
 	}
-	return []net.Listener{ln}, addr
+	return []net.Listener{ln}, addr, nil, false
+}
+
+func (sc *sshConnector) listenAll() ([]net.Listener, string, int) {
+	addr := sc.cfg.ListenHost
+	basePort := sc.cfg.ListenPort
+
+	if basePort == 0 {
+		basePort = defaultListenPort
+	}
+	maxPort := basePort + maxListenPortSkips
+	if basePort <= 0 || maxPort > 65535 {
+		sc.handler.Log(robot.Fatal, "Invalid SSH listen port range %d-%d", basePort, maxPort)
+		return nil, "", 0
+	}
+
+	for skipped := 0; skipped <= maxListenPortSkips; skipped++ {
+		port := basePort + skipped
+		listeners, listenHost, err, inUse := sc.listenOnPort(addr, port)
+		if err == nil {
+			if skipped > 0 {
+				sc.handler.Log(robot.Info, "SSH connector skipped %d in-use ports before binding %s:%d", skipped, listenHost, port)
+			}
+			return listeners, listenHost, port
+		}
+		closeListeners(listeners)
+		if !inUse {
+			sc.handler.Log(robot.Fatal, "%v", err)
+			return nil, "", 0
+		}
+	}
+
+	bindHost := addr
+	if bindHost == "localhost" {
+		bindHost = "127.0.0.1"
+	}
+	sc.handler.Log(robot.Fatal, "Unable to bind SSH connector on %s ports %d-%d: all %d ports are in use", bindHost, basePort, maxPort, maxListenPortSkips+1)
+	return nil, "", 0
 }
 
 func (sc *sshConnector) writeConnectFile(host string, port int, pubKey string) {

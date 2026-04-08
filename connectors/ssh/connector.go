@@ -22,12 +22,13 @@ const (
 )
 
 const (
-	defaultListenHost = "localhost"
-	defaultListenPort = 4221
-	defaultReplaySize = 42
-	defaultMaxMsg     = 16384
-	defaultChannel    = "general"
-	maxBufferBytes    = 4096
+	defaultListenHost  = "localhost"
+	defaultListenPort  = 4221
+	maxListenPortSkips = 7
+	defaultReplaySize  = 42
+	defaultMaxMsg      = 16384
+	defaultChannel     = "general"
+	maxBufferBytes     = 4096
 )
 
 type userKeyInfo struct {
@@ -187,19 +188,19 @@ func (sc *sshConnector) Run(stop <-chan struct{}) {
 	}
 	serverConfig.AddHostKey(signer)
 
-	listeners, listenHost := sc.listenAll()
+	listeners, listenHost, listenPort := sc.listenAll()
 	if len(listeners) == 0 {
 		sc.handler.Log(robot.Fatal, "SSH connector failed to bind")
 		return
 	}
-	sc.handler.Log(robot.Info, "SSH connector listening on %s:%d", listenHost, sc.cfg.ListenPort)
+	sc.handler.Log(robot.Info, "SSH connector listening on %s:%d", listenHost, listenPort)
 	defer func() {
 		for _, ln := range listeners {
 			_ = ln.Close()
 		}
 	}()
 
-	sc.writeConnectFile(listenHost, sc.cfg.ListenPort, pubLine)
+	sc.writeConnectFile(listenHost, listenPort, pubLine)
 
 	stopOnce := sync.Once{}
 	stopFn := func() {

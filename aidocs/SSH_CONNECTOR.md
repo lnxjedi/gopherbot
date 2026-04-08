@@ -30,6 +30,11 @@ This document records the intended SSH connector behavior, control flow, and int
 - `ListenHost` (default: `localhost`)
   - Accepts `localhost`, IPv4, IPv6, `all`.
 - `ListenPort` (default: `4221`)
+  - Treated as the base port for startup probing.
+  - On startup, SSH tries `ListenPort` first, then increments one port at a time up to `ListenPort+7`.
+  - The first available port in that 8-port window is used; if all are in use, connector startup fails.
+  - When probing skips in-use ports, startup logs the skip count.
+  - `.ssh-connect` always records the actual selected port.
 - `HostKey` (encrypted private key, optional)
 - `HearSelf` (default recommended: `true` for SSH)  
   - when true, connector-injected bot-authored events (such as join announcements)
