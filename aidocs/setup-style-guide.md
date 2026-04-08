@@ -22,10 +22,10 @@ The default rhythm for setup questions is:
 Preferred shape:
 
 ```text
-robot: Your robot will need a given name like "Floyd". For maximum compatibility and portability across chat platforms, the robot will recognize messages that start with its name as a command it should try to interpret, for example "Floyd, ping".
+robot: Your robot will need a 'given name' something like "Floyd", but unique to *your* custom robot. For maximum compatibility and portability across chat platforms, the robot will recognize messages that start with its name as a command it should try to interpret, for example "Floyd, ping".
 robot: What name would you like to give your robot?
 user: Clu
-robot: Very good - your robot will respond to messages that start with "Clu".
+robot: Perfect. Your robot will respond to messages that start with "Clu".
 ```
 
 ## Addressing And Targeting
@@ -57,9 +57,10 @@ Current shared onboarding constants live in `lib/newrobotflow/onboarding.go`:
 
 - after accepting an answer, confirm it explicitly
 - prefer confirmations that restate the operational meaning of the value, not just "ok" or "saved"
+- avoid repeating the same confirmation opener in every step; vary the phrasing naturally while keeping the operational meaning clear
 - examples:
-  - "Very good - scheduled job messages will go to `#clu-jobs`."
-  - "Very good - I'll configure bootstrap to use `git@github.com:...`."
+  - "Got it. Scheduled job messages will go to `#clu-jobs`."
+  - "Perfect. I'll configure bootstrap to use `git@github.com:...`."
 
 ## Manual Step Handoffs
 
