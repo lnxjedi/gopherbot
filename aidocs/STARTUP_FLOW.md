@@ -13,9 +13,10 @@ Startup proceeds through the following phases **in order**:
 5. **Encryption initialization** – Set up brain encryption
 6. **Pre-connect configuration load** – Load basic configuration without running scripts
 7. **Brain initialization** – Start the brain provider
-8. **Connector runtime initialization** – Initialize primary + configured secondary connectors
-9. **Post-connect configuration load** – Full configuration with plugin initialization
-10. **Runtime git branch capture** – Best-effort detection of current/default startup branch for admin observability
+8. **Internal module initialization** – Prepare shared runtime helpers such as ssh-agent, ssh git helpers, and Yaegi's shared GOPATH tree
+9. **Connector runtime initialization** – Initialize primary + configured secondary connectors
+10. **Post-connect configuration load** – Full configuration with plugin initialization
+11. **Runtime git branch capture** – Best-effort detection of current/default startup branch for admin observability
 
 Internal exception:
 - `pipeline-child-exec` is an internal command used by multiprocess task execution; it exits after one child-task run and bypasses normal robot startup phases.
@@ -107,6 +108,22 @@ Connector config implication:
 
 - Installed defaults under `gopherbot/conf/` include only stock connector templates shipped with the engine.
 - Connectors like Slack are normally configured in the custom robot repository under `conf/protocols/`.
+
+### Internal Module Initialization
+
+`initBot()` calls `initializeModules(...)` in `bot/modules_init.go` after the brain is ready and before normal runtime work begins.
+
+- Module initialization is engine-owned startup work; it is not connector registration and it is not plugin execution.
+- Current built-in module initializers prepare:
+  - ssh-agent support
+  - ssh known-hosts/git helper support
+  - Yaegi runtime support for interpreted Go extensions
+- The Yaegi module creates a shared GOPATH tree at `$GOPHER_HOME/.yaegi-gopath` (falling back to the current working directory when `GOPHER_HOME` is unset).
+- That shared tree uses symlinks instead of copied source:
+  - `src/github.com/lnxjedi/gopherbot/robot` -> installed `robot/`
+  - `src/gopherbot.internal/lib` -> installed `lib/`
+  - `src/robot.internal/lib` -> custom robot `lib/`
+- Internal RPC child processes still call the same Yaegi initializer on demand, so the shared tree can be recreated if missing, but normal startup is expected to prepare it first.
 
 ### Custom Robot Environment Selection (`GOPHER_ENVIRONMENT`)
 

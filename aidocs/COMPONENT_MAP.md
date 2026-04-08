@@ -31,7 +31,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Startup mode and config loading: `bot/config_load.go` (funcs `detectStartupMode`, `getConfigFile`), `bot/conf.go` (func `loadConfig`).
 - Runtime git branch observability: `bot/git_runtime.go` (startup capture + runtime snapshot for info/admin commands), with privileged sync task registration in `bot/pipe_tasks.go` (`git-sync-state`).
 - AI-dev endpoint/auth helpers: `bot/aidev.go` (token + `.aiport`) and `bot/aidev_http.go` (authenticated `send_message` / `get_messages` routing).
-- Internal module initialization: `bot/modules_init.go` (func `initializeModules`) — initializes ssh-agent, ssh-git-helper, and yaegi interpreter modules.
+- Internal module initialization: `bot/modules_init.go` (func `initializeModules`) — initializes ssh-agent, ssh-git-helper, and Yaegi runtime support including the shared `$GOPHER_HOME/.yaegi-gopath` tree used by interpreted Go extensions.
 - OAuth2 token manager + internal refresh-registry handling: `bot/oauth2.go`, `bot/oauth2_types.go`.
 - Built-in connectors (not under `connectors/`): `bot/term_connector.go` (registers `"terminal"` through `robot.RegisterConnector`), `bot/null_connector.go` (registers `"nullconn"` through `robot.RegisterConnector`).
 
@@ -91,6 +91,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 ## lib/
 
 - Plugin language libraries: `lib/README.txt`, `lib/gopherbot_v1.sh`, `lib/gopherbot_v1.py`, `lib/gopherbot_v1.rb`, `lib/gopherbot_v1.js`, `lib/gopherbot_v1.lua`, `lib/GopherbotV1.jl`.
+- Shared Go helper module root: `lib/go.mod` declares `module gopherbot.internal/lib` for interpreted-Go imports from installed libraries.
 - Shared Go onboarding flow/state helpers: `lib/newrobotflow/onboarding.go`.
 
 ## licenses/
@@ -100,6 +101,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 ## modules/
 
 - Internal modules with init hooks: `modules/ssh-agent/ssh_agent_module.go` (func `Initialize`), `modules/ssh-git-helper/ssh_git_helper_module.go` (func `Initialize`), `modules/gsh/call_extension.go` (func `CallExtension`), `modules/yaegi-dynamic-go/yaegi_init.go` (func `Initialize`).
+- Yaegi shared GOPATH staging + runtime entrypoints: `modules/yaegi-dynamic-go/yaegi_dynamic.go` (`ensureGoPath`, `RunPluginHandler`, `RunJobHandler`, `RunTaskHandler`).
 
 ## plugins/
 

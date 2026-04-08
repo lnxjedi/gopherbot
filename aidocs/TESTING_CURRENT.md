@@ -116,6 +116,7 @@ Notes:
   - catch-all mode routing and selection in `bot/help_metadata_api_test.go`
   - engine-side help metadata filtering, ranking inputs, and deterministic fallback advice in `bot/help_metadata_api_test.go`
   - Yaegi symbol/runtime coverage for active Robot API methods in `modules/yaegi-dynamic-go/yaegi_dynamic_test.go`
+  - shared `.yaegi-gopath` import coverage for installed (`gopherbot.internal/lib/...`) and custom (`robot.internal/lib/...`) interpreted-Go libraries
 
 ## Targeted Yaegi runtime repros
 

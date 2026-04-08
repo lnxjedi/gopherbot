@@ -28,6 +28,7 @@ type pipelineRPCErr struct {
 func newPipelineChildRPCCommand() *exec.Cmd {
 	cmd := exec.Command(execPath(), pipelineChildRPCCommand)
 	cmd.Env = sanitizedChildEnvironment(
+		"GOPHER_HOME="+homePath,
 		"GOPHER_INSTALLDIR="+installPath,
 		"GOPHER_CONFIGDIR="+configFull,
 	)

@@ -12,12 +12,13 @@ import (
 
 // Initialize sets up the Yaegi environment.
 func Initialize(handler robot.Handler) (err error) {
-	currentDir, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get current directory: %w", err)
+	homePath := os.Getenv("GOPHER_HOME")
+	if homePath == "" {
+		homePath, err = os.Getwd()
+		if err != nil {
+			return fmt.Errorf("failed to get current directory: %w", err)
+		}
 	}
-
-	goPath = filepath.Join(currentDir, fmt.Sprintf(".gopath-%d", os.Getpid()))
 
 	installPath := handler.GetInstallPath()
 	if installPath == "" {
@@ -31,7 +32,8 @@ func Initialize(handler robot.Handler) (err error) {
 	robotInstallPath := filepath.Join(installPath, "robot")
 	installLibPath := filepath.Join(installPath, "lib")
 	configLibPath := filepath.Join(configFull, "lib")
-	if err := prepareGoPath(goPath, robotInstallPath, installLibPath, configLibPath); err != nil {
+	goPath, err = ensureGoPath(homePath, robotInstallPath, installLibPath, configLibPath)
+	if err != nil {
 		return err
 	}
 

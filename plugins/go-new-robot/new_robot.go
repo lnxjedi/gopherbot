@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/lnxjedi/gopherbot/robot"
-	"github.com/lnxjedi/gopherbot/v2/lib/newrobotflow"
+	"gopherbot.internal/lib/newrobotflow"
 )
 
 func Configure() *[]byte {

@@ -12,11 +12,14 @@ import (
 )
 
 func TestNewPipelineChildRPCCommand(t *testing.T) {
+	oldHomePath := homePath
 	oldInstallPath := installPath
 	oldConfigFull := configFull
+	homePath = "/tmp/test-home"
 	installPath = "/tmp/test-install"
 	configFull = "/tmp/test-config"
 	t.Cleanup(func() {
+		homePath = oldHomePath
 		installPath = oldInstallPath
 		configFull = oldConfigFull
 	})
@@ -30,6 +33,9 @@ func TestNewPipelineChildRPCCommand(t *testing.T) {
 	}
 	if !envContains(cmd.Env, "GOPHER_CONFIGDIR="+configFull) {
 		t.Fatalf("child rpc env missing GOPHER_CONFIGDIR=%s: %#v", configFull, cmd.Env)
+	}
+	if !envContains(cmd.Env, "GOPHER_HOME="+homePath) {
+		t.Fatalf("child rpc env missing GOPHER_HOME=%s: %#v", homePath, cmd.Env)
 	}
 }
 
@@ -94,31 +100,24 @@ func TestEnsurePipelineRPCGoInitializedUsesChildEnv(t *testing.T) {
 
 	oldInstallPath := installPath
 	oldConfigFull := configFull
+	oldHomePath := homePath
 	oldInitOnce := pipelineRPCGoInitOnce
 	oldInitErr := pipelineRPCGoInitErr
+	homeDir := t.TempDir()
 	t.Setenv("GOPHER_INSTALLDIR", repoRoot)
 	t.Setenv("GOPHER_CONFIGDIR", configDir)
+	t.Setenv("GOPHER_HOME", homeDir)
+	homePath = ""
 	installPath = ""
 	configFull = ""
 	pipelineRPCGoInitOnce = sync.Once{}
 	pipelineRPCGoInitErr = nil
 	t.Cleanup(func() {
+		homePath = oldHomePath
 		installPath = oldInstallPath
 		configFull = oldConfigFull
 		pipelineRPCGoInitOnce = oldInitOnce
 		pipelineRPCGoInitErr = oldInitErr
-	})
-
-	oldWD, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("getwd: %v", err)
-	}
-	workDir := t.TempDir()
-	if err := os.Chdir(workDir); err != nil {
-		t.Fatalf("chdir temp workdir: %v", err)
-	}
-	t.Cleanup(func() {
-		_ = os.Chdir(oldWD)
 	})
 
 	if err := ensurePipelineRPCGoInitialized(); err != nil {
@@ -130,22 +129,9 @@ func TestEnsurePipelineRPCGoInitializedUsesChildEnv(t *testing.T) {
 	if configFull != configDir {
 		t.Fatalf("configFull = %q, want %q", configFull, configDir)
 	}
-	entries, err := os.ReadDir(workDir)
-	if err != nil {
-		t.Fatalf("readdir(%s): %v", workDir, err)
-	}
-	found := ""
-	for _, entry := range entries {
-		if entry.IsDir() && strings.HasPrefix(entry.Name(), ".gopath-") {
-			found = filepath.Join(workDir, entry.Name())
-			break
-		}
-	}
-	if found == "" {
-		t.Fatalf("expected staged .gopath-* directory in %s", workDir)
-	}
-	if _, err := os.Stat(found); err != nil {
-		t.Fatalf("expected staged goPath %q: %v", found, err)
+	wantGoPath := filepath.Join(homeDir, ".yaegi-gopath")
+	if _, err := os.Stat(wantGoPath); err != nil {
+		t.Fatalf("expected shared goPath %q: %v", wantGoPath, err)
 	}
 }
 

@@ -79,6 +79,10 @@ Shipped identity onboarding note:
 
 - Where: interpreter modules live under `modules/lua/`, `modules/javascript/`, `modules/gsh/`, and `modules/yaegi-dynamic-go/`; example script sources live under `plugins/` (e.g., `plugins/samples/hello.lua`, `plugins/samples/hello.js`, `plugins/samples/hello.gsh`, `plugins/go-lists/lists.go`).
 - Dispatch: `bot/calltask.go` selects interpreter by file extension (`.lua`, `.js`, `.gsh`, `.go`) and routes through `modules/lua/call_extension.go` (func `CallExtension`), `modules/javascript/call_extension.go` (func `CallExtension`), `modules/gsh/call_extension.go` (func `CallExtension`), or `modules/yaegi-dynamic-go/yaegi_dynamic.go` (funcs `RunPluginHandler`, `RunJobHandler`, `RunTaskHandler`).
+- Interpreted Go import roots are engine-owned and local-only:
+  - installed shared Go libraries import as `gopherbot.internal/lib/...`
+  - custom robot shared Go libraries import as `robot.internal/lib/...`
+- Yaegi resolves those imports through the shared `$GOPHER_HOME/.yaegi-gopath` tree prepared by `modules/yaegi-dynamic-go/yaegi_init.go` and `bot/modules_init.go`.
 - Examples: Lua `plugins/samples/hello.lua`, JavaScript `plugins/samples/hello.js`, Gopherbot shell `plugins/samples/hello.gsh`, shipped Gopherbot shell defaults like `plugins/admin.gsh` and `tasks/status.gsh`, dynamic Go `plugins/go-lists/lists.go` (funcs `Configure`, `PluginHandler`).
 - See also: `aidocs/INTERPRETERS.md`.
 

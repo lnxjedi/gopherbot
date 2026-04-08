@@ -27,3 +27,5 @@ binary-encrypted-key*
 # AI scratch directory
 /tmp/*
 !/tmp/.gitkeep
+# Created by Yaegi init for the gopath
+.yaegi-gopath/

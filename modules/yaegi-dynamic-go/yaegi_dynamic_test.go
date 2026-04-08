@@ -165,6 +165,76 @@ func TestRunPluginHandlerYaegiCanImportInstallLibPackage(t *testing.T) {
 	}
 }
 
+func TestRunPluginHandlerYaegiCanImportConfigLibPackage(t *testing.T) {
+	_, thisFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller(0) failed")
+	}
+	repoRoot := filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", ".."))
+	homeDir := t.TempDir()
+	configDir := filepath.Join(homeDir, "custom")
+	configLibDir := filepath.Join(configDir, "lib", "localprobe")
+	if err := os.MkdirAll(configLibDir, 0o755); err != nil {
+		t.Fatalf("mkdir config lib dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(configLibDir, "probe.go"), []byte(strings.Join([]string{
+		"package localprobe",
+		"",
+		"func Value() string {",
+		"	return \"config-lib-ok\"",
+		"}",
+	}, "\n")), 0o600); err != nil {
+		t.Fatalf("write config lib file: %v", err)
+	}
+	var err error
+	goPath, err = ensureGoPath(homeDir, filepath.Join(repoRoot, "robot"), filepath.Join(repoRoot, "lib"), filepath.Join(configDir, "lib"))
+	if err != nil {
+		t.Fatalf("ensure shared gopath: %v", err)
+	}
+	initErr = nil
+
+	pluginPath := filepath.Join(t.TempDir(), "plugin.go")
+	if err := os.WriteFile(pluginPath, []byte(yaegiPluginImportingConfigLibPackage()), 0o600); err != nil {
+		t.Fatalf("write temp plugin: %v", err)
+	}
+	logger := &testLogger{}
+
+	ret, err := RunPluginHandler(pluginPath, "config-lib-import", nil, nil, logger, false, "probe")
+	if err != nil {
+		t.Fatalf("RunPluginHandler config-lib import error = %v", err)
+	}
+	if ret != robot.Normal {
+		t.Fatalf("RunPluginHandler config-lib import ret = %v, want %v", ret, robot.Normal)
+	}
+}
+
+func TestEnsureGoPathUsesSharedSymlinks(t *testing.T) {
+	_, thisFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller(0) failed")
+	}
+	repoRoot := filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", ".."))
+	homeDir := t.TempDir()
+	configDir := filepath.Join(homeDir, "custom")
+	configLibDir := filepath.Join(configDir, "lib")
+	if err := os.MkdirAll(configLibDir, 0o755); err != nil {
+		t.Fatalf("mkdir config lib dir: %v", err)
+	}
+
+	got, err := ensureGoPath(homeDir, filepath.Join(repoRoot, "robot"), filepath.Join(repoRoot, "lib"), configLibDir)
+	if err != nil {
+		t.Fatalf("ensureGoPath() error = %v", err)
+	}
+	wantRoot := sharedGoPath(homeDir)
+	if got != wantRoot {
+		t.Fatalf("ensureGoPath() = %q, want %q", got, wantRoot)
+	}
+
+	assertSymlinkTarget(t, filepath.Join(got, "src", filepath.FromSlash(robotImportPath)), filepath.Join(repoRoot, "robot"))
+	assertSymlinkTarget(t, filepath.Join(got, "src", filepath.FromSlash(installLibImportRoot)), filepath.Join(repoRoot, "lib"))
+	assertSymlinkTarget(t, filepath.Join(got, "src", filepath.FromSlash(configLibImportRoot)), configLibDir)
+}
+
 func writeTempPlugin(t *testing.T, src string) string {
 	t.Helper()
 	ensureYaegiInitialized(t)
@@ -182,17 +252,36 @@ func ensureYaegiInitialized(t *testing.T) {
 		t.Fatal("runtime.Caller(0) failed")
 	}
 	repoRoot := filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", ".."))
-	tmpGoPath := filepath.Join(t.TempDir(), "gopath")
-	if err := prepareGoPath(
-		tmpGoPath,
+	homeDir := t.TempDir()
+	var err error
+	goPath, err = ensureGoPath(
+		homeDir,
 		filepath.Join(repoRoot, "robot"),
 		filepath.Join(repoRoot, "lib"),
-		filepath.Join(repoRoot, "custom", "lib"),
-	); err != nil {
-		t.Fatalf("prepare temp gopath: %v", err)
+		filepath.Join(homeDir, "custom", "lib"),
+	)
+	if err != nil {
+		t.Fatalf("ensure shared gopath: %v", err)
 	}
-	goPath = tmpGoPath
 	initErr = nil
+}
+
+func assertSymlinkTarget(t *testing.T, path, want string) {
+	t.Helper()
+	info, err := os.Lstat(path)
+	if err != nil {
+		t.Fatalf("lstat(%s): %v", path, err)
+	}
+	if info.Mode()&os.ModeSymlink == 0 {
+		t.Fatalf("%s is not a symlink", path)
+	}
+	got, err := os.Readlink(path)
+	if err != nil {
+		t.Fatalf("readlink(%s): %v", path, err)
+	}
+	if got != want {
+		t.Fatalf("symlink %s -> %q, want %q", path, got, want)
+	}
 }
 
 func yaegiPluginWithMultiReturn() string {
@@ -353,7 +442,7 @@ func yaegiPluginImportingInstallLibPackage() string {
 		"",
 		"import (",
 		"    \"github.com/lnxjedi/gopherbot/robot\"",
-		"    \"github.com/lnxjedi/gopherbot/v2/lib/newrobotflow\"",
+		"    \"gopherbot.internal/lib/newrobotflow\"",
 		")",
 		"",
 		"func PluginHandler(r robot.Robot, command string, args ...string) robot.TaskRetVal {",
@@ -361,6 +450,27 @@ func yaegiPluginImportingInstallLibPackage() string {
 		"        return robot.MechanismFail",
 		"    }",
 		"    return robot.Normal",
+		"}",
+	}, "\n")
+}
+
+func yaegiPluginImportingConfigLibPackage() string {
+	return strings.Join([]string{
+		"package main",
+		"",
+		"import (",
+		"	\"github.com/lnxjedi/gopherbot/robot\"",
+		"	\"robot.internal/lib/localprobe\"",
+		")",
+		"",
+		"func PluginHandler(r robot.Robot, command string, args ...string) robot.TaskRetVal {",
+		"	if command != \"probe\" {",
+		"		return robot.MechanismFail",
+		"	}",
+		"	if localprobe.Value() != \"config-lib-ok\" {",
+		"		return robot.MechanismFail",
+		"	}",
+		"	return robot.Normal",
 		"}",
 	}, "\n")
 }
