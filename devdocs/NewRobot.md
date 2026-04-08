@@ -49,8 +49,8 @@ Floyd: If you've started the robot by mistake, just hit ctrl-D to exit and try
        configuring a new robot, type: ';new robot'.
 ```
 
-[Use `SendUserChannelMessage` with the current user and channel to welcome the user]
-[Use about a `0.5s` pause before the welcome and about a `0.4s` pause before the second message so the robot feels like a fast typist]
+[Use one normal channel message per paragraph; greet the connecting user once in the first welcome paragraph]
+[Use about a `0.5s` pause before the welcome and about a `2s` pause between successive descriptive paragraphs the user is expected to read]
 
 ---
 
@@ -75,7 +75,7 @@ Floyd: Would you like me to generate a fresh key for you, or would you rather
 ```
 alice: generate
 
-Floyd: Perfect. I'll generate one now and write it into the environment through
+Floyd: Very good. I'll generate one now and write it into the environment through
        `.env`.
 ```
 
@@ -143,7 +143,8 @@ At this point, the normal welcome job sees `.setup-state` and stays quiet.
 The `resume-setup` join job detects the saved `.setup-state` and resumes automatically:
 
 ```
-Floyd: @alice Welcome back - I found onboarding progress in `.setup-state`.
+Floyd: Welcome back. I found onboarding progress in `.setup-state`, so I'll
+       continue from where we left off.
 ```
 
 ---
@@ -153,12 +154,16 @@ Floyd: @alice Welcome back - I found onboarding progress in `.setup-state`.
 ### Robot name
 
 ```
-Floyd: First up: what would you like to name your robot? This is the name
-       people will use when they talk to it directly.
+Floyd: Your robot will need a given name like "Floyd". For maximum
+       compatibility and portability across chat platforms, the robot will
+       recognize messages that start with its name as a command it should try
+       to interpret, for example 'Floyd, ping'.
+
+Floyd: What name would you like to give your robot?
 
 alice: clu
 
-Floyd: Nice. We'll call your robot *Clu*.
+Floyd: Very good - your robot will respond to messages that start with `clu`.
 ```
 
 [Session updated: `botName=clu`, `stage=awaiting-bot-alias`]
@@ -174,7 +179,7 @@ Floyd: I recommend ';', but you can choose any of these:
 
 alice: ;
 
-Floyd: Great choice - ';' it is.
+Floyd: Very good - your robot will also respond to `;`.
 ```
 
 [Session updated: `botAlias=;`, `stage=awaiting-job-channel`]
@@ -190,7 +195,7 @@ Floyd: I suggest `clu-jobs`. If you'd like to use that, just reply `=`.
 
 alice: =
 
-Floyd: Perfect. Job output will go to `#clu-jobs`.
+Floyd: Very good - scheduled job messages will go to `#clu-jobs`.
 ```
 
 [Session updated: `jobChannel=clu-jobs`, `stage=awaiting-robot-email`]
@@ -203,7 +208,8 @@ Floyd: What email address should the robot use for its own identity? If you
 
 alice: samantha.jackson@example.com
 
-Floyd: Thanks - I'll use `samantha.jackson@example.com` for the robot identity.
+Floyd: Very good - the robot will use `samantha.jackson@example.com` for its
+       own email identity.
 ```
 
 [Session updated: `robotEmail=samantha.jackson@example.com`, `stage=awaiting-admin-email`]
@@ -216,7 +222,8 @@ Floyd: And what email address should the robot advertise for its administrator?
 
 alice: samantha.jackson@example.com
 
-Floyd: Great - I'll use `samantha.jackson@example.com` there too.
+Floyd: Very good - the robot will advertise
+       `samantha.jackson@example.com` as its administrator contact.
 ```
 
 [Session updated: `adminEmail=samantha.jackson@example.com`, `stage=awaiting-ssh-username`]
@@ -233,7 +240,8 @@ Floyd: If your robot will connect to team chat, you should supply the username y
 
 alice: samantha
 
-Floyd: Excellent. After the final restart, you'll connect as `samantha`.
+Floyd: Very good - you'll use `samantha` as your canonical username for this
+       robot.
 ```
 
 [Session updated: `canonicalUser=samantha`, `stage=awaiting-ssh-key`]
@@ -246,8 +254,8 @@ Floyd: Would you like me to use that key for `samantha`? (y/n)
 
 alice: y
 
-Floyd: Perfect. I'll configure that key so `bot-ssh samantha` works after
-       the final restart.
+Floyd: Very good - I'll use the SSH public key from
+       `/home/sjackson/.ssh/id_ed25519.pub` for local login.
 ```
 
 [The home directory should come from the `$HOME` environment variable.]
@@ -289,7 +297,8 @@ Floyd: For example:
 
 alice: git@github.com:sjackson/clu-gopherbot.git
 
-Floyd: Great - I'll wire the robot up for that repository now.
+Floyd: Very good - I'll configure bootstrap to use
+       `git@github.com:sjackson/clu-gopherbot.git`.
 ```
 
 [Robot generates an ed25519 deploy keypair]
@@ -297,11 +306,12 @@ Floyd: Great - I'll wire the robot up for that repository now.
 [Robot updates `.env` with `GOPHER_CUSTOM_REPOSITORY=<repo-url>`]
 [Robot updates `.env` with `GOPHER_DEPLOY_KEY=<encoded-private-key>`]
 [Robot updates `.env` with any other required bootstrap vars such as `GOPHER_ENVIRONMENT=development`]
-[Session updated: `stage=awaiting-user-git-push`]
+[Session updated: repository handoff complete; setup can proceed without waiting for a typed confirmation]
 
 ```
-Floyd: I've updated `.env` with the repository bootstrap settings and written
-       the deploy public key to `custom/ssh/deploy_key.pub`.
+Floyd: Repository handoff is ready. I've updated `.env` with the repository
+       bootstrap settings and written the deploy public key to
+       `custom/ssh/deploy_key.pub`.
 
 Floyd: Add this read-only deploy key to your repository:
 
@@ -316,12 +326,12 @@ Floyd: Then, from the `custom/` directory, run:
        git remote add origin git@github.com:sjackson/clu-gopherbot.git
        git push -u origin main
 
-Floyd: Reply `done` once the push succeeds. If you'd like me to repeat any of
-       that, just say `repeat`.
-```
+Floyd: You don't need to reply here. Those repository steps can happen after
+       the restart from the same working directory.
 
-```
-alice: done
+Floyd: Because the local `custom/` checkout already exists, this robot can
+       restart into its full configuration now even before the first push
+       happens.
 
 Floyd: Beautiful. That gives me everything I need.
 
@@ -344,23 +354,25 @@ Floyd: I'm doing the final restart now so the robot comes back with its real
 Samantha reconnects: `bot-ssh samantha`
 
 ```
-Clu: Welcome back, @samantha. I'm now running with your full robot
-     configuration.
+Clu: I'm now running with your full robot configuration.
 
-Clu: Your working directory is ready to keep using as the source repo checkout.
-     Now let's verify the bootstrap path the way a fresh deployment would.
+Clu: Your working directory is ready to keep using as the source repository
+     checkout.
 
-Clu: Create a brand-new empty directory somewhere else, copy only `.env` into
-     it, and start `gopherbot` there.
+Clu: After you've created the empty upstream repository, added the deploy key,
+     and pushed the local `custom/` checkout, test the bootstrap path from a
+     brand-new empty directory somewhere else.
+
+Clu: Copy only `.env` into that empty directory and start `gopherbot` there.
 
 Clu: On first start, Gopherbot should read `.env`, clone
      `git@github.com:sjackson/clu-gopherbot.git`, build out `custom/`, and
      restart itself into the same fully configured robot.
 
-Clu: If that works, you're done - you now have a robot that can be deployed by
+Clu: If that works, you're done. You now have a robot that can be deployed by
      carrying only `.env` into an empty directory, or by starting the gopherbot
-     engine in a new empty directory with the required environment variables already
-     set.
+     engine in a new empty directory with the required environment variables
+     already set.
 ```
 
 ---
@@ -373,7 +385,7 @@ Clu: If that works, you're done - you now have a robot that can be deployed by
 | `.env` bootstrap | Early flow writes multiple values and does extra setup-specific crypto work | First step writes only `GOPHER_ENCRYPTION_KEY`; later git/bootstrap vars are added when repo handoff is complete |
 | Crypto handling | Onboarding code manually handles more key/encryption work, including legacy SSH key/passphrase setup | Keep the encrypted persistent SSH host key, remove legacy `BOT_SSH_PHRASE` baggage, let the engine generate `custom/binary-encrypted-key` on the first restart, and use `EncryptSecret` afterward |
 | User prompts | Functional prompts, some terse and phase-oriented | Friendlier prompts that explain why each answer matters and offer defaults where helpful |
-| Git handoff | Separate repository phase after scaffold restart | Repository setup is part of the same `;new robot` flow and only waits for a simple `done` confirmation after push |
+| Git handoff | Separate repository phase after scaffold restart | Repository setup is part of the same `;new robot` flow and explains the manual git steps without waiting for a typed `done` |
 | Restarts | More than two reconnect moments in the draft transcript | Two restarts total: one after `.env` key creation, one final configured restart |
 | Resume UX | User must type resume/repo commands after reconnect | Welcome flow resumes automatically for the active onboarding session |
 | Bootstrap verification | Tells user to remove local files and restart in place | Tells user to copy `.env` into a new empty directory and test bootstrap there |
