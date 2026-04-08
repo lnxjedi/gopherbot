@@ -17,7 +17,7 @@ import (
 type config struct {
 	SlackToken          string // the 'bot token for connecting to Slack using RTM
 	AppToken, BotToken  string // tokens used for connecting to Slack using the new SocketMode
-	MaxMessageSplit     int    // the maximum # of ~4000 byte messages to split a large message into
+	MaxMessageSplit     int    // the maximum number of chunks/messages to emit for one long outbound send
 	DisableReflection   bool   // turn off automatic reflection of hidden (slash "/") commands
 	AcceptSlashCommands *bool
 	SlashCommand        string

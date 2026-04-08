@@ -137,3 +137,33 @@ func TestRenderBasicMarkdownEscapedFormattingStaysLiteral(t *testing.T) {
 		t.Fatalf("renderBasicMarkdown() = %q, want %q", got, want)
 	}
 }
+
+func TestRenderBasicMarkdownMarkdownTextPreservesMarkdownSyntax(t *testing.T) {
+	s := &slackConnector{
+		userMap: map[string]string{
+			"alice": "U111",
+		},
+	}
+
+	in := "**Deploy status:** *rollback in progress*\nSee [runbook](https://example.com/runbook)\n- @alice"
+	got := s.renderBasicMarkdownMarkdownText(in)
+	want := "**Deploy status:** *rollback in progress*\nSee [runbook](https://example.com/runbook)\n- <@U111>"
+	if got != want {
+		t.Fatalf("renderBasicMarkdownMarkdownText() = %q, want %q", got, want)
+	}
+}
+
+func TestRenderBasicMarkdownMarkdownTextPreservesEscapesAndCodeFences(t *testing.T) {
+	s := &slackConnector{
+		userMap: map[string]string{
+			"alice": "U111",
+		},
+	}
+
+	in := "Escaped \\@alice and `@alice`\n```text\n@alice\n```\noutside @alice"
+	got := s.renderBasicMarkdownMarkdownText(in)
+	want := "Escaped \\@alice and `@alice`\n```text\n@alice\n```\noutside <@U111>"
+	if got != want {
+		t.Fatalf("renderBasicMarkdownMarkdownText() = %q, want %q", got, want)
+	}
+}

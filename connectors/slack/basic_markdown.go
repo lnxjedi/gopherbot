@@ -43,6 +43,35 @@ func (s *slackConnector) renderBasicMarkdown(msg string) string {
 	return out.String()
 }
 
+func (s *slackConnector) renderBasicMarkdownMarkdownText(msg string) string {
+	var out strings.Builder
+	inFence := false
+
+	for {
+		idx := strings.Index(msg, "```")
+		if idx == -1 {
+			if inFence {
+				out.WriteString(msg)
+			} else {
+				out.WriteString(s.renderBasicMarkdownMarkdownTextInline(msg))
+			}
+			break
+		}
+
+		chunk := msg[:idx]
+		if inFence {
+			out.WriteString(chunk)
+		} else {
+			out.WriteString(s.renderBasicMarkdownMarkdownTextInline(chunk))
+		}
+		out.WriteString("```")
+		inFence = !inFence
+		msg = msg[idx+3:]
+	}
+
+	return out.String()
+}
+
 func stripBasicMarkdownFenceLanguage(msg string) string {
 	if msg == "" || msg[0] == '\n' {
 		return msg
@@ -68,6 +97,27 @@ func (s *slackConnector) renderBasicMarkdownInline(msg string) string {
 		if end == -1 {
 			// Unterminated inline-code delimiter: treat as plain text.
 			out.WriteString(s.renderBasicMarkdownPlain(msg[start:]))
+			break
+		}
+		out.WriteString(msg[start : end+1])
+		msg = msg[end+1:]
+	}
+	return out.String()
+}
+
+func (s *slackConnector) renderBasicMarkdownMarkdownTextInline(msg string) string {
+	var out strings.Builder
+	for len(msg) > 0 {
+		start := findNextUnescapedBacktick(msg, 0)
+		if start == -1 {
+			out.WriteString(s.replaceBasicMarkdownMentionsMarkdownText(msg))
+			break
+		}
+		out.WriteString(s.replaceBasicMarkdownMentionsMarkdownText(msg[:start]))
+
+		end := findNextUnescapedBacktick(msg, start+1)
+		if end == -1 {
+			out.WriteString(s.replaceBasicMarkdownMentionsMarkdownText(msg[start:]))
 			break
 		}
 		out.WriteString(msg[start : end+1])
@@ -346,6 +396,64 @@ func (s *slackConnector) replaceBasicMarkdownMentions(msg string, reserveMD func
 		out.WriteByte('@')
 		out.WriteString(mention)
 		out.WriteString(suffix)
+	}
+
+	return out.String()
+}
+
+func (s *slackConnector) replaceBasicMarkdownMentionsMarkdownText(msg string) string {
+	var out strings.Builder
+
+	for i := 0; i < len(msg); {
+		if msg[i] == '<' {
+			if end := strings.IndexByte(msg[i+1:], '>'); end != -1 {
+				end += i + 1
+				out.WriteString(msg[i : end+1])
+				i = end + 1
+				continue
+			}
+		}
+
+		if msg[i] == '\\' && i+1 < len(msg) {
+			out.WriteByte(msg[i])
+			out.WriteByte(msg[i+1])
+			i += 2
+			continue
+		}
+
+		if msg[i] != '@' {
+			out.WriteByte(msg[i])
+			i++
+			continue
+		}
+
+		start := i
+		i++
+		for i < len(msg) && isMentionTokenChar(msg[i]) {
+			i++
+		}
+		if i == start+1 {
+			out.WriteByte('@')
+			continue
+		}
+
+		mentionToken := msg[start+1 : i]
+		mention, suffix := splitMentionCandidate(mentionToken)
+		if mention == "" {
+			out.WriteString(msg[start:i])
+			continue
+		}
+		if start > 0 && isEmailLocalChar(msg[start-1]) {
+			out.WriteString(msg[start:i])
+			continue
+		}
+
+		if userID, ok := s.resolveBasicMarkdownMentionID(mention); ok {
+			out.WriteString("<@" + userID + ">")
+			out.WriteString(suffix)
+			continue
+		}
+		out.WriteString(msg[start:i])
 	}
 
 	return out.String()

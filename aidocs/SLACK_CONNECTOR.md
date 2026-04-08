@@ -53,13 +53,14 @@ This file captures Slack connector behavior relevant to routing, hidden commands
 - `Fixed` sends a Block Kit `rich_text` block using `rich_text_preformatted` so fixed-width output renders as native Slack preformatted content instead of literal triple-backtick fences.
 - Block-backed `Variable` / `Fixed` sends still include top-level fallback text for notifications/accessibility and legacy RTM fallback behavior.
 - Targeted user-in-channel sends use a readable literal prefix in block-backed output (for example `@alice: ...`) instead of exposing Slack internal mention tokens in the visible body.
-- `BasicMarkdown` is rendered with connector-local translation rules:
-  - Markdown links `[label](https://...)` are converted to Slack link tokens.
-  - `@username` mention tokens are resolved against connector user maps when unambiguous.
-  - Targeted `BasicMarkdown` replies also add their live mention prefix after markdown translation, preserving Slack-rendered mentions.
+- `BasicMarkdown` is sent through Slack's native `markdown_text` field for normal Web API sends.
+  - The connector preserves the original BasicMarkdown syntax instead of translating links/emphasis/code into legacy Slack `mrkdwn`.
+  - `@username` mention tokens are still resolved against connector user maps when unambiguous and rewritten to Slack user mention tokens (`<@U...>`).
+  - Targeted `BasicMarkdown` replies still add their live mention prefix before send.
   - Mention parsing is skipped inside inline code and fenced code blocks.
-  - Emoji shortcodes (for example `:white_check_mark:`) are passed through as shortcodes.
-  - Unicode emoji are passed through unchanged.
+  - Escapes, shortcode emoji, Unicode emoji, quotes, lists, and markdown links are passed through in their original BasicMarkdown form.
+  - Long `BasicMarkdown` sends now chunk at Slack's documented `markdown_text` limit of 12,000 characters before `MaxMessageSplit` truncation is applied.
+  - If Web API send falls back to legacy RTM send, the connector still derives a legacy-formatted fallback text for that chunk.
 
 ## Help Rendering Hooks
 
@@ -70,11 +71,13 @@ This file captures Slack connector behavior relevant to routing, hidden commands
 - `DefaultHelp()` now returns no override so the engine can keep protocol-agnostic quick-help text instead of hardcoding Slack slash syntax.
 - Built-in help plugin (`builtin-help`) uses these hooks so `help`, `commands`, and `help-all` output remains readable in Slack formatting while only surfacing hidden-command guidance when it is actually valid.
 
-## slack-go v0.17.x Notes
+## slack-go v0.21.x Notes
 
 - `api.GetBotInfo` requires `slack.GetBotInfoParameters` (bot + team ID).
 - `slackevents.MessageEvent` no longer exposes attachments/timestamps directly; use embedded `Message` payload (`*slack.Msg`) for attachments and timestamps.
 - Current library version supports Block Kit send options (`MsgOptionBlocks`) plus `rich_text` / `rich_text_preformatted` block types used by Slack fixed-width output.
+- Current library version also exposes `MsgOptionMarkdownText`, which the connector now uses for `BasicMarkdown` sends.
+- `MaxMessageSplit` remains the Slack connector's operator-facing cap on how many chunks/messages one long outbound send may emit before truncation.
 
 ## Runtime Lifecycle Notes
 
