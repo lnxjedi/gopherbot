@@ -83,6 +83,7 @@ Shipped identity onboarding note:
   - installed shared Go libraries import as `gopherbot.internal/lib/...`
   - custom robot shared Go libraries import as `robot.internal/lib/...`
 - Yaegi resolves those imports through the shared `$GOPHER_HOME/.yaegi-gopath` tree prepared by `modules/yaegi-dynamic-go/yaegi_init.go` and `bot/modules_init.go`.
+- The default custom robot scaffold in `robot.skel/` now includes `go.mod` with `module robot.internal`; local editor/tooling use still requires the operator to point `github.com/lnxjedi/gopherbot/robot` and `gopherbot.internal/lib` at a local Gopherbot checkout or install tree via `replace` directives.
 - Examples: Lua `plugins/samples/hello.lua`, JavaScript `plugins/samples/hello.js`, Gopherbot shell `plugins/samples/hello.gsh`, shipped Gopherbot shell defaults like `plugins/admin.gsh` and `tasks/status.gsh`, dynamic Go `plugins/go-lists/lists.go` (funcs `Configure`, `PluginHandler`).
 - See also: `aidocs/INTERPRETERS.md`.
 
