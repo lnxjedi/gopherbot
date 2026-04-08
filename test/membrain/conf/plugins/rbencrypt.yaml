@@ -1,0 +1,6 @@
+---
+AllChannels: true
+AllowDirect: true
+Commands:
+- SimpleMatcher: ruby-encrypt-secret-unpriv
+  Command: encryptsecret

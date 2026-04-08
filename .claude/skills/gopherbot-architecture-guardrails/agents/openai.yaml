@@ -1,0 +1,4 @@
+interface:
+  display_name: "Gopherbot Architecture"
+  short_description: "Guardrails for cross-cutting architecture changes"
+  default_prompt: "Use this skill for cross-cutting Gopherbot architecture changes and migration slices."

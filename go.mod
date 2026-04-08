@@ -8,9 +8,13 @@ replace github.com/lnxjedi/gopherbot/test => ./test
 
 replace github.com/chzyer/readline => ./golib/readline
 
+replace gopherbot.internal/lib => ./lib
+
 // replace github.com/go-git/go-git/v5 => ./replacements/go-git
 
 require (
+	// For yaegi dynamic imports
+	gopherbot.internal/lib v0.0.0
 	github.com/aws/aws-sdk-go-v2 v1.41.1
 	github.com/aws/aws-sdk-go-v2/config v1.32.7
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.7

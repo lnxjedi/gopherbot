@@ -1,8 +1,8 @@
 package yaegidynamicgo
 
 import (
+	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"sync"
@@ -18,63 +18,113 @@ var (
 	initErr  error
 )
 
-func copyDir(src string, dst string) error {
-	srcInfo, err := os.Stat(src)
+const (
+	sharedGoPathDirName  = ".yaegi-gopath"
+	robotImportPath      = "github.com/lnxjedi/gopherbot/robot"
+	installLibImportRoot = "gopherbot.internal/lib"
+	configLibImportRoot  = "robot.internal/lib"
+)
+
+func sharedGoPath(homePath string) string {
+	return filepath.Join(homePath, sharedGoPathDirName)
+}
+
+func ensureManagedPathRemoved(dst string) error {
+	info, err := os.Lstat(dst)
 	if err != nil {
-		return fmt.Errorf("failed to stat source directory: %w", err)
-	}
-	if !srcInfo.IsDir() {
-		return fmt.Errorf("source is not a directory")
-	}
-	err = os.MkdirAll(dst, srcInfo.Mode())
-	if err != nil {
-		return fmt.Errorf("failed to create destination directory: %w", err)
-	}
-	entries, err := os.ReadDir(src)
-	if err != nil {
-		return fmt.Errorf("failed to read source directory: %w", err)
-	}
-	for _, entry := range entries {
-		srcPath := filepath.Join(src, entry.Name())
-		dstPath := filepath.Join(dst, entry.Name())
-		if entry.IsDir() {
-			err = copyDir(srcPath, dstPath)
-			if err != nil {
-				return err
-			}
-		} else {
-			err = copyFile(srcPath, dstPath)
-			if err != nil {
-				return err
-			}
+		if os.IsNotExist(err) {
+			return nil
 		}
+		return fmt.Errorf("failed to inspect managed path '%s': %w", dst, err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 || info.IsDir() {
+		if err := os.RemoveAll(dst); err != nil {
+			return fmt.Errorf("failed to remove managed path '%s': %w", dst, err)
+		}
+		return nil
+	}
+	if err := os.Remove(dst); err != nil {
+		return fmt.Errorf("failed to remove managed file '%s': %w", dst, err)
 	}
 	return nil
 }
 
-func copyFile(src, dst string) error {
-	sourceFile, err := os.Open(src)
+func ensureSymlinkIfDirExists(src, dst string) error {
+	info, err := os.Stat(src)
 	if err != nil {
-		return fmt.Errorf("failed to open source file '%s': %w", src, err)
+		if os.IsNotExist(err) {
+			if err := ensureManagedPathRemoved(dst); err != nil {
+				return err
+			}
+			return nil
+		}
+		return fmt.Errorf("failed to stat %s: %w", src, err)
 	}
-	defer sourceFile.Close()
-
-	srcInfo, err := sourceFile.Stat()
-	if err != nil {
-		return fmt.Errorf("failed to stat source file '%s': %w", src, err)
+	if !info.IsDir() {
+		return fmt.Errorf("%s is not a directory", src)
 	}
 
-	destFile, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, srcInfo.Mode())
-	if err != nil {
-		return fmt.Errorf("failed to create destination file '%s': %w", dst, err)
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		return fmt.Errorf("failed to create GOPATH parent for %s: %w", dst, err)
 	}
-	defer destFile.Close()
 
-	_, err = io.Copy(destFile, sourceFile)
-	if err != nil {
-		return fmt.Errorf("failed to copy from '%s' to '%s': %w", src, dst, err)
+	if existing, err := os.Lstat(dst); err == nil {
+		if existing.Mode()&os.ModeSymlink != 0 {
+			linkTarget, err := os.Readlink(dst)
+			if err != nil {
+				return fmt.Errorf("failed to read symlink %s: %w", dst, err)
+			}
+			if linkTarget == src {
+				return nil
+			}
+		}
+		if err := ensureManagedPathRemoved(dst); err != nil {
+			return err
+		}
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("failed to inspect %s: %w", dst, err)
+	}
+
+	if err := os.Symlink(src, dst); err != nil {
+		if errors.Is(err, os.ErrExist) {
+			if existing, statErr := os.Lstat(dst); statErr == nil && existing.Mode()&os.ModeSymlink != 0 {
+				linkTarget, readErr := os.Readlink(dst)
+				if readErr == nil && linkTarget == src {
+					return nil
+				}
+			}
+		}
+		return fmt.Errorf("failed to create symlink %s -> %s: %w", dst, src, err)
 	}
 	return nil
+}
+
+func ensureGoPath(homePath, robotSrcDir, installLibDir, configLibDir string) (string, error) {
+	if homePath == "" {
+		return "", fmt.Errorf("empty GOPHER_HOME for Yaegi GOPATH")
+	}
+	root := sharedGoPath(homePath)
+
+	if err := os.MkdirAll(filepath.Join(root, "src"), 0o755); err != nil {
+		return "", fmt.Errorf("failed to create shared Yaegi GOPATH root: %w", err)
+	}
+
+	robotDst := filepath.Join(root, "src", filepath.FromSlash(robotImportPath))
+	if err := ensureSymlinkIfDirExists(robotSrcDir, robotDst); err != nil {
+		return "", fmt.Errorf("failed to stage robot package: %w", err)
+	}
+
+	installLibDst := filepath.Join(root, "src", filepath.FromSlash(installLibImportRoot))
+	if err := ensureSymlinkIfDirExists(installLibDir, installLibDst); err != nil {
+		return "", fmt.Errorf("failed to stage install lib packages: %w", err)
+	}
+
+	configLibDst := filepath.Join(root, "src", filepath.FromSlash(configLibImportRoot))
+	if err := ensureSymlinkIfDirExists(configLibDir, configLibDst); err != nil {
+		return "", fmt.Errorf("failed to stage config lib packages: %w", err)
+	}
+
+	return root, nil
 }
 
 func initializeInterpreter(privileged bool, env []string) (*interp.Interpreter, error) {

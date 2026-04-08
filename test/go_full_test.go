@@ -111,6 +111,9 @@ func TestGoFull(t *testing.T) {
 			{null, general, "SETPARAM ADDTASK: queued", false},
 			{null, general, "PARAM-SHOW: PIPELINE_SENTINEL=nebula-42", false}},
 			[]Event{CommandTaskRan, GoPluginRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";go-oauth2-cycle", false, []TestMessage{
+			{null, general, "IDENTITY FLOW: link=Ok token=go-token get=Ok unlink=Ok", false}},
+			[]Event{CommandTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 
@@ -197,14 +200,38 @@ func TestGoFullSecurity(t *testing.T) {
 			{null, general, "\\(SECURITY CHECK: sechiddenok\\)", false}}, nil, 0},
 		{aliceID, general, "/bender go-sec-hidden-denied", false, []TestMessage{
 			{alice, general, "\\(?Sorry, 'gosec/sechiddendenied' cannot be run as a hidden command - use the robot's name or alias\\)?", false}}, nil, 0},
+		{aliceID, general, ";go-sec-oauth2-denied", false, []TestMessage{
+			{null, general, "IDENTITY FLOW: link=IdentityConfigError token= get=IdentityConfigError unlink=IdentityConfigError", false}}, nil, 0},
 		{aliceID, general, ";go-sec-adminonly", false, []TestMessage{
 			{null, general, "SECURITY CHECK: secadminonly", false}}, nil, 0},
 		{bobID, general, ";go-sec-adminonly", false, []TestMessage{
-			{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*help <plugin>/<command>.*)`, true}}, nil, 0},
+			{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*)`, true}}, nil, 0},
 		{aliceID, general, ";go-sec-usersonly", false, []TestMessage{
 			{null, general, "SECURITY CHECK: secusersonly", false}}, nil, 0},
 		{bobID, general, ";go-sec-usersonly", false, []TestMessage{
-			{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*help <plugin>/<command>.*)`, true}}, nil, 0},
+			{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*)`, true}}, nil, 0},
+	}
+
+	for _, step := range flow {
+		testcaseRepliesOnly(t, conn, step)
+	}
+
+	teardown(t, done, conn)
+}
+
+func TestGoFullEncryptSecret(t *testing.T) {
+	if !wantFull("go") {
+		t.Skip("skipping Go full encrypt secret test; set RUN_FULL=go (or RUN_GOFULL=1)")
+	}
+	done, conn := setup("test/gofull", "/tmp/bottest.log", t)
+
+	flow := []testItem{
+		// Happy path: privileged pipeline via goprivfull (alice is admin, RequireAdmin: true)
+		{aliceID, general, ";go-encrypt-secret", false, []TestMessage{
+			{null, general, "ENCRYPT SECRET: ok", false}}, nil, 0},
+		// Negative: unprivileged pipeline (regular gofull plugin, not Privileged: true)
+		{aliceID, general, ";go-encrypt-secret-unpriv", false, []TestMessage{
+			{null, general, "ENCRYPT SECRET: failed", false}}, nil, 0},
 	}
 
 	for _, step := range flow {

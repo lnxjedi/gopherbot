@@ -73,6 +73,12 @@ class BaseBot
 	CommandNotMatched = 27
 	TaskDisabled = 28
 	PrivilegeViolation = 29
+	IdentityProviderNotFound = 30
+	IdentityNotLinked = 31
+	IdentityReauthRequired = 32
+	IdentityRefreshFailed = 33
+	IdentityInvalidLinkRequest = 34
+	IdentityConfigError = 35
 	Failed = 63
 
 	# Plugin return values / exit codes
@@ -151,6 +157,27 @@ class BaseBot
 	def GetParameter(name)
 		args = { "Parameter" => name }
 		return callBotFunc(__method__, args)["StrVal"]
+	end
+
+	def GetIdentityCredential(provider, user)
+		args = { "Provider" => provider, "User" => user }
+		ret = callBotFunc(__method__, args)
+		return ret["Credential"], ret["RetVal"]
+	end
+
+	def LinkOAuth2Identity(link)
+		ret = callBotFunc(__method__, link)
+		return ret["RetVal"]
+	end
+
+	def EncryptSecret(plaintext)
+		ret = callBotFunc(__method__, { "Plaintext" => plaintext })
+		return ret["StrVal"], ret["RetVal"]
+	end
+
+	def UnlinkIdentity(provider, user)
+		ret = callBotFunc(__method__, { "Provider" => provider, "User" => user })
+		return ret["RetVal"]
 	end
 
 	def GetHelpMetadata(query)

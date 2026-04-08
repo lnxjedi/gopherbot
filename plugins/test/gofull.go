@@ -39,6 +39,8 @@ Commands:
   Command: identity
 - Regex: (?i:go-parameter-addtask)
   Command: parameteraddtask
+- Regex: (?i:go-oauth2-cycle)
+  Command: oauth2cycle
 - Regex: (?i:go-pipeline-ok)
   Command: pipelineok
 - Regex: (?i:go-pipeline-fail)
@@ -55,6 +57,8 @@ Commands:
   Command: pipefinalcmd
 - Regex: (?i:pc-fail-cmd)
   Command: pipefailcmd
+- Regex: (?i:go-encrypt-secret-unpriv)
+  Command: encryptsecret
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -261,6 +265,22 @@ func PluginHandler(r robot.Robot, command string, args ...string) (retval robot.
 		}
 		r.Say("SETPARAM ADDTASK: queued")
 		return robot.Normal
+	case "oauth2cycle":
+		ret := r.LinkOAuth2Identity(&robot.OAuth2IdentityLinkRequest{
+			Provider:     "github",
+			User:         "alice",
+			AccessToken:  "go-token",
+			RefreshToken: "go-refresh",
+			TokenType:    "Bearer",
+		})
+		credential, getRet := r.GetIdentityCredential("github", "alice")
+		token := ""
+		if credential != nil {
+			token = credential.Value
+		}
+		unlinkRet := r.UnlinkIdentity("github", "alice")
+		r.Say("IDENTITY FLOW: link=%s token=%s get=%s unlink=%s", ret, token, getRet, unlinkRet)
+		return robot.Normal
 	case "pipeaddcmd":
 		r.Say("PIPE ADD COMMAND: ran")
 		return robot.Normal
@@ -308,6 +328,14 @@ func PluginHandler(r robot.Robot, command string, args ...string) (retval robot.
 		if r.SpawnJob("pipe-spawn-job", "spawn-step") != robot.Ok {
 			r.Say("SPAWN JOB: queue=false")
 			return robot.Fail
+		}
+		return robot.Normal
+	case "encryptsecret":
+		ct, ret := r.EncryptSecret("test-secret")
+		if ret == robot.Ok && ct != "" {
+			r.Say("ENCRYPT SECRET: ok")
+		} else {
+			r.Say("ENCRYPT SECRET: failed")
 		}
 		return robot.Normal
 	case "admincheck":

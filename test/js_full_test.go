@@ -123,6 +123,9 @@ func TestJSFull(t *testing.T) {
 			{null, general, "SETPARAM ADDTASK: queued", false},
 			{null, general, "PARAM-SHOW: PIPELINE_SENTINEL=nebula-42", false}},
 			[]Event{CommandTaskRan, ExternalTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";js-oauth2-cycle", false, []TestMessage{
+			{null, general, "IDENTITY FLOW: link=Ok token=js-token get=Ok unlink=Ok", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
 	}
 	testcases(t, conn, tests)
 
@@ -209,14 +212,34 @@ func TestJSFullSecurity(t *testing.T) {
 			{null, general, "\\(SECURITY CHECK: sechiddenok\\)", false}}, nil, 0},
 		{aliceID, general, "/bender js-sec-hidden-denied", false, []TestMessage{
 			{alice, general, "\\(?Sorry, 'jssec/sechiddendenied' cannot be run as a hidden command - use the robot's name or alias\\)?", false}}, nil, 0},
+		{aliceID, general, ";js-sec-oauth2-denied", false, []TestMessage{
+			{null, general, "IDENTITY FLOW: link=IdentityConfigError token= get=IdentityConfigError unlink=IdentityConfigError", false}}, nil, 0},
 		{aliceID, general, ";js-sec-adminonly", false, []TestMessage{
 			{null, general, "SECURITY CHECK: secadminonly", false}}, nil, 0},
 		{bobID, general, ";js-sec-adminonly", false, []TestMessage{
-			{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*help <plugin>/<command>.*)`, true}}, nil, 0},
+			{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*)`, true}}, nil, 0},
 		{aliceID, general, ";js-sec-usersonly", false, []TestMessage{
 			{null, general, "SECURITY CHECK: secusersonly", false}}, nil, 0},
 		{bobID, general, ";js-sec-usersonly", false, []TestMessage{
-			{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*help <plugin>/<command>.*)`, true}}, nil, 0},
+			{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*)`, true}}, nil, 0},
+	}
+
+	for _, step := range flow {
+		testcaseRepliesOnly(t, conn, step)
+	}
+
+	teardown(t, done, conn)
+}
+
+func TestJSFullEncryptSecret(t *testing.T) {
+	if !wantFull("js") {
+		t.Skip("skipping JS full encrypt secret test; set RUN_FULL=js (or RUN_JSFULL=1)")
+	}
+	done, conn := setup("test/jsfull", "/tmp/bottest.log", t)
+
+	flow := []testItem{
+		{aliceID, general, ";js-encrypt-secret", false, []TestMessage{
+			{null, general, "ENCRYPT SECRET: ok", false}}, nil, 0},
 	}
 
 	for _, step := range flow {

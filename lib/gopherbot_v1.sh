@@ -36,6 +36,12 @@ GBRET_InvalidTaskType=26
 GBRET_CommandNotMatched=27
 GBRET_TaskDisabled=28
 GBRET_PrivilegeViolation=29
+GBRET_IdentityProviderNotFound=30
+GBRET_IdentityNotLinked=31
+GBRET_IdentityReauthRequired=32
+GBRET_IdentityRefreshFailed=33
+GBRET_IdentityInvalidLinkRequest=34
+GBRET_IdentityConfigError=35
 GBRET_Failed=63
 
 # Plugin return values / exit codes
@@ -267,6 +273,82 @@ EOF
 	local GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
 	local RETVAL=$(echo "$GB_RET" | jq -r .StrVal)
 	echo -n "$RETVAL"
+}
+
+GetIdentityCredential() {
+	local PROVIDER="$1"
+	local USER="$2"
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Provider": "$PROVIDER",
+	"User": "$USER"
+}
+EOF
+)
+	local GB_RET
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
+	local CREDENTIAL
+	CREDENTIAL=$(echo "$GB_RET" | jq -c .Credential)
+	if [ "$CREDENTIAL" != "null" ]; then
+		echo -n "$CREDENTIAL"
+	fi
+	return "$(echo "$GB_RET" | jq -r .RetVal)"
+}
+
+LinkOAuth2Identity() {
+	local PROVIDER="$1"
+	local USER="$2"
+	local ACCESS_TOKEN="$3"
+	local REFRESH_TOKEN="$4"
+	local EXPIRES_IN="$5"
+	local TOKEN_TYPE="$6"
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Provider": "$PROVIDER",
+	"User": "$USER",
+	"AccessToken": "$ACCESS_TOKEN",
+	"RefreshToken": "$REFRESH_TOKEN",
+	"ExpiresIn": ${EXPIRES_IN:-0},
+	"TokenType": "${TOKEN_TYPE:-Bearer}"
+}
+EOF
+)
+	local GB_RET
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
+	return "$(echo "$GB_RET" | jq -r .RetVal)"
+}
+
+UnlinkIdentity() {
+	local PROVIDER="$1"
+	local USER="$2"
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Provider": "$PROVIDER",
+	"User": "$USER"
+}
+EOF
+)
+	local GB_RET
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
+	return "$(echo "$GB_RET" | jq -r .RetVal)"
+}
+
+EncryptSecret() {
+	local PLAINTEXT
+	PLAINTEXT=$(base64_encode "$1")
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Plaintext": "$PLAINTEXT",
+	"Base64": true
+}
+EOF
+)
+	local GB_RET
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
+	local CIPHERTEXT
+	CIPHERTEXT=$(echo "$GB_RET" | jq -r .StrVal)
+	echo -n "$CIPHERTEXT"
+	return "$(echo "$GB_RET" | jq -r .RetVal)"
 }
 
 GetHelpMetadata() {

@@ -19,6 +19,7 @@ Use these first for current behavior:
 - `aidocs/PIPELINE_LIFECYCLE.md`
 - `aidocs/SCHEDULER_FLOW.md`
 - `aidocs/EXECUTION_SECURITY_MODEL.md`
+- `aidocs/setup-style-guide.md`
 - `aidocs/SLACK_CONNECTOR.md`
 - `aidocs/SSH_CONNECTOR.md`
 - `aidocs/TESTING_CURRENT.md`

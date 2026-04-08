@@ -13,6 +13,12 @@ This file captures Slack connector behavior relevant to routing, hidden commands
 - Slack connector identity mapping is connector-local in `ProtocolConfig.UserMap` (`username -> Slack user ID`).
 - Connector config mapping is treated as canonical when username/ID collisions exist.
 - Engine policy checks remain username-based against global `UserRoster`.
+- Inbound worker state preserves both identities:
+  - `User` is the canonical Gopherbot username used for policy and plugin-facing identity.
+  - `ProtocolUser` preserves the Slack transport identity as a bracketed internal ID (for example `<U0ABC1234>`) when Slack provided one.
+- Targeted in-channel sends from engine to connector carry both values:
+  - transport ID for routing / live mention rendering
+  - canonical username for readable literal prefixes and fallback lookup
 
 ## Inbound Message Normalization
 
@@ -42,6 +48,7 @@ This file captures Slack connector behavior relevant to routing, hidden commands
 ## Outgoing Format Behavior
 
 - `Raw` keeps legacy Slack-native behavior (including connector-local `@username` handling outside fenced blocks).
+- Targeted `Raw` replies add the live mention prefix after Raw formatting so Slack mention tokens are not re-parsed as plain text.
 - `Variable` sends a Block Kit `rich_text` block with a plain `rich_text_section` so the visible body preserves the exact message text without relying on Slack markdown parsing.
 - `Fixed` sends a Block Kit `rich_text` block using `rich_text_preformatted` so fixed-width output renders as native Slack preformatted content instead of literal triple-backtick fences.
 - Block-backed `Variable` / `Fixed` sends still include top-level fallback text for notifications/accessibility and legacy RTM fallback behavior.
@@ -49,6 +56,7 @@ This file captures Slack connector behavior relevant to routing, hidden commands
 - `BasicMarkdown` is rendered with connector-local translation rules:
   - Markdown links `[label](https://...)` are converted to Slack link tokens.
   - `@username` mention tokens are resolved against connector user maps when unambiguous.
+  - Targeted `BasicMarkdown` replies also add their live mention prefix after markdown translation, preserving Slack-rendered mentions.
   - Mention parsing is skipped inside inline code and fenced code blocks.
   - Emoji shortcodes (for example `:white_check_mark:`) are passed through as shortcodes.
   - Unicode emoji are passed through unchanged.

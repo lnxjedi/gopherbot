@@ -97,20 +97,21 @@ type configuration struct {
 	workSpace            string              // Read/Write directory where the robot does work
 	defaultElevator      string              // Plugin name for performing elevation
 	defaultAuthorizer    string              // Plugin name for performing authorization
-	externalPlugins      []TaskSettings      // List of external plugins to load
-	externalJobs         []TaskSettings      // List of external jobs to load
-	externalTasks        []TaskSettings      // List of external tasks to load
-	goPlugins            []TaskSettings      // Settings for goPlugins: Name(match), Description, NameSpace, Parameters, Disabled
-	goJobs               []TaskSettings      // Settings for goJobs: Name(match), Description, NameSpace, Parameters, Disabled
-	goTasks              []TaskSettings      // Settings for goTasks: Name(match), Description, NameSpace, Parameters, Disabled
-	nsList               []TaskSettings      // loaded NameSpaces for shared parameters
-	psList               []TaskSettings      // loaded ParameterSets for shared parameter sets
-	ScheduledJobs        []ScheduledTask     // List of scheduled tasks
-	port                 string              // Configured localhost port to listen on, or 0 for first open
-	timeZone             *time.Location      // for forcing the TimeZone, Unix only
-	logLevel             robot.LogLevel      // one of warn, audit, info, debug, trace, error
-	logDest              string              // log to stdout, stderr, or <filename>
-	defaultJobChannel    string              // where job statuses will post if not otherwise specified
+	identityProviders    map[string]IdentityProviderConfig
+	externalPlugins      []TaskSettings  // List of external plugins to load
+	externalJobs         []TaskSettings  // List of external jobs to load
+	externalTasks        []TaskSettings  // List of external tasks to load
+	goPlugins            []TaskSettings  // Settings for goPlugins: Name(match), Description, NameSpace, Parameters, Disabled
+	goJobs               []TaskSettings  // Settings for goJobs: Name(match), Description, NameSpace, Parameters, Disabled
+	goTasks              []TaskSettings  // Settings for goTasks: Name(match), Description, NameSpace, Parameters, Disabled
+	nsList               []TaskSettings  // loaded NameSpaces for shared parameters
+	psList               []TaskSettings  // loaded ParameterSets for shared parameter sets
+	ScheduledJobs        []ScheduledTask // List of scheduled tasks
+	port                 string          // Configured localhost port to listen on, or 0 for first open
+	timeZone             *time.Location  // for forcing the TimeZone, Unix only
+	logLevel             robot.LogLevel  // one of warn, audit, info, debug, trace, error
+	logDest              string          // log to stdout, stderr, or <filename>
+	defaultJobChannel    string          // where job statuses will post if not otherwise specified
 }
 
 // The current configuration and task list
@@ -234,6 +235,7 @@ func initBot() {
 		return
 	}
 
+	acquireBrainLock()
 	initializeModules(handle)
 
 	if !listening {
@@ -265,8 +267,16 @@ func setConnector(c robot.Connector) {
 }
 
 var keyEnv = "GOPHER_ENCRYPTION_KEY"
+var deployEnvironment string
 
 const encryptedKeyFileMode os.FileMode = 0600
+
+func currentDeployEnvironment() string {
+	if deployEnvironment != "" {
+		return deployEnvironment
+	}
+	return getEnv("GOPHER_ENVIRONMENT")
+}
 
 func enforceEncryptedKeyFilePermissions(keyFile string) error {
 	info, err := os.Lstat(keyFile)
@@ -292,12 +302,12 @@ func enforceEncryptedKeyFilePermissions(keyFile string) error {
 
 func encryptedKeyFilePaths() (preferred string, fallback string) {
 	preferred = filepath.Join(configPath, encryptedKeyFile)
-	environment := strings.TrimSpace(getEnv("GOPHER_ENVIRONMENT"))
-	if environment == "" || environment == "production" {
+	env := currentDeployEnvironment()
+	if env == "" || env == "production" {
 		return preferred, ""
 	}
 	fallback = preferred
-	preferred = filepath.Join(configPath, encryptedKeyFile+"."+environment)
+	preferred = filepath.Join(configPath, encryptedKeyFile+"."+env)
 	return preferred, fallback
 }
 
@@ -324,9 +334,9 @@ func resolveEncryptedKeyFile() (loadPath string, createPath string, usedFallback
 
 func initCrypt() bool {
 	// Initialize encryption (new style for v2)
-	environment := strings.TrimSpace(getEnv("GOPHER_ENVIRONMENT"))
-	if environment != "" && environment != "production" {
-		Log(robot.Info, "Initializing encryption for the '%s' environment", environment)
+	env := currentDeployEnvironment()
+	if env != "" && env != "production" {
+		Log(robot.Info, "Initializing encryption for the '%s' environment", env)
 	}
 	keyFile, createKeyFile, usedFallback, err := resolveEncryptedKeyFile()
 	if err != nil {
@@ -463,9 +473,9 @@ func startupSSHHint(mode, protocol string, adminUsers []string) string {
 	}
 	switch mode {
 	case "demo":
-		return fmt.Sprintf("Running in DEMO mode; in another terminal window, connect as %s with 'bot-ssh -l %s'", loginUser, loginUser)
+		return fmt.Sprintf("Running in DEMO mode; in another terminal window, connect as %s with 'bot-ssh -d %s'", loginUser, loginUser)
 	case "test-dev":
-		return fmt.Sprintf("Default robot running in test-dev mode with ssh-connector; connect with e.g. 'bot-ssh -l %s'", loginUser)
+		return fmt.Sprintf("Default robot running in test-dev mode with ssh-connector; connect with e.g. 'bot-ssh -d %s'", loginUser)
 	default:
 		return ""
 	}
@@ -481,6 +491,7 @@ func stop() {
 	Log(robot.Info, "Stop called with %d pipelines running", pr)
 	triggerPromptShutdownSignal()
 	state.Wait()
+	releaseBrainLock()
 	brainQuit()
 	shutdownConnectorRuntimes()
 	signalBreak.Lock()

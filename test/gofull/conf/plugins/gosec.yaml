@@ -34,3 +34,6 @@ Commands:
 - # Regex: (?i:go-sec-hidden-denied)
   SimpleMatcher: go-sec-hidden-denied
   Command: sechiddendenied
+- # Regex: (?i:go-sec-oauth2-denied)
+  SimpleMatcher: go-sec-oauth2-denied
+  Command: oauth2cycle

@@ -2,21 +2,26 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: ./bot-ssh <user> | ./bot-ssh -l <user> | ./bot-ssh -k"
+  echo "Usage: ./bot-ssh <user> | ./bot-ssh -d <demo-user> | ./bot-ssh -l <user> | ./bot-ssh -k"
 }
 
-local_key=false
+local_key=true
+demo_key=false
 print_known_hosts=false
 script_dir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 bot_ssh_path="${script_dir}/bot-ssh"
 
-while getopts ":kl" opt; do
+while getopts ":kld" opt; do
   case "$opt" in
     k)
       print_known_hosts=true
       ;;
     l)
       local_key=true
+      ;;
+    d)
+      demo_key=true
+      local_key=false
       ;;
     \?)
       usage
@@ -74,7 +79,7 @@ hostport="${BOT_SSH_PORT:-127.0.0.1:4221}"
 host="${hostport%:*}"
 port="${hostport##*:}"
 
-if [[ "$local_key" == "true" ]]; then
+if [[ "$demo_key" != "true" ]]; then
   ssh \
     -p "$port" \
     -o UserKnownHostsFile=/dev/null \

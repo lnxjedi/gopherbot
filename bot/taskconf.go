@@ -442,11 +442,7 @@ LoadLoop:
 					mismatch = true
 				}
 			case "ReplyMatchers":
-				if isPlugin {
-					task.ReplyMatchers = *(val.(*[]InputMatcher))
-				} else {
-					mismatch = true
-				}
+				task.ReplyMatchers = *(val.(*[]InputMatcher))
 			case "MessageMatchers":
 				if isPlugin {
 					plugin.MessageMatchers = *(val.(*[]InputMatcher))

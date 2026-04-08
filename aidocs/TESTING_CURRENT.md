@@ -97,8 +97,10 @@ Notes:
 - Core bot behavior and message matching: `test/bot_integration_test.go` (e.g., `TestBotName`, `TestMessageMatch`).
 - Memory tests: `test/memory_integration_test.go`.
 - Lists plugin behavior: `test/lists_integration_test.go`.
+- External Python/Ruby EncryptSecret coverage: `test/external_encrypt_integration_test.go`.
 - External yaegi Go full coverage: `test/go_full_test.go`.
 - Gopherbot shell full coverage: `test/sh_full_test.go` plus `plugins/test/shfull.gsh`.
+- JavaScript full coverage: `test/js_full_test.go` plus `plugins/test/jsfull.js`, including the OAuth2 link/get/unlink engine API cycle.
 
 ## Focused routing/help metadata checks
 
@@ -107,6 +109,7 @@ Notes:
   - catch-all mode routing and selection in `bot/help_metadata_api_test.go`
   - engine-side help metadata filtering, ranking inputs, and deterministic fallback advice in `bot/help_metadata_api_test.go`
   - Yaegi symbol/runtime coverage for active Robot API methods in `modules/yaegi-dynamic-go/yaegi_dynamic_test.go`
+  - shared `.yaegi-gopath` import coverage for installed (`gopherbot.internal/lib/...`) and custom (`robot.internal/lib/...`) interpreted-Go libraries
 
 ## Targeted Yaegi runtime repros
 

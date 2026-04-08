@@ -169,6 +169,22 @@ NameSpaces:
 
 ParameterSets:
 
+## Optional registry of user-linked identity providers used internally by
+## GetIdentityCredential for refresh behavior. Onboarding plugins should get
+## secrets only from explicit task ParameterSets, not through a robot method.
+# IdentityProviders:
+#   github:
+#     Type: oauth2
+#     CredentialParameterSet: github_oauth
+#     ## GetIdentityCredential uses CLIENT_ID and CLIENT_SECRET from the referenced
+#     ## ParameterSet when a refresh grant needs client authentication.
+#     OAuth2:
+#       TokenEndpointAuthMethod: client_secret_post
+#       Token:
+#         URL: https://github.com/login/oauth/access_token
+#         Headers:
+#           Accept: application/json
+
 {{- if ne $mode "demo" }}
 ScheduledJobs:
 - Name: go-bootstrap
@@ -219,8 +235,16 @@ ExternalPlugins:
       Value: ""
     - Name: OPENAI_ORGANIZATION_ID
       Value: ""
-{{- if eq $mode "demo" }}
-  {{- if or (eq $proto "terminal") (eq $proto "ssh") }}
+  ## Credentialed extensions such as github-link are shipped with the engine
+  ## but are not enabled in the default robot. Enable them only in a custom
+  ## robot after creating the required ParameterSet and attaching it explicitly.
+  # "github-link":
+  #   Description: Link and verify a user's GitHub account with device authorization
+  #   Path: plugins/go-github-link/github_link.go
+  #   Homed: true
+  #   ParameterSets:
+  #   - github_oauth
+{{- if and (eq $mode "demo") (eq $proto "ssh") }}
   "welcome":
     Description: Reserved onboarding hooks for unconfigured mode (startup stays quiet)
     Privileged: true
@@ -230,7 +254,6 @@ ExternalPlugins:
     Privileged: true
     Homed: true
     Path: plugins/go-new-robot/new_robot.go
-  {{- end }}
 {{- end }}
 
 GoPlugins:
@@ -284,6 +307,10 @@ ExternalJobs:
   "welcome-join":
     Description: Welcome users when they join the default SSH channel in unconfigured mode
     Path: jobs/go-welcome-join/welcome_join.go
+    Homed: true
+  "resume-setup":
+    Description: Resume started onboarding when the user rejoins the default SSH channel
+    Path: jobs/go-resume-setup/resume_setup.go
     Homed: true
 {{- end }}
 

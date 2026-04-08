@@ -58,6 +58,7 @@ func CallExtension(execPath, taskPath, taskName string, pkgPath []string, logger
 	lctx.RegisterConfigMethod(L)
 	lctx.RegisterUtilMethods(L)
 	lctx.RegisterAttributeMethods(L)
+	lctx.RegisterOAuth2Methods(L)
 	lctx.RegisterPromptingMethods(L)
 	lctx.RegisterPipelineMethods(L)
 

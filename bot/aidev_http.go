@@ -186,7 +186,7 @@ func serveAIDevSendAsRobot(rw http.ResponseWriter, req *http.Request) {
 			writeAIDevError(rw, http.StatusBadRequest, errors.New("channel is required when user is set and direct is false"))
 			return
 		}
-		ret = conn.SendProtocolUserChannelThreadMessage(resolvedUser, channel, threadID, text, robot.Raw, msgObject)
+		ret = conn.SendProtocolUserChannelThreadMessage(resolvedUser, user, channel, threadID, text, robot.Raw, msgObject)
 	default:
 		if channel == "" {
 			writeAIDevError(rw, http.StatusBadRequest, errors.New("channel is required for non-direct send_as_robot"))

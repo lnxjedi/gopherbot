@@ -68,6 +68,12 @@ class Robot:
     CommandNotMatched = 27
     TaskDisabled = 28
     PrivilegeViolation = 29
+    IdentityProviderNotFound = 30
+    IdentityNotLinked = 31
+    IdentityReauthRequired = 32
+    IdentityRefreshFailed = 33
+    IdentityInvalidLinkRequest = 34
+    IdentityConfigError = 35
     Failed = 63
 
     # Plugin return values / exit codes
@@ -174,6 +180,22 @@ class Robot:
     def GetParameter(self, name):
         ret = self.Call(sys._getframe().f_code.co_name, { "Parameter": name })
         return ret["StrVal"]
+
+    def GetIdentityCredential(self, provider, user):
+        ret = self.Call(sys._getframe().f_code.co_name, { "Provider": provider, "User": user })
+        return ret["Credential"], ret["RetVal"]
+
+    def LinkOAuth2Identity(self, link):
+        ret = self.Call(sys._getframe().f_code.co_name, link)
+        return ret["RetVal"]
+
+    def EncryptSecret(self, plaintext):
+        ret = self.Call(sys._getframe().f_code.co_name, { "Plaintext": plaintext })
+        return ret["StrVal"], ret["RetVal"]
+
+    def UnlinkIdentity(self, provider, user):
+        ret = self.Call(sys._getframe().f_code.co_name, { "Provider": provider, "User": user })
+        return ret["RetVal"]
 
     def GetHelpMetadata(self, query):
         ret = self.Call(sys._getframe().f_code.co_name, { "Query": query })

@@ -41,8 +41,18 @@ ExternalPlugins:
     Path: plugins/test/pysec.py
   "pysec-misconfig":
     Path: plugins/test/pysec.py
+  "pyencrypt":
+    Path: plugins/test/pyencrypt.py
+  "pyencryptpriv":
+    Path: plugins/test/pyencrypt.py
+    Privileged: true
   "rubydemo":
     Path: plugins/samples/rubydemo.rb
+  "rbencrypt":
+    Path: plugins/test/rbencrypt.rb
+  "rbencryptpriv":
+    Path: plugins/test/rbencrypt.rb
+    Privileged: true
   "echo":
     Path: plugins/samples/echo.sh
   "test":

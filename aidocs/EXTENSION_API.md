@@ -76,6 +76,35 @@ Prompt timeout semantics:
 - `Recall(key string, shared bool) string`
 - `DeleteMemory(key string, shared bool)`
 
+### Identity credential management
+- `GetIdentityCredential(provider, user string) (*IdentityCredential, RetVal)`
+- `LinkOAuth2Identity(link *OAuth2IdentityLinkRequest) RetVal`
+- `UnlinkIdentity(provider, user string) RetVal`
+
+Identity notes:
+- `GetIdentityCredential` returns a structured credential envelope including the raw value plus common header presentation fields.
+- Token refresh/storage is engine-managed and uses internal provider config from `IdentityProviders` in `robot.yaml`.
+- Onboarding plugins should receive OAuth client credentials only through explicit per-plugin configuration such as `ParameterSets`, not by reading shared robot config through an API.
+- Any extension calling `GetIdentityCredential`, `LinkOAuth2Identity`, or `UnlinkIdentity` must have the provider's `CredentialParameterSet` attached to that task/plugin/job. Missing attachment returns `IdentityConfigError`, with operator detail in engine logs.
+- `IdentityCredential` and `OAuth2IdentityLinkRequest` are defined in `robot/oauth2.go`.
+- Return codes include `IdentityProviderNotFound`, `IdentityNotLinked`, `IdentityReauthRequired`, `IdentityRefreshFailed`, `IdentityInvalidLinkRequest`, and `IdentityConfigError`.
+
+Secret-access rule:
+- `GetTaskConfig` and attached `ParameterSets` may contain secrets because the robot administrator explicitly scoped them to the calling extension.
+- Identity provider-backed credential access uses the same explicit-scoping model; the provider's credential `ParameterSet` must be attached to the caller.
+- Generic unprivileged robot methods must not return shared secret-bearing configuration such as provider registries or other extensions' parameter sets.
+
+### Secret helpers
+- `EncryptSecret(plaintext string) (string, RetVal)`
+
+`EncryptSecret` returns a base64 ciphertext suitable for `{{ decrypt "..." }}` in robot config templates.
+
+Important semantics:
+- It is only available in privileged pipelines.
+- On success it returns `(ciphertext, Ok)`.
+- On privilege or mechanism failure it returns `("", RetVal)` and logs operator detail in the engine.
+- The ciphertext format is engine-owned and should be treated as opaque by extensions.
+
 ### Pipeline control
 - `Exclusive(tag string, queueTask bool) bool`
 - `SpawnJob(name string, args ...string) RetVal`
@@ -113,7 +142,8 @@ Supported `FuncName` values in `bot/http.go`:
 - `AddTask`, `AddJob`, `FinalTask`, `FailTask`, `SpawnJob`
 - `AddCommand`, `FinalCommand`, `FailCommand`
 - `SetParameter`, `SetWorkingDirectory`
-- `Exclusive`, `Elevate`
+- `Exclusive`, `Elevate`, `EncryptSecret`
+- `GetIdentityCredential`, `LinkOAuth2Identity`, `UnlinkIdentity`
 - `CheckoutDatum`, `CheckinDatum`, `UpdateDatum`, `DeleteDatum`
 - `Remember`, `RememberThread`, `Recall`, `DeleteMemory`
 - `GetParameter`, `GetTaskConfig`
@@ -136,20 +166,37 @@ Lua and JavaScript run in-process but use the same logical API surface via their
 
 Both wrappers use the `GBOT` global injected by the interpreter modules (`lib/gopherbot_v1.lua`, `lib/gopherbot_v1.js`). They mirror most of the `robot.Robot` interface and are the canonical method list for Lua/JS extensions.
 
+Identity parity note:
+- Lua and JavaScript both expose `GetIdentityCredential`, `LinkOAuth2Identity`, and `UnlinkIdentity`.
+
+EncryptSecret parity note:
+- Lua returns `(ciphertext, retVal)`.
+- JavaScript returns `{ ciphertext, retVal }`, with `retVal` normalized to a plain JS number.
+
 Gopherbot shell uses `modules/gsh/assets/gopherbot_v1.gsh` as a compatibility shim, but the primary interface is builtin shell commands rather than a loaded language object:
 
 - Robot methods are exposed as shell builtins (`say`, `Reply`, `PromptForReply`, `CheckAdmin`, `AddTask`, `GetTaskConfig`, etc.).
 - Common utility commands are also builtin (`base64`, `cat`, `cp`, `find`, `grep`, `jq`, `ls`, `mktemp`, `mv`, `rm`, `sort`, `tar`, `touch`, `tr`, `uniq`, `wc`, `xargs`, and related helpers).
 - `say` / `Say` style variants are equivalent because command lookup normalizes case plus `-` / `_`.
 - `.gsh` does not use `bot/http.go`; Robot methods traverse the internal pipeline RPC robot bridge instead.
+- `.gsh` exposes `EncryptSecret` as a builtin command that prints ciphertext on stdout and returns the Robot `RetVal` as shell exit status.
 
 ## External interpreter libraries (Bash / Python / Ruby)
 
 External interpreters call the HTTP API and wrap it in language-appropriate helpers:
 
 - Bash: `lib/gopherbot_v1.sh` exports functions like `Say`, `Reply`, `Remember`, `PromptForReply`, `AddTask`, and more; it uses curl to post JSON to `GOPHER_HTTP_POST`.
-- Python 3: `lib/gopherbot_v2.py` defines `class Robot` with the same core methods, plus `Subscribe`, `Unsubscribe`, `SetWorkingDirectory`, and `GetHelpMetadata`.
-- Ruby: `lib/gopherbot_v1.rb` defines `class Robot` (via `BaseBot`) with the same core methods, plus `Subscribe`, `Unsubscribe`, `SetWorkingDirectory`, and `GetHelpMetadata`.
+- Python 3: `lib/gopherbot_v2.py` defines `class Robot` with the same core methods, plus `Subscribe`, `Unsubscribe`, and `SetWorkingDirectory`.
+- Ruby: `lib/gopherbot_v1.rb` defines `class Robot` (via `BaseBot`) with the same core methods, plus `Subscribe`, `Unsubscribe`, and `SetWorkingDirectory`.
+- Bash, Python, Ruby, and compatibility JS/Lua libraries also expose the identity methods above.
+- Bash, Python, and Ruby also expose `EncryptSecret`.
+- Python 3: `lib/gopherbot_v2.py` defines `class Robot` with the same core methods, plus `Subscribe`, `Unsubscribe`, `SetWorkingDirectory`, `GetHelpMetadata`, and the identity methods above.
+- Ruby: `lib/gopherbot_v1.rb` defines `class Robot` (via `BaseBot`) with the same core methods, plus `Subscribe`, `Unsubscribe`, `SetWorkingDirectory`, `GetHelpMetadata`, and the identity methods above.
+
+EncryptSecret return-shape note for external libraries:
+- Bash: `EncryptSecret plaintext` prints ciphertext and uses the Robot `RetVal` as the shell function exit code.
+- Python: `ciphertext, ret = bot.EncryptSecret("...")`
+- Ruby: `ciphertext, ret = bot.EncryptSecret("...")`
 
 ## Parity notes and known gaps
 
@@ -161,6 +208,27 @@ External interpreters call the HTTP API and wrap it in language-appropriate help
 - Yaegi caveat: interpreted Go plugins can diverge from compiled Go when values cross reflective boundaries. A focused local repro in `modules/yaegi-dynamic-go/yaegi_dynamic_test.go` shows that a helper chain returning a mixed multi-value tuple such as `(conversationState, []conversationExchange)` can panic under `RunPluginHandler` with `reflect.Set ... not assignable`, even though the same pattern succeeds in compiled Go.
 - For external Go plugins running under Yaegi, prefer returning a single wrapper struct when state must carry multiple logically-related values across helper boundaries. The `plugins/go-openai-fallback` compaction path now uses `compactionResult{State, Older}` for this reason.
 - As of March 11, 2026, no exact upstream Yaegi issue was identified for this specific panic. The behavior is consistent with Yaegi's documented limitation that `reflect` type representation can differ between compiled and interpreted execution.
+
+## Adding a New Robot API Method (Checklist)
+
+When adding a method to the Robot API, update ALL of these locations:
+
+1. **Go interface**: `robot/robot.go` (type `Robot`)
+2. **Engine implementation**: `bot/robot.go` (method on `Robot`)
+3. **HTTP handler** (for external scripts): `bot/http.go` (`FuncName` dispatch)
+4. **Lua bridge**: `modules/lua/bot_api.go` + `modules/lua/attribute_methods.go`
+5. **JS bridge**: `modules/javascript/bot_api.go` + `modules/javascript/bot_object.go` + `modules/javascript/attribute_methods.go`
+6. **Gsh bridge**: `modules/gsh/commands.go`
+7. **Yaegi symbols**: `modules/yaegi-dynamic-go/yaegi_symbols.go`
+8. **RPC interpreter dispatch**: `bot/pipeline_rpc_interpreter.go`
+9. **External libraries** (use HTTP API):
+   - Python: `lib/gopherbot_v2.py`
+   - Ruby: `lib/gopherbot_v1.rb`
+   - Bash: `lib/gopherbot_v1.sh`
+   - Compat Lua: `lib/gopherbot_v1.lua`
+   - Compat JS: `lib/gopherbot_v1.js`
+10. **Docs**: `aidocs/EXTENSION_API.md` (method catalog + parity notes)
+11. **Tests**: add coverage in appropriate `test/*_full_test.go` + `plugins/test/*`
 
 ## Related docs
 

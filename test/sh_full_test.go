@@ -212,11 +212,29 @@ func TestShFullSecurity(t *testing.T) {
 		{aliceID, general, ";sh-sec-adminonly", false, []TestMessage{
 			{null, general, "SECURITY CHECK: secadminonly", false}}, nil, 0},
 		{bobID, general, ";sh-sec-adminonly", false, []TestMessage{
-			{null, general, "No command matched in channel.*", true}}, nil, 0},
+			{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*)`, true}}, nil, 0},
 		{aliceID, general, ";sh-sec-usersonly", false, []TestMessage{
 			{null, general, "SECURITY CHECK: secusersonly", false}}, nil, 0},
 		{bobID, general, ";sh-sec-usersonly", false, []TestMessage{
-			{null, general, "No command matched in channel.*", true}}, nil, 0},
+			{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*)`, true}}, nil, 0},
+	}
+
+	for _, step := range flow {
+		testcaseRepliesOnly(t, conn, step)
+	}
+
+	teardown(t, done, conn)
+}
+
+func TestShFullEncryptSecret(t *testing.T) {
+	if !wantFull("sh") {
+		t.Skip("skipping Sh full encrypt secret test; set RUN_FULL=sh (or RUN_SHFULL=1)")
+	}
+	done, conn := setup("test/shfull", "/tmp/bottest.log", t)
+
+	flow := []testItem{
+		{aliceID, general, ";sh-encrypt-secret", false, []TestMessage{
+			{null, general, "ENCRYPT SECRET: ok", false}}, nil, 0},
 	}
 
 	for _, step := range flow {

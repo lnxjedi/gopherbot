@@ -177,4 +177,4 @@ Bot output:
 
 ## Helper Script
 
-A helper script `bot-ssh <user>` should exist to simplify local dev, using `KnownHostsCommand` with the `.ssh-connect` info.
+A helper script `bot-ssh <user>` should exist to simplify local dev, using `KnownHostsCommand` with the `.ssh-connect` info. Plain `bot-ssh <user>` is the normal local-user mode; `bot-ssh -d <demo-user>` uses the bundled demo/sample key for stock default users such as `alice`.

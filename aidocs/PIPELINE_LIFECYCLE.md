@@ -33,7 +33,7 @@ Catch-all mode scoping:
 - `name` means the robot was addressed by name/mention form.
 - `direct` means the command arrived in a DM context.
 - During unmatched-command routing, dispatch only considers catch-all plugins whose `CatchAllModes` include the current `cmdMode`.
-- Mode-scoped catchalls are treated as "specific" catchalls for precedence, so an alias-only recovery plugin can coexist with a name/direct fallback without colliding with generic fallback behavior.
+- Mode-scoped catchalls are treated as "specific" catchalls for precedence, so an alias-only recovery plugin can coexist with a name/direct AI fallback without colliding with generic fallback behavior.
 
 ## Hidden Command Policy (routing + safety guard)
 
@@ -117,7 +117,7 @@ For a full execution/security walkthrough, see `aidocs/EXECUTION_SECURITY_MODEL.
   - it runs during the primary task stage (`primaryTasks`)
   - the provided command text matches the target plugin's `Commands`
 - Built-in admin git flows (`update`, `switch-branch`, `default-branch`) call `AddCommand("builtin-admin", "reload")`; reload success/failure is mirrored to `GOPHER_START_*` origin context when available, while detailed pipeline output can still go to the job channel.
-- Operational implication: jobs should not treat `AddCommand` as "resume as user" behavior. For reconnect/onboarding flows, prefer explicit user prompts/instructions and let the user invoke the next command.
+- Operational implication: jobs should not treat `AddCommand` as "resume as user" behavior. Reconnect/onboarding flows should instead use explicit send/prompt APIs such as `SendUserChannelMessage` and `PromptUserChannelForReply`, with any resume state carried explicitly in durable state files or parameters.
 - TODO (long-term): document and evaluate whether a dedicated user-scoped resume/injection primitive is needed, distinct from pipeline composition APIs.
 
 ## Fast Debug Pointers (AI use)

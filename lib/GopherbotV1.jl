@@ -107,6 +107,12 @@ const InvalidTaskType = 26
 const CommandNotMatched = 27
 const TaskDisabled = 28
 const PrivilegeViolation = 29
+const OAuth2ProviderNotFound = 30
+const OAuth2UserNotLinked = 31
+const OAuth2ReauthRequired = 32
+const OAuth2RefreshFailed = 33
+const OAuth2InvalidLinkRequest = 34
+const OAuth2ConfigError = 35
 const Failed = 63
 
 # Plugin return values / exit codes
@@ -380,6 +386,38 @@ function get_parameter(robot::Robot, name::String)::String
     args = Dict{String, Any}("Parameter" => name)
     response = send_command(robot, "GetParameter", args)
     return get(response, "StrVal", "")
+end
+
+"""
+    get_oauth2_token(robot::Robot, provider::String, user::String) -> Tuple{String, Int}
+
+Gets a usable OAuth2 bearer token for a provider/user pair.
+"""
+function get_oauth2_token(robot::Robot, provider::String, user::String)::Tuple{String, Int}
+    args = Dict{String, Any}("Provider" => provider, "User" => user)
+    response = send_command(robot, "GetOAuth2Token", args)
+    return get(response, "StrVal", ""), get(response, "RetVal", Fail)
+end
+
+"""
+    link_oauth2_user(robot::Robot, link::Dict{String, Any}) -> Int
+
+Stores a linked OAuth2 token set.
+"""
+function link_oauth2_user(robot::Robot, link::Dict{String, Any})::Int
+    response = send_command(robot, "LinkOAuth2User", link)
+    return get(response, "RetVal", Fail)
+end
+
+"""
+    unlink_oauth2_user(robot::Robot, provider::String, user::String) -> Int
+
+Removes a linked OAuth2 provider for a user.
+"""
+function unlink_oauth2_user(robot::Robot, provider::String, user::String)::Int
+    args = Dict{String, Any}("Provider" => provider, "User" => user)
+    response = send_command(robot, "UnlinkOAuth2User", args)
+    return get(response, "RetVal", Fail)
 end
 
 """

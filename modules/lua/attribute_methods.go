@@ -16,6 +16,8 @@ func (lctx *luaContext) RegisterAttributeMethods(L *glua.LState) {
 		"GetBotAttribute":    lctx.botGetBotAttribute,
 		"GetUserAttribute":   lctx.botGetUserAttribute,
 		"GetSenderAttribute": lctx.botGetSenderAttribute,
+		// Privileged setup helper
+		"EncryptSecret": lctx.botEncryptSecret,
 	}
 
 	mt := registerBotMetatableIfNeeded(L)
@@ -26,6 +28,19 @@ func (lctx *luaContext) RegisterAttributeMethods(L *glua.LState) {
 // 2. Bot/user attribute getters
 //    => Returns (attrString, retVal) in Lua
 // -------------------------------------------------------------------
+
+// botEncryptSecret encrypts a plaintext string using the robot's configured
+// encryption key. Only usable in privileged pipelines.
+// Usage: local ciphertext, ret = robot:EncryptSecret("mysecret")
+func (lctx *luaContext) botEncryptSecret(L *glua.LState) int {
+	r := lctx.getRobot(L, "EncryptSecret")
+	plaintext := L.CheckString(2)
+
+	ciphertext, ret := r.EncryptSecret(plaintext)
+	L.Push(glua.LString(ciphertext))
+	L.Push(glua.LNumber(ret))
+	return 2
+}
 
 // botGetBotAttribute retrieves a bot attribute.
 // Usage: local attr, ret = robot:GetBotAttribute("name")

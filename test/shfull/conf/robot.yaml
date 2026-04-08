@@ -28,6 +28,9 @@ LocalPort: 0
 ExternalPlugins:
   "shfull":
     Path: plugins/test/shfull.gsh
+  "shprivfull":
+    Path: plugins/test/shfull.gsh
+    Privileged: true
   "shsec":
     Path: plugins/test/shfull.gsh
   "shsec-authall":

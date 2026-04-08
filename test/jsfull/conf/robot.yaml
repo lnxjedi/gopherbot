@@ -28,6 +28,11 @@ LocalPort: 0
 ExternalPlugins:
   "jsfull":
     Path: plugins/test/jsfull.js
+    ParameterSets:
+    - github_oauth
+  "jsprivfull":
+    Path: plugins/test/jsfull.js
+    Privileged: true
   "jssec":
     Path: plugins/test/jsfull.js
   "jssec-authall":
@@ -54,3 +59,15 @@ WorkSpace: workspace
 Brain: mem
 DefaultAuthorizer: groups
 DefaultElevator: builtin-totp
+ParameterSets:
+  github_oauth:
+    Parameters:
+    - Name: CLIENT_ID
+      Value: "jsfull-client"
+    - Name: CLIENT_SECRET
+      Value: "jsfull-secret"
+IdentityProviders:
+  github:
+    Type: oauth2
+    CredentialParameterSet: github_oauth
+    OAuth2: {}

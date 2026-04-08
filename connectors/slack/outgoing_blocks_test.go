@@ -114,6 +114,58 @@ func TestSlackifyMessageVariableUsesReadableBlockPrefix(t *testing.T) {
 	}
 }
 
+func TestSlackifyMessageRawUsesLiveMentionPrefix(t *testing.T) {
+	s := &slackConnector{maxMessageSplit: 1}
+
+	msgs := s.slackifyMessage("U123", "<@U123>: ", "@alice: ", "hello", robot.Raw, &robot.ConnectorMessage{})
+	if len(msgs) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(msgs))
+	}
+	if got := msgs[0].text; got != "<@U123>: hello" {
+		t.Fatalf("raw text = %q", got)
+	}
+}
+
+func TestSlackifyMessageBasicMarkdownUsesLiveMentionPrefix(t *testing.T) {
+	s := &slackConnector{maxMessageSplit: 1}
+
+	msgs := s.slackifyMessage("U123", "<@U123>: ", "@alice: ", "hello", robot.BasicMarkdown, &robot.ConnectorMessage{})
+	if len(msgs) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(msgs))
+	}
+	if got := msgs[0].text; got != "<@U123>: hello" {
+		t.Fatalf("basic markdown text = %q", got)
+	}
+}
+
+func TestSlackifyMessageFixedUsesReadableBlockPrefix(t *testing.T) {
+	s := &slackConnector{maxMessageSplit: 1}
+
+	msgs := s.slackifyMessage("U123", "<@U123>: ", "@alice: ", "hello", robot.Fixed, &robot.ConnectorMessage{})
+	if len(msgs) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(msgs))
+	}
+
+	block, ok := msgs[0].blocks[0].(*slack.RichTextBlock)
+	if !ok {
+		t.Fatalf("expected RichTextBlock, got %T", msgs[0].blocks[0])
+	}
+	pre, ok := block.Elements[0].(*slack.RichTextPreformatted)
+	if !ok {
+		t.Fatalf("expected RichTextPreformatted, got %T", block.Elements[0])
+	}
+	textElem, ok := pre.Elements[0].(*slack.RichTextSectionTextElement)
+	if !ok {
+		t.Fatalf("expected text element, got %T", pre.Elements[0])
+	}
+	if got := textElem.Text; got != "@alice: hello" {
+		t.Fatalf("preformatted text = %q", got)
+	}
+	if !strings.Contains(msgs[0].legacyText, "@alice") {
+		t.Fatalf("legacy text should keep readable user prefix, got %q", msgs[0].legacyText)
+	}
+}
+
 func TestSlackifyMessageVariableSplitsToBlockLimit(t *testing.T) {
 	s := &slackConnector{maxMessageSplit: 2}
 

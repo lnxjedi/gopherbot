@@ -13,9 +13,10 @@ Startup proceeds through the following phases **in order**:
 5. **Encryption initialization** – Set up brain encryption
 6. **Pre-connect configuration load** – Load basic configuration without running scripts
 7. **Brain initialization** – Start the brain provider
-8. **Connector runtime initialization** – Initialize primary + configured secondary connectors
-9. **Post-connect configuration load** – Full configuration with plugin initialization
-10. **Runtime git branch capture** – Best-effort detection of current/default startup branch for admin observability
+8. **Internal module initialization** – Prepare shared runtime helpers such as ssh-agent, ssh git helpers, and Yaegi's shared GOPATH tree
+9. **Connector runtime initialization** – Initialize primary + configured secondary connectors
+10. **Post-connect configuration load** – Full configuration with plugin initialization
+11. **Runtime git branch capture** – Best-effort detection of current/default startup branch for admin observability
 
 Internal exception:
 - `pipeline-child-exec` is an internal command used by multiprocess task execution; it exits after one child-task run and bypasses normal robot startup phases.
@@ -108,6 +109,22 @@ Connector config implication:
 - Installed defaults under `gopherbot/conf/` include only stock connector templates shipped with the engine.
 - Connectors like Slack are normally configured in the custom robot repository under `conf/protocols/`.
 
+### Internal Module Initialization
+
+`initBot()` calls `initializeModules(...)` in `bot/modules_init.go` after the brain is ready and before normal runtime work begins.
+
+- Module initialization is engine-owned startup work; it is not connector registration and it is not plugin execution.
+- Current built-in module initializers prepare:
+  - ssh-agent support
+  - ssh known-hosts/git helper support
+  - Yaegi runtime support for interpreted Go extensions
+- The Yaegi module creates a shared GOPATH tree at `$GOPHER_HOME/.yaegi-gopath` (falling back to the current working directory when `GOPHER_HOME` is unset).
+- That shared tree uses symlinks instead of copied source:
+  - `src/github.com/lnxjedi/gopherbot/robot` -> installed `robot/`
+  - `src/gopherbot.internal/lib` -> installed `lib/`
+  - `src/robot.internal/lib` -> custom robot `lib/`
+- Internal RPC child processes still call the same Yaegi initializer on demand, so the shared tree can be recreated if missing, but normal startup is expected to prepare it first.
+
 ### Custom Robot Environment Selection (`GOPHER_ENVIRONMENT`)
 
 For robots created from `robot.skel`, custom configuration is environment-driven:
@@ -172,6 +189,7 @@ The default `robot.yaml` uses Go templates to derive configuration values from s
 
 - `PrimaryProtocol` in `robot.yaml` (required)
 - `DefaultProtocol` in `robot.yaml` (optional; defaults to `PrimaryProtocol`)
+- `IdentityProviders` in `robot.yaml` (optional; engine-managed provider registry for user-linked identity refresh and storage)
 
 If `DefaultProtocol` is set, it must be the primary protocol or one of `SecondaryProtocols`; otherwise startup logs a warning and falls back to `PrimaryProtocol`.
 
@@ -220,6 +238,16 @@ Provider-specific configuration is loaded by selected provider name:
 
 If a selected provider file is missing, or missing its required top-level key, startup/reload config load fails.
 
+### Identity Provider Registry
+
+Identity provider definitions are loaded from the root `robot.yaml` key `IdentityProviders`.
+
+- Providers are part of normal config processing in `bot/conf.go`.
+- Provider keys are normalized to lowercase and stored in processed config for runtime lookup.
+- Each provider declares a high-level `Type`; currently the engine supports `oauth2`.
+- Providers reference a `CredentialParameterSet` for refresh-time client credentials; the provider registry should not embed secrets directly.
+- The registry is configuration-only at startup; linked identity state lives in the brain at runtime.
+
 ### Config Merge Semantics (Installed Defaults + Custom Overrides)
 
 `bot/config_load.go` merges installed defaults with custom config using these rules:
@@ -240,6 +268,8 @@ For extensions shipped with Gopherbot (compiled or default external extensions):
 
 - installed defaults are authoritative (`conf/plugins/*.yaml`, `conf/jobs/*.yaml`, extension `Configure()` defaults)
 - custom robot extension config should be minimal and local: enable/disable, local parameters/secrets, and intentional local behavior deltas
+- shipped with the engine does not imply active in the default robot; credential-requiring shipped extensions should stay disabled or absent from the default robot until a custom robot owner explicitly enables them
+- credentialed shipped examples belong in custom robot config as explicit opt-ins after the owner supplies secrets/ParameterSets; they should not be assumed usable in stock defaults
 - avoid copying full default command lists or policy lists (`Commands`, `AdminCommands`, `AuthorizedCommands`, etc.) into `custom/conf` unless behavior is intentionally being redefined
 - prefer `Append*` keys when adding list entries to preserve upstream defaults and reduce drift
 
@@ -410,6 +440,11 @@ ScheduledJobs:
   {{- end }}
 {{- end }}
 ```
+
+Notes:
+- This snippet describes the stock default-config behavior: the built-in onboarding hooks are only present in demo mode.
+- In SSH demo mode, the default config also enables trigger jobs that welcome joining users and resume any `.setup-state` onboarding session when that user reconnects.
+- The `new-robot` flow can temporarily copy a resume-on-join job into generated `custom/` config so the final post-restart bootstrap instructions still run after the robot comes back with its real configuration. That is scaffold-specific behavior layered on top of the normal startup rules above; it does not change the default-config mode gate.
 
 ## Goroutine Startup
 

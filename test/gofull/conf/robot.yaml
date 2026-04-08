@@ -28,6 +28,11 @@ LocalPort: 0
 ExternalPlugins:
   "gofull":
     Path: plugins/test/gofull.go
+    ParameterSets:
+    - github_oauth
+  "goprivfull":
+    Path: plugins/test/gofull.go
+    Privileged: true
   "gosec":
     Path: plugins/test/gofull.go
   "gosec-authall":
@@ -54,3 +59,15 @@ WorkSpace: workspace
 Brain: mem
 DefaultAuthorizer: groups
 DefaultElevator: builtin-totp
+ParameterSets:
+  github_oauth:
+    Parameters:
+    - Name: CLIENT_ID
+      Value: "gofull-client"
+    - Name: CLIENT_SECRET
+      Value: "gofull-secret"
+IdentityProviders:
+  github:
+    Type: oauth2
+    CredentialParameterSet: github_oauth
+    OAuth2: {}

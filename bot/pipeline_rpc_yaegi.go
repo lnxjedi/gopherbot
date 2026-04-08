@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"sync"
 
 	"github.com/lnxjedi/gopherbot/robot"
 	yaegi "github.com/lnxjedi/gopherbot/v2/modules/yaegi-dynamic-go"
@@ -32,6 +34,32 @@ type pipelineRPCGoGetConfigRequest struct {
 type pipelineRPCGoGetConfigResponse struct {
 	Config string `json:"config,omitempty"`
 	Error  string `json:"error,omitempty"`
+}
+
+var (
+	pipelineRPCGoInitOnce sync.Once
+	pipelineRPCGoInitErr  error
+)
+
+func ensurePipelineRPCGoInitialized() error {
+	pipelineRPCGoInitOnce.Do(func() {
+		if installPath == "" {
+			installPath = os.Getenv("GOPHER_INSTALLDIR")
+		}
+		if configFull == "" {
+			configFull = os.Getenv("GOPHER_CONFIGDIR")
+		}
+		if installPath == "" {
+			pipelineRPCGoInitErr = fmt.Errorf("missing GOPHER_INSTALLDIR for Go RPC child initialization")
+			return
+		}
+		if configFull == "" {
+			pipelineRPCGoInitErr = fmt.Errorf("missing GOPHER_CONFIGDIR for Go RPC child initialization")
+			return
+		}
+		pipelineRPCGoInitErr = yaegi.Initialize(handler{})
+	})
+	return pipelineRPCGoInitErr
 }
 
 func runGoPluginViaRPC(taskPath, taskName string, env []string, privileged bool, w *worker, r robot.Robot, args []string) (robot.TaskRetVal, error) {
@@ -112,6 +140,12 @@ func handlePipelineRPCGoPluginRun(dec *json.Decoder, enc *json.Encoder, msg pipe
 	if err := json.Unmarshal(msg.Params, &req); err != nil {
 		return writePipelineRPCError(enc, msg.ID, "invalid_params", fmt.Sprintf("invalid go_plugin_run params: %v", err))
 	}
+	if err := ensurePipelineRPCGoInitialized(); err != nil {
+		return writePipelineRPCResponse(enc, msg.ID, pipelineRPCGoRunResponse{
+			RetVal: int(robot.MechanismFail),
+			Error:  fmt.Sprintf("initializing go RPC runtime: %v", err),
+		})
+	}
 	client := newPipelineRPCGoRobotClient(dec, enc)
 	res := pipelineRPCGoRunResponse{}
 	if len(req.Args) == 0 {
@@ -132,6 +166,12 @@ func handlePipelineRPCGoJobRun(dec *json.Decoder, enc *json.Encoder, msg pipelin
 	if err := json.Unmarshal(msg.Params, &req); err != nil {
 		return writePipelineRPCError(enc, msg.ID, "invalid_params", fmt.Sprintf("invalid go_job_run params: %v", err))
 	}
+	if err := ensurePipelineRPCGoInitialized(); err != nil {
+		return writePipelineRPCResponse(enc, msg.ID, pipelineRPCGoRunResponse{
+			RetVal: int(robot.MechanismFail),
+			Error:  fmt.Sprintf("initializing go RPC runtime: %v", err),
+		})
+	}
 	client := newPipelineRPCGoRobotClient(dec, enc)
 	ret, err := yaegi.RunJobHandler(req.TaskPath, req.TaskName, req.Env, client, client, req.Privileged, req.Args...)
 	res := pipelineRPCGoRunResponse{RetVal: int(ret)}
@@ -146,6 +186,12 @@ func handlePipelineRPCGoTaskRun(dec *json.Decoder, enc *json.Encoder, msg pipeli
 	if err := json.Unmarshal(msg.Params, &req); err != nil {
 		return writePipelineRPCError(enc, msg.ID, "invalid_params", fmt.Sprintf("invalid go_task_run params: %v", err))
 	}
+	if err := ensurePipelineRPCGoInitialized(); err != nil {
+		return writePipelineRPCResponse(enc, msg.ID, pipelineRPCGoRunResponse{
+			RetVal: int(robot.MechanismFail),
+			Error:  fmt.Sprintf("initializing go RPC runtime: %v", err),
+		})
+	}
 	client := newPipelineRPCGoRobotClient(dec, enc)
 	ret, err := yaegi.RunTaskHandler(req.TaskPath, req.TaskName, req.Env, client, client, req.Privileged, req.Args...)
 	res := pipelineRPCGoRunResponse{RetVal: int(ret)}
@@ -159,6 +205,12 @@ func handlePipelineRPCGoGetConfig(enc *json.Encoder, msg pipelineRPCMessage) err
 	var req pipelineRPCGoGetConfigRequest
 	if err := json.Unmarshal(msg.Params, &req); err != nil {
 		return writePipelineRPCError(enc, msg.ID, "invalid_params", fmt.Sprintf("invalid go_get_config params: %v", err))
+	}
+	if err := ensurePipelineRPCGoInitialized(); err != nil {
+		res := pipelineRPCGoGetConfigResponse{
+			Error: fmt.Sprintf("initializing go RPC runtime: %v", err),
+		}
+		return writePipelineRPCResponse(enc, msg.ID, res)
 	}
 	cfg, err := yaegi.GetPluginConfig(req.TaskPath, req.TaskName, req.Privileged)
 	res := pipelineRPCGoGetConfigResponse{}

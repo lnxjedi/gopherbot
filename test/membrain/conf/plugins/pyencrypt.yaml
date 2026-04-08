@@ -1,0 +1,6 @@
+---
+AllChannels: true
+AllowDirect: true
+Commands:
+- SimpleMatcher: python-encrypt-secret-unpriv
+  Command: encryptsecret

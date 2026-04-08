@@ -81,6 +81,9 @@ func (c *shellContext) commandMap() map[string]commandHandler {
 		"recall":                          c.cmdRecall,
 		"deletememory":                    c.cmdDeleteMemory,
 		"getparameter":                    c.cmdGetParameter,
+		"getidentitycredential":           c.cmdGetIdentityCredential,
+		"linkoauth2identity":              c.cmdLinkOAuth2Identity,
+		"unlinkidentity":                  c.cmdUnlinkIdentity,
 		"setparameter":                    c.cmdSetParameter,
 		"setworkingdirectory":             c.cmdSetWorkingDirectory,
 		"addtask":                         c.cmdAddTask,
@@ -93,6 +96,7 @@ func (c *shellContext) commandMap() map[string]commandHandler {
 		"failcommand":                     c.cmdFailCommand,
 		"exclusive":                       c.cmdExclusive,
 		"elevate":                         c.cmdElevate,
+		"encryptsecret":                   c.cmdEncryptSecret,
 		"getbotattribute":                 c.cmdGetBotAttribute,
 		"getsenderattribute":              c.cmdGetSenderAttribute,
 		"getuserattribute":                c.cmdGetUserAttribute,
@@ -374,6 +378,53 @@ func (c *shellContext) cmdGetParameter(ctx context.Context, args []string) error
 	return nil
 }
 
+func (c *shellContext) cmdGetIdentityCredential(ctx context.Context, args []string) error {
+	if len(args) != 2 {
+		return usageError(ctx, "GetIdentityCredential requires provider and user")
+	}
+	credential, ret := c.bot.GetIdentityCredential(args[0], args[1])
+	if credential != nil {
+		payload, err := json.Marshal(credential)
+		if err == nil {
+			_, _ = io.WriteString(interp.HandlerCtx(ctx).Stdout, string(payload))
+		}
+	}
+	return retCodeError(ret)
+}
+
+func (c *shellContext) cmdLinkOAuth2Identity(ctx context.Context, args []string) error {
+	if len(args) < 3 || len(args) > 6 {
+		return usageError(ctx, "LinkOAuth2Identity requires provider, user, accessToken, and optional refreshToken, expiresIn, tokenType")
+	}
+	link := &robot.OAuth2IdentityLinkRequest{
+		Provider:    args[0],
+		User:        args[1],
+		AccessToken: args[2],
+		TokenType:   "Bearer",
+	}
+	if len(args) > 3 {
+		link.RefreshToken = args[3]
+	}
+	if len(args) > 4 {
+		expiresIn, err := strconv.Atoi(args[4])
+		if err != nil {
+			return usageError(ctx, "LinkOAuth2Identity expiresIn must be numeric")
+		}
+		link.ExpiresIn = expiresIn
+	}
+	if len(args) > 5 && args[5] != "" {
+		link.TokenType = args[5]
+	}
+	return retCodeError(c.bot.LinkOAuth2Identity(link))
+}
+
+func (c *shellContext) cmdUnlinkIdentity(ctx context.Context, args []string) error {
+	if len(args) != 2 {
+		return usageError(ctx, "UnlinkIdentity requires provider and user")
+	}
+	return retCodeError(c.bot.UnlinkIdentity(args[0], args[1]))
+}
+
 func (c *shellContext) cmdSetParameter(ctx context.Context, args []string) error {
 	if len(args) != 2 {
 		return usageError(ctx, "SetParameter requires name and value")
@@ -456,6 +507,18 @@ func (c *shellContext) cmdElevate(ctx context.Context, args []string) error {
 		return nil
 	}
 	return interp.ExitStatus(1)
+}
+
+func (c *shellContext) cmdEncryptSecret(ctx context.Context, args []string) error {
+	if len(args) != 1 {
+		return usageError(ctx, "EncryptSecret requires exactly one argument (plaintext)")
+	}
+	ciphertext, ret := c.bot.EncryptSecret(args[0])
+	if ret != robot.Ok {
+		return interp.ExitStatus(uint8(ret))
+	}
+	_, _ = io.WriteString(interp.HandlerCtx(ctx).Stdout, ciphertext)
+	return nil
 }
 
 func (c *shellContext) cmdGetBotAttribute(ctx context.Context, args []string) error {

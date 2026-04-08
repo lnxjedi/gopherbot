@@ -82,9 +82,14 @@ func (tc *TestConnector) SendProtocolChannelThreadMessage(ch, thr, mesg string, 
 }
 
 // SendProtocolUserChannelMessage sends a message to a user in a channel
-func (tc *TestConnector) SendProtocolUserChannelThreadMessage(uname, ch, thr, mesg string, f robot.MessageFormat, dummyMsgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+func (tc *TestConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, mesg string, f robot.MessageFormat, dummyMsgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	channel := tc.getChannel(ch)
 	threaded := thr != ""
+	if uname == "" {
+		if user, ok := tc.getUserInfo(uid); ok {
+			uname = user.Name
+		}
+	}
 	msg := &BotMessage{
 		User:     uname,
 		Channel:  channel,

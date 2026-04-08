@@ -60,6 +60,9 @@ Concise map of extension types, where they live, and how they register/discover.
 - Registration: `robot/registrations.go` (func `RegisterPlugin`) called in plugin `init()` (e.g., `goplugins/help/help.go`), collected and wired by `bot/registrations.go` (func `ProcessRegistrations`), which is invoked in `main.go` (func `main`).
 - Examples: `goplugins/help/help.go` (func `init`), `goplugins/duo/duo.go` (func `init`), `goplugins/groups/groups.go` (func `init`).
 
+Shipped identity onboarding note:
+- `plugins/go-github-link/github_link.go` implements `github-link` as an external Go plugin with shipped config in `conf/plugins/github-link.yaml`, but it is intended as an explicit custom-robot opt-in once the owner supplies credentials and enables it.
+
 ## Go tasks
 
 - Where: Go task implementations live under `gotasks/`.
@@ -76,8 +79,17 @@ Concise map of extension types, where they live, and how they register/discover.
 
 - Where: interpreter modules live under `modules/lua/`, `modules/javascript/`, `modules/gsh/`, and `modules/yaegi-dynamic-go/`; example script sources live under `plugins/` (e.g., `plugins/samples/hello.lua`, `plugins/samples/hello.js`, `plugins/samples/hello.gsh`, `plugins/go-lists/lists.go`).
 - Dispatch: `bot/calltask.go` selects interpreter by file extension (`.lua`, `.js`, `.gsh`, `.go`) and routes through `modules/lua/call_extension.go` (func `CallExtension`), `modules/javascript/call_extension.go` (func `CallExtension`), `modules/gsh/call_extension.go` (func `CallExtension`), or `modules/yaegi-dynamic-go/yaegi_dynamic.go` (funcs `RunPluginHandler`, `RunJobHandler`, `RunTaskHandler`).
+- Interpreted Go import roots are engine-owned and local-only:
+  - installed shared Go libraries import as `gopherbot.internal/lib/...`
+  - custom robot shared Go libraries import as `robot.internal/lib/...`
+- Yaegi resolves those imports through the shared `$GOPHER_HOME/.yaegi-gopath` tree prepared by `modules/yaegi-dynamic-go/yaegi_init.go` and `bot/modules_init.go`.
+- The default custom robot scaffold in `robot.skel/` now includes `go.mod` with `module robot.internal`; local editor/tooling use still requires the operator to point `github.com/lnxjedi/gopherbot/robot` and `gopherbot.internal/lib` at a local Gopherbot checkout or install tree via `replace` directives.
 - Examples: Lua `plugins/samples/hello.lua`, JavaScript `plugins/samples/hello.js`, Gopherbot shell `plugins/samples/hello.gsh`, shipped Gopherbot shell defaults like `plugins/admin.gsh` and `tasks/status.gsh`, dynamic Go `plugins/go-lists/lists.go` (funcs `Configure`, `PluginHandler`).
 - See also: `aidocs/INTERPRETERS.md`.
+
+Shared identity method surface:
+- Interpreter-backed extensions can call `GetIdentityCredential`, `LinkOAuth2Identity`, and `UnlinkIdentity` through the same robot API surface exposed by `modules/javascript/`, `modules/lua/`, `modules/gsh/`, and `bot/pipeline_rpc_interpreter.go`.
+- Provider-backed identity access is still explicitly scoped: the calling task/plugin/job must have the provider's credential `ParameterSet` attached, or the engine returns `IdentityConfigError` and logs the missing attachment.
 
 ## Build Mechanics Note
 

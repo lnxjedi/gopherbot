@@ -30,6 +30,11 @@ type parameter struct {
 	Parameter string
 }
 
+type identityrequest struct {
+	Provider string
+	User     string
+}
+
 type helpmetadataquery struct {
 	Query  string
 	Base64 bool
@@ -74,6 +79,11 @@ type paramcall struct {
 
 type wdcall struct {
 	Path string
+}
+
+type secretrequest struct {
+	Plaintext string
+	Base64    bool
 }
 
 // Something to be placed in ephemeral memory
@@ -152,6 +162,16 @@ type boolresponse struct {
 
 type stringresponse struct {
 	StrVal string
+}
+
+type stringretvalresponse struct {
+	StrVal string
+	RetVal int
+}
+
+type identitycredentialresponse struct {
+	Credential *robot.IdentityCredential
+	RetVal     int
 }
 
 type botretvalresponse struct {
@@ -375,6 +395,17 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 		success := r.Exclusive(e.Tag, e.QueueTask)
 		sendReturn(r, rw, boolresponse{Boolean: success})
+	case "EncryptSecret":
+		var s secretrequest
+		if !getArgs(rw, &f.FuncArgs, &s) {
+			return
+		}
+		if s.Base64 {
+			s.Plaintext = decode(s.Plaintext)
+		}
+		ciphertext, ret := r.EncryptSecret(s.Plaintext)
+		sendReturn(r, rw, &stringretvalresponse{StrVal: ciphertext, RetVal: int(ret)})
+		return
 	case "Elevate":
 		var e elevate
 		if !getArgs(rw, &f.FuncArgs, &e) {
@@ -480,6 +511,28 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 		s := r.GetParameter(p.Parameter)
 		sendReturn(r, rw, &stringresponse{s})
+		return
+	case "GetIdentityCredential":
+		var req identityrequest
+		if !getArgs(rw, &f.FuncArgs, &req) {
+			return
+		}
+		credential, ret := r.GetIdentityCredential(req.Provider, req.User)
+		sendReturn(r, rw, &identitycredentialresponse{Credential: credential, RetVal: int(ret)})
+		return
+	case "LinkOAuth2Identity":
+		var req robot.OAuth2IdentityLinkRequest
+		if !getArgs(rw, &f.FuncArgs, &req) {
+			return
+		}
+		sendReturn(r, rw, &botretvalresponse{int(r.LinkOAuth2Identity(&req))})
+		return
+	case "UnlinkIdentity":
+		var req identityrequest
+		if !getArgs(rw, &f.FuncArgs, &req) {
+			return
+		}
+		sendReturn(r, rw, &botretvalresponse{int(r.UnlinkIdentity(req.Provider, req.User))})
 		return
 	case "GetHelpMetadata":
 		var q helpmetadataquery

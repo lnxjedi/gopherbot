@@ -10,6 +10,9 @@ import (
 type formatCaptureConnector struct {
 	lastFormat  robot.MessageFormat
 	lastMessage string
+	lastUserID  string
+	lastUser    string
+	lastChannel string
 }
 
 func (c *formatCaptureConnector) GetProtocolUserAttribute(string, string) (string, robot.RetVal) {
@@ -30,8 +33,11 @@ func (c *formatCaptureConnector) SendProtocolChannelThreadMessage(_, _, msg stri
 	return robot.Ok
 }
 
-func (c *formatCaptureConnector) SendProtocolUserChannelThreadMessage(_, _, _, msg string, f robot.MessageFormat, _ *robot.ConnectorMessage) robot.RetVal {
+func (c *formatCaptureConnector) SendProtocolUserChannelThreadMessage(uid, username, channel, _, msg string, f robot.MessageFormat, _ *robot.ConnectorMessage) robot.RetVal {
 	c.lastFormat = f
+	c.lastUserID = uid
+	c.lastUser = username
+	c.lastChannel = channel
 	c.lastMessage = msg
 	return robot.Ok
 }
@@ -544,5 +550,36 @@ func TestFallbackUsesBasicMarkdownOutputFormat(t *testing.T) {
 	}
 	if !strings.Contains(fake.lastMessage, "I couldn't match") {
 		t.Fatalf("fallback() message missing mismatch text: %q", fake.lastMessage)
+	}
+}
+
+func TestReplyPreservesProtocolUserAndCanonicalUsername(t *testing.T) {
+	originalConnector := interfaces.Connector
+	fake := &formatCaptureConnector{}
+	interfaces.Connector = fake
+	defer func() {
+		interfaces.Connector = originalConnector
+	}()
+
+	r := makeFormatTestRobot(t)
+	r.ProtocolUser = "<U12345>"
+	r.ProtocolChannel = "<C2468>"
+	r.User = "alice"
+	r.Channel = "general"
+
+	if ret := r.Reply("hello"); ret != robot.Ok {
+		t.Fatalf("Reply() ret = %v, want %v", ret, robot.Ok)
+	}
+	if fake.lastUserID != "<U12345>" {
+		t.Fatalf("Reply() user id = %q, want %q", fake.lastUserID, "<U12345>")
+	}
+	if fake.lastUser != "alice" {
+		t.Fatalf("Reply() username = %q, want %q", fake.lastUser, "alice")
+	}
+	if fake.lastChannel != "<C2468>" {
+		t.Fatalf("Reply() channel = %q, want %q", fake.lastChannel, "<C2468>")
+	}
+	if fake.lastMessage != "hello" {
+		t.Fatalf("Reply() message = %q, want %q", fake.lastMessage, "hello")
 	}
 }

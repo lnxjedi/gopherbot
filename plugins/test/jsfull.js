@@ -36,6 +36,8 @@ Commands:
   Command: identity
 - Regex: (?i:js-parameter-addtask)
   Command: parameteraddtask
+- Regex: (?i:js-oauth2-cycle)
+  Command: oauth2cycle
 - Regex: (?i:js-pipeline-ok)
   Command: pipelineok
 - Regex: (?i:js-pipeline-fail)
@@ -52,6 +54,8 @@ Commands:
   Command: pipefinalcmd
 - Regex: (?i:pc-fail-cmd)
   Command: pipefailcmd
+- Regex: (?i:js-encrypt-secret-unpriv)
+  Command: encryptsecret
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -328,6 +332,23 @@ function handler(argv) {
         bot.Say("SETPARAM ADDTASK: queued");
         return task.Normal;
       }
+    case 'oauth2cycle':
+      {
+        const bot = new Robot();
+        const linkRet = bot.LinkOAuth2Identity({
+          Provider: "github",
+          User: bot.user,
+          AccessToken: "js-token",
+          RefreshToken: "js-refresh",
+          TokenType: "Bearer",
+        });
+        const tokenResult = bot.GetIdentityCredential("github", bot.user);
+        const unlinkRet = bot.UnlinkIdentity("github", bot.user);
+        bot.Say(
+          `IDENTITY FLOW: link=${ret.string(linkRet)} token=${tokenResult.credential ? tokenResult.credential.value : ""} get=${ret.string(tokenResult.retVal)} unlink=${ret.string(unlinkRet)}`
+        );
+        return task.Normal;
+      }
     case 'pipeaddcmd':
       {
         const bot = new Robot();
@@ -420,6 +441,17 @@ function handler(argv) {
       {
         const bot = new Robot();
         bot.Say(`SECURITY CHECK: ${cmd}`);
+        return task.Normal;
+      }
+    case 'encryptsecret':
+      {
+        const bot = new Robot();
+        const result = bot.EncryptSecret('test-secret');
+        if (result.retVal === ret.Ok && result.ciphertext !== '') {
+          bot.Say('ENCRYPT SECRET: ok');
+        } else {
+          bot.Say('ENCRYPT SECRET: failed');
+        }
         return task.Normal;
       }
 

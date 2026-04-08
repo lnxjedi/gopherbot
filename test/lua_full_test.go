@@ -212,11 +212,29 @@ func TestLuaFullSecurity(t *testing.T) {
 		{aliceID, general, ";lua-sec-adminonly", false, []TestMessage{
 			{null, general, "SECURITY CHECK: secadminonly", false}}, nil, 0},
 		{bobID, general, ";lua-sec-adminonly", false, []TestMessage{
-			{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*help <plugin>/<command>.*)`, true}}, nil, 0},
+			{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*)`, true}}, nil, 0},
 		{aliceID, general, ";lua-sec-usersonly", false, []TestMessage{
 			{null, general, "SECURITY CHECK: secusersonly", false}}, nil, 0},
 		{bobID, general, ";lua-sec-usersonly", false, []TestMessage{
-			{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*help <plugin>/<command>.*)`, true}}, nil, 0},
+			{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*)`, true}}, nil, 0},
+	}
+
+	for _, step := range flow {
+		testcaseRepliesOnly(t, conn, step)
+	}
+
+	teardown(t, done, conn)
+}
+
+func TestLuaFullEncryptSecret(t *testing.T) {
+	if !wantFull("lua") {
+		t.Skip("skipping Lua full encrypt secret test; set RUN_FULL=lua (or RUN_LUAFULL=1)")
+	}
+	done, conn := setup("test/luafull", "/tmp/bottest.log", t)
+
+	flow := []testItem{
+		{aliceID, general, ";lua-encrypt-secret", false, []TestMessage{
+			{null, general, "ENCRYPT SECRET: ok", false}}, nil, 0},
 	}
 
 	for _, step := range flow {

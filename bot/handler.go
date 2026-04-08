@@ -69,12 +69,12 @@ func (h handler) GetInstallPath() string {
 	return installPath
 }
 
-// GetConfigPath gets the path to the bot's (supposedly writable) configuration
-// directory. This is the config path if specified, otherwise the install
-// directory.
+// GetConfigPath gets the full path to the bot's (supposedly writable)
+// configuration directory. This is the resolved config directory if specified,
+// otherwise the install directory.
 func (h handler) GetConfigPath() string {
-	if len(configPath) > 0 {
-		return configPath
+	if len(configFull) > 0 {
+		return configFull
 	}
 	return installPath
 }
@@ -133,6 +133,13 @@ func resolveIncomingUser(maps *userChanMaps, protocol, userID, connectorUser str
 	}
 	_, directoryListed = maps.directoryUser[userName]
 	return userName, botUser, protocolMapped, directoryListed
+}
+
+func resolveIncomingProtocolUser(userID, userName string) string {
+	if len(userID) > 0 {
+		return bracket(userID)
+	}
+	return userName
 }
 
 // clone a worker for a new execution context
@@ -214,7 +221,7 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 		}
 	} // ProtocolChannel / channelName should be "" for DM
 	userName, BotUser, protocolMapped, directoryListed := resolveIncomingUser(maps, incomingProtocol, inc.UserID, inc.UserName)
-	ProtocolUser = userName
+	ProtocolUser = resolveIncomingProtocolUser(inc.UserID, userName)
 	listedUser := directoryListed
 	protocol := getProtocol(inc.Protocol)
 

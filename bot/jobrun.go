@@ -107,7 +107,7 @@ func (w *worker) checkJobMatchersAndRun() (messageMatched bool) {
 			}
 			c := &pipeContext{
 				environment: make(map[string]string),
-				parameters: make(map[string]string),
+				parameters:  make(map[string]string),
 			}
 			w.pipeContext = c
 			c.currentTask = t
@@ -159,7 +159,7 @@ func (w *worker) checkJobMatchersAndRun() (messageMatched bool) {
 					for i, argspec := range job.Arguments {
 						var t int
 						for t = 1; t < 3; t++ {
-							arg, ret := r.PromptForReply(argspec.Label, fmt.Sprintf("What's the value for '%s'?", argspec.Label))
+							arg, ret := r.promptForJobArgument(argspec.Label, fmt.Sprintf("What's the value for '%s'?", argspec.Label))
 							if ret == robot.ReplyNotMatched {
 								r.Say("That doesn't match the pattern for argument '%s'", argspec.Label)
 							} else {

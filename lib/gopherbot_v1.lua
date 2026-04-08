@@ -62,6 +62,12 @@ M.ret = {
     CommandNotMatched = 27,
     TaskDisabled = 28,
     PrivilegeViolation = 29,
+    IdentityProviderNotFound = 30,
+    IdentityNotLinked = 31,
+    IdentityReauthRequired = 32,
+    IdentityRefreshFailed = 33,
+    IdentityInvalidLinkRequest = 34,
+    IdentityConfigError = 35,
 
     -- General Failure
     Failed = 63,
@@ -475,6 +481,38 @@ end
 ---@return string
 function Robot:GetParameter(name)
     return self.gbot:GetParameter(name)
+end
+
+---Retrieve a user-linked identity credential for a provider/user pair.
+---@param provider string
+---@param user string
+---@return table|nil credential
+---@return number retVal
+function Robot:GetIdentityCredential(provider, user)
+    return self.gbot:GetIdentityCredential(provider, user)
+end
+
+---Store a linked OAuth2 identity.
+---@param link table
+---@return number retVal
+function Robot:LinkOAuth2Identity(link)
+    return self.gbot:LinkOAuth2Identity(link)
+end
+
+---Encrypt plaintext for safe use with {{ decrypt "..." }} in robot config templates.
+---@param plaintext string
+---@return string ciphertext
+---@return number retVal
+function Robot:EncryptSecret(plaintext)
+    return self.gbot:EncryptSecret(plaintext)
+end
+
+---Remove a linked identity provider for a user.
+---@param provider string
+---@param user string
+---@return number retVal
+function Robot:UnlinkIdentity(provider, user)
+    return self.gbot:UnlinkIdentity(provider, user)
 end
 
 ---Set a pipeline parameter.

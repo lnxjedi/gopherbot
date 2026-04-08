@@ -88,3 +88,12 @@ func TestResolveIncomingUserUnmappedFallsBackToConnectorOrBracket(t *testing.T) 
 		t.Fatal("resolveIncomingUser() directoryListed=true, want false")
 	}
 }
+
+func TestResolveIncomingProtocolUserPrefersTransportID(t *testing.T) {
+	if got := resolveIncomingProtocolUser("U001", "alice"); got != bracket("U001") {
+		t.Fatalf("resolveIncomingProtocolUser() = %q, want %q", got, bracket("U001"))
+	}
+	if got := resolveIncomingProtocolUser("", "alice"); got != "alice" {
+		t.Fatalf("resolveIncomingProtocolUser() without id = %q, want %q", got, "alice")
+	}
+}

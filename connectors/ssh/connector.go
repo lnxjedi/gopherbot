@@ -689,12 +689,15 @@ func (sc *sshConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f 
 	return robot.Ok
 }
 
-func (sc *sshConnector) SendProtocolUserChannelThreadMessage(uname, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+func (sc *sshConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	plain, markdownSource := prepareSSHDisplayMessage(msg, f)
 	if f == robot.BasicMarkdown {
 		msg = plain
 	}
 	ch = sc.normalizeChannel(ch)
+	if uname == "" {
+		uname = sc.normalizeUser(uid)
+	}
 	formatted := "@" + uname + " " + msg
 	if markdownSource != "" {
 		markdownSource = "@" + uname + " " + markdownSource

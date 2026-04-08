@@ -51,6 +51,9 @@ ExternalJobs:
 #     Description: Example scheduled job for testing
 #     Path: jobs/your-job.sh
 #     Privileged: true
+#   "github-review-digest":
+#     Description: Example JavaScript job that DMs a user a GitHub review digest
+#     Path: jobs/samples/github-review-digest.js
 #   "go-openai-prune":
 #     Description: Prune stale go-openai-fallback conversation datums
 #     Path: jobs/go-openai-prune/go_openai_prune_job.go
@@ -111,6 +114,17 @@ ExternalPlugins:
 #       Value: replace with encrypted string
 #     - Name: OPENAI_ORGANIZATION_ID
 #       Value: optional organization ID
+#   "github-tools":
+#     Description: Example JavaScript plugin using GetIdentityCredential plus GitHub HTTP APIs
+#     Path: plugins/samples/github-tools.js
+#   "github-link":
+#     Description: Optional GitHub account linker using OAuth2 device flow
+#     Path: plugins/go-github-link/github_link.go
+#     Homed: true
+#     ## Create github_oauth in ParameterSets below, configure IdentityProviders,
+#     ## and attach that same ParameterSet here before enabling this plugin.
+#     ParameterSets:
+#     - github_oauth
 
 ## Note that modules for connectors, brains and history providers load automatically
 # LoadableModules:
@@ -122,22 +136,30 @@ ExternalPlugins:
 #     Path: goplugins/meme.so
 
 NameSpaces:
-  "ssh":
-    Parameters:
-    - Name: "KEYNAME"
-      Value: "robot_key"
-    - Name: BOT_SSH_PHRASE
-      Value: {{ decrypt "<sshencrypted>" }}
   "manage":
     # The default standard config defines a bunch of pass-through env vars,
     # so here we use AppendParameters
     AppendParameters:
-    - Name: "KEYNAME"
-      Value: "robot_key"
-    - Name: BOT_SSH_PHRASE
-      Value: {{ decrypt "<sshencrypted>" }}
 
 DefaultMessageFormat: BasicMarkdown
+
+# IdentityProviders:
+#   github:
+#     Type: oauth2
+#     CredentialParameterSet: github_oauth
+#     OAuth2:
+#       TokenEndpointAuthMethod: client_secret_post
+#       Token:
+#         URL: https://github.com/login/oauth/access_token
+#         Headers:
+#           Accept: application/json
+# ParameterSets:
+#   github_oauth:
+#     Parameters:
+#     - Name: CLIENT_ID
+#       Value: "Iv1..."
+#     - Name: CLIENT_SECRET
+#       Value: {{ decrypt "<encrypted github client secret>" }}
 # Users the bot should never listen to
 #IgnoreUsers: [ "otherbot", "slackbot" ]
 

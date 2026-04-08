@@ -34,3 +34,6 @@ Commands:
 - # Regex: (?i:js-sec-hidden-denied)
   SimpleMatcher: js-sec-hidden-denied
   Command: sechiddendenied
+- # Regex: (?i:js-sec-oauth2-denied)
+  SimpleMatcher: js-sec-oauth2-denied
+  Command: oauth2cycle

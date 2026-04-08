@@ -463,6 +463,13 @@ func handlePipelineRPCRobotCall(paramsRaw json.RawMessage, base robot.Robot) (ma
 			return nil, err
 		}
 		return map[string]interface{}{"bool": r.Elevate(immediate)}, nil
+	case "EncryptSecret":
+		plaintext, err := pipelineRPCArgString(args, 0)
+		if err != nil {
+			return nil, err
+		}
+		ciphertext, ret := r.EncryptSecret(plaintext)
+		return map[string]interface{}{"ciphertext": ciphertext, "ret_val": int(ret)}, nil
 	case "GetBotAttribute":
 		a, err := pipelineRPCArgString(args, 0)
 		if err != nil {
@@ -538,6 +545,41 @@ func handlePipelineRPCRobotCall(paramsRaw json.RawMessage, base robot.Robot) (ma
 			return nil, err
 		}
 		return map[string]interface{}{"string": r.GetParameter(name)}, nil
+	case "GetIdentityCredential":
+		provider, err := pipelineRPCArgString(args, 0)
+		if err != nil {
+			return nil, err
+		}
+		user, err := pipelineRPCArgString(args, 1)
+		if err != nil {
+			return nil, err
+		}
+		credential, ret := r.GetIdentityCredential(provider, user)
+		return map[string]interface{}{"credential": credential, "ret_val": int(ret)}, nil
+	case "LinkOAuth2Identity":
+		raw, err := pipelineRPCArgAny(args, 0)
+		if err != nil {
+			return nil, err
+		}
+		var req robot.OAuth2IdentityLinkRequest
+		blob, err := json.Marshal(raw)
+		if err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal(blob, &req); err != nil {
+			return nil, err
+		}
+		return map[string]interface{}{"ret_val": int(r.LinkOAuth2Identity(&req))}, nil
+	case "UnlinkIdentity":
+		provider, err := pipelineRPCArgString(args, 0)
+		if err != nil {
+			return nil, err
+		}
+		user, err := pipelineRPCArgString(args, 1)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]interface{}{"ret_val": int(r.UnlinkIdentity(provider, user))}, nil
 	case "Email":
 		subject, err := pipelineRPCArgString(args, 0)
 		if err != nil {
@@ -1160,6 +1202,14 @@ func (c *pipelineRPCInterpreterRobotClient) Elevate(immediate bool) bool {
 	return pipelineRPCMapBool(res, "bool")
 }
 
+func (c *pipelineRPCInterpreterRobotClient) EncryptSecret(plaintext string) (string, robot.RetVal) {
+	res, err := c.call("EncryptSecret", plaintext)
+	if err != nil {
+		return "", robot.Failed
+	}
+	return pipelineRPCMapString(res, "ciphertext"), robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
+}
+
 func (c *pipelineRPCInterpreterRobotClient) GetBotAttribute(a string) *robot.AttrRet {
 	res, err := c.call("GetBotAttribute", a)
 	if err != nil {
@@ -1218,6 +1268,46 @@ func (c *pipelineRPCInterpreterRobotClient) GetParameter(name string) string {
 		return ""
 	}
 	return pipelineRPCMapString(res, "string")
+}
+
+func pipelineRPCMapIdentityCredential(res map[string]interface{}, key string) *robot.IdentityCredential {
+	raw, ok := res[key]
+	if !ok || raw == nil {
+		return nil
+	}
+	blob, err := json.Marshal(raw)
+	if err != nil {
+		return nil
+	}
+	var credential robot.IdentityCredential
+	if err := json.Unmarshal(blob, &credential); err != nil {
+		return nil
+	}
+	return &credential
+}
+
+func (c *pipelineRPCInterpreterRobotClient) GetIdentityCredential(provider, user string) (*robot.IdentityCredential, robot.RetVal) {
+	res, err := c.call("GetIdentityCredential", provider, user)
+	if err != nil {
+		return nil, robot.Failed
+	}
+	return pipelineRPCMapIdentityCredential(res, "credential"), robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
+}
+
+func (c *pipelineRPCInterpreterRobotClient) LinkOAuth2Identity(link *robot.OAuth2IdentityLinkRequest) robot.RetVal {
+	res, err := c.call("LinkOAuth2Identity", link)
+	if err != nil {
+		return robot.Failed
+	}
+	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
+}
+
+func (c *pipelineRPCInterpreterRobotClient) UnlinkIdentity(provider, user string) robot.RetVal {
+	res, err := c.call("UnlinkIdentity", provider, user)
+	if err != nil {
+		return robot.Failed
+	}
+	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
 func (c *pipelineRPCInterpreterRobotClient) Exclusive(tag string, queueTask bool) bool {

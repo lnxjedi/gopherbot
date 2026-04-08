@@ -76,6 +76,13 @@ type Robot interface {
 	// for Go plugins; external scripts have all the parameters for the pipeline exposed
 	// as environment variables.
 	GetParameter(name string) string
+	// GetIdentityCredential retrieves a usable user-linked credential for the given provider and user.
+	// The engine handles expiry checks and refresh attempts before returning.
+	GetIdentityCredential(provider, user string) (credential *IdentityCredential, ret RetVal)
+	// LinkOAuth2Identity stores an OAuth2 token set for the given provider/user identity link.
+	LinkOAuth2Identity(link *OAuth2IdentityLinkRequest) RetVal
+	// UnlinkIdentity removes an existing user-linked identity for the given provider/user.
+	UnlinkIdentity(provider, user string) RetVal
 	Email(subject string, messageBody *bytes.Buffer, html ...bool) (ret RetVal)
 	EmailUser(user, subject string, messageBody *bytes.Buffer, html ...bool) (ret RetVal)
 	EmailAddress(address, subject string, messageBody *bytes.Buffer, html ...bool) (ret RetVal)
@@ -296,6 +303,12 @@ type Robot interface {
 	// for e.g. emailing the job history. The command string
 	// argument should match a CommandMatcher for the given plugin.
 	FailCommand(string, string) RetVal
+	// EncryptSecret encrypts a plaintext string using the robot's configured
+	// encryption key and returns a base64-encoded ciphertext suitable for use
+	// with {{ decrypt "<ciphertext>" }} in robot configuration templates.
+	// Only available in privileged pipelines; returns Failed with a log entry
+	// on any encryption error.
+	EncryptSecret(plaintext string) (string, RetVal)
 	// RaisePriv lets go plugins raise privilege for a thread, allowing filesystem
 	// access in GOPHER_HOME.
 	RaisePriv(string)

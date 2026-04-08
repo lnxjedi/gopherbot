@@ -21,6 +21,8 @@ This document defines compatibility priorities for v3 work.
 ## Configuration Layering Contract for Shipped Extensions
 
 - Defaults shipped with the engine are the canonical baseline for included plugins/jobs/tasks.
+- Included with the engine does not imply active in the default robot.
+- Shipped extensions that require owner-provided credentials or secrets should remain disabled or absent in the default robot until a custom robot owner explicitly enables them.
 - Custom robots should keep extension config override files minimal and local (enable/disable, parameters, environment-specific behavior).
 - Avoid copying full shipped defaults into `custom/conf` unless intentionally redefining behavior.
 - When behavior is intentionally redefined, document the divergence and keep only explicit delta in custom config.

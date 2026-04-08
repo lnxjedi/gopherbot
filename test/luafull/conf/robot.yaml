@@ -28,6 +28,9 @@ LocalPort: 0
 ExternalPlugins:
   "luafull":
     Path: plugins/test/luafull.lua
+  "luaprivfull":
+    Path: plugins/test/luafull.lua
+    Privileged: true
   "luasec":
     Path: plugins/test/luafull.lua
   "luasec-authall":

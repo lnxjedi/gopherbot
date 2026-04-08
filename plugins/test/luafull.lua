@@ -52,6 +52,8 @@ Commands:
   Command: pipefinalcmd
 - Regex: (?i:pc-fail-cmd)
   Command: pipefailcmd
+- Regex: (?i:lua-encrypt-secret-unpriv)
+  Command: encryptsecret
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -449,6 +451,16 @@ end
 
 function commands.secusersonly(bot)
   bot:Say("SECURITY CHECK: secusersonly")
+  return task.Normal
+end
+
+function commands.encryptsecret(bot)
+  local ct, retval = bot:EncryptSecret("test-secret")
+  if retval == ret.Ok and ct ~= "" then
+    bot:Say("ENCRYPT SECRET: ok")
+  else
+    bot:Say("ENCRYPT SECRET: failed")
+  end
   return task.Normal
 end
 

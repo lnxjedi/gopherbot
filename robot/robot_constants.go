@@ -57,7 +57,7 @@ const (
 	// Success indicates successful authorization or elevation; using '7' (three bits set)
 	// reduces the likelihood of an authorization plugin mistakenly exiting with a success
 	// value
-	Success = 7
+	Success TaskRetVal = 7
 )
 
 // RetVal is a integer type for returning error conditions from bot methods, or 0 for Ok
@@ -142,9 +142,21 @@ const (
 	TaskDisabled
 	// PrivilegeViolation - error adding a privileged job/command to an unprivileged pipeline
 	PrivilegeViolation
+	// IdentityProviderNotFound - provider key not configured in robot.yaml
+	IdentityProviderNotFound
+	// IdentityNotLinked - the requested user has not linked the provider
+	IdentityNotLinked
+	// IdentityReauthRequired - token refresh cannot proceed and user must link again
+	IdentityReauthRequired
+	// IdentityRefreshFailed - token refresh failed for a recoverable/provider error
+	IdentityRefreshFailed
+	// IdentityInvalidLinkRequest - a link method was called with invalid data
+	IdentityInvalidLinkRequest
+	// IdentityConfigError - provider config is incomplete or invalid
+	IdentityConfigError
 	// Failed is a generic failure code for use when we don't want to return Ok;
 	// should be accompanied by a log.
-	Failed = 63
+	Failed RetVal = 63
 )
 
 // MessageFormat indicates how the connector should display the content of

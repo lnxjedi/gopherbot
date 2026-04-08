@@ -26,7 +26,7 @@ func (c *hiddenHelpTestConnector) SendProtocolChannelThreadMessage(string, strin
 	return robot.Ok
 }
 
-func (c *hiddenHelpTestConnector) SendProtocolUserChannelThreadMessage(string, string, string, string, robot.MessageFormat, *robot.ConnectorMessage) robot.RetVal {
+func (c *hiddenHelpTestConnector) SendProtocolUserChannelThreadMessage(string, string, string, string, string, robot.MessageFormat, *robot.ConnectorMessage) robot.RetVal {
 	return robot.Ok
 }
 
