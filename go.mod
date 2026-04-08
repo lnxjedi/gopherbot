@@ -13,8 +13,6 @@ replace gopherbot.internal/lib => ./lib
 // replace github.com/go-git/go-git/v5 => ./replacements/go-git
 
 require (
-	// For yaegi dynamic imports
-	gopherbot.internal/lib v0.0.0
 	github.com/aws/aws-sdk-go-v2 v1.41.1
 	github.com/aws/aws-sdk-go-v2/config v1.32.7
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.7
@@ -29,15 +27,17 @@ require (
 	github.com/go-git/go-git/v5 v5.16.5
 	github.com/joho/godotenv v1.5.1
 	github.com/jordan-wright/email v4.0.1-0.20210109023952-943e75fe5223+incompatible
-	github.com/lnxjedi/gopherbot/robot v0.0.0-20221211204919-1966e9d9cfec
+	github.com/lnxjedi/gopherbot/robot v0.0.0
 	github.com/lnxjedi/gopherbot/test v0.0.0-00010101000000-000000000000
 	github.com/pquerna/otp v1.5.0
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/slack-go/slack v0.17.3
+	github.com/slack-go/slack v0.21.0
 	github.com/traefik/yaegi v0.16.1
 	github.com/yuin/gopher-lua v1.1.1
 	golang.org/x/crypto v0.47.0
 	golang.org/x/sys v0.42.0
+	// For yaegi dynamic imports
+	gopherbot.internal/lib v0.0.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

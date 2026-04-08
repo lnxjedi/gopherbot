@@ -243,11 +243,9 @@ func buildSlackVariableBlocks(text string) []slack.Block {
 
 func buildSlackFixedBlocks(text string) []slack.Block {
 	preformatted := &slack.RichTextPreformatted{
-		RichTextSection: slack.RichTextSection{
-			Type: slack.RTEPreformatted,
-			Elements: []slack.RichTextSectionElement{
-				slack.NewRichTextSectionTextElement(text, nil),
-			},
+		Type: slack.RTEPreformatted,
+		Elements: []slack.RichTextSectionElement{
+			slack.NewRichTextSectionTextElement(text, nil),
 		},
 	}
 	return []slack.Block{
