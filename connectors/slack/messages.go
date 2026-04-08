@@ -22,6 +22,7 @@ type userlast struct {
 type slackOutgoingPayload struct {
 	text       string
 	legacyText string
+	markdown   string
 	blocks     []slack.Block
 }
 
@@ -31,7 +32,8 @@ type slackOutgoingPayload struct {
 // sending the same command twice in short order.
 const ignorewindow = 3 * time.Second
 const slackFormattedMaxSize = slack.MaxMessageTextLength - 490
-const slackBlockTextLimit = 3000
+const slackMarkdownTextLimit = 11500
+const slackBlockTextLimit = 2800
 const slackTruncatedMessage = "(message too long, truncated)"
 
 var mentionMatch = `[0-9A-Za-z](?:[-_0-9A-Za-z.]{0,19}[_0-9A-Za-z])?`
@@ -171,23 +173,25 @@ func (s *slackConnector) formatSlackMessage(msg string, f robot.MessageFormat) s
 	return msg
 }
 
-func (s *slackConnector) segmentFormattedSlackMessage(msg string) []string {
+func (s *slackConnector) segmentFormattedSlackMessage(msg string, maxChunkSize int) []string {
 	msgLen := len(msg)
-	if msgLen <= slackFormattedMaxSize {
+	if msgLen <= maxChunkSize {
 		return []string{msg}
 	}
 	// It's too big, gotta chop it up. We will send at most maxMessageSplit
 	// messages, plus "(message truncated)".
 	msgs := make([]string, 0, s.maxMessageSplit+1)
-	s.Log(robot.Info, "Message too long, segmenting: %d bytes", msgLen)
+	if s.Handler != nil {
+		s.Log(robot.Info, "Message too long, segmenting: %d bytes", msgLen)
+	}
 	// Chop it up into <=maxSize pieces
 	var chunk string
 	inside_block := false
-	for len(msg) > slackFormattedMaxSize && len(msgs) < s.maxMessageSplit {
-		lineEnd := strings.LastIndexByte(msg[:slackFormattedMaxSize], '\n')
+	for len(msg) > maxChunkSize && len(msgs) < s.maxMessageSplit {
+		lineEnd := strings.LastIndexByte(msg[:maxChunkSize], '\n')
 		if lineEnd <= 0 { // no usable newline in this chunk
-			chunk = msg[:slackFormattedMaxSize]
-			msg = msg[slackFormattedMaxSize:]
+			chunk = msg[:maxChunkSize]
+			msg = msg[maxChunkSize:]
 		} else {
 			chunk = msg[:lineEnd]
 			msg = msg[lineEnd+1:] // skip over the newline
@@ -243,11 +247,9 @@ func buildSlackVariableBlocks(text string) []slack.Block {
 
 func buildSlackFixedBlocks(text string) []slack.Block {
 	preformatted := &slack.RichTextPreformatted{
-		RichTextSection: slack.RichTextSection{
-			Type: slack.RTEPreformatted,
-			Elements: []slack.RichTextSectionElement{
-				slack.NewRichTextSectionTextElement(text, nil),
-			},
+		Type: slack.RTEPreformatted,
+		Elements: []slack.RichTextSectionElement{
+			slack.NewRichTextSectionTextElement(text, nil),
 		},
 	}
 	return []slack.Block{
@@ -264,12 +266,30 @@ func buildSlackTruncationBlocks(text string) []slack.Block {
 func (s *slackConnector) slackifyLegacyMessage(targetUserID, prefix, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) []string {
 	msg = s.formatSlackMessage(msg, f)
 	msg = s.applySlackPrefix(targetUserID, prefix, msg, msgObject)
-	return s.segmentFormattedSlackMessage(msg)
+	return s.segmentFormattedSlackMessage(msg, slackFormattedMaxSize)
+}
+
+func (s *slackConnector) slackifyBasicMarkdownMessage(targetUserID, prefix, msg string, msgObject *robot.ConnectorMessage) []slackOutgoingPayload {
+	msg = s.renderBasicMarkdownMarkdownText(msg)
+	msg = s.applySlackPrefix(targetUserID, prefix, msg, msgObject)
+	msgs := s.segmentFormattedSlackMessage(msg, slackMarkdownTextLimit)
+	payloads := make([]slackOutgoingPayload, 0, len(msgs))
+	for _, formatted := range msgs {
+		payloads = append(payloads, slackOutgoingPayload{
+			text:       formatted,
+			legacyText: restoreEscapedSlackMentions(s.formatSlackMessage(formatted, robot.BasicMarkdown)),
+			markdown:   formatted,
+		})
+	}
+	return payloads
 }
 
 // slackifyMessage replaces @username with the slack-internal representation, handles escaping,
 // and returns either text-only or block-backed outbound payloads.
 func (s *slackConnector) slackifyMessage(targetUserID, legacyPrefix, blockPrefix, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) []slackOutgoingPayload {
+	if f == robot.BasicMarkdown {
+		return s.slackifyBasicMarkdownMessage(targetUserID, legacyPrefix, msg, msgObject)
+	}
 	if f != robot.Variable && f != robot.Fixed {
 		msgs := s.slackifyLegacyMessage(targetUserID, legacyPrefix, msg, f, msgObject)
 		payloads := make([]slackOutgoingPayload, 0, len(msgs))
@@ -306,13 +326,18 @@ func (s *slackConnector) slackifyMessage(targetUserID, legacyPrefix, blockPrefix
 var reAddedLinks = regexp.MustCompile(`<https?://[\w-./]+\|([\w-./]+)>`) // match a slack-inserted link
 var reLinks = regexp.MustCompile(`<(https?://[.\w-:/?=~]+)>`)            // match a link where slack added <>
 var reUser = regexp.MustCompile(`<@U[A-Z0-9]{7,21}>`)                    // match a @user mention
-var reMailToLink = regexp.MustCompile(`<mailto:[^|]+\|([\w-./@]+)>`)     // match mailto links
+var reEscapedUser = regexp.MustCompile(`&lt;(@U[A-Z0-9]{1,21})&gt;`)
+var reMailToLink = regexp.MustCompile(`<mailto:[^|]+\|([\w-./@]+)>`) // match mailto links
 
 // I don't love this: if the message text is '<foo>', the robot sees '&lt;foo&gt;'. HOWEVER,
 // if the message text is '&lt;foo&gt;', the robot STILL sees '&lt;foo&gt;'. Still, '<' and '>'
 // are more useful than '&lt;' and '&gt;', so we always send the angle brackets.
 var reLeftAngle = regexp.MustCompile(`&lt;`)
 var reRightAngle = regexp.MustCompile(`&gt;`)
+
+func restoreEscapedSlackMentions(text string) string {
+	return reEscapedUser.ReplaceAllString(text, "<$1>")
+}
 
 func (s *slackConnector) processText(text string) string {
 	// Remove auto-links - chatbots don't want those

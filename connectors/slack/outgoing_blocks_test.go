@@ -136,6 +136,32 @@ func TestSlackifyMessageBasicMarkdownUsesLiveMentionPrefix(t *testing.T) {
 	if got := msgs[0].text; got != "<@U123>: hello" {
 		t.Fatalf("basic markdown text = %q", got)
 	}
+	if got := msgs[0].markdown; got != "<@U123>: hello" {
+		t.Fatalf("basic markdown payload = %q", got)
+	}
+	if got := msgs[0].legacyText; got != "<@U123>: hello" {
+		t.Fatalf("basic markdown legacy text = %q", got)
+	}
+}
+
+func TestSlackifyMessageBasicMarkdownPreservesMarkdownSyntax(t *testing.T) {
+	s := &slackConnector{
+		maxMessageSplit: 1,
+		userMap: map[string]string{
+			"alice": "U111",
+		},
+	}
+
+	msgs := s.slackifyMessage("", "", "", "**bold** [runbook](https://example.com) @alice", robot.BasicMarkdown, &robot.ConnectorMessage{})
+	if len(msgs) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(msgs))
+	}
+	if got := msgs[0].markdown; got != "**bold** [runbook](https://example.com) <@U111>" {
+		t.Fatalf("basic markdown payload = %q", got)
+	}
+	if got := msgs[0].legacyText; got != "*bold* <https://example.com|runbook> <@U111>" {
+		t.Fatalf("basic markdown legacy text = %q", got)
+	}
 }
 
 func TestSlackifyMessageFixedUsesReadableBlockPrefix(t *testing.T) {
@@ -203,5 +229,21 @@ func TestSlackifyMessageVariableSplitsToBlockLimit(t *testing.T) {
 	}
 	if len(secondText.Text) != 10 {
 		t.Fatalf("expected second block chunk length 10, got %d", len(secondText.Text))
+	}
+}
+
+func TestSlackifyMessageBasicMarkdownSplitsToMarkdownTextLimit(t *testing.T) {
+	s := &slackConnector{maxMessageSplit: 2}
+
+	msg := strings.Repeat("a", slackMarkdownTextLimit+10)
+	msgs := s.slackifyMessage("", "", "", msg, robot.BasicMarkdown, &robot.ConnectorMessage{})
+	if len(msgs) != 2 {
+		t.Fatalf("expected 2 messages, got %d", len(msgs))
+	}
+	if len(msgs[0].markdown) != slackMarkdownTextLimit {
+		t.Fatalf("expected first markdown chunk length %d, got %d", slackMarkdownTextLimit, len(msgs[0].markdown))
+	}
+	if len(msgs[1].markdown) != 10 {
+		t.Fatalf("expected second markdown chunk length 10, got %d", len(msgs[1].markdown))
 	}
 }

@@ -58,10 +58,10 @@ func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string,
 }
 
 type sendMessage struct {
-	message, legacyText, user, channel, thread string
-	blocks                                     []slack.Block
-	format                                     robot.MessageFormat
-	mtype                                      msgType
+	message, legacyText, markdownText, user, channel, thread string
+	blocks                                                   []slack.Block
+	format                                                   robot.MessageFormat
+	mtype                                                    msgType
 }
 
 const sendQueueSize = 256
@@ -146,9 +146,13 @@ func (s *slackConnector) startSendLoop(stop <-chan struct{}) {
 			current = 0
 		}
 		opts := []slack.MsgOption{
-			slack.MsgOptionText(send.message, false),
 			slack.MsgOptionAsUser(true),
 			slack.MsgOptionDisableLinkUnfurl(),
+		}
+		if send.markdownText != "" {
+			opts = append(opts, slack.MsgOptionMarkdownText(send.markdownText))
+		} else {
+			opts = append(opts, slack.MsgOptionText(send.message, false))
 		}
 		if len(send.blocks) > 0 {
 			opts = append(opts, slack.MsgOptionBlocks(send.blocks...))
@@ -226,14 +230,15 @@ func (s *slackConnector) sendMessages(msgs []slackOutgoingPayload, userID, chanI
 	}
 	for _, msg := range msgs {
 		s.queueSendMessage(&sendMessage{
-			message:    msg.text,
-			legacyText: msg.legacyText,
-			blocks:     msg.blocks,
-			user:       userID,
-			channel:    chanID,
-			thread:     threadID,
-			format:     f,
-			mtype:      mtype,
+			message:      msg.text,
+			legacyText:   msg.legacyText,
+			markdownText: msg.markdown,
+			blocks:       msg.blocks,
+			user:         userID,
+			channel:      chanID,
+			thread:       threadID,
+			format:       f,
+			mtype:        mtype,
 		})
 	}
 }

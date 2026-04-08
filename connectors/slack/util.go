@@ -22,7 +22,7 @@ type slackConnector struct {
 	conn            *slack.RTM
 	sock            *socketmode.Client
 	socketMode      bool
-	maxMessageSplit int                       // The maximum # of ~4000 byte messages to send before truncating
+	maxMessageSplit int                       // The maximum number of chunks/messages to emit for one long send before truncating
 	running         bool                      // set on call to Run
 	reflectHidden   bool                      // reflect slash commands to the user
 	slashCommand    string                    // configured slash command name without leading slash
