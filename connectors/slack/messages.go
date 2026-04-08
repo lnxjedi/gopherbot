@@ -32,8 +32,8 @@ type slackOutgoingPayload struct {
 // sending the same command twice in short order.
 const ignorewindow = 3 * time.Second
 const slackFormattedMaxSize = slack.MaxMessageTextLength - 490
-const slackMarkdownTextLimit = 12000
-const slackBlockTextLimit = 3000
+const slackMarkdownTextLimit = 11500
+const slackBlockTextLimit = 2800
 const slackTruncatedMessage = "(message too long, truncated)"
 
 var mentionMatch = `[0-9A-Za-z](?:[-_0-9A-Za-z.]{0,19}[_0-9A-Za-z])?`

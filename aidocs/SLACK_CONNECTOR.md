@@ -52,6 +52,7 @@ This file captures Slack connector behavior relevant to routing, hidden commands
 - `Variable` sends a Block Kit `rich_text` block with a plain `rich_text_section` so the visible body preserves the exact message text without relying on Slack markdown parsing.
 - `Fixed` sends a Block Kit `rich_text` block using `rich_text_preformatted` so fixed-width output renders as native Slack preformatted content instead of literal triple-backtick fences.
 - Block-backed `Variable` / `Fixed` sends still include top-level fallback text for notifications/accessibility and legacy RTM fallback behavior.
+- Long `Variable` / `Fixed` sends currently use a conservative application chunk size of 2,800 characters per chunk rather than Slack's theoretical maximum for these block types.
 - Targeted user-in-channel sends use a readable literal prefix in block-backed output (for example `@alice: ...`) instead of exposing Slack internal mention tokens in the visible body.
 - `BasicMarkdown` is sent through Slack's native `markdown_text` field for normal Web API sends.
   - The connector preserves the original BasicMarkdown syntax instead of translating links/emphasis/code into legacy Slack `mrkdwn`.
@@ -59,7 +60,7 @@ This file captures Slack connector behavior relevant to routing, hidden commands
   - Targeted `BasicMarkdown` replies still add their live mention prefix before send.
   - Mention parsing is skipped inside inline code and fenced code blocks.
   - Escapes, shortcode emoji, Unicode emoji, quotes, lists, and markdown links are passed through in their original BasicMarkdown form.
-  - Long `BasicMarkdown` sends now chunk at Slack's documented `markdown_text` limit of 12,000 characters before `MaxMessageSplit` truncation is applied.
+  - Long `BasicMarkdown` sends currently chunk at a conservative application limit of 11,500 characters, below Slack's documented `markdown_text` maximum of 12,000 characters.
   - If Web API send falls back to legacy RTM send, the connector still derives a legacy-formatted fallback text for that chunk.
 
 ## Help Rendering Hooks
