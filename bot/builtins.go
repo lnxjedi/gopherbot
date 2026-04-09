@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/gopherbot/robot/util"
 	"golang.org/x/sys/unix"
 	"gopkg.in/yaml.v3"
 )
@@ -1436,7 +1437,7 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		} else {
 			alias = string(aliasCh)
 		}
-		channelID, _ := handle.ExtractID(r.ProtocolChannel)
+		channelID, _ := util.ExtractID(r.ProtocolChannel)
 		msg := make([]string, 0, 7)
 		msg = append(msg, "Here's some information about me and my running environment:")
 		msg = append(msg, fmt.Sprintf("The hostname for the server I'm running on is: %s", hostName))

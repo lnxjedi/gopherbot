@@ -24,10 +24,7 @@ func (t *testHandler) GetConfigPath() string                     { return "" }
 func (t *testHandler) Log(_ robot.LogLevel, _ string, _ ...interface{}) {
 }
 func (t *testHandler) GetDirectory(_ string) error { return nil }
-func (t *testHandler) ExtractID(_ string) (string, bool) {
-	return "", false
-}
-func (t *testHandler) RaisePriv(_ string) {}
+func (t *testHandler) RaisePriv(_ string)          {}
 
 func TestNormalizeConfiguredUserMap(t *testing.T) {
 	h := &testHandler{}

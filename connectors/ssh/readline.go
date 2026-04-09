@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/chzyer/readline"
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/gopherbot/robot/util"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -606,7 +606,7 @@ func (c *sshClient) wrapLine(s string) string {
 	if width <= 0 {
 		return s
 	}
-	wrapper := robot.NewWrapper()
+	wrapper := util.NewWrapper()
 	wrapper.StripTrailingNewline = true
 	return wrapper.Wrap(s, width)
 }

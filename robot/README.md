@@ -8,7 +8,7 @@ Current shared surfaces here include:
 - brain-provider registrations (`robot/brains.go`)
 - history-provider registrations (`robot/history_providers.go`)
 - compiled Go plugin/job/task registrations (`robot/registrations.go`)
-- generic shared helpers such as wrapping utilities (`robot/wrap.go`)
+- pure connector-safe helpers in `robot/util/` (`wrap.go`, `id.go`, `basic_markdown_plain.go`)
 
 Design rule:
 - modular components like connectors, brains, and history providers should import `github.com/lnxjedi/gopherbot/robot`

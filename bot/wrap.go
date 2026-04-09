@@ -1,13 +1,13 @@
 package bot
 
-import "github.com/lnxjedi/gopherbot/robot"
+import "github.com/lnxjedi/gopherbot/robot/util"
 
-type Wrapper = robot.Wrapper
+type Wrapper = util.Wrapper
 
 func NewWrapper() Wrapper {
-	return robot.NewWrapper()
+	return util.NewWrapper()
 }
 
 func Wrap(s string, limit int) string {
-	return robot.Wrap(s, limit)
+	return util.Wrap(s, limit)
 }

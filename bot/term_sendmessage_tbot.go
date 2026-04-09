@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/gopherbot/robot/util"
 	tbot "github.com/lnxjedi/gopherbot/test"
 )
 
@@ -37,9 +38,9 @@ func (tc *termConnector) sendMessage(user, ch, thr, msg string, f robot.MessageF
 		tc.lastThread = thr
 		tc.Unlock()
 	}
-	user, _ = tc.ExtractID(user)
+	user, _ = util.ExtractID(user)
 	if f == robot.BasicMarkdown {
-		msg = renderBasicMarkdownPlain(msg)
+		msg = util.RenderBasicMarkdownPlain(msg)
 	}
 	if incomingMsg.HiddenMessage &&
 		(user == "" || user == incomingMsg.UserID) {

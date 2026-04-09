@@ -158,7 +158,6 @@ func (W _github_com_lnxjedi_gopherbot_robot_Connector) SendProtocolUserMessage(u
 // _github_com_lnxjedi_gopherbot_robot_Handler is an interface wrapper for Handler type
 type _github_com_lnxjedi_gopherbot_robot_Handler struct {
 	IValue             interface{}
-	WExtractID         func(u string) (string, bool)
 	WGetBrainConfig    func(a0 interface{}) error
 	WGetConfigPath     func() string
 	WGetDirectory      func(path string) error
@@ -175,9 +174,6 @@ type _github_com_lnxjedi_gopherbot_robot_Handler struct {
 	WSetTerminalWriter func(a0 io.Writer)
 }
 
-func (W _github_com_lnxjedi_gopherbot_robot_Handler) ExtractID(u string) (string, bool) {
-	return W.WExtractID(u)
-}
 func (W _github_com_lnxjedi_gopherbot_robot_Handler) GetBrainConfig(a0 interface{}) error {
 	return W.WGetBrainConfig(a0)
 }

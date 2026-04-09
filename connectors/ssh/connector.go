@@ -11,6 +11,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/gopherbot/robot/util"
 )
 
 type filterMode int
@@ -1074,7 +1075,7 @@ func (sc *sshConnector) normalizeChannel(ch string) string {
 		return ch
 	}
 	if sc.handler != nil {
-		if id, ok := sc.handler.ExtractID(ch); ok {
+		if id, ok := util.ExtractID(ch); ok {
 			ch = id
 		}
 	}
@@ -1089,7 +1090,7 @@ func (sc *sshConnector) normalizeUser(u string) string {
 		return u
 	}
 	if sc.handler != nil {
-		if id, ok := sc.handler.ExtractID(u); ok {
+		if id, ok := util.ExtractID(u); ok {
 			return id
 		}
 	}

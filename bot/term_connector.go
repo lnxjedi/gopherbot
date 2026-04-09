@@ -13,6 +13,7 @@ import (
 
 	"github.com/chzyer/readline"
 	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/gopherbot/robot/util"
 	tbot "github.com/lnxjedi/gopherbot/test"
 )
 
@@ -497,7 +498,7 @@ func (tc *termConnector) resolveTermUser(u string) (*termUser, bool) {
 	var exists bool
 	tc.RLock()
 	defer tc.RUnlock()
-	if id, ok := tc.ExtractID(u); ok {
+	if id, ok := util.ExtractID(u); ok {
 		i, exists = tc.userIDToIndex[id]
 	} else {
 		i, exists = tc.userNameToIndex[u]
@@ -509,7 +510,7 @@ func (tc *termConnector) resolveTermUser(u string) (*termUser, bool) {
 }
 
 func (tc *termConnector) getChannel(c string) string {
-	if ch, ok := tc.ExtractID(c); ok {
+	if ch, ok := util.ExtractID(c); ok {
 		return strings.TrimPrefix(ch, "#")
 	}
 	return c
@@ -617,7 +618,7 @@ func (tc *termConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f
 func (tc *termConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	var chanID string
 	var ok bool
-	if chanID, ok = tc.ExtractID(ch); !ok {
+	if chanID, ok = util.ExtractID(ch); !ok {
 		chanID = ch
 	}
 	// Validate the channel exists

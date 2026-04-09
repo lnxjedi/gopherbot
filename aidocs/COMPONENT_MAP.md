@@ -126,7 +126,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - History-provider registrations: `robot/history_providers.go` (`RegisterHistoryProvider`).
 - OAuth2 extension API request shape: `robot/oauth2.go`.
 - Connector contracts and connector-side APIs: `robot/connector_defs.go` (`Connector`, `ConnectorAPIProvider`, `Injector`, `MessageSource`).
-- Shared wrapping utility used by engine and connectors: `robot/wrap.go` (`Wrapper`, `NewWrapper`, `Wrap`).
+- Shared pure helpers used by engine and connectors: `robot/util/wrap.go` (`Wrapper`, `NewWrapper`, `Wrap`), `robot/util/id.go` (`ExtractID`), `robot/util/basic_markdown_plain.go` (`RenderBasicMarkdownPlain`).
 
 ## robot.skel/
 

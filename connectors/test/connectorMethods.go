@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/gopherbot/robot/util"
 )
 
 // BotMessage is for receiving messages from the robot
@@ -16,7 +17,7 @@ type BotMessage struct {
 func (tc *TestConnector) getUserInfo(u string) (*testUser, bool) {
 	var i int
 	var exists bool
-	if id, ok := tc.ExtractID(u); ok {
+	if id, ok := util.ExtractID(u); ok {
 		i, exists = userIDMap[id]
 	} else {
 		i, exists = userMap[u]
@@ -28,7 +29,7 @@ func (tc *TestConnector) getUserInfo(u string) (*testUser, bool) {
 }
 
 func (tc *TestConnector) getChannel(c string) string {
-	if ch, ok := tc.ExtractID(c); ok {
+	if ch, ok := util.ExtractID(c); ok {
 		return strings.TrimPrefix(ch, "#")
 	}
 	return c
