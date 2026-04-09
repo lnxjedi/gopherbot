@@ -101,7 +101,7 @@ Bootstrap path (first configured start):
 
 1. Startup mode resolves to `bootstrap` when `GOPHER_CUSTOM_REPOSITORY` is set but local config is absent (`detectStartupMode` in `bot/config_load.go`).
 2. Default config selects `nullconn` for bootstrap mode and schedules `go-bootstrap` at `@init` (see `conf/robot.yaml`).
-3. `go-bootstrap` (`gojobs/go-bootstrap/go_bootstrap_job.go`) validates required parameters (notably `GOPHER_CUSTOM_REPOSITORY`, `GOPHER_DEPLOY_KEY`), clones the custom repo, and queues `restart-robot`.
+3. `go-bootstrap` (`gojobs/go-bootstrap/go_bootstrap_job.go`) validates required parameters (notably `GOPHER_CUSTOM_REPOSITORY`, `GOPHER_DEPLOY_KEY`), removes any temporary binary encryption key file created before clone, clones the custom repo, and queues `restart-robot`.
 4. Process restarts and startup mode becomes `production`.
 
 Connector config implication:
@@ -130,13 +130,14 @@ Connector config implication:
 For robots created from `robot.skel`, custom configuration is environment-driven:
 
 - `custom/conf/robot.yaml` includes `conf/environments/<environment>.yaml`.
-- `GOPHER_ENVIRONMENT` selects the environment file (default `development`).
+- `GOPHER_ENVIRONMENT` selects the environment file (default `production` in `robot.skel`, with onboarding writing `development` into `.env` for local-first starts).
 - Environment files define runtime defaults for that robot environment (for example protocol, brain, log destination).
+- `robot.skel` is intentionally minimal; optional connector/plugin/job templates live in the installed `conf/*.yaml.sample` files and are activated later by the robot owner or setup flows.
 
 Representative custom robot template pattern:
 
 ```yaml
-{{ $environment := env "GOPHER_ENVIRONMENT" | default "development" }}
+{{ $environment := env "GOPHER_ENVIRONMENT" | default "production" }}
 {{ printf "environments/%s.yaml" $environment | .Include }}
 ```
 
@@ -210,6 +211,11 @@ Primary connector configuration is always loaded from:
 - `conf/protocols/<PrimaryProtocol>.yaml`
 
 `ProtocolConfig` is expected there (not in `robot.yaml`). If that file is missing, or missing `ProtocolConfig`, startup/reload config load fails.
+
+Notes:
+
+- Only exact `*.yaml` files participate in startup/reload config loading.
+- Sample files such as `*.yaml.sample` are inert until renamed or copied into an active `*.yaml` path.
 
 ### Connector Initialization Contract
 

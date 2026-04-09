@@ -11,7 +11,7 @@ import (
 var joinMessageRe = regexp.MustCompile(`(?i:^@([a-z][a-z0-9_-]{0,31}) has joined #([a-z0-9_-]+)$)`)
 
 func JobHandler(r robot.Robot, args ...string) robot.TaskRetVal {
-	user, channel := joinedUser(args, r.GetMessage())
+	user, channel := joinedUserFromLookup(args, r.GetMessage)
 	if user == "" || channel == "" {
 		return robot.Normal
 	}
@@ -31,6 +31,16 @@ func joinedUser(args []string, m *robot.Message) (string, string) {
 		return "", ""
 	}
 	return normalizeName(matches[1]), normalizeName(matches[2])
+}
+
+func joinedUserFromLookup(args []string, lookup func() *robot.Message) (string, string) {
+	if len(args) >= 2 {
+		return normalizeName(args[0]), normalizeName(args[1])
+	}
+	if lookup == nil {
+		return "", ""
+	}
+	return joinedUser(nil, lookup())
 }
 
 func normalizeName(v string) string {

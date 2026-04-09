@@ -1,0 +1,11 @@
+---
+## Sample per-robot override for the optional github-review-digest job.
+## Copy this file to custom/conf/jobs/github-review-digest.yaml after
+## configuring GitHub identity support for the robot.
+
+Config:
+  Provider: github
+  User: alice
+  APIBaseURL: https://api.github.com
+  ReviewQuery: "is:open is:pr review-requested:@me archived:false"
+  MaxItems: 5

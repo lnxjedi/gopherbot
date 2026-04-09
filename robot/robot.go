@@ -210,6 +210,7 @@ type Robot interface {
 	//		IPAddr
 	//		SimpleString - Characters commonly found in most english sentences, doesn't
 	//	      include special characters like @, {, etc.
+	//		AnyString - Any non-empty reply, including punctuation-heavy pasted values
 	//		YesNo
 	//
 	// In case it's not obvious, this is mainly only useful in a plugin where the robot

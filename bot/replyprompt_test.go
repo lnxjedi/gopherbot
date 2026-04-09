@@ -316,3 +316,18 @@ func TestInterruptReplyWaitersForTask(t *testing.T) {
 		t.Fatal("matcher should be removed after targeted interruption")
 	}
 }
+
+func TestAnyStringStockReplyMatchesPastedSecrets(t *testing.T) {
+	re := stockReplies["AnyString"]
+	if re == nil {
+		t.Fatal("stockReplies[AnyString] is nil")
+	}
+	for _, input := range []string{
+		"Forky-EAT:Lunker@SmashedBUMBLETS",
+		"token-with:punctuation@and/slashes",
+	} {
+		if !re.MatchString(input) {
+			t.Fatalf("AnyString did not match %q", input)
+		}
+	}
+}

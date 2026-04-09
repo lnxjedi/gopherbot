@@ -1,5 +1,0 @@
-Config:
-  Provider: github
-  APIBaseURL: https://api.github.com
-  ReviewQuery: "is:open is:pr review-requested:@me archived:false"
-  MaxItems: 10

@@ -424,9 +424,9 @@ func continueWizard(conv *conversation, state *setupStateFile, userKey string, s
 			return
 		}
 		sendSetupParagraphs(conv,
-			"Done. Your encryption key is now in the environment, usually through `.env`, and that's the only setup state I've written so far.",
+			"Done. Your encryption key is now written to `.env`, which can be used for supplying environment variables to a robot when it starts.",
 			"Keep that value safe and never commit `.env` to git.",
-			fmt.Sprintf("I'm restarting now. Reconnect as @%s and the setup resume job will pick up automatically right where we left off.", session.StartedBy),
+			fmt.Sprintf("I'm restarting now with encryption enabled. Reconnect as @%s and the setup resume job will pick up automatically right where we left off.", session.StartedBy),
 		)
 		conv.Pause(SetupRestartTransitionPauseSeconds)
 		conv.r.AddTask("restart-robot")
@@ -562,9 +562,9 @@ func continueWizard(conv *conversation, state *setupStateFile, userKey string, s
 			}
 		} else {
 			sendSetupParagraphs(conv,
-				fmt.Sprintf("Very good. I created the local scaffold under `%s` and configured local identity for `%s`.", defaultScaffoldPath, session.CanonicalUser),
+				fmt.Sprintf("I've created the local scaffold under `%s/` and configured a local SSH connector identity for `%s`.", defaultScaffoldPath, session.CanonicalUser),
 				fmt.Sprintf("I also saved the robot's SSH server public key to `%s/robot-ssh.pub`.", defaultScaffoldPath),
-				"The last setup step is git. Next I'll wire in the repository settings this robot will use for bootstrap and deployment.",
+				"The last setup step is configuring your robot's git repository for deployment bootstrapping.",
 			)
 		}
 		session.Status = statusActive
@@ -611,8 +611,8 @@ func continueWizard(conv *conversation, state *setupStateFile, userKey string, s
 
 	if session.Stage == stageAwaitingGitPush {
 		sendSetupParagraphs(conv,
-			"You don't need to reply here. Those repository steps can happen after the restart from the same working directory.",
-			"Because the local `custom/` checkout already exists, this robot can restart into its full configuration now even before the first push happens.",
+			fmt.Sprintf("Meanwhile, I'll restart once more from the current directory, where your new robot resides in `%s/` - after the restart, you should be able to connect as yourself with `bot-ssh %s`. Then, as administrator, you can start working on setting up a proper brain, a team chat connector, and other pieces needed for a fully functional robot.", defaultScaffoldPath, session.CanonicalUser),
+			"Have fun.",
 		)
 	}
 
@@ -623,10 +623,6 @@ func continueWizard(conv *conversation, state *setupStateFile, userKey string, s
 	if !persist("Repository handoff succeeded but I couldn't persist final state in %s") {
 		return
 	}
-	sendSetupParagraphs(conv,
-		"Beautiful. That gives me everything I need.",
-		"I'm doing the final restart now so the robot comes back with its real configuration, its real name, and its bootstrap settings already in place.",
-	)
 	conv.Pause(SetupRestartTransitionPauseSeconds)
 	conv.r.AddTask("restart-robot")
 }
@@ -634,7 +630,7 @@ func continueWizard(conv *conversation, state *setupStateFile, userKey string, s
 func promptEncryptionKey(conv *conversation) (string, bool) {
 	sendSetupQuestionIntro(conv,
 		"Let's build your robot together. First we'll create the one secret every robot needs: `GOPHER_ENCRYPTION_KEY`.",
-		"This key protects secrets stored by the robot. It lives in the environment, usually a `.env` file, stays outside git, and is the one value you'll carry with you when you deploy the robot somewhere else.",
+		"This key protects secrets stored by the robot. It lives in `.env` or other environment variables supplied when the robot starts, stays outside git, and is one of the values you'll use again when deploying the robot somewhere else.",
 	)
 	for i := 0; i < 3; i++ {
 		rep, ret := conv.Prompt("SimpleString", "Would you like me to generate a fresh key for you, or would you rather paste one you already have? (generate / supply)")
@@ -649,7 +645,7 @@ func promptEncryptionKey(conv *conversation) (string, bool) {
 			choice := strings.ToLower(strings.TrimSpace(rep))
 			switch choice {
 			case "generate", "g":
-				conv.Reply("Very good. I'll generate one now and write it into the environment through `.env`.")
+				conv.Reply("All right. I'll generate one now and write it into `.env`.")
 				key, err := randomAlphaNum(32)
 				if err != nil {
 					conv.r.Log(robot.Error, "Generating encryption key: %v", err)
@@ -662,7 +658,7 @@ func promptEncryptionKey(conv *conversation) (string, bool) {
 				if !ok {
 					return "", false
 				}
-				conv.Reply("Very good. That looks valid, so I'll write it into the environment through `.env`.")
+				conv.Reply("That looks valid, so I'll write it into `.env`.")
 				return key, true
 			default:
 				conv.Reply("Please reply `generate` or `supply`.")
@@ -678,9 +674,10 @@ func promptEncryptionKey(conv *conversation) (string, bool) {
 func promptSuppliedEncryptionKey(conv *conversation) (string, bool) {
 	sendSetupQuestionIntro(conv,
 		"If you already have an encryption key you want to keep using, you can paste it here instead of having me generate one.",
+		"It can contain letters, digits, or punctuation, but it must be at least 32 characters long with no spaces, tabs, or line breaks. If you paste a longer value, only the first 32 bytes are used today.",
 	)
 	for i := 0; i < 3; i++ {
-		rep, ret := conv.Prompt("SimpleString", "Please paste the encryption key you'd like to use.")
+		rep, ret := conv.Prompt("AnyString", "Please paste the encryption key you'd like to use.")
 		switch ret {
 		case robot.Interrupted:
 			conv.Reply("Setup paused. Run 'new robot' when you're ready to continue.")
@@ -693,8 +690,12 @@ func promptSuppliedEncryptionKey(conv *conversation) (string, bool) {
 			if validEncryptionKey(key) {
 				return key, true
 			}
-			conv.Reply("That key doesn't look valid. Please provide a single 32-character key with no spaces.")
+			conv.Reply(invalidEncryptionKeyMessage(key))
 		default:
+			if ret == robot.ReplyNotMatched {
+				conv.Reply(invalidEncryptionKeyMessage(strings.TrimSpace(rep)))
+				continue
+			}
 			conv.Reply("I couldn't read your encryption key (%s).", ret)
 		}
 	}
@@ -706,12 +707,19 @@ func validEncryptionKey(key string) bool {
 	if strings.TrimSpace(key) != key {
 		return false
 	}
-	return len(key) == 32 && !strings.ContainsAny(key, " \t\r\n")
+	return len(key) >= 32 && !strings.ContainsAny(key, " \t\r\n")
+}
+
+func invalidEncryptionKeyMessage(key string) string {
+	if strings.ContainsAny(key, " \t\r\n") || strings.TrimSpace(key) != key {
+		return "That key isn't valid. `GOPHER_ENCRYPTION_KEY` must be at least 32 characters long and cannot contain spaces, tabs, or line breaks. Letters, digits, and punctuation are all fine. If you provide a longer value, only the first 32 bytes are used today."
+	}
+	return fmt.Sprintf("That key isn't valid. `GOPHER_ENCRYPTION_KEY` must be at least 32 characters long and cannot contain spaces, tabs, or line breaks. Letters, digits, and punctuation are all fine. If you provide a longer value, only the first 32 bytes are used today. I received %d characters.", len(key))
 }
 
 func promptBotName(conv *conversation) (string, bool) {
 	sendSetupQuestionIntro(conv,
-		"Your robot will need a given name like 'Floyd'.",
+		"Your robot will need a 'given name' something like 'Floyd', but unique to *your* custom robot.",
 		"For maximum compatibility and portability across chat platforms, the robot will recognize messages that start with its name as a command it should try to interpret, for example 'Floyd, ping'.",
 	)
 	for i := 0; i < 3; i++ {
@@ -731,7 +739,7 @@ func promptBotName(conv *conversation) (string, bool) {
 		}
 		name := canonicalBotName(rep)
 		if botNameRe.MatchString(name) {
-			conv.Reply("Very good - your robot will respond to messages that start with `%s`.", name)
+			conv.Reply("Perfect. Your robot will respond to messages that start with `%s`.", name)
 			return name, true
 		}
 		conv.Reply("'%s' isn't valid. Use lowercase letters, digits, '_' or '-', starting with a letter.", strings.TrimSpace(rep))
@@ -762,7 +770,7 @@ func promptBotAlias(conv *conversation) (string, bool) {
 		}
 		alias := canonicalBotAlias(rep)
 		if validBotAlias(alias) {
-			conv.Reply("Very good - your robot will also respond to `%s`.", alias)
+			conv.Reply("Sounds good. Your robot will also respond to `%s`.", alias)
 			return alias, true
 		}
 		conv.Reply("'%s' isn't a supported alias. Choose one character from ! ; - %% ~ * + ^ $ ? [ ] { } or \\\\.", strings.TrimSpace(rep))
@@ -801,7 +809,7 @@ func promptJobChannel(conv *conversation, fallback string) (string, bool) {
 		}
 		channel := canonicalChannelName(rep)
 		if channelRe.MatchString(channel) {
-			conv.Reply("Very good - scheduled job messages will go to `#%s`.", channel)
+			conv.Reply("Got it. Scheduled job messages will go to `#%s`.", channel)
 			return channel, true
 		}
 		conv.Reply("'%s' isn't valid. Use letters/digits with optional '-' or '_', and no spaces.", strings.TrimSpace(rep))
@@ -813,10 +821,10 @@ func promptJobChannel(conv *conversation, fallback string) (string, bool) {
 func promptRobotEmail(conv *conversation) (string, bool) {
 	sendSetupQuestionIntro(conv,
 		"Your robot should have an email address for its own identity.",
-		"It will be used as the `From:` address when the robot sends email, and also for git commits. If you do not have a dedicated address yet, your own address is fine for now.",
+		"It will be the value returned by GetBotAttribute(\"email\"), which might be used for e.g. sending emails or making git commits. If you have no plans for these yet, you can supply your own email or a dummy value.",
 	)
 	for i := 0; i < 3; i++ {
-		rep, ret := conv.Prompt("Email", "What email address should the robot use for its own identity? If you don't have a dedicated one yet, your own address is fine for now.")
+		rep, ret := conv.Prompt("Email", "What email address should the robot use?")
 		switch ret {
 		case robot.Interrupted:
 			conv.Reply("Setup paused. Run 'new robot' when you're ready to continue.")
@@ -827,7 +835,7 @@ func promptRobotEmail(conv *conversation) (string, bool) {
 		case robot.Ok:
 			email := strings.TrimSpace(rep)
 			if email != "" {
-				conv.Reply("Very good - the robot will use `%s` for its own email identity.", email)
+				conv.Reply("Thanks. The robot will use `%s` for its own email identity.", email)
 				return email, true
 			}
 			conv.Reply("Please provide a valid email address.")
@@ -845,7 +853,7 @@ func promptAdminEmail(conv *conversation) (string, bool) {
 		"This is the address people may see in help or info output if they need help with the robot.",
 	)
 	for i := 0; i < 3; i++ {
-		rep, ret := conv.Prompt("Email", "And what email address should the robot advertise for its administrator? This is what people may see in help or info output.")
+		rep, ret := conv.Prompt("Email", "What email address should the robot advertise for its administrator?")
 		switch ret {
 		case robot.Interrupted:
 			conv.Reply("Setup paused. Run 'new robot' when you're ready to continue.")
@@ -856,7 +864,7 @@ func promptAdminEmail(conv *conversation) (string, bool) {
 		case robot.Ok:
 			email := strings.TrimSpace(rep)
 			if email != "" {
-				conv.Reply("Very good - the robot will advertise `%s` as its administrator contact.", email)
+				conv.Reply("Understood. The robot will advertise `%s` as its administrator contact.", email)
 				return email, true
 			}
 			conv.Reply("Please provide a valid email address.")
@@ -869,17 +877,20 @@ func promptAdminEmail(conv *conversation) (string, bool) {
 }
 
 func promptCanonicalUser(conv *conversation, fallback string) (string, bool) {
-	if fallback == "" {
-		fallback = "alice"
+	fallback = canonicalUserKey(fallback)
+	if fallback == canonicalUserKey(preferredBotName(conv.r, nil)) || !usernameRe.MatchString(fallback) {
+		fallback = ""
 	}
 	sendSetupQuestionIntro(conv,
 		"Next I need the canonical username you want this robot to recognize as you.",
 		"For a local SSH robot this becomes the normal login name you will use with `bot-ssh <username>`. For a team-chat robot, use the username you expect the connector to map to you.",
 	)
+	prompt := "What username do you want to use with your robot for local ssh login? (`bot-ssh <username>`) For team-chat robots, use your team-chat username."
+	if fallback != "" {
+		prompt = fmt.Sprintf("%s Default '%s'; reply '=' to use default.", prompt, fallback)
+	}
 	for i := 0; i < 3; i++ {
-		rep, ret := conv.Prompt("username",
-			"What username do you want to use with your robot for local ssh login? (bot-ssh <username>) For team-chat robots, use your team-chat username. Default '%s'; reply '=' to use default.",
-			fallback)
+		rep, ret := conv.Prompt("username", prompt)
 		switch ret {
 		case robot.Interrupted:
 			conv.Reply("Setup paused. Run 'new robot' when you're ready to continue.")
@@ -888,6 +899,10 @@ func promptCanonicalUser(conv *conversation, fallback string) (string, bool) {
 			conv.Reply("Timed out waiting for username. Run 'new robot' when you're ready.")
 			return "", false
 		case robot.UseDefaultValue:
+			if fallback == "" {
+				conv.Reply("No default username is available yet.")
+				continue
+			}
 			rep = fallback
 		case robot.Ok:
 			// use provided response
@@ -897,7 +912,7 @@ func promptCanonicalUser(conv *conversation, fallback string) (string, bool) {
 		}
 		candidate := canonicalUserKey(rep)
 		if usernameRe.MatchString(candidate) {
-			conv.Reply("Very good - you'll use `%s` as your canonical username for this robot.", candidate)
+			conv.Reply("Good - you'll use `%s` as your canonical username for this robot.", candidate)
 			return candidate, true
 		}
 		conv.Reply("'%s' isn't valid. Use lowercase letters, digits, '_' or '-', starting with a letter.", strings.TrimSpace(rep))
@@ -923,7 +938,7 @@ func resolveSSHPublicKey(conv *conversation) (string, string, bool) {
 		case robot.Ok:
 			v := strings.ToLower(strings.TrimSpace(rep))
 			if v == "y" || v == "yes" {
-				conv.Reply("Very good - I'll use the SSH public key from `%s` for local login.", source)
+				conv.Reply("Excellent. I'll use the SSH public key from `%s` for local login.", source)
 				return key, source, true
 			}
 			if v != "n" && v != "no" {
@@ -951,7 +966,7 @@ func resolveSSHPublicKey(conv *conversation) (string, string, bool) {
 				conv.Reply("That doesn't look like a valid SSH public key line.")
 				continue
 			}
-			conv.Reply("Very good - I'll use that SSH public key for local login.")
+			conv.Reply("Thanks. I'll use that SSH public key for local login.")
 			return key, "prompt", true
 		default:
 			conv.Reply("I couldn't read your SSH key response (%s).", ret)
@@ -967,8 +982,9 @@ func promptRepositoryURL(conv *conversation, current string) (string, bool) {
 		defaultRepo = ""
 	}
 	sendSetupQuestionIntro(conv,
-		"The standard workflow is to store your robot's configuration and scripts in a single git repository for bootstrap and deployment.",
-		"This should be a clone URL that uses SSH credentials. For this flow, the upstream repository should be created empty with no README, LICENSE, or other starter files.",
+		"All of the custom configuration, scripts and secrets (encrypted by `GOPHER_ENCRYPTION_KEY`) that define your robot will be stored in a remote git repository.",
+		"When `gopherbot` is started in an empty directory, or a directory containing only `.env`, it will look for the environment variables it needs there, clone your robot's repository, and then start your robot for simple deployment and updates.",
+		"Now I need a clone URL for your robot's repository that uses SSH credentials. For this flow, the upstream repository should be created empty with no README, LICENSE, or other starter files.",
 	)
 	prompt := "Let's get this robot ready for the first deployment - what's the repository clone URL? (e.g. 'git@github.com:owner/repo.git')"
 	if defaultRepo != "" {
@@ -988,12 +1004,12 @@ func promptRepositoryURL(conv *conversation, current string) (string, bool) {
 				conv.Reply("No default repository is available yet.")
 				continue
 			}
-			conv.Reply("Very good - I'll keep `%s` as the bootstrap repository URL.", defaultRepo)
+			conv.Reply("Sounds good. I'll keep `%s` as the bootstrap repository URL.", defaultRepo)
 			return defaultRepo, true
 		case robot.Ok:
 			repo := strings.TrimSpace(rep)
 			if validRepositoryURL(repo) {
-				conv.Reply("Very good - I'll configure bootstrap to use `%s`.", repo)
+				conv.Reply("Perfect. I'll configure bootstrap to use `%s`.", repo)
 				return repo, true
 			}
 			conv.Reply("That doesn't look like a supported clone URL.")
@@ -1008,14 +1024,14 @@ func promptRepositoryURL(conv *conversation, current string) (string, bool) {
 func sendRepositoryInstructions(conv *conversation, session setupSession) {
 	sendSetupParagraphs(conv,
 		"Repository handoff is ready. I updated `.env` with `GOPHER_CUSTOM_REPOSITORY` and `GOPHER_DEPLOY_KEY`.",
-		"Next, create the empty upstream repository if you have not already done that, then add this read-only deploy key to it:",
+		"Next, create the empty upstream repository if you have not already, then add this read-only deploy key to it:",
 	)
 	conv.FixedSay("%s", strings.TrimSpace(session.DeployPublicKey))
 	conv.Pause(SetupParagraphReadPauseSeconds)
-	conv.Say("When you're ready to publish the local scaffold, run these commands from the `%s` directory:", defaultScaffoldPath)
+	conv.Say("When you're ready to publish the local scaffold, run these commands from the `%s/` directory:", defaultScaffoldPath)
 	conv.FixedSay("git init\ngit add .\ngit branch -m main\ngit commit -m \"Initial robot scaffold\"\ngit remote add origin %s\ngit push -u origin main", session.RepositoryURL)
 	conv.Pause(SetupParagraphReadPauseSeconds)
-	conv.Say("After that first push succeeds, future bootstrap starts in a brand-new directory should be able to clone this repository and rebuild `custom/` automatically.")
+	conv.Say("After that first push succeeds, you should be able to start your robot by running `gopherbot` in a new empty directory with only `.env`.")
 }
 
 func sendFinalBootstrapInstructions(conv *conversation, session setupSession) {
@@ -1150,8 +1166,6 @@ func applyScaffold(r robot.Robot, s setupSession) error {
 		"conf/robot.yaml",
 		"conf/protocols/ssh.yaml",
 		"conf/protocols/terminal.yaml",
-		"conf/protocols/slack.yaml",
-		"git/config",
 	} {
 		fp := filepath.Join(defaultScaffoldPath, rel)
 		if err := replaceTokensInFile(fp, replace); err != nil {
@@ -1281,6 +1295,7 @@ func writeInitialEnv(encryptionKey string) error {
 
 	required := map[string]string{
 		"GOPHER_ENCRYPTION_KEY": encryptionKey,
+		"GOPHER_ENVIRONMENT":    defaultEnvironment,
 	}
 
 	lines := []string{}
@@ -1306,11 +1321,6 @@ func writeInitialEnv(encryptionKey string) error {
 		if key == "GOPHER_CUSTOM_REPOSITORY" || key == "GOPHER_DEPLOY_KEY" || key == "GOPHER_CUSTOM_BRANCH" || key == "GOPHER_PROTOCOL" || key == "GOPHER_BRAIN" || key == "GOPHER_DEFAULT_PROTOCOL" || key == "GOPHER_BOTNAME" {
 			lines[i] = ""
 			continue
-		}
-		// Explicitly setting development is redundant because startup defaults
-		// to development when GOPHER_ENVIRONMENT is not set.
-		if key == "GOPHER_ENVIRONMENT" && strings.EqualFold(strings.TrimSpace(strings.Trim(valueForEnvLine(line), `"'`)), defaultEnvironment) {
-			lines[i] = ""
 		}
 	}
 
@@ -1432,9 +1442,10 @@ func ensureEnvironmentGuidanceComment(lines []string) []string {
 		return lines
 	}
 	comment := []string{
+		"# New robots start in development mode so they use the local development environment.",
+		"# Remove GOPHER_ENVIRONMENT=development when deploying to production.",
 		"# For a robot running in production, set:",
 		"# GOPHER_ENVIRONMENT=production",
-		"# (default is development)",
 	}
 	if len(lines) == 0 {
 		return comment
@@ -1529,7 +1540,19 @@ func enableOnboardingHooks(robotConfigPath string) error {
 
 	updated, err := insertBlockAfterLine(txt, "ExternalJobs:", jobBlock)
 	if err != nil {
-		return fmt.Errorf("adding onboarding resume job to %s: %w", robotConfigPath, err)
+		sectionBlock := strings.TrimRight(`
+ExternalJobs:
+  # BEGIN NEW-ROBOT ONBOARDING JOB
+  "resume-setup":
+    Description: Temporary onboarding resume-on-join job
+    Path: jobs/go-resume-setup/resume_setup.go
+    Homed: true
+  # END NEW-ROBOT ONBOARDING JOB
+`, "\n")
+		updated, err = insertBlockBeforeLine(txt, "ScheduledJobs:", sectionBlock)
+		if err != nil {
+			return fmt.Errorf("adding onboarding resume job to %s: %w", robotConfigPath, err)
+		}
 	}
 
 	if err := os.WriteFile(robotConfigPath, []byte(updated), 0600); err != nil {
@@ -1549,6 +1572,22 @@ func insertBlockAfterLine(text, anchor, block string) (string, error) {
 		updated = append(updated, lines[:i+1]...)
 		updated = append(updated, blockLines...)
 		updated = append(updated, lines[i+1:]...)
+		return strings.Join(updated, "\n"), nil
+	}
+	return "", fmt.Errorf("anchor not found: %s", anchor)
+}
+
+func insertBlockBeforeLine(text, anchor, block string) (string, error) {
+	lines := strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
+	for i, line := range lines {
+		if strings.TrimSpace(line) != anchor {
+			continue
+		}
+		blockLines := strings.Split(strings.TrimRight(block, "\n"), "\n")
+		updated := make([]string, 0, len(lines)+len(blockLines))
+		updated = append(updated, lines[:i]...)
+		updated = append(updated, blockLines...)
+		updated = append(updated, lines[i:]...)
 		return strings.Join(updated, "\n"), nil
 	}
 	return "", fmt.Errorf("anchor not found: %s", anchor)
@@ -1948,8 +1987,12 @@ func ensureSSHProtocolUserKey(sshConfigPath, user, sshKey string) error {
 }
 
 func preferredBotName(r robot.Robot, session *setupSession) string {
+	sessionBotName := ""
+	if session != nil {
+		sessionBotName = session.BotName
+	}
 	candidates := []string{
-		session.BotName,
+		sessionBotName,
 		r.GetParameter("GOPHER_BOTNAME"),
 		r.GetBotAttribute("name").String(),
 		"floyd",
@@ -1964,8 +2007,12 @@ func preferredBotName(r robot.Robot, session *setupSession) string {
 }
 
 func preferredBotAlias(r robot.Robot, session *setupSession) string {
+	sessionBotAlias := ""
+	if session != nil {
+		sessionBotAlias = session.BotAlias
+	}
 	candidates := []string{
-		session.BotAlias,
+		sessionBotAlias,
 		r.GetParameter("GOPHER_ALIAS"),
 		r.GetBotAttribute("alias").String(),
 		defaultBotAlias,
@@ -2002,10 +2049,9 @@ func onboardingContext(r robot.Robot, m *robot.Message) (userName, channelName, 
 
 func preferredOnboardingUser(r robot.Robot, startedBy string, m *robot.Message) string {
 	candidates := []string{
+		os.Getenv("USER"),
 		r.GetParameter("GOPHER_USER"),
 		r.GetParameter(paramOnboardingUser),
-		os.Getenv("USER"),
-		os.Getenv("LOGNAME"),
 		startedBy,
 	}
 	if m != nil {

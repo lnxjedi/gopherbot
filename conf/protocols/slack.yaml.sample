@@ -1,0 +1,19 @@
+## Sample configuration for the Slack connector.
+## Copy this file to custom/conf/protocols/slack.yaml when you are ready to
+## configure Slack for a robot.
+##
+## Keep user directory and admin settings in custom/conf/robot.yaml.
+## Map canonical usernames to Slack IDs in ProtocolConfig.UserMap.
+
+ProtocolConfig:
+  MaxMessageSplit: 2
+  AppToken: xapp-{{ decrypt "<slack_app_secret>" }}
+  BotToken: xoxb-{{ decrypt "<slack_bot_secret>" }}
+  AcceptSlashCommands: false
+  # When AcceptSlashCommands is true, SlashCommand is required. Either
+  # "clu" or "/clu" is accepted and normalized to "/clu" for help/fallback.
+  # SlashCommand: clu
+  HearSelf: false
+  # UserMap:
+  #   alice: U12345
+  #   yourbot: U67890

@@ -1,10 +1,13 @@
 package newrobotflow
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 func TestWriteInitialEnvOnlyKeepsEncryptionKeyBootstrapState(t *testing.T) {
@@ -47,11 +50,13 @@ func TestWriteInitialEnvOnlyKeepsEncryptionKeyBootstrapState(t *testing.T) {
 	if !strings.Contains(got, "GOPHER_ENCRYPTION_KEY="+key) {
 		t.Fatalf(".env missing encryption key: %q", got)
 	}
+	if !strings.Contains(got, "GOPHER_ENVIRONMENT=development") {
+		t.Fatalf(".env missing explicit development environment: %q", got)
+	}
 	for _, unwanted := range []string{
 		"GOPHER_CUSTOM_REPOSITORY=",
 		"GOPHER_DEPLOY_KEY=",
 		"GOPHER_BOTNAME=",
-		"GOPHER_ENVIRONMENT=development",
 	} {
 		if strings.Contains(got, unwanted) {
 			t.Fatalf(".env still contains %q: %q", unwanted, got)
@@ -59,6 +64,9 @@ func TestWriteInitialEnvOnlyKeepsEncryptionKeyBootstrapState(t *testing.T) {
 	}
 	if !strings.Contains(got, "KEEP_ME=yes") {
 		t.Fatalf(".env dropped unrelated content: %q", got)
+	}
+	if !strings.Contains(got, "# Remove GOPHER_ENVIRONMENT=development when deploying to production.") {
+		t.Fatalf(".env missing deployment guidance comment: %q", got)
 	}
 	if !strings.Contains(got, "# GOPHER_ENVIRONMENT=production") {
 		t.Fatalf(".env missing environment guidance comment: %q", got)
@@ -128,5 +136,242 @@ func TestFindSessionForJoinMatchesCanonicalUser(t *testing.T) {
 	}
 	if session.CanonicalUser != "samantha" {
 		t.Fatalf("findSessionForJoin() canonical user = %q", session.CanonicalUser)
+	}
+}
+
+type onboardingTestRobot struct {
+	parameters map[string]string
+	message    *robot.Message
+	botAttrs   map[string]string
+}
+
+func (r *onboardingTestRobot) CheckAdmin() bool  { return false }
+func (r *onboardingTestRobot) Subscribe() bool   { return false }
+func (r *onboardingTestRobot) Unsubscribe() bool { return false }
+func (r *onboardingTestRobot) Elevate(bool) bool { return false }
+func (r *onboardingTestRobot) GetBotAttribute(name string) *robot.AttrRet {
+	if r.botAttrs == nil {
+		return &robot.AttrRet{}
+	}
+	return &robot.AttrRet{Attribute: r.botAttrs[name], RetVal: robot.Ok}
+}
+func (r *onboardingTestRobot) GetUserAttribute(string, string) *robot.AttrRet {
+	return &robot.AttrRet{}
+}
+func (r *onboardingTestRobot) GetSenderAttribute(string) *robot.AttrRet { return &robot.AttrRet{} }
+func (r *onboardingTestRobot) GetTaskConfig(interface{}) robot.RetVal   { return robot.Ok }
+func (r *onboardingTestRobot) GetHelpMetadata(string) string            { return "" }
+func (r *onboardingTestRobot) GetMessage() *robot.Message               { return r.message }
+func (r *onboardingTestRobot) GetParameter(name string) string {
+	if r.parameters == nil {
+		return ""
+	}
+	return r.parameters[name]
+}
+func (r *onboardingTestRobot) GetIdentityCredential(string, string) (*robot.IdentityCredential, robot.RetVal) {
+	return nil, robot.IdentityNotLinked
+}
+func (r *onboardingTestRobot) LinkOAuth2Identity(*robot.OAuth2IdentityLinkRequest) robot.RetVal {
+	return robot.Failed
+}
+func (r *onboardingTestRobot) UnlinkIdentity(string, string) robot.RetVal        { return robot.Failed }
+func (r *onboardingTestRobot) Email(string, *bytes.Buffer, ...bool) robot.RetVal { return robot.Failed }
+func (r *onboardingTestRobot) EmailUser(string, string, *bytes.Buffer, ...bool) robot.RetVal {
+	return robot.Failed
+}
+func (r *onboardingTestRobot) EmailAddress(string, string, *bytes.Buffer, ...bool) robot.RetVal {
+	return robot.Failed
+}
+func (r *onboardingTestRobot) Exclusive(string, bool) bool                     { return true }
+func (r *onboardingTestRobot) Fixed() robot.Robot                              { return r }
+func (r *onboardingTestRobot) MessageFormat(robot.MessageFormat) robot.Robot   { return r }
+func (r *onboardingTestRobot) Direct() robot.Robot                             { return r }
+func (r *onboardingTestRobot) Threaded() robot.Robot                           { return r }
+func (r *onboardingTestRobot) Log(robot.LogLevel, string, ...interface{}) bool { return true }
+func (r *onboardingTestRobot) SendChannelMessage(string, string, ...interface{}) robot.RetVal {
+	return robot.Ok
+}
+func (r *onboardingTestRobot) SendChannelThreadMessage(string, string, string, ...interface{}) robot.RetVal {
+	return robot.Ok
+}
+func (r *onboardingTestRobot) SendUserChannelMessage(string, string, string, ...interface{}) robot.RetVal {
+	return robot.Ok
+}
+func (r *onboardingTestRobot) SendProtocolUserChannelMessage(string, string, string, string, ...interface{}) robot.RetVal {
+	return robot.Ok
+}
+func (r *onboardingTestRobot) SendUserChannelThreadMessage(string, string, string, string, ...interface{}) robot.RetVal {
+	return robot.Ok
+}
+func (r *onboardingTestRobot) SendUserMessage(string, string, ...interface{}) robot.RetVal {
+	return robot.Ok
+}
+func (r *onboardingTestRobot) Reply(string, ...interface{}) robot.RetVal       { return robot.Ok }
+func (r *onboardingTestRobot) ReplyThread(string, ...interface{}) robot.RetVal { return robot.Ok }
+func (r *onboardingTestRobot) Say(string, ...interface{}) robot.RetVal         { return robot.Ok }
+func (r *onboardingTestRobot) SayThread(string, ...interface{}) robot.RetVal   { return robot.Ok }
+func (r *onboardingTestRobot) RandomInt(int) int                               { return 0 }
+func (r *onboardingTestRobot) RandomString([]string) string                    { return "" }
+func (r *onboardingTestRobot) Pause(float64)                                   {}
+func (r *onboardingTestRobot) PromptForReply(string, string, ...interface{}) (string, robot.RetVal) {
+	return "", robot.Failed
+}
+func (r *onboardingTestRobot) PromptThreadForReply(string, string, ...interface{}) (string, robot.RetVal) {
+	return "", robot.Failed
+}
+func (r *onboardingTestRobot) PromptUserForReply(string, string, string, ...interface{}) (string, robot.RetVal) {
+	return "", robot.Failed
+}
+func (r *onboardingTestRobot) PromptUserChannelForReply(string, string, string, string, ...interface{}) (string, robot.RetVal) {
+	return "", robot.Failed
+}
+func (r *onboardingTestRobot) PromptUserChannelThreadForReply(string, string, string, string, string, ...interface{}) (string, robot.RetVal) {
+	return "", robot.Failed
+}
+func (r *onboardingTestRobot) CheckoutDatum(string, interface{}, bool) (string, bool, robot.RetVal) {
+	return "", false, robot.DatumNotFound
+}
+func (r *onboardingTestRobot) CheckinDatum(string, string) {}
+func (r *onboardingTestRobot) UpdateDatum(string, string, interface{}) robot.RetVal {
+	return robot.Failed
+}
+func (r *onboardingTestRobot) DeleteDatum(string) robot.RetVal             { return robot.Ok }
+func (r *onboardingTestRobot) Remember(string, string, bool)               {}
+func (r *onboardingTestRobot) RememberThread(string, string, bool)         {}
+func (r *onboardingTestRobot) RememberContext(string, string)              {}
+func (r *onboardingTestRobot) RememberContextThread(string, string)        {}
+func (r *onboardingTestRobot) Recall(string, bool) string                  { return "" }
+func (r *onboardingTestRobot) DeleteMemory(string, bool)                   {}
+func (r *onboardingTestRobot) SpawnJob(string, ...string) robot.RetVal     { return robot.Ok }
+func (r *onboardingTestRobot) AddTask(string, ...string) robot.RetVal      { return robot.Ok }
+func (r *onboardingTestRobot) FinalTask(string, ...string) robot.RetVal    { return robot.Ok }
+func (r *onboardingTestRobot) FailTask(string, ...string) robot.RetVal     { return robot.Ok }
+func (r *onboardingTestRobot) AddJob(string, ...string) robot.RetVal       { return robot.Ok }
+func (r *onboardingTestRobot) AddCommand(string, string) robot.RetVal      { return robot.Ok }
+func (r *onboardingTestRobot) FinalCommand(string, string) robot.RetVal    { return robot.Ok }
+func (r *onboardingTestRobot) FailCommand(string, string) robot.RetVal     { return robot.Ok }
+func (r *onboardingTestRobot) EncryptSecret(string) (string, robot.RetVal) { return "", robot.Failed }
+func (r *onboardingTestRobot) RaisePriv(string)                            {}
+func (r *onboardingTestRobot) SetParameter(string, string) bool            { return true }
+func (r *onboardingTestRobot) SetWorkingDirectory(string) bool             { return true }
+
+func TestPreferredOnboardingUserPrefersUSER(t *testing.T) {
+	t.Setenv("USER", "shelluser")
+
+	r := &onboardingTestRobot{
+		parameters: map[string]string{
+			"GOPHER_USER":       "pipelineuser",
+			paramOnboardingUser: "setupuser",
+		},
+		message: &robot.Message{User: "messageuser"},
+	}
+
+	got := preferredOnboardingUser(r, "startedby", r.message)
+	if got != "shelluser" {
+		t.Fatalf("preferredOnboardingUser() = %q, want shelluser", got)
+	}
+}
+
+func TestValidEncryptionKeyAllowsPunctuation(t *testing.T) {
+	const key = "Forky-EAT:Lunker@SmashedBUMBLETS"
+	if len(key) != 32 {
+		t.Fatalf("test key length = %d, want 32", len(key))
+	}
+	if !validEncryptionKey(key) {
+		t.Fatalf("validEncryptionKey(%q) = false, want true", key)
+	}
+}
+
+func TestValidEncryptionKeyAllowsLongerValues(t *testing.T) {
+	const key = "Forky-EAT:Lunker@SmashedBUMBLETcrumplet"
+	if len(key) <= 32 {
+		t.Fatalf("test key length = %d, want > 32", len(key))
+	}
+	if !validEncryptionKey(key) {
+		t.Fatalf("validEncryptionKey(%q) = false, want true", key)
+	}
+}
+
+func TestInvalidEncryptionKeyMessageExplainsRequirements(t *testing.T) {
+	msg := invalidEncryptionKeyMessage("short")
+	for _, want := range []string{
+		"GOPHER_ENCRYPTION_KEY",
+		"at least 32 characters",
+		"cannot contain spaces, tabs, or line breaks",
+		"Letters, digits, and punctuation are all fine",
+		"only the first 32 bytes are used today",
+	} {
+		if !strings.Contains(msg, want) {
+			t.Fatalf("invalidEncryptionKeyMessage() missing %q in %q", want, msg)
+		}
+	}
+	if !strings.Contains(msg, "I received 5 characters.") {
+		t.Fatalf("invalidEncryptionKeyMessage() missing length detail in %q", msg)
+	}
+}
+
+func TestEnableOnboardingHooksAddsExternalJobsSectionWhenMissing(t *testing.T) {
+	tempDir := t.TempDir()
+	robotConfigPath := filepath.Join(tempDir, "robot.yaml")
+	original := strings.Join([]string{
+		"IgnoreUnlistedUsers: true",
+		"ScheduledJobs:",
+		"- Name: pause-notifies",
+		"  Schedule: \"0 0 8 * * *\"",
+		"",
+	}, "\n")
+	if err := os.WriteFile(robotConfigPath, []byte(original), 0600); err != nil {
+		t.Fatalf("WriteFile(%q) failed: %v", robotConfigPath, err)
+	}
+
+	if err := enableOnboardingHooks(robotConfigPath); err != nil {
+		t.Fatalf("enableOnboardingHooks() failed: %v", err)
+	}
+
+	body, err := os.ReadFile(robotConfigPath)
+	if err != nil {
+		t.Fatalf("ReadFile(%q) failed: %v", robotConfigPath, err)
+	}
+	got := string(body)
+	if !strings.Contains(got, "ExternalJobs:\n  # BEGIN NEW-ROBOT ONBOARDING JOB") {
+		t.Fatalf("robot config missing inserted ExternalJobs section:\n%s", got)
+	}
+	if !strings.Contains(got, "\"resume-setup\":") {
+		t.Fatalf("robot config missing resume-setup entry:\n%s", got)
+	}
+	if strings.Index(got, "ExternalJobs:") > strings.Index(got, "ScheduledJobs:") {
+		t.Fatalf("ExternalJobs section should appear before ScheduledJobs:\n%s", got)
+	}
+}
+
+func TestPreferredBotNameHandlesNilSession(t *testing.T) {
+	r := &onboardingTestRobot{
+		parameters: map[string]string{
+			"GOPHER_BOTNAME": "parsley",
+		},
+	}
+	defer func() {
+		if p := recover(); p != nil {
+			t.Fatalf("preferredBotName() panicked with nil session: %v", p)
+		}
+	}()
+	if got := preferredBotName(r, nil); got != "parsley" {
+		t.Fatalf("preferredBotName() = %q, want parsley", got)
+	}
+}
+
+func TestPreferredBotAliasHandlesNilSession(t *testing.T) {
+	r := &onboardingTestRobot{
+		parameters: map[string]string{
+			"GOPHER_ALIAS": "%",
+		},
+	}
+	defer func() {
+		if p := recover(); p != nil {
+			t.Fatalf("preferredBotAlias() panicked with nil session: %v", p)
+		}
+	}()
+	if got := preferredBotAlias(r, nil); got != "%" {
+		t.Fatalf("preferredBotAlias() = %q, want %%", got)
 	}
 }

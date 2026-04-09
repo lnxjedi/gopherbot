@@ -62,9 +62,10 @@ User types `;new robot`.
 Floyd: Let's build your robot together. First we'll create the one secret every
        robot needs: `GOPHER_ENCRYPTION_KEY`.
 
-Floyd: This key protects secrets stored by the robot. It lives in the
-       environment, usually a `.env` file, stays outside git, and is the one
-       value you'll carry with you when you deploy the robot somewhere else.
+Floyd: This key protects secrets stored by the robot. It lives in `.env` or
+       other environment variables supplied when the robot starts, stays
+       outside git, and is one of the values you'll use again when deploying
+       the robot somewhere else.
 
 Floyd: Would you like me to generate a fresh key for you, or would you rather
        paste one you already have? (generate / supply)
@@ -75,16 +76,15 @@ Floyd: Would you like me to generate a fresh key for you, or would you rather
 ```
 alice: generate
 
-Floyd: Very good. I'll generate one now and write it into the environment through
-       `.env`.
+Floyd: All right. I'll generate one now and write it into `.env`.
 ```
 
 [Robot generates a fresh `GOPHER_ENCRYPTION_KEY`]
-[Robot writes `.env` containing only `GOPHER_ENCRYPTION_KEY=<key>`]
+[Robot writes `.env` containing `GOPHER_ENCRYPTION_KEY=<key>` and `GOPHER_ENVIRONMENT=development`]
 
 ```
-Floyd: Done. Your encryption key is now in the environment, usually through
-       `.env`, and that's the only setup state I've written so far.
+Floyd: Done. Your encryption key is now written to `.env`, which can be used
+       for supplying environment variables to a robot when it starts.
 
 Floyd: Keep `.env` safe and never commit it to git. After I restart, reconnect as
        @alice and we'll pick up automatically right where we left off.
@@ -103,16 +103,15 @@ Floyd: Please paste the encryption key you'd like to use.
 
 alice: GretFilllLterbRounwn8-v]CarpeDie
 
-Floyd: Thanks - that looks valid, so I'll write it into the environment through
-       `.env`.
+Floyd: That looks valid, so I'll write it into `.env`.
 ```
 
 [Robot validates the supplied key]
-[Robot writes `.env` containing only `GOPHER_ENCRYPTION_KEY=<key>`]
+[Robot writes `.env` containing `GOPHER_ENCRYPTION_KEY=<key>` and `GOPHER_ENVIRONMENT=development`]
 
 ```
-Floyd: Done. Your encryption key is now in the environment, usually through
-       `.env`, and that's the only setup state I've written so far.
+Floyd: Done. Your encryption key is now written to `.env`, which can be used
+       for supplying environment variables to a robot when it starts.
 
 Floyd: Keep `.env` safe and never commit it to git. After I restart, we'll use
        this key for the rest of setup and I can stop doing the fiddly crypto
@@ -154,16 +153,18 @@ Floyd: Welcome back. I found onboarding progress in `.setup-state`, so I'll
 ### Robot name
 
 ```
-Floyd: Your robot will need a given name like "Floyd". For maximum
-       compatibility and portability across chat platforms, the robot will
-       recognize messages that start with its name as a command it should try
-       to interpret, for example 'Floyd, ping'.
+Floyd: Your robot will need a 'given name' something like 'Floyd', but unique
+       to *your* custom robot.
+
+Floyd: For maximum compatibility and portability across chat platforms, the
+       robot will recognize messages that start with its name as a command it
+       should try to interpret, for example 'Floyd, ping'.
 
 Floyd: What name would you like to give your robot?
 
 alice: clu
 
-Floyd: Very good - your robot will respond to messages that start with `clu`.
+Floyd: Perfect. Your robot will respond to messages that start with `clu`.
 ```
 
 [Session updated: `botName=clu`, `stage=awaiting-bot-alias`]
@@ -179,7 +180,7 @@ Floyd: I recommend ';', but you can choose any of these:
 
 alice: ;
 
-Floyd: Very good - your robot will also respond to `;`.
+Floyd: Sounds good. Your robot will also respond to `;`.
 ```
 
 [Session updated: `botAlias=;`, `stage=awaiting-job-channel`]
@@ -195,7 +196,7 @@ Floyd: I suggest `clu-jobs`. If you'd like to use that, just reply `=`.
 
 alice: =
 
-Floyd: Very good - scheduled job messages will go to `#clu-jobs`.
+Floyd: Got it. Scheduled job messages will go to `#clu-jobs`.
 ```
 
 [Session updated: `jobChannel=clu-jobs`, `stage=awaiting-robot-email`]
@@ -203,13 +204,12 @@ Floyd: Very good - scheduled job messages will go to `#clu-jobs`.
 ### Robot email
 
 ```
-Floyd: What email address should the robot use for its own identity? If you
-       don't have a dedicated one yet, your own address is fine for now.
+Floyd: What email address should the robot use?
 
 alice: samantha.jackson@example.com
 
-Floyd: Very good - the robot will use `samantha.jackson@example.com` for its
-       own email identity.
+Floyd: Thanks. The robot will use `samantha.jackson@example.com` for its own
+       email identity.
 ```
 
 [Session updated: `robotEmail=samantha.jackson@example.com`, `stage=awaiting-admin-email`]
@@ -217,12 +217,11 @@ Floyd: Very good - the robot will use `samantha.jackson@example.com` for its
 ### Administrator email
 
 ```
-Floyd: And what email address should the robot advertise for its administrator?
-       This is what people may see in help or info output.
+Floyd: What email address should the robot advertise for its administrator?
 
 alice: samantha.jackson@example.com
 
-Floyd: Very good - the robot will advertise
+Floyd: Understood. The robot will advertise
        `samantha.jackson@example.com` as its administrator contact.
 ```
 
@@ -240,7 +239,7 @@ Floyd: If your robot will connect to team chat, you should supply the username y
 
 alice: samantha
 
-Floyd: Very good - you'll use `samantha` as your canonical username for this
+Floyd: Good choice. You'll use `samantha` as your canonical username for this
        robot.
 ```
 
@@ -254,7 +253,7 @@ Floyd: Would you like me to use that key for `samantha`? (y/n)
 
 alice: y
 
-Floyd: Very good - I'll use the SSH public key from
+Floyd: Excellent. I'll use the SSH public key from
        `/home/sjackson/.ssh/id_ed25519.pub` for local login.
 ```
 
@@ -279,25 +278,35 @@ Floyd: That's everything I need for the local robot itself. I'll build the
 [Session updated: `stage=awaiting-repository-url`]
 
 ```
-Floyd: Done. Your robot scaffold now exists under `custom/`, and local SSH
-       access is configured for `samantha`.
+Floyd: I've created the local scaffold under `custom/` and configured a local
+       SSH connector identity for `samantha`.
 
-Floyd: The last setup step is git. We'll make sure this robot can bootstrap
-       itself from a repository in a brand-new directory.
+Floyd: The last setup step is configuring your robot's git repository for
+       deployment bootstrapping.
 ```
 
 ### Repository handoff
 
 ```
-Floyd: Please create an empty git repository for this robot if you haven't
-       already. When it's ready, paste the SSH clone URL here.
+Floyd: All of the custom configuration, scripts and secrets (encrypted by
+       `GOPHER_ENCRYPTION_KEY`) that define your robot will be stored in a
+       remote git repository.
+
+Floyd: When `gopherbot` is started in an empty directory, or a directory
+       containing only `.env`, it will look for the environment variables it
+       needs there, clone your robot's repository, and then start your robot
+       for simple deployment and updates.
+
+Floyd: This should be a clone URL that uses SSH credentials. For this flow,
+       the upstream repository should be created empty with no README, LICENSE,
+       or other starter files.
 
 Floyd: For example:
        `git@github.com:sjackson/clu-gopherbot.git`
 
 alice: git@github.com:sjackson/clu-gopherbot.git
 
-Floyd: Very good - I'll configure bootstrap to use
+Floyd: Perfect. I'll configure bootstrap to use
        `git@github.com:sjackson/clu-gopherbot.git`.
 ```
 
@@ -317,7 +326,8 @@ Floyd: Add this read-only deploy key to your repository:
 
 Floyd: `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample... clu-deploy`
 
-Floyd: Then, from the `custom/` directory, run:
+Floyd: When you're ready to publish the local scaffold, run these commands
+       from the `custom/` directory:
 
        git init
        git add .
@@ -326,18 +336,17 @@ Floyd: Then, from the `custom/` directory, run:
        git remote add origin git@github.com:sjackson/clu-gopherbot.git
        git push -u origin main
 
-Floyd: You don't need to reply here. Those repository steps can happen after
-       the restart from the same working directory.
+Floyd: After that first push succeeds, you should be able to start your robot
+       by running `gopherbot` in a new empty directory with only `.env`.
 
-Floyd: Because the local `custom/` checkout already exists, this robot can
-       restart into its full configuration now even before the first push
-       happens.
+Floyd: Meanwhile, I'll restart once more from the current directory, where
+       your new robot resides in `custom/` - after the restart, you should be
+       able to connect as yourself with `bot-ssh samantha`. Then, as
+       administrator, you can start working on setting up a proper brain, a
+       team chat connector, and other pieces needed for a fully functional
+       robot.
 
-Floyd: Beautiful. That gives me everything I need.
-
-Floyd: I'm doing the final restart now so the robot comes back with its real
-       configuration, its real name, and its bootstrap settings already in
-       place.
+Floyd: Have fun.
 ```
 
 [Robot writes `.setup-state` with `status=completed`, stage=`repository-ready`]

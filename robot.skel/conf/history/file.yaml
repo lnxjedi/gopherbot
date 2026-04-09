@@ -1,6 +1,0 @@
-{{ $histdir := env "GOPHER_HISTORYDIR" | default "history" }}
-HistoryConfig:
-  Directory: {{ $histdir }}
-  ## LocalPort here is the full string passed in to ListenAndServe(...)
-  #LocalPort: ':9000' # Start http fileserver
-  #URLPrefix: 'http://localhost:9000'

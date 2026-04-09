@@ -62,12 +62,7 @@ func bootstrapHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 	}
 
 	// Remove any temporary binary encryption key created by unconfigured start-up.
-	tmpKeyName := "binary-encrypted-key"
-	deployEnv := r.GetParameter("GOPHER_ENVIRONMENT")
-	if len(deployEnv) > 0 {
-		tmpKeyName = tmpKeyName + "." + deployEnv
-	}
-	tmpKeyPath := filepath.Join(repoDir, tmpKeyName)
+	tmpKeyPath := filepath.Join(repoDir, "binary-encrypted-key")
 	if err := os.Remove(tmpKeyPath); err != nil {
 		if !os.IsNotExist(err) {
 			r.Log(robot.Fatal, "failed to remove temporary key: "+err.Error())

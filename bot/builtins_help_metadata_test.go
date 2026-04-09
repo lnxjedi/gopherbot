@@ -268,16 +268,16 @@ func TestRenderPluginHelpOverviewIncludesExamplesAndMoreDetail(t *testing.T) {
 			Usage:      "(alias) tell me another joke",
 		},
 	})
-	if !strings.Contains(got, "Plugin help: knock") {
+	if !strings.Contains(got, "**Plugin help:** `knock`") {
 		t.Fatalf("renderPluginHelpOverview() missing plugin header: %q", got)
 	}
-	if !strings.Contains(got, "  Example: !tell me a knock-knock joke") {
+	if !strings.Contains(got, "Example: `!tell me a knock-knock joke`") {
 		t.Fatalf("renderPluginHelpOverview() missing explicit example: %q", got)
 	}
-	if !strings.Contains(got, "  Example: tell me another joke") {
+	if !strings.Contains(got, "Example: `tell me another joke`") {
 		t.Fatalf("renderPluginHelpOverview() missing usage fallback example: %q", got)
 	}
-	if !strings.Contains(got, "More detail: `!help knock/<command>`") {
+	if !strings.Contains(got, "**More detail:** `!help knock/<command>`") {
 		t.Fatalf("renderPluginHelpOverview() missing more detail hint: %q", got)
 	}
 }
@@ -453,10 +453,10 @@ func TestRenderHelpEntryIncludesHiddenExamples(t *testing.T) {
 		HiddenExamples: []string{"/clu help ping"},
 	}
 	rendered := r.renderHelpEntry(entry, true, false, 0)
-	if !containsLine(rendered, "Examples:") {
+	if !containsLine(rendered, "**Examples:**") {
 		t.Fatalf("rendered help missing Examples section: %q", rendered)
 	}
-	if !containsLine(rendered, "Hidden examples:") {
+	if !containsLine(rendered, "**Hidden examples:**") {
 		t.Fatalf("rendered help missing Hidden examples section: %q", rendered)
 	}
 }
@@ -530,8 +530,30 @@ func TestHelpUsesBasicMarkdownOutputFormat(t *testing.T) {
 	if fake.lastFormat != robot.BasicMarkdown {
 		t.Fatalf("help() sent format %v, want %v", fake.lastFormat, robot.BasicMarkdown)
 	}
-	if !strings.Contains(fake.lastMessage, "Quick help:") {
+	if !strings.Contains(fake.lastMessage, "**Quick help**") {
 		t.Fatalf("help() message missing quick help header: %q", fake.lastMessage)
+	}
+}
+
+func TestHelpEscapesMarkdownSensitiveAliasByUsingInlineCode(t *testing.T) {
+	originalConnector := interfaces.Connector
+	fake := &formatCaptureConnector{}
+	interfaces.Connector = fake
+	defer func() {
+		interfaces.Connector = originalConnector
+	}()
+
+	r := makeFormatTestRobot(t)
+	w := getLockedWorker(r.tid)
+	w.cfg.alias = '*'
+	w.Unlock()
+
+	help(r, "help")
+	if !strings.Contains(fake.lastMessage, "`*help <keyword>`") {
+		t.Fatalf("help() message missing literal '*' alias command: %q", fake.lastMessage)
+	}
+	if strings.Contains(fake.lastMessage, "*help <keyword>*") {
+		t.Fatalf("help() message still formats alias command as emphasis: %q", fake.lastMessage)
 	}
 }
 
