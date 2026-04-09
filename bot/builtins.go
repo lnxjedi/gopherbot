@@ -101,13 +101,16 @@ func (r Robot) expandHelpPlaceholders(input string) (ret string) {
 	return ret
 }
 
-func (r Robot) formatHelpLine(input string) string {
-	ret := r.expandHelpPlaceholders(input)
-	conn := getConnectorForProtocol(protocolFromIncoming(r.Incoming, r.Protocol))
-	if conn == nil {
-		return ret
+func formatBasicMarkdownInlineCode(input string) string {
+	trimmed := strings.TrimSpace(input)
+	if trimmed == "" {
+		return ""
 	}
-	return conn.FormatHelp(ret)
+	return "`" + strings.ReplaceAll(trimmed, "`", "\\`") + "`"
+}
+
+func (r Robot) formatInlineLiteral(input string) string {
+	return formatBasicMarkdownInlineCode(r.expandHelpPlaceholders(input))
 }
 
 func stripHelpAddressPrefix(input string) string {
@@ -948,7 +951,7 @@ func fallbackCloseMatchScore(entry helpCommandMetadata, term string) int {
 }
 
 func (r Robot) formatInlineHelpCommand(input string) string {
-	return "`" + r.expandHelpPlaceholders(input) + "`"
+	return r.formatInlineLiteral(input)
 }
 
 func (r Robot) formatSuggestedCommand(input string) string {
@@ -971,9 +974,9 @@ func (r Robot) formatInlineSuggestedCommand(input string) string {
 func (r Robot) formatSuggestedHelpLine(input string) string {
 	if strings.Contains(input, " - ") {
 		parts := strings.SplitN(input, " - ", 2)
-		return r.formatHelpLine(r.formatSuggestedCommand(parts[0]) + " - " + parts[1])
+		return "- " + formatBasicMarkdownInlineCode(r.formatSuggestedCommand(parts[0])) + " - " + parts[1]
 	}
-	return r.formatHelpLine(r.formatSuggestedCommand(input))
+	return "- " + formatBasicMarkdownInlineCode(r.formatSuggestedCommand(input))
 }
 
 func (r Robot) formatHelpExample(entry helpCommandMetadata, example string) string {
@@ -981,7 +984,7 @@ func (r Robot) formatHelpExample(entry helpCommandMetadata, example string) stri
 	if len(line) == 0 {
 		return ""
 	}
-	return r.formatHelpLine(line)
+	return r.formatInlineLiteral(line)
 }
 
 func (r Robot) pluginHelpExample(entry helpCommandMetadata) string {
@@ -992,7 +995,7 @@ func (r Robot) pluginHelpExample(entry helpCommandMetadata) string {
 		}
 	}
 	if usage := strings.TrimSpace(stripHelpAddressPrefix(entry.Usage)); usage != "" {
-		return r.formatHelpLine(usage)
+		return formatBasicMarkdownInlineCode(usage)
 	}
 	return ""
 }
@@ -1000,10 +1003,10 @@ func (r Robot) pluginHelpExample(entry helpCommandMetadata) string {
 func (r Robot) renderHelpEntry(entry helpCommandMetadata, includeExamples, includeScope bool, exampleLimit int) string {
 	lines := make([]string, 0, 8)
 	if len(entry.Usage) > 0 {
-		lines = append(lines, "Usage: "+r.formatHelpLine(stripHelpAddressPrefix(entry.Usage)))
+		lines = append(lines, "**Usage:** "+formatBasicMarkdownInlineCode(stripHelpAddressPrefix(entry.Usage)))
 	}
 	if len(entry.Summary) > 0 {
-		lines = append(lines, "Summary: "+entry.Summary)
+		lines = append(lines, "**Summary:** "+entry.Summary)
 	}
 	if includeExamples && len(entry.Examples) > 0 {
 		examples := entry.Examples
@@ -1019,7 +1022,7 @@ func (r Robot) renderHelpEntry(entry helpCommandMetadata, includeExamples, inclu
 			rendered = append(rendered, line)
 		}
 		if len(rendered) > 0 {
-			lines = append(lines, "Examples:")
+			lines = append(lines, "**Examples:**")
 			for _, example := range rendered {
 				lines = append(lines, "- "+example)
 			}
@@ -1030,23 +1033,23 @@ func (r Robot) renderHelpEntry(entry helpCommandMetadata, includeExamples, inclu
 		}
 		renderedHidden := make([]string, 0, len(hiddenExamples))
 		for _, example := range hiddenExamples {
-			line := r.formatHelpLine(example)
+			line := r.formatInlineLiteral(example)
 			if len(strings.TrimSpace(line)) == 0 {
 				continue
 			}
 			renderedHidden = append(renderedHidden, line)
 		}
 		if len(renderedHidden) > 0 {
-			lines = append(lines, "Hidden examples:")
+			lines = append(lines, "**Hidden examples:**")
 			for _, example := range renderedHidden {
 				lines = append(lines, "- "+example)
 			}
 		} else if entry.HiddenSupported && strings.TrimSpace(entry.HiddenHint) != "" {
-			lines = append(lines, "Hidden: "+r.expandHelpPlaceholders(entry.HiddenHint))
+			lines = append(lines, "**Hidden:** "+r.expandHelpPlaceholders(entry.HiddenHint))
 		}
 	}
 	if includeScope && len(entry.Scope) > 0 {
-		lines = append(lines, "Availability: "+entry.Scope)
+		lines = append(lines, "**Availability:** "+entry.Scope)
 	}
 	return strings.Join(lines, "\n")
 }
@@ -1080,12 +1083,12 @@ func formatExactHelpAvailability(entry helpCommandMetadata) string {
 }
 
 func (r Robot) renderHelpListingEntry(entry helpCommandMetadata, includeExamples, includeScope bool, exampleLimit int) string {
-	lines := []string{fmt.Sprintf("**Command:** %s/%s", entry.PluginName, entry.Command)}
+	lines := []string{fmt.Sprintf("**Command:** `%s/%s`", entry.PluginName, entry.Command)}
 	if len(entry.Summary) > 0 {
-		lines = append(lines, "Summary: "+entry.Summary)
+		lines = append(lines, "**Summary:** "+entry.Summary)
 	}
 	if len(entry.Usage) > 0 {
-		lines = append(lines, "Usage: "+r.formatHelpLine(stripHelpAddressPrefix(entry.Usage)))
+		lines = append(lines, "**Usage:** "+formatBasicMarkdownInlineCode(stripHelpAddressPrefix(entry.Usage)))
 	}
 	if includeExamples && len(entry.Examples) > 0 {
 		examples := entry.Examples
@@ -1101,7 +1104,7 @@ func (r Robot) renderHelpListingEntry(entry helpCommandMetadata, includeExamples
 			rendered = append(rendered, line)
 		}
 		if len(rendered) > 0 {
-			lines = append(lines, "Examples:")
+			lines = append(lines, "**Examples:**")
 			for _, example := range rendered {
 				lines = append(lines, "- "+example)
 			}
@@ -1112,25 +1115,25 @@ func (r Robot) renderHelpListingEntry(entry helpCommandMetadata, includeExamples
 		}
 		renderedHidden := make([]string, 0, len(hiddenExamples))
 		for _, example := range hiddenExamples {
-			line := r.formatHelpLine(example)
+			line := r.formatInlineLiteral(example)
 			if len(strings.TrimSpace(line)) == 0 {
 				continue
 			}
 			renderedHidden = append(renderedHidden, line)
 		}
 		if len(renderedHidden) > 0 {
-			lines = append(lines, "Hidden examples:")
+			lines = append(lines, "**Hidden examples:**")
 			for _, example := range renderedHidden {
 				lines = append(lines, "- "+example)
 			}
 		} else if entry.HiddenSupported && strings.TrimSpace(entry.HiddenHint) != "" {
-			lines = append(lines, "Hidden: "+r.expandHelpPlaceholders(entry.HiddenHint))
+			lines = append(lines, "**Hidden:** "+r.expandHelpPlaceholders(entry.HiddenHint))
 		}
 	}
 	if includeScope && len(entry.Scope) > 0 {
-		lines = append(lines, "Availability: "+entry.Scope)
+		lines = append(lines, "**Availability:** "+entry.Scope)
 	}
-	lines = append(lines, "Exact help: "+r.formatInlineSuggestedCommand("(alias) help "+entry.PluginName+"/"+entry.Command))
+	lines = append(lines, "**Exact help:** "+r.formatInlineSuggestedCommand("(alias) help "+entry.PluginName+"/"+entry.Command))
 	return strings.Join(lines, "\n")
 }
 
@@ -1290,9 +1293,7 @@ func (r Robot) renderCommandsOverview(entries []helpCommandMetadata) string {
 	}
 	sort.Strings(pluginNames)
 
-	lines := []string{
-		"Plugins and command groups available in this channel:",
-	}
+	lines := []string{"**Plugins and command groups available in this channel**"}
 	for _, plugin := range pluginNames {
 		pluginEntries := byPlugin[plugin]
 		sort.Slice(pluginEntries, func(i, j int) bool {
@@ -1302,18 +1303,19 @@ func (r Robot) renderCommandsOverview(entries []helpCommandMetadata) string {
 		if summary == "" {
 			summary = "Commands available."
 		}
-		lines = append(lines, fmt.Sprintf("**%s**: %s", plugin, summary))
+		lines = append(lines, fmt.Sprintf("**%s**", plugin))
+		lines = append(lines, summary)
 		if preview := summarizeQualifiedPluginCommands(plugin, pluginEntries, 4); preview != "" {
-			lines = append(lines, "Commands: "+preview)
+			lines = append(lines, "**Commands:** "+preview)
 		}
-		lines = append(lines, "Help: "+r.formatInlineSuggestedCommand("(alias) help "+plugin)+" or "+r.formatInlineSuggestedCommand("(alias) help "+plugin+"/<command>"))
+		lines = append(lines, "**Help:** "+r.formatInlineSuggestedCommand("(alias) help "+plugin)+" or "+r.formatInlineSuggestedCommand("(alias) help "+plugin+"/<command>"))
 		lines = append(lines, "")
 	}
 	if len(lines) > 0 && lines[len(lines)-1] == "" {
 		lines = lines[:len(lines)-1]
 	}
-	lines = append(lines, "Exact help: "+r.formatInlineSuggestedCommand("(alias) help <plugin>/<command>"))
-	lines = append(lines, "Search by keyword: "+r.formatInlineSuggestedCommand("(alias) help <plugin|command|keyword>"))
+	lines = append(lines, "**Exact help:** "+r.formatInlineSuggestedCommand("(alias) help <plugin>/<command>"))
+	lines = append(lines, "**Search by keyword:** "+r.formatInlineSuggestedCommand("(alias) help <plugin|command|keyword>"))
 	return strings.Join(lines, "\n")
 }
 
@@ -1321,11 +1323,11 @@ func (r Robot) renderPluginHelpOverview(plugin string, entries []helpCommandMeta
 	if len(entries) == 0 {
 		return "Sorry, I couldn't find that plugin."
 	}
-	lines := []string{fmt.Sprintf("Plugin help: %s", plugin)}
+	lines := []string{fmt.Sprintf("**Plugin help:** `%s`", plugin)}
 	if summary := pluginOverviewSummary(entries); summary != "" {
 		lines = append(lines, summary)
 	}
-	lines = append(lines, "Commands:")
+	lines = append(lines, "**Commands:**")
 	for _, entry := range entries {
 		line := "- `" + entry.PluginName + "/" + entry.Command + "`"
 		if summary := strings.TrimSpace(entry.Summary); summary != "" {
@@ -1333,13 +1335,13 @@ func (r Robot) renderPluginHelpOverview(plugin string, entries []helpCommandMeta
 		}
 		lines = append(lines, line)
 		if example := r.pluginHelpExample(entry); example != "" {
-			lines = append(lines, "  Example: "+example)
+			lines = append(lines, "Example: "+example)
 		}
 	}
 	if len(entries) == 1 {
-		lines = append(lines, "More detail: "+r.formatInlineSuggestedCommand("(alias) help "+entries[0].PluginName+"/"+entries[0].Command))
+		lines = append(lines, "**More detail:** "+r.formatInlineSuggestedCommand("(alias) help "+entries[0].PluginName+"/"+entries[0].Command))
 	} else {
-		lines = append(lines, "More detail: "+r.formatInlineSuggestedCommand("(alias) help "+plugin+"/<command>"))
+		lines = append(lines, "**More detail:** "+r.formatInlineSuggestedCommand("(alias) help "+plugin+"/<command>"))
 	}
 	return strings.Join(lines, "\n")
 }
@@ -1350,7 +1352,7 @@ func helpAddressKey(entry helpCommandMetadata) string {
 
 func renderKeywordPluginSection(r Robot, term string, pluginEntries []helpCommandMetadata, matches []rankedHelpMatch, brief bool) string {
 	sections := []string{
-		fmt.Sprintf("Help for keyword: `%s`", strings.ToLower(term)),
+		fmt.Sprintf("**Help for keyword:** `%s`", strings.ToLower(term)),
 		r.renderPluginHelpOverview(term, pluginEntries),
 	}
 
@@ -1383,7 +1385,7 @@ func renderKeywordPluginSection(r Robot, term string, pluginEntries []helpComman
 	if len(filtered) > limit {
 		filtered = filtered[:limit]
 	}
-	otherLines := []string{"Other command matches:"}
+	otherLines := []string{"**Other command matches:**"}
 	for _, match := range filtered {
 		exampleLimit := 2
 		if brief {
@@ -1398,14 +1400,14 @@ func renderKeywordPluginSection(r Robot, term string, pluginEntries []helpComman
 func (r Robot) renderExactHelpEntry(entry helpCommandMetadata, siblingCount int) string {
 	bodyLines := []string{r.renderHelpEntry(entry, true, false, 3)}
 	if availability := strings.TrimSpace(formatExactHelpAvailability(entry)); availability != "" {
-		bodyLines = append(bodyLines, "Availability: "+availability)
+		bodyLines = append(bodyLines, "**Availability:** "+availability)
 	}
 	lines := []string{
-		fmt.Sprintf("Command help: `%s/%s`", entry.PluginName, entry.Command),
+		fmt.Sprintf("**Command help:** `%s/%s`", entry.PluginName, entry.Command),
 		strings.Join(bodyLines, "\n"),
 	}
 	if siblingCount > 1 {
-		lines = append(lines, "More from this plugin: "+r.formatInlineSuggestedCommand("(alias) help "+entry.PluginName))
+		lines = append(lines, "**More from this plugin:** "+r.formatInlineSuggestedCommand("(alias) help "+entry.PluginName))
 	}
 	return strings.Join(lines, "\n\n")
 }
@@ -1486,13 +1488,14 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 				defaultHelpLines = defaultHelp()
 			}
 			lines := make([]string, 0, len(defaultHelpLines)+2)
-			lines = append(lines, "Quick help:")
+			lines = append(lines, "**Quick help**")
 			for _, line := range defaultHelpLines {
 				lines = append(lines, r.formatSuggestedHelpLine(line))
 			}
-			lines = append(lines, "Plugin help: "+r.formatInlineSuggestedCommand("(alias) help <plugin>"))
-			lines = append(lines, "Exact command help: "+r.formatInlineSuggestedCommand("(alias) help <plugin>/<command>"))
-			lines = append(lines, "Tip: "+r.formatInlineSuggestedCommand("(alias) commands")+" shows plugins and command groups in this channel.")
+			lines = append(lines, "")
+			lines = append(lines, "**Plugin help:** "+r.formatInlineSuggestedCommand("(alias) help <plugin>"))
+			lines = append(lines, "**Exact command help:** "+r.formatInlineSuggestedCommand("(alias) help <plugin>/<command>"))
+			lines = append(lines, "**Browse this channel:** "+r.formatInlineSuggestedCommand("(alias) commands"))
 			sendOutput(strings.Join(lines, "\n"))
 			return
 		}
@@ -1521,7 +1524,7 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 			for _, entry := range entries {
 				helpLines = append(helpLines, r.renderHelpListingEntry(entry, true, true, 0))
 			}
-			sendOutput("Commands available in this channel (including global):\n" + strings.Join(helpLines, lineSeparator))
+			sendOutput("**Commands available in this channel (including global)**\n\n" + strings.Join(helpLines, lineSeparator))
 		case "help":
 			entries := r.collectHelpCommandMetadata(true)
 			if query.HasPath {
@@ -1561,9 +1564,9 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 				}
 				helpLines = append(helpLines, r.renderHelpListingEntry(match.Entry, true, true, exampleLimit))
 			}
-			header := fmt.Sprintf("Command matches for keyword: %s", strings.ToLower(term))
+			header := fmt.Sprintf("**Command matches for keyword:** `%s`", strings.ToLower(term))
 			if brief {
-				header = fmt.Sprintf("Brief help for keyword: %s", strings.ToLower(term))
+				header = fmt.Sprintf("**Brief help for keyword:** `%s`", strings.ToLower(term))
 			}
 			if len(matches) > len(display) {
 				header = fmt.Sprintf("%s (showing top %d of %d)", header, len(display), len(matches))
@@ -1574,8 +1577,8 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 				for _, match := range matches[len(display):] {
 					seeAlso = append(seeAlso, "`"+match.Entry.PluginName+"/"+match.Entry.Command+"`")
 				}
-				body += lineSeparator + "Optionally see also: " + strings.Join(seeAlso, ", ")
-				body += "\n" + "Specific help: " + r.formatInlineSuggestedCommand("(alias) help <plugin>/<command>")
+				body += lineSeparator + "**Optionally see also:** " + strings.Join(seeAlso, ", ")
+				body += "\n" + "**Specific help:** " + r.formatInlineSuggestedCommand("(alias) help <plugin>/<command>")
 			}
 			sendOutput(body)
 		}

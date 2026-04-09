@@ -5,9 +5,97 @@ package help
 
 import (
 	"strings"
+	"unicode"
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
+
+func inlineCode(input string) string {
+	trimmed := strings.TrimSpace(input)
+	if trimmed == "" {
+		return ""
+	}
+	return "`" + strings.ReplaceAll(trimmed, "`", "\\`") + "`"
+}
+
+func nameCommandExample(botName, command string) string {
+	botName = strings.TrimSpace(botName)
+	command = strings.TrimSpace(command)
+	if botName == "" {
+		return inlineCode(command)
+	}
+	return inlineCode(botName + ", " + command)
+}
+
+func preferredCommandExample(botName, botAlias, command string) string {
+	botAlias = strings.TrimSpace(botAlias)
+	command = strings.TrimSpace(command)
+	if botAlias != "" {
+		return inlineCode(botAlias + command)
+	}
+	return nameCommandExample(botName, command)
+}
+
+func displayBotName(botName string) string {
+	trimmed := strings.TrimSpace(botName)
+	if trimmed == "" {
+		return "this robot"
+	}
+	runes := []rune(trimmed)
+	runes[0] = unicode.ToUpper(runes[0])
+	return string(runes)
+}
+
+func buildHelpReply(botName, botAlias, botContact, protocol string) string {
+	displayName := displayBotName(botName)
+	lines := []string{
+		"**Help**",
+		"Hi, I'm " + displayName + ", a staff robot. I see you've asked for help.",
+		"",
+		"I've been programmed to perform a variety of tasks for your team, and I'll respond when you send me commands that match specific patterns.",
+		"",
+		"**Getting command help**",
+		"Ask me for command help with my name:",
+		"- " + nameCommandExample(botName, "help ping"),
+	}
+	if strings.TrimSpace(botAlias) != "" {
+		lines = append(lines,
+			"",
+			"Or use my alias "+inlineCode(botAlias)+" for shorter commands:",
+			"- "+preferredCommandExample(botName, botAlias, "help ping"),
+		)
+	}
+	lines = append(lines,
+		"",
+		"**Useful discovery commands**",
+		"- "+preferredCommandExample(botName, botAlias, "help")+" - quick help and pointers",
+		"- "+preferredCommandExample(botName, botAlias, "commands")+" - browse command groups available in this channel",
+		"- "+preferredCommandExample(botName, botAlias, "help <keyword>")+" - show the best matches with usage and examples",
+		"- "+preferredCommandExample(botName, botAlias, "help-all")+" - detailed help for commands available here",
+		"",
+		"If I can't match a command, I'll usually suggest the closest matches and the next help command to try.",
+		"",
+		"**When I ask a follow-up question**",
+		"Just reply with the answer.",
+		"- `=` uses the default value",
+		"- `-` cancels",
+	)
+	if protocol == "Terminal" {
+		lines = append(lines,
+			"",
+			"Since you're using the terminal connector, you can get simple help for changing the user, channel, and thread by pressing `<return>` with an empty command.",
+		)
+	}
+	infoExample := preferredCommandExample(botName, botAlias, "info")
+	closing := "For basic information about me, try " + infoExample + "."
+	if strings.TrimSpace(botContact) != "" {
+		closing += " If there's anything else you'd like to see me do, please contact my administrator, " + botContact + "."
+	} else {
+		closing += " If there's anything else you'd like to see me do, please contact my administrator."
+	}
+	lines = append(lines, "", closing)
+	return strings.Join(lines, "\n")
+}
 
 // Define the handler function
 func help(bot robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
@@ -15,31 +103,7 @@ func help(bot robot.Robot, command string, args ...string) (retval robot.TaskRet
 	if command == "help" { // user just typed 'help' - the robot should introduce itself
 		botContact := bot.GetBotAttribute("contact").String()
 		botAlias := bot.GetBotAttribute("alias").String()
-		reply := "Hi, I'm "
-		reply += strings.Title(botName) + ", a staff robot. I see you've asked for help.\n\n"
-		reply += "I've been programmed to perform a variety of tasks for your team, and I'll respond when you send me commands that match specific patterns. " +
-			"You can ask for command help by addressing me with my name, for example:\n\n"
-		reply += botName + ", help ping\nor:\nhelp ping, " + botName + "\n\n"
-		if len(botAlias) > 0 {
-			reply += "To save a little typing, you can also use my alias ( " + botAlias + " ). For example:\n\n" + botAlias + "help ping\n\n"
-		}
-		reply += "Here are the most useful discovery commands:\n\n"
-		reply += "• " + botAlias + "help - quick help and pointers\n"
-		reply += "• " + botAlias + "commands - browse command groups available in this channel\n"
-		reply += "• " + botAlias + "help <keyword> - show the best matches with usage and examples\n"
-		reply += "• " + botAlias + "help-all - detailed help for commands available here\n\n"
-		reply += "If I can't match a command, I'll usually reply with the closest matches and a suggested next help command so you can recover quickly.\n\n"
-		reply += "When command help shows syntax, (something) means optional and <something> means required. Command availability can vary by channel, direct message, and permissions, so help output may differ from place to place.\n\n"
-		reply += "Also, from time to I may ask you a question, prompting for additional information - these messages will mention you by name if not in a private conversation. You only need to type your reply - if you address me by name (or alias), I'll consider it a new command and send an error to the plugin requesting input. Additionally, there are two special replies I understand: \"=\" means 'use the default value', whatever that might be; \"-\" means 'cancel', returning an error value to the plugin.\n\n"
-		if bot.GetMessage().Protocol.String() == "Terminal" {
-			reply += "Since you're using the 'terminal' connector, you can get simple help for changing the user, channel and thread just by hitting <return> with an empty command.\n\n"
-		}
-		reply += "For basic information about me, you can use my \"info\" command. Finally, if there's anything else you'd like to see me do, please contact my administrator"
-		if len(botContact) > 0 {
-			reply += ", " + botContact + "."
-		} else {
-			reply += "."
-		}
+		reply := buildHelpReply(botName, botAlias, botContact, bot.GetMessage().Protocol.String())
 		bot.MessageFormat(robot.BasicMarkdown).SayThread(reply)
 	}
 	return
