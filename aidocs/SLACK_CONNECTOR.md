@@ -6,7 +6,7 @@ This file captures Slack connector behavior relevant to routing, hidden commands
 
 - Registration/init: `connectors/slack/static.go`, `connectors/slack/connect.go`
 - Incoming message normalization: `connectors/slack/incomingMsgs.go`
-- Outgoing + help formatting hooks: `connectors/slack/connectorMethods.go`
+- Outgoing formatting + hidden-command hooks: `connectors/slack/connectorMethods.go`
 
 ## Identity Mapping
 
@@ -65,12 +65,10 @@ This file captures Slack connector behavior relevant to routing, hidden commands
 
 ## Help Rendering Hooks
 
-- Slack connector implements:
-  - `FormatHelp(string) string` for line-level Slack-friendly formatting
-  - `FormatHiddenCommand(string) string` via `robot.HiddenCommandFormatter`
+- Slack connector implements `FormatHiddenCommand(string) string` via `robot.HiddenCommandFormatter`.
 - `FormatHiddenCommand(...)` uses the configured slash command, not Slack bot username, so help/fallback suggestions reflect the real slash command surface (`/clu ...`) instead of app/bot identity values such as `clu_gopherbot`.
 - `DefaultHelp()` now returns no override so the engine can keep protocol-agnostic quick-help text instead of hardcoding Slack slash syntax.
-- Built-in help plugin (`builtin-help`) uses these hooks so `help`, `commands`, and `help-all` output remains readable in Slack formatting while only surfacing hidden-command guidance when it is actually valid.
+- Built-in help and fallback are rendered in engine-owned `BasicMarkdown`; the connector still contributes only protocol-specific hidden-command guidance where needed.
 
 ## slack-go v0.21.x Notes
 

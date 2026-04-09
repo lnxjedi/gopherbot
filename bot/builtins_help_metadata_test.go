@@ -21,8 +21,6 @@ func (c *formatCaptureConnector) GetProtocolUserAttribute(string, string) (strin
 
 func (c *formatCaptureConnector) MessageHeard(string, string) {}
 
-func (c *formatCaptureConnector) FormatHelp(input string) string { return input }
-
 func (c *formatCaptureConnector) DefaultHelp() []string { return nil }
 
 func (c *formatCaptureConnector) JoinChannel(string) robot.RetVal { return robot.Ok }

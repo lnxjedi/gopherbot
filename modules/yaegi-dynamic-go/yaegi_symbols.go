@@ -121,7 +121,6 @@ func init() {
 type _github_com_lnxjedi_gopherbot_robot_Connector struct {
 	IValue                                interface{}
 	WDefaultHelp                          func() []string
-	WFormatHelp                           func(a0 string) string
 	WGetProtocolUserAttribute             func(user string, attr string) (value string, ret robot.RetVal)
 	WJoinChannel                          func(c string) robot.RetVal
 	WMessageHeard                         func(user string, channel string)
@@ -133,9 +132,6 @@ type _github_com_lnxjedi_gopherbot_robot_Connector struct {
 
 func (W _github_com_lnxjedi_gopherbot_robot_Connector) DefaultHelp() []string {
 	return W.WDefaultHelp()
-}
-func (W _github_com_lnxjedi_gopherbot_robot_Connector) FormatHelp(a0 string) string {
-	return W.WFormatHelp(a0)
 }
 func (W _github_com_lnxjedi_gopherbot_robot_Connector) GetProtocolUserAttribute(user string, attr string) (value string, ret robot.RetVal) {
 	return W.WGetProtocolUserAttribute(user, attr)

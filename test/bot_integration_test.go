@@ -151,7 +151,7 @@ func TestVisibility(t *testing.T) {
 	done, conn := setup("test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
-		{aliceID, general, "help ruby, bender", false, []TestMessage{{null, general, `(?s:Command matches for keyword: ruby.*Availability: channels: random)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, "help ruby, bender", false, []TestMessage{{null, general, `(?s:\*\*Command matches for keyword:\*\* ` + "`" + `ruby` + "`" + `.*\*\*Availability:\*\* channels: random)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "ruby me, bender", false, []TestMessage{{null, general, "rubydemo/ruby not available in #general, try #random", true}}, []Event{}, 0},
 		{aliceID, deadzone, "bender: echo hello world", false, []TestMessage{{null, deadzone, "echo/echo not available in #deadzone, try one of: #general, #random", true}}, []Event{}, 0},
 		{aliceID, null, "hear me out", false, []TestMessage{{alice, null, "bashdemo/hear not available in direct messages, try it in any regular channel", false}}, []Event{BotDirectMessage}, 0},

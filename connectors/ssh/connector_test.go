@@ -7,13 +7,50 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
+
+type stubAddr string
+
+func (a stubAddr) Network() string { return "tcp" }
+func (a stubAddr) String() string  { return string(a) }
+
+type stubListener struct {
+	addr net.Addr
+}
+
+func (l *stubListener) Accept() (net.Conn, error) { return nil, io.EOF }
+func (l *stubListener) Close() error              { return nil }
+func (l *stubListener) Addr() net.Addr            { return l.addr }
+
+func portFromListenAddress(t *testing.T, address string) int {
+	t.Helper()
+	_, portText, err := net.SplitHostPort(address)
+	if err != nil {
+		t.Fatalf("SplitHostPort(%q): %v", address, err)
+	}
+	port, err := strconv.Atoi(portText)
+	if err != nil {
+		t.Fatalf("Atoi(%q): %v", portText, err)
+	}
+	return port
+}
+
+func withStubSSHNetListen(t *testing.T, fn func(network, address string) (net.Listener, error)) {
+	t.Helper()
+	original := sshNetListen
+	sshNetListen = fn
+	t.Cleanup(func() {
+		sshNetListen = original
+	})
+}
 
 type testHandler struct {
 	mu   sync.Mutex
@@ -240,15 +277,8 @@ func TestDMLabelVariants(t *testing.T) {
 	}
 }
 
-func TestFormatHelp(t *testing.T) {
-	sc := &sshConnector{}
-	if got := sc.FormatHelp("(alias) help <keyword> - find help"); got != "*(alias) help <keyword>* - find help" {
-		t.Fatalf("FormatHelp() dash format = %q", got)
-	}
-	if got := sc.FormatHelp("Usage: (alias) help <keyword>"); got != "Usage: *(alias) help <keyword>*" {
-		t.Fatalf("FormatHelp() usage format = %q", got)
-	}
-	sc.botName = "Floyd"
+func TestFormatHiddenCommand(t *testing.T) {
+	sc := &sshConnector{botName: "Floyd"}
 	if got := sc.FormatHiddenCommand("help ping"); got != "/floyd help ping" {
 		t.Fatalf("FormatHiddenCommand() = %q", got)
 	}
@@ -611,10 +641,17 @@ func TestGetMessagesWaitsForNewMessage(t *testing.T) {
 }
 
 func TestListenAllSkipsInUsePorts(t *testing.T) {
-	basePort := findContiguousFreePortBlock(t, 4)
-	occupied := occupyPorts(t, basePort, 3)
-	defer closeListeners(occupied)
-
+	basePort := 41000
+	withStubSSHNetListen(t, func(network, address string) (net.Listener, error) {
+		port := portFromListenAddress(t, address)
+		if port >= basePort && port < basePort+3 {
+			return nil, syscall.EADDRINUSE
+		}
+		if network != "tcp" {
+			t.Fatalf("unexpected network %q", network)
+		}
+		return &stubListener{addr: stubAddr(address)}, nil
+	})
 	h := &testHandler{}
 	sc := &sshConnector{
 		handler: h,
@@ -642,10 +679,14 @@ func TestListenAllSkipsInUsePorts(t *testing.T) {
 }
 
 func TestListenAllFailsAfterSevenIncrements(t *testing.T) {
-	basePort := findContiguousFreePortBlock(t, maxListenPortSkips+1)
-	occupied := occupyPorts(t, basePort, maxListenPortSkips+1)
-	defer closeListeners(occupied)
-
+	basePort := 42000
+	withStubSSHNetListen(t, func(_ string, address string) (net.Listener, error) {
+		port := portFromListenAddress(t, address)
+		if port >= basePort && port <= basePort+maxListenPortSkips {
+			return nil, syscall.EADDRINUSE
+		}
+		return &stubListener{addr: stubAddr(address)}, nil
+	})
 	h := &testHandler{}
 	sc := &sshConnector{
 		handler: h,
@@ -695,42 +736,6 @@ func TestWriteConnectFileUsesActualPort(t *testing.T) {
 	if !strings.Contains(content, "BOT_SSH_PORT=127.0.0.1:4224") {
 		t.Fatalf("expected actual port in metadata file, got %q", content)
 	}
-}
-
-func findContiguousFreePortBlock(t *testing.T, size int) int {
-	t.Helper()
-	for basePort := 30000; basePort <= 60000-size; basePort++ {
-		listeners := make([]net.Listener, 0, size)
-		ok := true
-		for offset := 0; offset < size; offset++ {
-			ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", basePort+offset))
-			if err != nil {
-				ok = false
-				break
-			}
-			listeners = append(listeners, ln)
-		}
-		closeListeners(listeners)
-		if ok {
-			return basePort
-		}
-	}
-	t.Fatalf("unable to find %d contiguous free ports", size)
-	return 0
-}
-
-func occupyPorts(t *testing.T, basePort, count int) []net.Listener {
-	t.Helper()
-	listeners := make([]net.Listener, 0, count)
-	for offset := 0; offset < count; offset++ {
-		ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", basePort+offset))
-		if err != nil {
-			closeListeners(listeners)
-			t.Fatalf("occupy port %d: %v", basePort+offset, err)
-		}
-		listeners = append(listeners, ln)
-	}
-	return listeners
 }
 
 func containsLog(logs []string, want string) bool {

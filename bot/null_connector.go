@@ -35,10 +35,6 @@ func (nc nullConnector) Run(stop <-chan struct{}) {
 	<-stop
 }
 
-func (nc nullConnector) FormatHelp(input string) string {
-	return input
-}
-
 func (nc nullConnector) DefaultHelp() []string {
 	return []string{}
 }

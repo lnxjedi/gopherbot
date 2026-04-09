@@ -4,16 +4,6 @@ import (
 	"testing"
 )
 
-func TestFormatHelp(t *testing.T) {
-	s := &slackConnector{}
-	if got := s.FormatHelp("(alias) help <keyword> - find help"); got != "`(alias) help <keyword>` - find help" {
-		t.Fatalf("FormatHelp() dash format = %q", got)
-	}
-	if got := s.FormatHelp("Usage: (alias) help <keyword>"); got != "Usage: `(alias) help <keyword>`" {
-		t.Fatalf("FormatHelp() usage format = %q", got)
-	}
-}
-
 func TestDefaultHelpUsesEngineDefault(t *testing.T) {
 	s := &slackConnector{}
 	lines := s.DefaultHelp()
