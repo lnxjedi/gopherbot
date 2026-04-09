@@ -1,0 +1,11 @@
+---
+## Sample notes for enabling the optional github-link plugin.
+##
+## The default command metadata already lives in conf/plugins/github-link.yaml.
+## To enable github-link for a custom robot:
+##
+## 1. Add an ExternalPlugins.github-link stanza in custom/conf/robot.yaml.
+## 2. Create a github_oauth ParameterSet in custom/conf/robot.yaml.
+## 3. Add an IdentityProviders.github entry in custom/conf/robot.yaml.
+##
+## Future setup-github flows should materialize those robot.yaml changes.

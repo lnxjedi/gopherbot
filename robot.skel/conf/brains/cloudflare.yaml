@@ -1,5 +1,0 @@
-BrainConfig:
-  AccountID: "youraccountID"
-  NamespaceID: "yournamespaceID"
-  MaxAgeHours: 7
-  APIToken: "replace with encrypted value"

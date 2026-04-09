@@ -1,25 +1,21 @@
-# AdminContact: "Joe Admin, <joe@my.org>"
+## Local robot.yaml overrides default Gopherbot conf/robot.yaml settings.
 
-## "BIG HAMMER" security - if IgnoreUnlistedUsers is set, your
-## robot will drop all messages from users that don't appear in the
-## UserRoster.
+## "BIG HAMMER" security - if IgnoreUnlistedUsers is set, your robot drops all
+## messages from users that do not appear in the UserRoster.
 IgnoreUnlistedUsers: true
 
-## Improved security for secrets - if SecureParameters is true,
-## Jobs, Plugins and Tasks will need to use the GetParameter(secret_name)
-## API call to retrieve secrets, instead of getting them from environment
-## variables. This may require some jobs to load the library where formerly
-## it wasn't needed.
+## Improved security for secrets - if SecureParameters is true, jobs, plugins,
+## and tasks must use GetParameter(secret_name) instead of environment variables.
 SecureParameters: true
 
-{{ $environment := env "GOPHER_ENVIRONMENT" | default "development" }}
-## Environment-specific startup defaults (protocol/brain/log destination).
+{{ $environment := env "GOPHER_ENVIRONMENT" | default "production" }}
+## Environment-specific runtime defaults (protocol/brain/log destination).
 {{ printf "environments/%s.yaml" $environment | .Include }}
 
-{{ $botname := env "GOPHER_BOTNAME" | default "<botname>" }}
-{{ $botemail := env "GOPHER_BOTEMAIL" | default "<botemail>" }}
-{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "<botfullname>" }}
-{{ $botalias := env "GOPHER_ALIAS" | default "<botalias>" }}
+{{ $botname := "<botname>" }}
+{{ $botemail := "<botemail>" }}
+{{ $botfullname := "<botfullname>" }}
+{{ $botalias := "<botalias>" }}
 
 BotInfo:
   UserName: {{ $botname }}
@@ -32,35 +28,49 @@ Alias: '{{ $botalias }}'
 
 # Defaults for history and workspace directories, relative to the
 # process working directory.
-{{ $workdir := env "GOPHER_WORKSPACE" | default "workspace" }}
+{{ $workdir := "workspace" }}
 {{ if $workdir -}} WorkSpace: {{ $workdir }} {{- end }}
 
 ## Configure a history provider
-{{ $history := env "GOPHER_HISTORY_PROVIDER" | default "file" }}
+{{ $history := "file" }}
 HistoryProvider: {{ $history }}
 
-## If the plugin doesn't specify an outgoing message format, what's the default?
-## BasicMarkdown is the v3 default portable format. 'Raw' is unmodified,
-## subject to protocol-specific formatting. 'Variable' will escape special
-## characters like #, @, _, `, etc. so those characters can appear in replies.
-## 'Fixed' will send everything in a fixed-width font.
-# DefaultMessageFormat: Raw # BasicMarkdown if not specified
+## Outgoing format when a plugin or job does not choose one explicitly.
+DefaultMessageFormat: BasicMarkdown
 
-ExternalJobs:
-#   "sample-job":
-#     Description: Example scheduled job for testing
-#     Path: jobs/your-job.sh
-#     Privileged: true
-#   "github-review-digest":
-#     Description: Example JavaScript job that DMs a user a GitHub review digest
-#     Path: jobs/samples/github-review-digest.js
-#   "go-openai-prune":
-#     Description: Prune stale go-openai-fallback conversation datums
-#     Path: jobs/go-openai-prune/go_openai_prune_job.go
-#     Homed: true
-#     Parameters:
-#     - Name: NONCE
-#       Value: "No way, Jack!"
+## The installed engine defaults already enable a useful baseline:
+## - built-in admin/help/history/jobcmd/logging/ping/fallback
+## - external admin, knock, links, lists, ssh-admin
+##
+## Uncomment local overrides here only when you want to change that baseline.
+# ExternalPlugins:
+#   "admin":
+#     Disabled: true
+#   "knock":
+#     Disabled: true
+#   "links":
+#     Disabled: true
+#   "lists":
+#     Disabled: true
+#   "ssh-admin":
+#     Disabled: true
+
+## Optional simple shipped features.
+## To use the groups authorizer, set DefaultAuthorizer: groups and then
+## copy the installed conf/plugins/groups.yaml into custom/conf/plugins/ and
+## customize it for your robot.
+# DefaultAuthorizer: groups
+
+## Optional credentialed integrations remain disabled until you enable them.
+## Use the conf/*.yaml.sample files from the distribution as the starting point for setup:
+## - conf/protocols/slack.yaml.sample
+## - conf/plugins/duo.yaml.sample
+## - conf/plugins/memes.yaml.sample
+## - conf/plugins/openai-fallback.yaml.sample
+## - conf/plugins/github-link.yaml.sample
+## - conf/plugins/github-tools.yaml.sample
+## - conf/jobs/github-review-digest.yaml.sample
+## - conf/jobs/go-openai-prune.yaml.sample
 
 ## Jobs are scheduled with github.com/robfig/cron; includes seconds.
 ## Note that pause-notifies is scheduled by default in
@@ -72,119 +82,17 @@ ScheduledJobs:
 ## dependencies with this init job.
 # - Name: install-libs
 #   Schedule: "@init"
-## If your robot is logging to a file, this job will rotate logs
-# - Name: logrotate
-#   Schedule: "5 0 0 * * *"
 ## If using go-openai-fallback, prune stale chat contexts daily.
 # - Name: go-openai-prune
 #   Schedule: "0 15 3 * * *"
+## If you want updatecfg compatibility behavior, schedule it explicitly.
+# - Name: updatecfg
+#   Schedule: "@init"
 ## Example with arguments
 # - Name: hello
 #   Schedule: "@every 30s"
 #   Arguments: # an array of strings; up to the job to parse numbers & bools
 #   - "Hello, World !!!"
-
-ExternalPlugins:
-#   "weather":
-#     Description: A plugin that uses OpenWeatherMap to report the weather
-#     Path: plugins/weather.rb
-#     Parameters:
-#     - Name: OWM_APIKEY
-#       Value: replace with encrypted string
-#     - Name: TEMP_UNITS
-#       Value: {{ env "GOPHER_OWM_UNITS" | default "imperial" }} # or 'metric'
-#     - Name: DEFAULT_COUNTRY
-#       Value: {{ env "GOPHER_OWM_COUNTRY" | default "us" }} # or other ISO 3166 country code
-#   "chuck":
-#     Description: A plugin that pipes up whenever The Man's name is mentioned
-#     Path: plugins/chuck.rb
-#   "sample-plugin":
-#     Description: Example plugin
-#     Path: plugins/your-plugin.sh
-#   "pythondemo":
-#     Description: Sample python plugin
-#     Path: plugins/samples/pythondemo.py
-#   "openai-fallback":
-#     Description: OpenAI-backed multi-user conversational fallback plugin
-#     Path: plugins/go-openai-fallback/ai.go
-#     Homed: true
-#     ## Configure per-robot behavior in custom/conf/plugins/openai-fallback.yaml
-#     Parameters:
-#     - Name: OPENAI_KEY
-#       Value: replace with encrypted string
-#     - Name: OPENAI_ORGANIZATION_ID
-#       Value: optional organization ID
-#   "github-tools":
-#     Description: Example JavaScript plugin using GetIdentityCredential plus GitHub HTTP APIs
-#     Path: plugins/samples/github-tools.js
-#   "github-link":
-#     Description: Optional GitHub account linker using OAuth2 device flow
-#     Path: plugins/go-github-link/github_link.go
-#     Homed: true
-#     ## Create github_oauth in ParameterSets below, configure IdentityProviders,
-#     ## and attach that same ParameterSet here before enabling this plugin.
-#     ParameterSets:
-#     - github_oauth
-
-## Note that modules for connectors, brains and history providers load automatically
-# LoadableModules:
-#   "knock":
-#     Description: Knock knock jokes!
-#     Path: goplugins/knock.so
-#   "memes":
-#     Description: Memes!
-#     Path: goplugins/meme.so
-
-NameSpaces:
-  "manage":
-    # The default standard config defines a bunch of pass-through env vars,
-    # so here we use AppendParameters
-    AppendParameters:
-
-DefaultMessageFormat: BasicMarkdown
-
-# IdentityProviders:
-#   github:
-#     Type: oauth2
-#     CredentialParameterSet: github_oauth
-#     OAuth2:
-#       TokenEndpointAuthMethod: client_secret_post
-#       Token:
-#         URL: https://github.com/login/oauth/access_token
-#         Headers:
-#           Accept: application/json
-# ParameterSets:
-#   github_oauth:
-#     Parameters:
-#     - Name: CLIENT_ID
-#       Value: "Iv1..."
-#     - Name: CLIENT_SECRET
-#       Value: {{ decrypt "<encrypted github client secret>" }}
-# Users the bot should never listen to
+#
+# Users the bot should never listen to.
 #IgnoreUsers: [ "otherbot", "slackbot" ]
-
-## Configuration for sending out email. For Authtype: none, User and Password
-## can be left out. Note that sending email will fail if Email isn't set. Note
-## for GMail users - for your robot to send email, you'll need to enable less
-## secure apps for the sending account. See:
-## https://support.google.com/accounts/answer/6010255
-
-# MailConfig:
-#   Mailhost: smtp.gmail.com:587
-#   Authtype: plain
-#   User: clu@linuxjedi.org
-#   Password: replace with encrypted string
-
-## Use Google Authenticator TOTP by default for elevated commands. To use:
-## - Ask the robot to 'send launch codes', and it will send you (one time)
-##   a string for configuring your Google Authencticator app, and store it's
-##   own copy in the robot's brain. You can verify it works with the
-##   'check launch code <code>' command.
-## - To require a token to be provided before running a given plugin command,
-##   add the elevated command(s) to the plugin's ElevatedCommands list, or to
-##   ElevateImmediateCommands for commands that require elevation every time
-##   regardless of timeout.
-## - Configure the elevator by overriding the config for the plugin in
-##   'conf/plugins/totp.yaml'
-
-# DefaultElevator: builtin-totp

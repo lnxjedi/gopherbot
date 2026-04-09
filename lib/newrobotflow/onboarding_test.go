@@ -50,11 +50,13 @@ func TestWriteInitialEnvOnlyKeepsEncryptionKeyBootstrapState(t *testing.T) {
 	if !strings.Contains(got, "GOPHER_ENCRYPTION_KEY="+key) {
 		t.Fatalf(".env missing encryption key: %q", got)
 	}
+	if !strings.Contains(got, "GOPHER_ENVIRONMENT=development") {
+		t.Fatalf(".env missing explicit development environment: %q", got)
+	}
 	for _, unwanted := range []string{
 		"GOPHER_CUSTOM_REPOSITORY=",
 		"GOPHER_DEPLOY_KEY=",
 		"GOPHER_BOTNAME=",
-		"GOPHER_ENVIRONMENT=development",
 	} {
 		if strings.Contains(got, unwanted) {
 			t.Fatalf(".env still contains %q: %q", unwanted, got)
@@ -62,6 +64,9 @@ func TestWriteInitialEnvOnlyKeepsEncryptionKeyBootstrapState(t *testing.T) {
 	}
 	if !strings.Contains(got, "KEEP_ME=yes") {
 		t.Fatalf(".env dropped unrelated content: %q", got)
+	}
+	if !strings.Contains(got, "# Remove GOPHER_ENVIRONMENT=development when deploying to production.") {
+		t.Fatalf(".env missing deployment guidance comment: %q", got)
 	}
 	if !strings.Contains(got, "# GOPHER_ENVIRONMENT=production") {
 		t.Fatalf(".env missing environment guidance comment: %q", got)
@@ -137,13 +142,19 @@ func TestFindSessionForJoinMatchesCanonicalUser(t *testing.T) {
 type onboardingTestRobot struct {
 	parameters map[string]string
 	message    *robot.Message
+	botAttrs   map[string]string
 }
 
-func (r *onboardingTestRobot) CheckAdmin() bool                      { return false }
-func (r *onboardingTestRobot) Subscribe() bool                       { return false }
-func (r *onboardingTestRobot) Unsubscribe() bool                     { return false }
-func (r *onboardingTestRobot) Elevate(bool) bool                     { return false }
-func (r *onboardingTestRobot) GetBotAttribute(string) *robot.AttrRet { return &robot.AttrRet{} }
+func (r *onboardingTestRobot) CheckAdmin() bool  { return false }
+func (r *onboardingTestRobot) Subscribe() bool   { return false }
+func (r *onboardingTestRobot) Unsubscribe() bool { return false }
+func (r *onboardingTestRobot) Elevate(bool) bool { return false }
+func (r *onboardingTestRobot) GetBotAttribute(name string) *robot.AttrRet {
+	if r.botAttrs == nil {
+		return &robot.AttrRet{}
+	}
+	return &robot.AttrRet{Attribute: r.botAttrs[name], RetVal: robot.Ok}
+}
 func (r *onboardingTestRobot) GetUserAttribute(string, string) *robot.AttrRet {
 	return &robot.AttrRet{}
 }
@@ -258,5 +269,109 @@ func TestPreferredOnboardingUserPrefersUSER(t *testing.T) {
 	got := preferredOnboardingUser(r, "startedby", r.message)
 	if got != "shelluser" {
 		t.Fatalf("preferredOnboardingUser() = %q, want shelluser", got)
+	}
+}
+
+func TestValidEncryptionKeyAllowsPunctuation(t *testing.T) {
+	const key = "Forky-EAT:Lunker@SmashedBUMBLETS"
+	if len(key) != 32 {
+		t.Fatalf("test key length = %d, want 32", len(key))
+	}
+	if !validEncryptionKey(key) {
+		t.Fatalf("validEncryptionKey(%q) = false, want true", key)
+	}
+}
+
+func TestValidEncryptionKeyAllowsLongerValues(t *testing.T) {
+	const key = "Forky-EAT:Lunker@SmashedBUMBLETcrumplet"
+	if len(key) <= 32 {
+		t.Fatalf("test key length = %d, want > 32", len(key))
+	}
+	if !validEncryptionKey(key) {
+		t.Fatalf("validEncryptionKey(%q) = false, want true", key)
+	}
+}
+
+func TestInvalidEncryptionKeyMessageExplainsRequirements(t *testing.T) {
+	msg := invalidEncryptionKeyMessage("short")
+	for _, want := range []string{
+		"GOPHER_ENCRYPTION_KEY",
+		"at least 32 characters",
+		"cannot contain spaces, tabs, or line breaks",
+		"Letters, digits, and punctuation are all fine",
+		"only the first 32 bytes are used today",
+	} {
+		if !strings.Contains(msg, want) {
+			t.Fatalf("invalidEncryptionKeyMessage() missing %q in %q", want, msg)
+		}
+	}
+	if !strings.Contains(msg, "I received 5 characters.") {
+		t.Fatalf("invalidEncryptionKeyMessage() missing length detail in %q", msg)
+	}
+}
+
+func TestEnableOnboardingHooksAddsExternalJobsSectionWhenMissing(t *testing.T) {
+	tempDir := t.TempDir()
+	robotConfigPath := filepath.Join(tempDir, "robot.yaml")
+	original := strings.Join([]string{
+		"IgnoreUnlistedUsers: true",
+		"ScheduledJobs:",
+		"- Name: pause-notifies",
+		"  Schedule: \"0 0 8 * * *\"",
+		"",
+	}, "\n")
+	if err := os.WriteFile(robotConfigPath, []byte(original), 0600); err != nil {
+		t.Fatalf("WriteFile(%q) failed: %v", robotConfigPath, err)
+	}
+
+	if err := enableOnboardingHooks(robotConfigPath); err != nil {
+		t.Fatalf("enableOnboardingHooks() failed: %v", err)
+	}
+
+	body, err := os.ReadFile(robotConfigPath)
+	if err != nil {
+		t.Fatalf("ReadFile(%q) failed: %v", robotConfigPath, err)
+	}
+	got := string(body)
+	if !strings.Contains(got, "ExternalJobs:\n  # BEGIN NEW-ROBOT ONBOARDING JOB") {
+		t.Fatalf("robot config missing inserted ExternalJobs section:\n%s", got)
+	}
+	if !strings.Contains(got, "\"resume-setup\":") {
+		t.Fatalf("robot config missing resume-setup entry:\n%s", got)
+	}
+	if strings.Index(got, "ExternalJobs:") > strings.Index(got, "ScheduledJobs:") {
+		t.Fatalf("ExternalJobs section should appear before ScheduledJobs:\n%s", got)
+	}
+}
+
+func TestPreferredBotNameHandlesNilSession(t *testing.T) {
+	r := &onboardingTestRobot{
+		parameters: map[string]string{
+			"GOPHER_BOTNAME": "parsley",
+		},
+	}
+	defer func() {
+		if p := recover(); p != nil {
+			t.Fatalf("preferredBotName() panicked with nil session: %v", p)
+		}
+	}()
+	if got := preferredBotName(r, nil); got != "parsley" {
+		t.Fatalf("preferredBotName() = %q, want parsley", got)
+	}
+}
+
+func TestPreferredBotAliasHandlesNilSession(t *testing.T) {
+	r := &onboardingTestRobot{
+		parameters: map[string]string{
+			"GOPHER_ALIAS": "%",
+		},
+	}
+	defer func() {
+		if p := recover(); p != nil {
+			t.Fatalf("preferredBotAlias() panicked with nil session: %v", p)
+		}
+	}()
+	if got := preferredBotAlias(r, nil); got != "%" {
+		t.Fatalf("preferredBotAlias() = %q, want %%", got)
 	}
 }

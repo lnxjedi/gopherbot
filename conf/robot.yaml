@@ -220,6 +220,7 @@ ExternalPlugins:
     Description: An external Go plugin demonstrating Prompting and custom configuration
     Path: plugins/go-meme/memes.go
     Homed: true
+    Disabled: true
   "ssh-admin":
     Description: Administrative plugin for managing the robot's ssh keypair
     Path: plugins/ssh-admin.gsh

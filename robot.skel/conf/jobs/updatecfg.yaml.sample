@@ -1,8 +1,0 @@
----
-## Example trigger - when the robot see's its configuration has been
-## udpated, it'll trigger this job to automatically update the repository
-## and reload.
-# Triggers:
-# - User: github
-#   Channel: ljdev
-#   Regex: 'new commit.*parsley42/clu-gopherbot/tree/master'

@@ -80,7 +80,7 @@ Floyd: All right. I'll generate one now and write it into `.env`.
 ```
 
 [Robot generates a fresh `GOPHER_ENCRYPTION_KEY`]
-[Robot writes `.env` containing only `GOPHER_ENCRYPTION_KEY=<key>`]
+[Robot writes `.env` containing `GOPHER_ENCRYPTION_KEY=<key>` and `GOPHER_ENVIRONMENT=development`]
 
 ```
 Floyd: Done. Your encryption key is now written to `.env`, which can be used
@@ -107,7 +107,7 @@ Floyd: That looks valid, so I'll write it into `.env`.
 ```
 
 [Robot validates the supplied key]
-[Robot writes `.env` containing only `GOPHER_ENCRYPTION_KEY=<key>`]
+[Robot writes `.env` containing `GOPHER_ENCRYPTION_KEY=<key>` and `GOPHER_ENVIRONMENT=development`]
 
 ```
 Floyd: Done. Your encryption key is now written to `.env`, which can be used

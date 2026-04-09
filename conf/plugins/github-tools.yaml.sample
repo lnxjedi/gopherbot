@@ -1,0 +1,10 @@
+---
+## Sample per-robot override for the optional github-tools plugin.
+## Copy this file to custom/conf/plugins/github-tools.yaml after enabling the
+## plugin and linking a GitHub identity provider for the robot.
+
+Config:
+  Provider: github
+  APIBaseURL: https://api.github.com
+  ReviewQuery: "is:open is:pr review-requested:@me archived:false"
+  MaxItems: 10

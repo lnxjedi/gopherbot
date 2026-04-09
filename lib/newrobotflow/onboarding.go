@@ -426,7 +426,7 @@ func continueWizard(conv *conversation, state *setupStateFile, userKey string, s
 		sendSetupParagraphs(conv,
 			"Done. Your encryption key is now written to `.env`, which can be used for supplying environment variables to a robot when it starts.",
 			"Keep that value safe and never commit `.env` to git.",
-			fmt.Sprintf("I'm restarting now. Reconnect as @%s and the setup resume job will pick up automatically right where we left off.", session.StartedBy),
+			fmt.Sprintf("I'm restarting now with encryption enabled. Reconnect as @%s and the setup resume job will pick up automatically right where we left off.", session.StartedBy),
 		)
 		conv.Pause(SetupRestartTransitionPauseSeconds)
 		conv.r.AddTask("restart-robot")
@@ -674,9 +674,10 @@ func promptEncryptionKey(conv *conversation) (string, bool) {
 func promptSuppliedEncryptionKey(conv *conversation) (string, bool) {
 	sendSetupQuestionIntro(conv,
 		"If you already have an encryption key you want to keep using, you can paste it here instead of having me generate one.",
+		"It can contain letters, digits, or punctuation, but it must be at least 32 characters long with no spaces, tabs, or line breaks. If you paste a longer value, only the first 32 bytes are used today.",
 	)
 	for i := 0; i < 3; i++ {
-		rep, ret := conv.Prompt("SimpleString", "Please paste the encryption key you'd like to use.")
+		rep, ret := conv.Prompt("AnyString", "Please paste the encryption key you'd like to use.")
 		switch ret {
 		case robot.Interrupted:
 			conv.Reply("Setup paused. Run 'new robot' when you're ready to continue.")
@@ -689,8 +690,12 @@ func promptSuppliedEncryptionKey(conv *conversation) (string, bool) {
 			if validEncryptionKey(key) {
 				return key, true
 			}
-			conv.Reply("That key doesn't look valid. Please provide a single 32-character key with no spaces.")
+			conv.Reply(invalidEncryptionKeyMessage(key))
 		default:
+			if ret == robot.ReplyNotMatched {
+				conv.Reply(invalidEncryptionKeyMessage(strings.TrimSpace(rep)))
+				continue
+			}
 			conv.Reply("I couldn't read your encryption key (%s).", ret)
 		}
 	}
@@ -702,7 +707,14 @@ func validEncryptionKey(key string) bool {
 	if strings.TrimSpace(key) != key {
 		return false
 	}
-	return len(key) == 32 && !strings.ContainsAny(key, " \t\r\n")
+	return len(key) >= 32 && !strings.ContainsAny(key, " \t\r\n")
+}
+
+func invalidEncryptionKeyMessage(key string) string {
+	if strings.ContainsAny(key, " \t\r\n") || strings.TrimSpace(key) != key {
+		return "That key isn't valid. `GOPHER_ENCRYPTION_KEY` must be at least 32 characters long and cannot contain spaces, tabs, or line breaks. Letters, digits, and punctuation are all fine. If you provide a longer value, only the first 32 bytes are used today."
+	}
+	return fmt.Sprintf("That key isn't valid. `GOPHER_ENCRYPTION_KEY` must be at least 32 characters long and cannot contain spaces, tabs, or line breaks. Letters, digits, and punctuation are all fine. If you provide a longer value, only the first 32 bytes are used today. I received %d characters.", len(key))
 }
 
 func promptBotName(conv *conversation) (string, bool) {
@@ -809,7 +821,7 @@ func promptJobChannel(conv *conversation, fallback string) (string, bool) {
 func promptRobotEmail(conv *conversation) (string, bool) {
 	sendSetupQuestionIntro(conv,
 		"Your robot should have an email address for its own identity.",
-		"It will be used as the `From:` address when the robot sends email, and also for git commits. If you do not have a dedicated address yet, your own address is fine for now.",
+		"It will be the value returned by GetBotAttribute(\"email\"), which might be used for e.g. sending emails or making git commits. If you have no plans for these yet, you can supply your own email or a dummy value.",
 	)
 	for i := 0; i < 3; i++ {
 		rep, ret := conv.Prompt("Email", "What email address should the robot use?")
@@ -900,7 +912,7 @@ func promptCanonicalUser(conv *conversation, fallback string) (string, bool) {
 		}
 		candidate := canonicalUserKey(rep)
 		if usernameRe.MatchString(candidate) {
-			conv.Reply("Good choice. You'll use `%s` as your canonical username for this robot.", candidate)
+			conv.Reply("Good - you'll use `%s` as your canonical username for this robot.", candidate)
 			return candidate, true
 		}
 		conv.Reply("'%s' isn't valid. Use lowercase letters, digits, '_' or '-', starting with a letter.", strings.TrimSpace(rep))
@@ -972,7 +984,7 @@ func promptRepositoryURL(conv *conversation, current string) (string, bool) {
 	sendSetupQuestionIntro(conv,
 		"All of the custom configuration, scripts and secrets (encrypted by `GOPHER_ENCRYPTION_KEY`) that define your robot will be stored in a remote git repository.",
 		"When `gopherbot` is started in an empty directory, or a directory containing only `.env`, it will look for the environment variables it needs there, clone your robot's repository, and then start your robot for simple deployment and updates.",
-		"This should be a clone URL that uses SSH credentials. For this flow, the upstream repository should be created empty with no README, LICENSE, or other starter files.",
+		"Now I need a clone URL for your robot's repository that uses SSH credentials. For this flow, the upstream repository should be created empty with no README, LICENSE, or other starter files.",
 	)
 	prompt := "Let's get this robot ready for the first deployment - what's the repository clone URL? (e.g. 'git@github.com:owner/repo.git')"
 	if defaultRepo != "" {
@@ -1012,7 +1024,7 @@ func promptRepositoryURL(conv *conversation, current string) (string, bool) {
 func sendRepositoryInstructions(conv *conversation, session setupSession) {
 	sendSetupParagraphs(conv,
 		"Repository handoff is ready. I updated `.env` with `GOPHER_CUSTOM_REPOSITORY` and `GOPHER_DEPLOY_KEY`.",
-		"Next, create the empty upstream repository if you have not already done that, then add this read-only deploy key to it:",
+		"Next, create the empty upstream repository if you have not already, then add this read-only deploy key to it:",
 	)
 	conv.FixedSay("%s", strings.TrimSpace(session.DeployPublicKey))
 	conv.Pause(SetupParagraphReadPauseSeconds)
@@ -1154,8 +1166,6 @@ func applyScaffold(r robot.Robot, s setupSession) error {
 		"conf/robot.yaml",
 		"conf/protocols/ssh.yaml",
 		"conf/protocols/terminal.yaml",
-		"conf/protocols/slack.yaml",
-		"git/config",
 	} {
 		fp := filepath.Join(defaultScaffoldPath, rel)
 		if err := replaceTokensInFile(fp, replace); err != nil {
@@ -1285,6 +1295,7 @@ func writeInitialEnv(encryptionKey string) error {
 
 	required := map[string]string{
 		"GOPHER_ENCRYPTION_KEY": encryptionKey,
+		"GOPHER_ENVIRONMENT":    defaultEnvironment,
 	}
 
 	lines := []string{}
@@ -1310,11 +1321,6 @@ func writeInitialEnv(encryptionKey string) error {
 		if key == "GOPHER_CUSTOM_REPOSITORY" || key == "GOPHER_DEPLOY_KEY" || key == "GOPHER_CUSTOM_BRANCH" || key == "GOPHER_PROTOCOL" || key == "GOPHER_BRAIN" || key == "GOPHER_DEFAULT_PROTOCOL" || key == "GOPHER_BOTNAME" {
 			lines[i] = ""
 			continue
-		}
-		// Explicitly setting development is redundant because startup defaults
-		// to development when GOPHER_ENVIRONMENT is not set.
-		if key == "GOPHER_ENVIRONMENT" && strings.EqualFold(strings.TrimSpace(strings.Trim(valueForEnvLine(line), `"'`)), defaultEnvironment) {
-			lines[i] = ""
 		}
 	}
 
@@ -1436,9 +1442,10 @@ func ensureEnvironmentGuidanceComment(lines []string) []string {
 		return lines
 	}
 	comment := []string{
+		"# New robots start in development mode so they use the local development environment.",
+		"# Remove GOPHER_ENVIRONMENT=development when deploying to production.",
 		"# For a robot running in production, set:",
 		"# GOPHER_ENVIRONMENT=production",
-		"# (default is development)",
 	}
 	if len(lines) == 0 {
 		return comment
@@ -1533,7 +1540,19 @@ func enableOnboardingHooks(robotConfigPath string) error {
 
 	updated, err := insertBlockAfterLine(txt, "ExternalJobs:", jobBlock)
 	if err != nil {
-		return fmt.Errorf("adding onboarding resume job to %s: %w", robotConfigPath, err)
+		sectionBlock := strings.TrimRight(`
+ExternalJobs:
+  # BEGIN NEW-ROBOT ONBOARDING JOB
+  "resume-setup":
+    Description: Temporary onboarding resume-on-join job
+    Path: jobs/go-resume-setup/resume_setup.go
+    Homed: true
+  # END NEW-ROBOT ONBOARDING JOB
+`, "\n")
+		updated, err = insertBlockBeforeLine(txt, "ScheduledJobs:", sectionBlock)
+		if err != nil {
+			return fmt.Errorf("adding onboarding resume job to %s: %w", robotConfigPath, err)
+		}
 	}
 
 	if err := os.WriteFile(robotConfigPath, []byte(updated), 0600); err != nil {
@@ -1553,6 +1572,22 @@ func insertBlockAfterLine(text, anchor, block string) (string, error) {
 		updated = append(updated, lines[:i+1]...)
 		updated = append(updated, blockLines...)
 		updated = append(updated, lines[i+1:]...)
+		return strings.Join(updated, "\n"), nil
+	}
+	return "", fmt.Errorf("anchor not found: %s", anchor)
+}
+
+func insertBlockBeforeLine(text, anchor, block string) (string, error) {
+	lines := strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
+	for i, line := range lines {
+		if strings.TrimSpace(line) != anchor {
+			continue
+		}
+		blockLines := strings.Split(strings.TrimRight(block, "\n"), "\n")
+		updated := make([]string, 0, len(lines)+len(blockLines))
+		updated = append(updated, lines[:i]...)
+		updated = append(updated, blockLines...)
+		updated = append(updated, lines[i:]...)
 		return strings.Join(updated, "\n"), nil
 	}
 	return "", fmt.Errorf("anchor not found: %s", anchor)
@@ -1952,8 +1987,12 @@ func ensureSSHProtocolUserKey(sshConfigPath, user, sshKey string) error {
 }
 
 func preferredBotName(r robot.Robot, session *setupSession) string {
+	sessionBotName := ""
+	if session != nil {
+		sessionBotName = session.BotName
+	}
 	candidates := []string{
-		session.BotName,
+		sessionBotName,
 		r.GetParameter("GOPHER_BOTNAME"),
 		r.GetBotAttribute("name").String(),
 		"floyd",
@@ -1968,8 +2007,12 @@ func preferredBotName(r robot.Robot, session *setupSession) string {
 }
 
 func preferredBotAlias(r robot.Robot, session *setupSession) string {
+	sessionBotAlias := ""
+	if session != nil {
+		sessionBotAlias = session.BotAlias
+	}
 	candidates := []string{
-		session.BotAlias,
+		sessionBotAlias,
 		r.GetParameter("GOPHER_ALIAS"),
 		r.GetBotAttribute("alias").String(),
 		defaultBotAlias,
