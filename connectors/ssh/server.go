@@ -18,6 +18,8 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
+var sshNetListen = net.Listen
+
 func (sc *sshConnector) acceptLoop(ln net.Listener, cfg *ssh.ServerConfig, stop <-chan struct{}) {
 	for {
 		nc, err := ln.Accept()
@@ -269,12 +271,12 @@ func (sc *sshConnector) listenOnPort(addr string, port int) ([]net.Listener, str
 		var listeners []net.Listener
 		var listenHost string
 
-		ln4, err4 := net.Listen("tcp4", fmt.Sprintf("0.0.0.0:%d", port))
+		ln4, err4 := sshNetListen("tcp4", fmt.Sprintf("0.0.0.0:%d", port))
 		if err4 == nil {
 			listeners = append(listeners, ln4)
 			listenHost = "0.0.0.0"
 		}
-		ln6, err6 := net.Listen("tcp6", fmt.Sprintf("[::]:%d", port))
+		ln6, err6 := sshNetListen("tcp6", fmt.Sprintf("[::]:%d", port))
 		if err6 == nil {
 			listeners = append(listeners, ln6)
 			if listenHost == "" {
@@ -291,7 +293,7 @@ func (sc *sshConnector) listenOnPort(addr string, port int) ([]net.Listener, str
 	if addr == "localhost" {
 		addr = "127.0.0.1"
 	}
-	ln, err := net.Listen("tcp", fmt.Sprintf("%s:%d", addr, port))
+	ln, err := sshNetListen("tcp", fmt.Sprintf("%s:%d", addr, port))
 	if err != nil {
 		return nil, addr, fmt.Errorf("Unable to bind SSH connector on %s:%d: %v", addr, port, err), isAddrInUse(err)
 	}

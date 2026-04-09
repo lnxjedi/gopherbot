@@ -86,7 +86,6 @@ func (r Robot) expandHelpPlaceholders(input string) (ret string) {
 		if botRegex.MatchString(input) {
 			if len(botName) > 0 {
 				ret = botRegex.ReplaceAllString(input, "${1}"+botName+"${2} ")
-				w.Log(robot.Debug, "Sending '%s' to FormatHelp", ret)
 			} else {
 				ret = botRegex.ReplaceAllString(input, botAlias)
 			}

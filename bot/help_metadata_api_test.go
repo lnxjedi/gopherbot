@@ -16,8 +16,6 @@ func (c *hiddenHelpTestConnector) GetProtocolUserAttribute(string, string) (stri
 
 func (c *hiddenHelpTestConnector) MessageHeard(string, string) {}
 
-func (c *hiddenHelpTestConnector) FormatHelp(input string) string { return input }
-
 func (c *hiddenHelpTestConnector) DefaultHelp() []string { return nil }
 
 func (c *hiddenHelpTestConnector) JoinChannel(string) robot.RetVal { return robot.Ok }

@@ -32,10 +32,6 @@ func (fc *fakeRuntimeConnector) GetProtocolUserAttribute(string, string) (string
 
 func (fc *fakeRuntimeConnector) MessageHeard(string, string) {}
 
-func (fc *fakeRuntimeConnector) FormatHelp(input string) string {
-	return input
-}
-
 func (fc *fakeRuntimeConnector) DefaultHelp() []string {
 	return nil
 }

@@ -646,20 +646,6 @@ func (sc *sshConnector) GetProtocolUserAttribute(u, attr string) (value string, 
 	return "", robot.AttributeNotFound
 }
 
-func (sc *sshConnector) FormatHelp(input string) string {
-	for _, prefix := range []string{"Usage: ", "Example: ", "Try: "} {
-		if strings.HasPrefix(input, prefix) {
-			rest := strings.TrimSpace(strings.TrimPrefix(input, prefix))
-			return prefix + "*" + rest + "*"
-		}
-	}
-	arr := strings.SplitN(input, " - ", 2)
-	if len(arr) != 2 {
-		return "*" + input + "*"
-	}
-	return "*" + arr[0] + "* - " + arr[1]
-}
-
 func (sc *sshConnector) DefaultHelp() []string {
 	return []string{}
 }

@@ -579,14 +579,6 @@ func (rc *runtimeConnectorRouter) MessageHeard(user, channel string) {
 	}
 }
 
-func (rc *runtimeConnectorRouter) FormatHelp(line string) string {
-	conn := getPrimaryConnector()
-	if conn == nil {
-		return line
-	}
-	return conn.FormatHelp(line)
-}
-
 func (rc *runtimeConnectorRouter) DefaultHelp() []string {
 	conn := getPrimaryConnector()
 	if conn == nil {

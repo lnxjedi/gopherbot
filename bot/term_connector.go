@@ -657,15 +657,6 @@ func (tc *termConnector) JoinChannel(c string) (ret robot.RetVal) {
 	return robot.Ok
 }
 
-// FormatHelp returns a helpline formatted for the terminal connector.
-func (tc *termConnector) FormatHelp(input string) string {
-	arr := strings.SplitN(input, " - ", 2)
-	if len(arr) != 2 {
-		return "*" + input + "*"
-	}
-	return "*" + arr[0] + "* - " + arr[1]
-}
-
 // DefaultHelp returns an empty array (no override)
 func (tc *termConnector) DefaultHelp() []string {
 	return []string{}

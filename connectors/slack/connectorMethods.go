@@ -346,21 +346,6 @@ func (s *slackConnector) JoinChannel(c string) (ret robot.RetVal) {
 	return robot.Ok
 }
 
-// FormatHelp applies light Slack-friendly formatting to help lines.
-func (s *slackConnector) FormatHelp(input string) string {
-	for _, prefix := range []string{"Usage: ", "Example: ", "Try: "} {
-		if strings.HasPrefix(input, prefix) {
-			rest := strings.TrimSpace(strings.TrimPrefix(input, prefix))
-			return prefix + "`" + rest + "`"
-		}
-	}
-	arr := strings.SplitN(input, " - ", 2)
-	if len(arr) != 2 {
-		return "`" + input + "`"
-	}
-	return "`" + arr[0] + "` - " + arr[1]
-}
-
 func (s *slackConnector) DefaultHelp() []string {
 	return nil
 }
