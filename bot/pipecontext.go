@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/gopherbot/robot/util"
 )
 
 /* pipeContext.go - internal methods on pipeContexts
@@ -74,7 +75,7 @@ func (w *worker) registerActive(parent *worker) {
 		w.ProtocolUser = w.tryResolveUser(w.User)
 	}
 	if len(w.ProtocolChannel) == 0 && len(w.Channel) > 0 {
-		if idRegex.MatchString(w.Channel) {
+		if _, ok := util.ExtractID(w.Channel); ok {
 			w.ProtocolChannel = w.Channel
 		} else if ci, ok := getProtocolChannelByName(w.maps, protocolNameFromEnum(w.Protocol), w.Channel); ok {
 			w.ProtocolChannel = bracket(ci.ChannelID)

@@ -5,26 +5,12 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"regexp"
 	godebug "runtime/debug"
 	"strings"
 	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
-
-var idRegex = regexp.MustCompile(`^<(.*)>$`)
-
-// ExtractID is a utility function to check a user/channel string against
-// the pattern '<internalID>' and if it matches return the internalID,true;
-// otherwise return the unmodified string,false.
-func (h handler) ExtractID(u string) (string, bool) {
-	matches := idRegex.FindStringSubmatch(u)
-	if len(matches) > 0 {
-		return matches[1], true
-	}
-	return u, false
-}
 
 func bracket(s string) string {
 	return "<" + s + ">"

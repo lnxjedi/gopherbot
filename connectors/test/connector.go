@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/gopherbot/robot/util"
 )
 
 // TestMessage is for sending messages to the robot
@@ -129,7 +130,7 @@ func (tc *TestConnector) sendMessage(msg *BotMessage) (ret robot.RetVal) {
 	case robot.Raw:
 		spoken.Message = msg.Message
 	case robot.BasicMarkdown:
-		spoken.Message = msg.Message
+		spoken.Message = util.RenderBasicMarkdownPlain(msg.Message)
 	default:
 		spoken.Message = msg.Message
 	}

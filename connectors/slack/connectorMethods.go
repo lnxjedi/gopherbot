@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/gopherbot/robot/util"
 	"github.com/slack-go/slack"
 )
 
@@ -27,7 +28,7 @@ func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string,
 	var userID string
 	var ok bool
 	var user *slack.User
-	if userID, ok = s.ExtractID(u); !ok {
+	if userID, ok = util.ExtractID(u); !ok {
 		userID, ok = s.userID(u, false)
 	}
 	if ok {
@@ -71,7 +72,7 @@ const sendQueueSize = 256
 func (s *slackConnector) MessageHeard(user, channel string) {
 	var chanID string
 	var ok bool
-	if chanID, ok = s.ExtractID(channel); ok {
+	if chanID, ok = util.ExtractID(channel); ok {
 		if s.socketMode {
 			// TODO someday - socketmode doesn't support typing notifications :-(
 			// Two problems with what's below:
@@ -246,7 +247,7 @@ func (s *slackConnector) sendMessages(msgs []slackOutgoingPayload, userID, chanI
 // SendProtocolChannelMessage sends a message to a channel
 func (s *slackConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	msgs := s.slackifyMessage("", "", "", msg, f, msgObject)
-	if chanID, ok := s.ExtractID(ch); ok {
+	if chanID, ok := util.ExtractID(ch); ok {
 		s.sendMessages(msgs, "", chanID, thr, f, msgObject)
 		return
 	}
@@ -262,14 +263,14 @@ func (s *slackConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f
 func (s *slackConnector) SendProtocolUserChannelThreadMessage(uid, u, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	var userID, chanID string
 	var ok bool
-	if chanID, ok = s.ExtractID(ch); !ok {
+	if chanID, ok = util.ExtractID(ch); !ok {
 		chanID, ok = s.chanID(ch)
 	}
 	if !ok {
 		s.Log(robot.Error, "Slack channel ID not found for: %s", ch)
 		return robot.ChannelNotFound
 	}
-	userID, ok = s.ExtractID(uid)
+	userID, ok = util.ExtractID(uid)
 	if !ok {
 		userID, ok = s.userID(u, false)
 	}
@@ -296,7 +297,7 @@ func (s *slackConnector) SendProtocolUserChannelThreadMessage(uid, u, ch, thr, m
 func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	var userID string
 	var ok bool
-	if userID, ok = s.ExtractID(u); !ok {
+	if userID, ok = util.ExtractID(u); !ok {
 		userID, ok = s.userID(u, false)
 	}
 	if !ok {

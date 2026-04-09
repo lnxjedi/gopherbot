@@ -95,9 +95,6 @@ type Handler interface {
 	// file-based history and brain providers. When privilege separation is in
 	// use, the directory is created with the privileged uid.
 	GetDirectory(path string) error
-	// ExtractID is a convenience function for connectors, keeps 'import "regexp"
-	// out of robot.
-	ExtractID(u string) (string, bool)
 	// RaisePriv raises the privilege of the current thread, allowing
 	// filesystem access in GOPHER_HOME. Reason is informational.
 	RaisePriv(reason string)

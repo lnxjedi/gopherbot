@@ -16,6 +16,7 @@ Focus: integration test harness under `test/` and how tests are executed.
 - The test connector is registered in `connectors/test/init.go` with `robot.RegisterConnector("test", Initialize)`, and `Initialize(...)` returns `robot.InitializedConnector{Connector, Capabilities}` so the harness can treat hidden-command support as a runtime capability rather than a registration-time constant.
 - The test connector derives bot display/full name from `BotInfo` in `conf/robot.yaml` via `Handler.GetBotInfo()`, not from protocol-local `BotName`/`BotFullName` fields.
 - The test connector runtime loop lives in `connectors/test/connector.go` (`(*TestConnector).Run`).
+- For `BasicMarkdown` bot output, the test connector stores a plain-text rendering rather than raw markdown markers so integration assertions can match readable user-visible content; raw authored markdown remains covered by targeted unit tests in `bot/` and `robot/util/`.
 
 ## setup / teardown / testcases flow
 

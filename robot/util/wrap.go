@@ -1,4 +1,4 @@
-package robot
+package util
 
 import (
 	"strings"

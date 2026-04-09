@@ -83,10 +83,7 @@ func (t *testHandler) Log(_ robot.LogLevel, m string, args ...interface{}) {
 	t.logs = append(t.logs, fmt.Sprintf(m, args...))
 }
 func (t *testHandler) GetDirectory(_ string) error { return nil }
-func (t *testHandler) ExtractID(_ string) (string, bool) {
-	return "", false
-}
-func (t *testHandler) RaisePriv(_ string) {}
+func (t *testHandler) RaisePriv(_ string)          {}
 
 func TestAnnounceJoinBroadcastsToOtherUsersOnlyAndForwardsIncoming(t *testing.T) {
 	h := &testHandler{}

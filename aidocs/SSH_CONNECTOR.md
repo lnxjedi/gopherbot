@@ -160,7 +160,7 @@ Message format behavior:
 - SSH stores a plain-text `text` payload in the replay buffer and `GetMessages(...)` results.
 - For `BasicMarkdown`, the connector also preserves the original markdown source separately on the buffered event (`basicMarkdownSource`) when the message is not truncated.
 - Live SSH display re-renders from `basicMarkdownSource` when `Color` is enabled, so terminal-only styling stays out of the canonical buffered/API text.
-- Styled output is wrapped after ANSI sequences are added; the shared wrapper in `robot/wrap.go` ignores ANSI escape width so bold/italic/code colors do not break line wrapping.
+- Styled output is wrapped after ANSI sequences are added; the shared wrapper in `robot/util/wrap.go` ignores ANSI escape width so bold/italic/code colors do not break line wrapping.
 - If a buffered message is truncated to the 4k replay limit, SSH clears the preserved markdown source so replay/API consumers do not receive partial terminal styling state.
 
 ### User input
