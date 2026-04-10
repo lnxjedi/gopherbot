@@ -79,6 +79,124 @@ func (h handler) GetConfigPath() string {
 	return installPath
 }
 
+func encryptedFileRoots() []string {
+	roots := make([]string, 0, 2)
+	addRoot := func(root string) {
+		if root == "" {
+			return
+		}
+		clean := filepath.Clean(root)
+		for _, existing := range roots {
+			if existing == clean {
+				return
+			}
+		}
+		roots = append(roots, clean)
+	}
+
+	addRoot(configFull)
+	if len(configFull) == 0 && len(configPath) > 0 {
+		if filepath.IsAbs(configPath) {
+			addRoot(configPath)
+		} else if len(homePath) > 0 {
+			addRoot(filepath.Join(homePath, configPath))
+		}
+	}
+	addRoot(installPath)
+	return roots
+}
+
+func fileWithinRoot(path, root string) bool {
+	rel, err := filepath.Rel(root, path)
+	if err != nil {
+		return false
+	}
+	if rel == ".." {
+		return false
+	}
+	return !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+}
+
+func validateEncryptedFilePath(path string) error {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return err
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("refusing symbolic link for encrypted file '%s'", path)
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("encrypted file path '%s' is not a regular file", path)
+	}
+	return nil
+}
+
+func resolveEncryptedFilePath(path string) (string, error) {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return "", errors.New("invalid empty encrypted file path")
+	}
+	roots := encryptedFileRoots()
+	if len(roots) == 0 {
+		return "", errors.New("no config or install roots available for encrypted file lookup")
+	}
+	if filepath.IsAbs(path) {
+		clean := filepath.Clean(path)
+		allowed := false
+		for _, root := range roots {
+			if fileWithinRoot(clean, root) {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			return "", fmt.Errorf("encrypted file '%s' is outside the robot config/install roots", clean)
+		}
+		if err := validateEncryptedFilePath(clean); err != nil {
+			return "", err
+		}
+		return clean, nil
+	}
+
+	for _, root := range roots {
+		candidate := filepath.Join(root, path)
+		if err := validateEncryptedFilePath(candidate); err == nil {
+			return candidate, nil
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return "", err
+		}
+	}
+
+	return "", fmt.Errorf("encrypted file '%s' not found under config/install roots", path)
+}
+
+// ReadEncryptedFile reads an encrypted file from the robot config/install area
+// and returns the decrypted plaintext bytes.
+func (h handler) ReadEncryptedFile(path string) ([]byte, error) {
+	cryptKey.RLock()
+	initialized := cryptKey.initialized
+	key := append([]byte(nil), cryptKey.key...)
+	cryptKey.RUnlock()
+	if !initialized {
+		return nil, errors.New("encryption not initialized")
+	}
+
+	h.RaisePriv(fmt.Sprintf("reading encrypted file '%s'", path))
+	resolved, err := resolveEncryptedFilePath(path)
+	if err != nil {
+		return nil, err
+	}
+	ciphertext, err := ReadBinaryFile(resolved)
+	if err != nil {
+		return nil, fmt.Errorf("reading encrypted file '%s': %w", resolved, err)
+	}
+	plaintext, err := decrypt(*ciphertext, key)
+	if err != nil {
+		return nil, fmt.Errorf("decrypting encrypted file '%s': %w", resolved, err)
+	}
+	return plaintext, nil
+}
+
 // RaisePriv raises privilege for connectors, brains, etc.
 func (h handler) RaisePriv(reason string) {
 	raiseThreadPriv(reason)

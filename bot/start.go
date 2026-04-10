@@ -3,6 +3,7 @@ package bot
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -63,23 +64,34 @@ func Start(v VersionInfo) {
 	args := os.Args[1:]
 	// Process command-line flags
 	lusage := "path to robot's log file (or 'stdout' or 'stderr')"
-	flag.StringVar(&logFile, "log", "", lusage)
-	flag.StringVar(&logFile, "l", "", "")
 	plusage := "omit timestamps from the log"
-	flag.BoolVar(&plainlog, "plainlog", false, plusage)
-	flag.BoolVar(&plainlog, "p", false, "")
 	husage := "help for gopherbot"
-	flag.BoolVar(&helpRequested, "help", false, husage)
-	flag.BoolVar(&helpRequested, "h", false, "")
+	rootFlags := flag.NewFlagSet("gopherbot", flag.ContinueOnError)
+	rootFlags.SetOutput(io.Discard)
+	rootFlags.StringVar(&logFile, "log", "", lusage)
+	rootFlags.StringVar(&logFile, "l", "", "")
+	rootFlags.BoolVar(&plainlog, "plainlog", false, plusage)
+	rootFlags.BoolVar(&plainlog, "p", false, "")
+	rootFlags.BoolVar(&helpRequested, "help", false, husage)
+	rootFlags.BoolVar(&helpRequested, "h", false, "")
 	spusage := "override SSH listen port for the local connector"
-	flag.IntVar(&sshPortOverride, "ssh-port", 0, spusage)
+	rootFlags.IntVar(&sshPortOverride, "ssh-port", 0, spusage)
 	adusage := "enable AI development mode with an auth token"
-	flag.StringVar(&aidevFlagToken, "aidev", "", adusage)
-	// TODO: Gopherbot CLI commands suck. Make them suck less.
-	flag.Parse()
-	if flag.NArg() > 0 {
+	rootFlags.StringVar(&aidevFlagToken, "aidev", "", adusage)
+	remainingArgs, err := func() ([]string, error) {
+		if err := rootFlags.Parse(args); err != nil {
+			return nil, err
+		}
+		return rootFlags.Args(), nil
+	}()
+	if err != nil {
+		fmt.Printf("Error: %v\n\n", err)
+		printCLIUsage()
+		os.Exit(2)
+	}
+	if len(remainingArgs) > 0 {
 		var code int
-		switch flag.Arg(0) {
+		switch remainingArgs[0] {
 		case pipelineChildExecCommand:
 			code = runPipelineChildExec()
 		case pipelineChildRPCCommand:
@@ -94,7 +106,18 @@ func Start(v VersionInfo) {
 			return
 		}
 	}
-	cliOp = len(flag.Args()) > 0 && flag.Arg(0) != "run"
+	if helpRequested {
+		printCLIUsage()
+		return
+	}
+	if len(remainingArgs) > 0 {
+		command := remainingArgs[0]
+		commandArgs := remainingArgs[1:]
+		if command == "help" || command == "version" || command == "init" || !cliCommandKnown(command) || shouldShowCLICommandHelp(command, commandArgs) || (command == "run" && len(commandArgs) > 0) {
+			os.Exit(processCLI(command, commandArgs))
+		}
+	}
+	cliOp = len(remainingArgs) > 0 && remainingArgs[0] != "run"
 
 	setAIDevToken(aidevFlagToken)
 
@@ -146,31 +169,6 @@ func Start(v VersionInfo) {
 		return
 	}
 
-	usage := `Usage: gopherbot [options] [command [command options] [command args]]
-  "command" can be one of:
-	decrypt - decrypt a string or file
-	encrypt - encrypt a string or file
-	gentotp - generate a user TOTP string
-	delete - delete a memory
-	dump (installed|configured) [path/to/file.yaml] -
-	  read and dump a raw config file, for yaml troubleshooting
-	fetch - fetch the contents of a memory
-	init (protocol) - create a new robot in currect directory
-	list - list robot memories
-	run - run the robot (default)
-	store - store a memory
-	validate [path/to/robot_repo] - syntax check a robot's repository
-	version - display the gopherbot version
-  <command> -h for help on a given command
-
-  Common options:`
-
-	if helpRequested {
-		fmt.Println(usage)
-		flag.PrintDefaults()
-		os.Exit(0)
-	}
-
 	var envFile string
 	var fixed = []string{}
 	// NOTE: the subdirectories in test/ all use private/environment
@@ -197,20 +195,21 @@ func Start(v VersionInfo) {
 	var logOut *os.File
 
 	var cliCommand string
+	var cliCommandArgs []string
 
 	// Get CLI command and set up pre-initBot logging
 	if cliOp {
-		cliCommand = flag.Arg(0)
-		logOut, err = os.OpenFile(defaultLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			log.Fatalf("Error creating log file: (%T %v)\n", err, err)
-		}
+		cliCommand = remainingArgs[0]
+		cliCommandArgs = remainingArgs[1:]
+		logOut = os.Stderr
 	} else {
 		logOut = os.Stdout
 	}
 	logger = log.New(logOut, "", logFlags)
 	botLogger.logger = logger
-	if elle, ok := lookupEnv("GOPHER_LOGLEVEL"); ok {
+	if cliOp {
+		setLogLevel(robot.Warn)
+	} else if elle, ok := lookupEnv("GOPHER_LOGLEVEL"); ok {
 		ele := logStrToLevel(elle)
 		setLogLevel(ele)
 	}
@@ -243,11 +242,9 @@ func Start(v VersionInfo) {
 		Log(robot.Warn, "Notice! Fixed invalid file modes for environment file(s): %s", strings.Join(fixed, ", "))
 	}
 
-	// Process CLI commands that don't need/want full initBot + brain
-	switch cliCommand {
-	case "dump", "validate":
-		processCLI(usage)
-		os.Exit(0)
+	// Process CLI commands that don't need/want full initBot + brain.
+	if cliOp && cliCommandRunsBeforeInit(cliCommand) {
+		os.Exit(processCLI(cliCommand, cliCommandArgs))
 	}
 
 	// Create the 'bot and load configuration, supplying configpath and installpath.
@@ -264,7 +261,7 @@ func Start(v VersionInfo) {
 	// Set up Logging
 	var logDest string
 	if cliOp {
-		logDest = "robot.log"
+		logDest = "stderr"
 	}
 	// Override from CLI --log / -l
 	if len(logFile) > 0 {
@@ -297,13 +294,17 @@ func Start(v VersionInfo) {
 	logger = log.New(logOut, "", logFlags)
 	botLogger.logger = logger
 
-	setLogLevel(currentCfg.logLevel)
+	if cliOp {
+		setLogLevel(robot.Warn)
+	} else {
+		setLogLevel(currentCfg.logLevel)
+	}
 
 	if cliOp {
 		go runBrain()
-		processCLI(usage)
+		code := processCLI(cliCommand, cliCommandArgs)
 		brainQuit()
-		os.Exit(0)
+		os.Exit(code)
 	}
 	if currentCfg.protocol == "terminal" {
 		localTerm = true

@@ -24,7 +24,10 @@ Concise map of extension types, where they live, and how they register/discover.
 - Where: built-ins in `bot/membrain.go` and `bot/filebrain.go`, plus providers under `brains/`.
 - Registration: `robot/brains.go` (func `RegisterSimpleBrain`) called from provider `init()` (e.g., `brains/dynamodb/static.go`, `brains/cloudflarekv/static.go`, `bot/membrain.go`).
 - Selection: `bot/conf.go` (type `ConfigLoader` field `Brain`) reads `conf/robot.yaml`.
-- Examples: `brains/dynamodb/dynamobrain.go` (func `provider`), `brains/cloudflarekv/cloudflarekvbrain.go` (func `provider`), `bot/filebrain.go` (func `fbprovider`).
+- Examples: `brains/dynamodb/dynamobrain.go` (func `provider`), `brains/cloudflarekv/cloudflarekvbrain.go` (func `provider`), `brains/firestore/firestorebrain.go` (func `provider`), `bot/filebrain.go` (func `fbprovider`).
+
+Shared provider-helper note:
+- Engine-owned connectors, brains, and history providers can use `robot.Handler.ReadEncryptedFile(...)` to consume operator-managed encrypted files from the robot config/install area without widening the extension/plugin API surface.
 
 ## History Providers
 

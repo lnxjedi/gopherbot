@@ -207,9 +207,32 @@ func terminatePipelineRPCChild(cmd *exec.Cmd) {
 	}
 }
 
+func waitForPipelineRPCChildExit(cmd *exec.Cmd) error {
+	waitCh := make(chan error, 1)
+	go func() {
+		waitCh <- cmd.Wait()
+	}()
+	select {
+	case waitErr := <-waitCh:
+		return waitErr
+	case <-time.After(pipelineRPCChildWaitTimeout):
+		terminatePipelineRPCChild(cmd)
+		select {
+		case waitErr := <-waitCh:
+			return waitErr
+		case <-time.After(pipelineRPCChildWaitTimeout):
+			return context.DeadlineExceeded
+		}
+	}
+}
+
 func runPipelineRPCRequest(method string, params interface{}, w *worker, r robot.Robot) (json.RawMessage, error) {
 	cmd := newPipelineChildRPCCommand()
 	cmd.SysProcAttr = &unix.SysProcAttr{Setpgid: true}
+	return runPipelineRPCRequestWithCmd(method, params, w, r, cmd)
+}
+
+func runPipelineRPCRequestWithCmd(method string, params interface{}, w *worker, r robot.Robot, cmd *exec.Cmd) (json.RawMessage, error) {
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, newPipelineRPCError("io_error", method, "creating rpc stdin pipe", err)
@@ -252,17 +275,13 @@ func runPipelineRPCRequest(method string, params interface{}, w *worker, r robot
 		_, _ = io.Copy(&stderrBuf, stderr)
 		stderrDone <- struct{}{}
 	}()
-	waitCh := make(chan error, 1)
-	go func() {
-		waitCh <- cmd.Wait()
-	}()
 
 	enc := json.NewEncoder(stdin)
 	dec := json.NewDecoder(stdout)
 
 	if err := enc.Encode(pipelineRPCMessage{Version: pipelineRPCProtocolVersion, ID: "hello", Type: "hello"}); err != nil {
 		terminatePipelineRPCChild(cmd)
-		<-waitCh
+		_ = waitForPipelineRPCChildExit(cmd)
 		<-stderrDone
 		return nil, newPipelineRPCError("protocol_error", method, "sending rpc hello", err)
 	}
@@ -271,7 +290,7 @@ func runPipelineRPCRequest(method string, params interface{}, w *worker, r robot
 	helloCancel()
 	if helloErr != nil {
 		terminatePipelineRPCChild(cmd)
-		<-waitCh
+		_ = waitForPipelineRPCChildExit(cmd)
 		<-stderrDone
 		stderrOut := strings.TrimSpace(stderrBuf.String())
 		if stderrOut != "" {
@@ -283,14 +302,14 @@ func runPipelineRPCRequest(method string, params interface{}, w *worker, r robot
 	paramsRaw, err := json.Marshal(params)
 	if err != nil {
 		terminatePipelineRPCChild(cmd)
-		<-waitCh
+		_ = waitForPipelineRPCChildExit(cmd)
 		<-stderrDone
 		return nil, newPipelineRPCError("encoding_error", method, "encoding rpc request params", err)
 	}
 	requestID := "req-1"
 	if err := enc.Encode(pipelineRPCMessage{Version: pipelineRPCProtocolVersion, ID: requestID, Type: "request", Method: method, Params: paramsRaw}); err != nil {
 		terminatePipelineRPCChild(cmd)
-		<-waitCh
+		_ = waitForPipelineRPCChildExit(cmd)
 		<-stderrDone
 		return nil, newPipelineRPCError("protocol_error", method, "sending rpc request", err)
 	}
@@ -322,17 +341,7 @@ func runPipelineRPCRequest(method string, params interface{}, w *worker, r robot
 	if reqErr != nil || shutdownErr != nil {
 		terminatePipelineRPCChild(cmd)
 	}
-	var waitErr error
-	select {
-	case waitErr = <-waitCh:
-	case <-time.After(pipelineRPCChildWaitTimeout):
-		terminatePipelineRPCChild(cmd)
-		select {
-		case waitErr = <-waitCh:
-		case <-time.After(pipelineRPCChildWaitTimeout):
-			waitErr = context.DeadlineExceeded
-		}
-	}
+	waitErr := waitForPipelineRPCChildExit(cmd)
 	<-stderrDone
 	stderrOut := strings.TrimSpace(stderrBuf.String())
 

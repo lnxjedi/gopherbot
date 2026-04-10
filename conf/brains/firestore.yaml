@@ -1,0 +1,6 @@
+BrainConfig:
+  ProjectID: ""
+  DatabaseID: "(default)"
+  Collection: "gopherbot-brain"
+  CredentialsEncryptedFile: "gopherbot-key.json.enc"
+  OperationTimeoutSeconds: 15

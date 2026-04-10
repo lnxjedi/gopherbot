@@ -88,6 +88,9 @@ type Handler interface {
 	GetInstallPath() string
 	// GetConfigPath returns the path to the config directory if set
 	GetConfigPath() string
+	// ReadEncryptedFile reads and decrypts a Gopherbot-encrypted file from the
+	// robot config/install area, returning the plaintext bytes.
+	ReadEncryptedFile(path string) ([]byte, error)
 	// Log provides a standard logging interface with a level as defined in
 	// bot/logging.go
 	Log(l LogLevel, m string, v ...interface{})

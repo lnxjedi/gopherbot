@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -87,6 +88,26 @@ func TestRunPipelineChildRPCWithIORequiresHello(t *testing.T) {
 	}
 	if msg.Type != "error" || msg.Error == nil || msg.Error.Code != "protocol_error" {
 		t.Fatalf("msg = %#v, want protocol_error response", msg)
+	}
+}
+
+func TestRunPipelineRPCRequestWithCmdHandlesFastShutdownExit(t *testing.T) {
+	cmd := exec.Command("/bin/sh", "-c", `
+read hello
+printf '%s\n' '{"version":1,"id":"hello","type":"hello_ack"}'
+read req
+printf '%s\n' '{"version":1,"id":"req-1","type":"response","result":{"ok":true}}'
+read shutdown
+printf '%s\n' '{"version":1,"id":"shutdown","type":"response","result":{"ok":true}}'
+`)
+	cmd.SysProcAttr = nil
+
+	res, err := runPipelineRPCRequestWithCmd("gsh_run", map[string]string{"task": "admin"}, nil, nil, cmd)
+	if err != nil {
+		t.Fatalf("runPipelineRPCRequestWithCmd() error = %v", err)
+	}
+	if string(res) != `{"ok":true}` {
+		t.Fatalf("result = %s, want %s", string(res), `{"ok":true}`)
 	}
 }
 

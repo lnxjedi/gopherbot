@@ -10,118 +10,457 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/pquerna/otp/totp"
 )
 
-func processCLI(usage string) {
-	cliArgs := flag.Args()
-	command := cliArgs[0]
+type cliCommandSpec struct {
+	Name           string
+	SummaryUsage   string
+	Summary        string
+	HelpLines      []string
+	RunsBeforeInit bool
+}
+
+func cliCommands() []cliCommandSpec {
+	protocols := availableInitProtocols()
+	protocolLine := "Available protocols: (none found)"
+	if len(protocols) > 0 {
+		protocolLine = fmt.Sprintf("Available protocols: %s", strings.Join(protocols, ", "))
+	}
+	return []cliCommandSpec{
+		{
+			Name:         "help",
+			SummaryUsage: "help [command]",
+			Summary:      "show general or subcommand help",
+			HelpLines: []string{
+				"Usage: gopherbot help [command]",
+				"",
+				"Shows general help, or detailed help for a specific subcommand.",
+				"",
+				"Examples:",
+				"  gopherbot help",
+				"  gopherbot help encrypt",
+			},
+			RunsBeforeInit: true,
+		},
+		{
+			Name:         "encrypt",
+			SummaryUsage: "encrypt [options] <string>",
+			Summary:      "encrypt a string or file",
+			HelpLines: []string{
+				"Usage: gopherbot encrypt [options] <string>",
+				"   or: gopherbot encrypt -file <path|->",
+				"",
+				"Encrypts a literal string argument or the contents of a file/stdin.",
+				"",
+				"Options:",
+				"  -f, -file <path|->   file to encrypt; use - for stdin",
+				"  -b, -binary          write raw ciphertext instead of base64",
+				"",
+				"Notes:",
+				"  Requires robot encryption to be initialized from GOPHER_ENCRYPTION_KEY",
+				"  or a loaded .env/private environment file.",
+			},
+		},
+		{
+			Name:         "decrypt",
+			SummaryUsage: "decrypt [options] <base64>",
+			Summary:      "decrypt a base64 string or file",
+			HelpLines: []string{
+				"Usage: gopherbot decrypt [options] <base64>",
+				"   or: gopherbot decrypt -file <path|->",
+				"",
+				"Decrypts a base64 string argument or raw encrypted bytes from a file/stdin.",
+				"",
+				"Options:",
+				"  -f, -file <path|->   file to decrypt; use - for stdin",
+				"",
+				"Notes:",
+				"  Requires robot encryption to be initialized from GOPHER_ENCRYPTION_KEY",
+				"  or a loaded .env/private environment file.",
+			},
+		},
+		{
+			Name:         "gentotp",
+			SummaryUsage: "gentotp <username>",
+			Summary:      "generate a user TOTP secret and QR image",
+			HelpLines: []string{
+				"Usage: gopherbot gentotp <username>",
+				"",
+				"Generates a TOTP secret for the named user, prints the secret plus an",
+				"encrypted config snippet, and writes <username>.png for QR enrollment.",
+			},
+		},
+		{
+			Name:         "delete",
+			SummaryUsage: "delete <key>",
+			Summary:      "delete a memory",
+			HelpLines: []string{
+				"Usage: gopherbot delete <key>",
+				"",
+				"Deletes the named brain memory key.",
+			},
+		},
+		{
+			Name:         "dump",
+			SummaryUsage: "dump <installed|configured> <path>",
+			Summary:      "expand and print a raw config file",
+			HelpLines: []string{
+				"Usage: gopherbot dump <installed|configured> <path>",
+				"",
+				"Reads conf/<path>, expands templates/includes, and prints the raw YAML.",
+				"",
+				"Examples:",
+				"  gopherbot dump installed robot.yaml",
+				"  gopherbot dump configured plugins/help.yaml",
+			},
+			RunsBeforeInit: true,
+		},
+		{
+			Name:         "fetch",
+			SummaryUsage: "fetch [options] <key>",
+			Summary:      "fetch the contents of a memory",
+			HelpLines: []string{
+				"Usage: gopherbot fetch [options] <key>",
+				"",
+				"Reads a brain memory key and writes it to stdout.",
+				"",
+				"Options:",
+				"  -b, -base64          encode the fetched value as base64",
+			},
+		},
+		{
+			Name:         "init",
+			SummaryUsage: "init <protocol>",
+			Summary:      "create a new robot answerfile in the current directory",
+			HelpLines: []string{
+				"Usage: gopherbot init <protocol>",
+				"",
+				"Creates answerfile.txt in the current directory from an installed template.",
+				"If a local ./gopherbot symlink does not exist, gopherbot also tries to create it.",
+				"",
+				protocolLine,
+			},
+			RunsBeforeInit: true,
+		},
+		{
+			Name:         "list",
+			SummaryUsage: "list",
+			Summary:      "list robot memories",
+			HelpLines: []string{
+				"Usage: gopherbot list",
+				"",
+				"Lists all stored brain memory keys.",
+			},
+		},
+		{
+			Name:         "run",
+			SummaryUsage: "run",
+			Summary:      "run the robot (same as no subcommand)",
+			HelpLines: []string{
+				"Usage: gopherbot run",
+				"",
+				"Starts the robot using the normal startup flow. This is the default when",
+				"you invoke gopherbot without a subcommand.",
+				"",
+				"Use top-level options before 'run', for example:",
+				"  gopherbot -log stderr run",
+			},
+		},
+		{
+			Name:         "store",
+			SummaryUsage: "store <key> [file]",
+			Summary:      "store a memory",
+			HelpLines: []string{
+				"Usage: gopherbot store <key> [file]",
+				"",
+				"Stores file contents in the named brain memory key.",
+				"If [file] is omitted, stdin is used.",
+			},
+		},
+		{
+			Name:         "validate",
+			SummaryUsage: "validate <path>",
+			Summary:      "syntax-check a robot repository",
+			HelpLines: []string{
+				"Usage: gopherbot validate <path>",
+				"",
+				"Loads the target robot repository and validates its startup configuration",
+				"without starting connectors.",
+			},
+			RunsBeforeInit: true,
+		},
+		{
+			Name:         "version",
+			SummaryUsage: "version",
+			Summary:      "display the gopherbot version",
+			HelpLines: []string{
+				"Usage: gopherbot version",
+				"",
+				"Prints the linked version and commit.",
+			},
+			RunsBeforeInit: true,
+		},
+	}
+}
+
+func cliCommandByName(name string) (cliCommandSpec, bool) {
+	for _, spec := range cliCommands() {
+		if spec.Name == name {
+			return spec, true
+		}
+	}
+	return cliCommandSpec{}, false
+}
+
+func cliCommandKnown(name string) bool {
+	_, ok := cliCommandByName(name)
+	return ok
+}
+
+func cliCommandRunsBeforeInit(name string) bool {
+	spec, ok := cliCommandByName(name)
+	return ok && spec.RunsBeforeInit
+}
+
+func isCLIHelpArg(arg string) bool {
+	switch arg {
+	case "-h", "-help", "--help", "help":
+		return true
+	default:
+		return false
+	}
+}
+
+func shouldShowCLICommandHelp(command string, args []string) bool {
+	if !cliCommandKnown(command) || len(args) == 0 {
+		return false
+	}
+	return isCLIHelpArg(args[0])
+}
+
+func availableInitProtocols() []string {
+	pattern := filepath.Join(installPath, "resources", "answerfiles", "*.txt")
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return nil
+	}
+	protocols := make([]string, 0, len(matches))
+	for _, match := range matches {
+		base := filepath.Base(match)
+		protocols = append(protocols, strings.TrimSuffix(base, filepath.Ext(base)))
+	}
+	sort.Strings(protocols)
+	return protocols
+}
+
+func printCLIUsage() {
+	fmt.Println("Usage: gopherbot [options] [command [command options] [command args]]")
+	fmt.Println()
+	fmt.Println("Commands:")
+	for _, spec := range cliCommands() {
+		fmt.Printf("  %-34s %s\n", spec.SummaryUsage, spec.Summary)
+	}
+	fmt.Println()
+	fmt.Println("Help:")
+	fmt.Println("  gopherbot -h")
+	fmt.Println("  gopherbot help <command>")
+	fmt.Println("  gopherbot <command> -h")
+	fmt.Println()
+	fmt.Println("Common options:")
+	fmt.Println("  -h, -help                 show general help")
+	fmt.Println("  -l, -log <path>           path to robot's log file (or 'stdout' or 'stderr')")
+	fmt.Println("  -p, -plainlog             omit timestamps from the log")
+	fmt.Println("  -ssh-port <port>          override SSH listen port for the local connector")
+	fmt.Println("  -aidev <token>            enable AI development mode with an auth token")
+}
+
+func printCLICommandHelp(command string) {
+	spec, ok := cliCommandByName(command)
+	if !ok {
+		fmt.Printf("Error: unknown command %q\n\n", command)
+		printCLIUsage()
+		return
+	}
+	for _, line := range spec.HelpLines {
+		fmt.Println(line)
+	}
+}
+
+func newCLIFlagSet(name string) *flag.FlagSet {
+	fs := flag.NewFlagSet(name, flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	return fs
+}
+
+func processCLI(command string, args []string) int {
+	if command != "help" && shouldShowCLICommandHelp(command, args) {
+		printCLICommandHelp(command)
+		return 0
+	}
 
 	var fileName string
 	var encodeBinary bool
 	var encodeBase64 bool
 
-	encFlags := flag.NewFlagSet("encrypt", flag.ExitOnError)
+	encFlags := newCLIFlagSet("encrypt")
 	encFlags.StringVar(&fileName, "file", "", "file to encrypt (or - for stdin)")
 	encFlags.StringVar(&fileName, "f", "", "")
 	encFlags.BoolVar(&encodeBinary, "binary", false, "binary dump (defauts to base64 encoded)")
 	encFlags.BoolVar(&encodeBinary, "b", false, "")
-	encFlags.Usage = func() {
-		fmt.Println("Usage: gopherbot encrypt [options] [string to encrypt]\n\nOptions:")
-		encFlags.PrintDefaults()
-	}
 
-	decFlags := flag.NewFlagSet("decrypt", flag.ExitOnError)
+	decFlags := newCLIFlagSet("decrypt")
 	decFlags.StringVar(&fileName, "file", "", "file to decrypt (or - for stdin)")
 	decFlags.StringVar(&fileName, "f", "", "")
 	decFlags.BoolVar(&encodeBinary, "binary", false, "")
 	decFlags.BoolVar(&encodeBinary, "b", false, "")
-	decFlags.Usage = func() {
-		fmt.Println("Usage: gopherbot decrypt [options] [string to decrypt]\n\nOptions:")
-		decFlags.PrintDefaults()
-	}
 
-	totpFlags := flag.NewFlagSet("gentotp", flag.ExitOnError)
-	totpFlags.Usage = func() {
-		fmt.Print("Usage: gopherbot gentotp <username>\n")
-	}
+	totpFlags := newCLIFlagSet("gentotp")
 
-	fetchFlags := flag.NewFlagSet("fetch", flag.ExitOnError)
+	fetchFlags := newCLIFlagSet("fetch")
 	fetchFlags.BoolVar(&encodeBase64, "base64", false, "encode memory as base64")
 	fetchFlags.BoolVar(&encodeBase64, "b", false, "")
-	fetchFlags.Usage = func() {
-		fmt.Println("Usage: gopherbot fetch [options] <memory to fetch>\n\nOptions:")
-		fetchFlags.PrintDefaults()
-	}
 
 	switch command {
+	case "help":
+		switch len(args) {
+		case 0:
+			printCLIUsage()
+			return 0
+		case 1:
+			printCLICommandHelp(args[0])
+			if cliCommandKnown(args[0]) {
+				return 0
+			}
+			return 2
+		default:
+			fmt.Println("Error: help accepts at most one command name")
+			fmt.Println()
+			printCLICommandHelp("help")
+			return 2
+		}
 	case "encrypt":
-		encFlags.Parse(cliArgs[1:])
+		if err := encFlags.Parse(args); err != nil {
+			if err == flag.ErrHelp {
+				printCLICommandHelp(command)
+				return 0
+			}
+			fmt.Printf("Error: %v\n\n", err)
+			printCLICommandHelp(command)
+			return 2
+		}
 		if len(fileName) == 0 && len(encFlags.Args()) != 1 {
-			encFlags.Usage()
-			return
+			fmt.Println("Error: encrypt requires either a string argument or -file")
+			fmt.Println()
+			printCLICommandHelp(command)
+			return 2
 		}
 		cliEncrypt(encFlags.Arg(0), fileName, encodeBinary)
 	case "decrypt":
-		decFlags.Parse(cliArgs[1:])
+		if err := decFlags.Parse(args); err != nil {
+			if err == flag.ErrHelp {
+				printCLICommandHelp(command)
+				return 0
+			}
+			fmt.Printf("Error: %v\n\n", err)
+			printCLICommandHelp(command)
+			return 2
+		}
 		if len(fileName) == 0 && len(decFlags.Args()) != 1 {
-			decFlags.Usage()
-			return
+			fmt.Println("Error: decrypt requires either a base64 argument or -file")
+			fmt.Println()
+			printCLICommandHelp(command)
+			return 2
 		}
 		cliDecrypt(decFlags.Arg(0), fileName)
 	case "dump":
 		setLogLevel(robot.Warn)
-		if len(flag.Args()) != 3 {
-			fmt.Println(
-				`Usage: gopherbot dump (installed|configured) [path]
-  Where [path] is relative to 'conf/', e.g. "dump configured robot.yaml" "dump installed plugins/help.yaml"`)
-			os.Exit(1)
+		if len(args) != 2 {
+			fmt.Println("Error: dump requires a source and a path")
+			fmt.Println()
+			printCLICommandHelp(command)
+			return 2
 		}
-		switch flag.Arg(1) {
+		switch args[0] {
 		case "installed", "configured":
 			initCrypt()
-			cliDump(flag.Arg(1), flag.Arg(2))
-			return
+			cliDump(args[0], args[1])
+			return 0
+		default:
+			fmt.Printf("Error: dump source must be \"installed\" or \"configured\", got %q\n\n", args[0])
+			printCLICommandHelp(command)
+			return 2
 		}
 	case "gentotp":
-		totpFlags.Parse(cliArgs[1:])
+		if err := totpFlags.Parse(args); err != nil {
+			if err == flag.ErrHelp {
+				printCLICommandHelp(command)
+				return 0
+			}
+			fmt.Printf("Error: %v\n\n", err)
+			printCLICommandHelp(command)
+			return 2
+		}
 		if len(totpFlags.Args()) == 0 || len(totpFlags.Arg(0)) == 0 {
-			totpFlags.Usage()
-			return
+			fmt.Println("Error: gentotp requires a username")
+			fmt.Println()
+			printCLICommandHelp(command)
+			return 2
 		}
 		cliTOTPgen(totpFlags.Arg(0))
 	case "fetch":
-		fetchFlags.Parse(cliArgs[1:])
+		if err := fetchFlags.Parse(args); err != nil {
+			if err == flag.ErrHelp {
+				printCLICommandHelp(command)
+				return 0
+			}
+			fmt.Printf("Error: %v\n\n", err)
+			printCLICommandHelp(command)
+			return 2
+		}
 		if len(fetchFlags.Args()) == 0 || len(fetchFlags.Arg(0)) == 0 {
-			fetchFlags.Usage()
-			return
+			fmt.Println("Error: fetch requires a memory key")
+			fmt.Println()
+			printCLICommandHelp(command)
+			return 2
 		}
 		cliFetch(fetchFlags.Arg(0), encodeBase64)
 	case "init":
-		if len(cliArgs) < 2 {
-			fmt.Println("Usage: gopherbot init <protocol>")
-			return
+		if len(args) != 1 {
+			if len(args) == 0 {
+				fmt.Println("Error: init requires a protocol name")
+			} else {
+				fmt.Println("Error: init accepts exactly one protocol name")
+			}
+			fmt.Println()
+			printCLICommandHelp(command)
+			return 2
 		}
 		if _, err := os.Stat("answerfile.txt"); err == nil {
 			fmt.Println("Not over-writing existing 'answerfile.txt'")
-			return
+			return 1
 		}
-		ansFile := filepath.Join(installPath, "resources", "answerfiles", cliArgs[1]+".txt")
+		ansFile := filepath.Join(installPath, "resources", "answerfiles", args[0]+".txt")
 		if _, err := os.Stat(ansFile); err != nil {
-			fmt.Printf("Protocol answerfile template not found: %s\n", ansFile)
-			return
+			fmt.Printf("Error: no answerfile template found for protocol %q\n", args[0])
+			if protocols := availableInitProtocols(); len(protocols) > 0 {
+				fmt.Printf("Available protocols: %s\n", strings.Join(protocols, ", "))
+			}
+			return 1
 		}
 		var ansBytes []byte
 		var err error
 		if ansBytes, err = os.ReadFile(ansFile); err != nil {
 			fmt.Printf("Reading '%s': %v", ansFile, err)
-			return
+			return 1
 		}
 		if err = os.WriteFile("answerfile.txt", ansBytes, 0600); err != nil {
 			fmt.Printf("Writing 'answerfile.txt': %v", err)
-			return
+			return 1
 		}
 		if _, err := os.Stat("gopherbot"); err == nil {
 			fmt.Println("Edit 'answerfile.txt' and re-run gopherbot with no arguments to generate your robot.")
@@ -135,44 +474,77 @@ func processCLI(usage string) {
 				fmt.Println("Edit 'answerfile.txt' and run './gopherbot' with no arguments to generate your robot.")
 			}
 		}
+		return 0
 	case "store":
-		if len(cliArgs) < 2 {
-			fmt.Println("Usage: gopherbot store <key> [filename]")
-			return
+		if len(args) == 0 || len(args) > 2 {
+			if len(args) == 0 {
+				fmt.Println("Error: store requires a memory key")
+			} else {
+				fmt.Println("Error: store accepts at most a key and optional file")
+			}
+			fmt.Println()
+			printCLICommandHelp(command)
+			return 2
 		}
 		file := "-"
-		if len(cliArgs) == 3 {
-			file = cliArgs[2]
+		if len(args) == 2 {
+			file = args[1]
 		}
-		cliStore(cliArgs[1], file)
+		cliStore(args[0], file)
 	case "list":
+		if len(args) > 0 {
+			fmt.Println("Error: list does not take arguments")
+			fmt.Println()
+			printCLICommandHelp(command)
+			return 2
+		}
 		cliList()
 	case "delete":
-		if len(cliArgs) != 2 {
-			fmt.Println("Usage: gopherbot delete <key>")
-			return
+		if len(args) != 1 {
+			fmt.Println("Error: delete requires exactly one memory key")
+			fmt.Println()
+			printCLICommandHelp(command)
+			return 2
 		}
-		cliDelete(cliArgs[1])
+		cliDelete(args[0])
 	case "validate":
-		if len(cliArgs) != 2 {
-			fmt.Println(
-				`Usage: gopherbot validate [path]
-  Where [path] points to the root of a robot's git repository`)
-			return
+		if len(args) != 1 {
+			fmt.Println("Error: validate requires a path to a robot repository")
+			fmt.Println()
+			printCLICommandHelp(command)
+			return 2
 		}
-		cliValidate(cliArgs[1])
+		cliValidate(args[0])
 	case "version":
+		if len(args) > 0 {
+			fmt.Println("Error: version does not take arguments")
+			fmt.Println()
+			printCLICommandHelp(command)
+			return 2
+		}
 		fmt.Printf("Version %s, commit: %s\n", botVersion.Version, botVersion.Commit)
+		return 0
+	case "run":
+		if len(args) > 0 && !shouldShowCLICommandHelp(command, args) {
+			fmt.Println("Error: run does not take subcommand arguments")
+			fmt.Println()
+		}
+		printCLICommandHelp(command)
+		if len(args) > 0 && !shouldShowCLICommandHelp(command, args) {
+			return 2
+		}
+		return 0
 	default:
-		fmt.Printf("Invalid command/option(s): %s, %q\n", cliArgs[0], cliArgs[1:])
-		fmt.Println(usage)
-		flag.PrintDefaults()
+		fmt.Printf("Error: unknown command %q\n\n", command)
+		printCLIUsage()
+		return 2
 	}
+	return 0
 }
 
 func cliTOTPgen(user string) {
 	if !cryptKey.initialized {
-		fmt.Println("Encryption not initialized")
+		fmt.Println("Error: encryption not initialized; set GOPHER_ENCRYPTION_KEY or load a .env file first")
 		os.Exit(1)
 	}
 	key, err := totp.Generate(totp.GenerateOpts{
@@ -208,7 +580,7 @@ func cliTOTPgen(user string) {
 
 func cliEncrypt(item, file string, binary bool) {
 	if !cryptKey.initialized {
-		fmt.Println("Encryption not initialized")
+		fmt.Println("Error: encryption not initialized; set GOPHER_ENCRYPTION_KEY or load a .env file first")
 		os.Exit(1)
 	}
 	if len(file) > 0 {
@@ -254,7 +626,7 @@ func cliEncrypt(item, file string, binary bool) {
 
 func cliDecrypt(item, file string) {
 	if !cryptKey.initialized {
-		fmt.Println("Encryption not initialized")
+		fmt.Println("Error: encryption not initialized; set GOPHER_ENCRYPTION_KEY or load a .env file first")
 		os.Exit(1)
 	}
 	if len(file) > 0 {
@@ -370,7 +742,8 @@ func cliValidate(path string) {
 	testpath := filepath.Join(configPath, "conf", robotConfigFileName)
 	_, err := os.Stat(testpath)
 	if err != nil {
-		log.Fatalf("Not found: %s", testpath)
+		fmt.Printf("Error: robot repository not found at %q (expected %s)\n", path, testpath)
+		os.Exit(1)
 	}
 	botLogger.logger = log.New(os.Stdout, "", 0)
 	fmt.Println("Validating configuration")

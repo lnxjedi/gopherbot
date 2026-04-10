@@ -57,7 +57,14 @@ gcloud services enable cloudresourcemanager.googleapis.com iam.googleapis.com
 
 ## Step 6: Save Credentials
 
-Terraform will output a service account key. Save this as `gopherbot-key.json` in your robot's configuration directory. **Keep this file secure!**
+Terraform will output a service account key. Save this as `gopherbot-key.json` in your robot's configuration directory, encrypt it with Gopherbot, then remove the plaintext file:
+
+```bash
+gopherbot encrypt -f gopherbot-key.json > gopherbot-key.json.enc
+rm gopherbot-key.json
+```
+
+The Firestore brain and the future Google Chat connector can read `gopherbot-key.json.enc` directly through Gopherbot's encrypted-file support, so the plaintext key does not need to live on disk at runtime.
 
 ## Step 7: Manual Google Chat Configuration
 
@@ -76,9 +83,28 @@ Terraform enables the APIs, but some steps must be done manually in the UI:
     *   **Visibility**: Select "Make this Chat app available to specific people and groups in your Workspace domain" (or everyone, depending on your preference).
 5.  Click **Save**.
 
-## Step 8: Start Your Robot
+## Step 8: Configure Your Robot
 
-Configure your Gopherbot `conf/gopherbot.yaml` to use the `googlechat` connector and `firestore` brain, pointing to your credentials file and the Pub/Sub subscription ID (`projects/[PROJECT_ID]/subscriptions/gopherbot-chat-sub`).
+Configure your robot to use the Firestore brain and point it at the encrypted service-account file:
+
+```yaml
+# conf/environments/production.yaml
+PrimaryProtocol: ssh
+DefaultProtocol: ssh
+Brain: firestore
+LogDest: stdout
+```
+
+```yaml
+# conf/brains/firestore.yaml
+BrainConfig:
+  ProjectID: "your-gcp-project-id"
+  DatabaseID: "(default)"
+  Collection: "gopherbot-brain"
+  CredentialsEncryptedFile: "gopherbot-key.json.enc"
+```
+
+For the future Google Chat connector, keep the Pub/Sub subscription ID created by Terraform (`projects/[PROJECT_ID]/subscriptions/gopherbot-chat-sub`).
 
 ---
 

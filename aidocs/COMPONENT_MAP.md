@@ -38,8 +38,8 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 ## brains/
 
-- SimpleBrain providers are registered via `robot.RegisterSimpleBrain` in `brains/dynamodb/static.go` and `brains/cloudflarekv/static.go`.
-- Provider implementations: `brains/dynamodb/dynamobrain.go` (func `provider`, methods `Store`, `Retrieve`) and `brains/cloudflarekv/cloudflarekvbrain.go` (func `provider`).
+- SimpleBrain providers are registered via `robot.RegisterSimpleBrain` in `brains/dynamodb/static.go`, `brains/cloudflarekv/static.go`, and `brains/firestore/static.go`.
+- Provider implementations: `brains/dynamodb/dynamobrain.go` (func `provider`, methods `Store`, `Retrieve`), `brains/cloudflarekv/cloudflarekvbrain.go` (func `provider`), and `brains/firestore/firestorebrain.go` (func `provider`, methods `Store`, `Retrieve`, `List`, `Delete`).
 
 ## cmd/
 
@@ -79,6 +79,10 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 - History provider registration: `history/file/static.go` (calls `robot.RegisterHistoryProvider("file", provider)`).
 - File-backed implementation: `history/file/filehistory.go` (methods `NewLog`, `GetLog`, `GetLogURL`).
+
+## internal/
+
+- Internal shared cloud helpers: `internal/gcloud/credentials.go` (service-account validation, encrypted credential loading callback wiring, and Google client options for engine-owned components).
 
 ## jobs/
 
@@ -125,7 +129,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Brain-provider registrations: `robot/brains.go` (`RegisterSimpleBrain`).
 - History-provider registrations: `robot/history_providers.go` (`RegisterHistoryProvider`).
 - OAuth2 extension API request shape: `robot/oauth2.go`.
-- Connector contracts and connector-side APIs: `robot/connector_defs.go` (`Connector`, `ConnectorAPIProvider`, `Injector`, `MessageSource`).
+- Connector contracts and connector-side APIs: `robot/connector_defs.go` (`Connector`, `ConnectorAPIProvider`, `Injector`, `MessageSource`, and `Handler.ReadEncryptedFile`).
 - Shared pure helpers used by engine and connectors: `robot/util/wrap.go` (`Wrapper`, `NewWrapper`, `Wrap`), `robot/util/id.go` (`ExtractID`), `robot/util/basic_markdown_plain.go` (`RenderBasicMarkdownPlain`).
 
 ## robot.skel/

@@ -9,18 +9,19 @@ import (
 
 type testHandler struct{}
 
-func (t *testHandler) IncomingMessage(_ *robot.ConnectorMessage) {}
-func (t *testHandler) GetProtocolConfig(_ interface{}) error     { return nil }
-func (t *testHandler) GetBrainConfig(_ interface{}) error        { return nil }
-func (t *testHandler) GetEventStrings() *[]string                { return nil }
-func (t *testHandler) GetHistoryConfig(_ interface{}) error      { return nil }
-func (t *testHandler) GetBotInfo() robot.BotInfo                 { return robot.BotInfo{} }
-func (t *testHandler) SetBotID(_ string)                         {}
-func (t *testHandler) SetTerminalWriter(_ io.Writer)             {}
-func (t *testHandler) SetBotMention(_ string)                    {}
-func (t *testHandler) GetLogLevel() robot.LogLevel               { return robot.Info }
-func (t *testHandler) GetInstallPath() string                    { return "" }
-func (t *testHandler) GetConfigPath() string                     { return "" }
+func (t *testHandler) IncomingMessage(_ *robot.ConnectorMessage)  {}
+func (t *testHandler) GetProtocolConfig(_ interface{}) error      { return nil }
+func (t *testHandler) GetBrainConfig(_ interface{}) error         { return nil }
+func (t *testHandler) GetEventStrings() *[]string                 { return nil }
+func (t *testHandler) GetHistoryConfig(_ interface{}) error       { return nil }
+func (t *testHandler) GetBotInfo() robot.BotInfo                  { return robot.BotInfo{} }
+func (t *testHandler) SetBotID(_ string)                          {}
+func (t *testHandler) SetTerminalWriter(_ io.Writer)              {}
+func (t *testHandler) SetBotMention(_ string)                     {}
+func (t *testHandler) GetLogLevel() robot.LogLevel                { return robot.Info }
+func (t *testHandler) GetInstallPath() string                     { return "" }
+func (t *testHandler) GetConfigPath() string                      { return "" }
+func (t *testHandler) ReadEncryptedFile(_ string) ([]byte, error) { return nil, nil }
 func (t *testHandler) Log(_ robot.LogLevel, _ string, _ ...interface{}) {
 }
 func (t *testHandler) GetDirectory(_ string) error { return nil }

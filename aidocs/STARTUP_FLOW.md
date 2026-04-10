@@ -7,16 +7,17 @@ This document is intended as a **control-flow trace**, not a conceptual or tutor
 Startup proceeds through the following phases **in order**:
 
 1. **CLI parsing** – Process command-line flags
-2. **Initial mode probe** – Evaluate startup mode for early IDE working-directory behavior
-3. **Private environment load** – Load `private/environment` or `.env` when present
-4. **Effective mode detection** – Re-evaluate startup mode using process env plus loaded private env
-5. **Encryption initialization** – Set up brain encryption
-6. **Pre-connect configuration load** – Load basic configuration without running scripts
-7. **Brain initialization** – Start the brain provider
-8. **Internal module initialization** – Prepare shared runtime helpers such as ssh-agent, ssh git helpers, and Yaegi's shared GOPATH tree
-9. **Connector runtime initialization** – Initialize primary + configured secondary connectors
-10. **Post-connect configuration load** – Full configuration with plugin initialization
-11. **Runtime git branch capture** – Best-effort detection of current/default startup branch for admin observability
+2. **Early CLI help/dispatch** – Handle root help, subcommand help, internal child commands, and obvious no-init CLI commands
+3. **Initial mode probe** – Evaluate startup mode for early IDE working-directory behavior
+4. **Private environment load** – Load `private/environment` or `.env` when present
+5. **Effective mode detection** – Re-evaluate startup mode using process env plus loaded private env
+6. **Encryption initialization** – Set up brain encryption
+7. **Pre-connect configuration load** – Load basic configuration without running scripts
+8. **Brain initialization** – Start the brain provider
+9. **Internal module initialization** – Prepare shared runtime helpers such as ssh-agent, ssh git helpers, and Yaegi's shared GOPATH tree
+10. **Connector runtime initialization** – Initialize primary + configured secondary connectors
+11. **Post-connect configuration load** – Full configuration with plugin initialization
+12. **Runtime git branch capture** – Best-effort detection of current/default startup branch for admin observability
 
 Internal exception:
 - `pipeline-child-exec` is an internal command used by multiprocess task execution; it exits after one child-task run and bypasses normal robot startup phases.
@@ -34,6 +35,8 @@ Test harness note:
 CLI note:
 
 - `--aidev <token>` enables AI development mode for the process (used by MCP automation flows).
+- `gopherbot -h`, `gopherbot help <command>`, and `gopherbot <command> -h` are handled before `initBot()`.
+- No-init CLI commands such as `help`, `version`, and `init` also exit before config/brain startup.
 
 Internal child-runner note:
 
@@ -46,7 +49,7 @@ Internal child-runner note:
 ### Where: `bot/config_load.go` – `detectStartupMode()`
 
 The startup mode determines protocol, brain, logging, and which plugins load.
-`Start(...)` in `bot/start.go` calls `detectStartupMode()` twice: an early probe before private env loading, then a second pass after private env loading that becomes the effective startup mode.
+`Start(...)` in `bot/start.go` calls `detectStartupMode()` twice for real robot startup: an early probe before private env loading, then a second pass after private env loading that becomes the effective startup mode.
 
 ```go
 func detectStartupMode() (mode string) {
@@ -88,6 +91,24 @@ func detectStartupMode() (mode string) {
 | `demo`         | No config, no `GOPHER_CUSTOM_REPOSITORY`                | Run the default demo robot                 |
 | `bootstrap`    | `GOPHER_CUSTOM_REPOSITORY` set but no config yet        | Clone custom config repo                   |
 | `production`   | Config exists for configured robot                      | Normal operation                           |
+
+## CLI Dispatch Tiers
+
+CLI handling is intentionally split so help and obvious usage failures do not force robot startup:
+
+1. Root parsing in `Start(...)` uses a dedicated top-level flag set. This preserves subcommand arguments such as `gopherbot encrypt -h` instead of consuming them as global flags.
+2. Immediate exits happen before env/config work for:
+   - root help (`gopherbot -h`)
+   - subcommand help (`gopherbot <command> -h`, `gopherbot help <command>`)
+   - obvious no-init commands (`help`, `version`, `init`)
+   - unknown commands / invalid explicit `run` arguments
+3. `dump` and `validate` still run before `initBot()`, but after private environment loading so template/env expansion stays accurate.
+4. Other CLI commands (`encrypt`, `decrypt`, `gentotp`, `fetch`, `store`, `list`, `delete`) still follow the normal CLI startup path through `initBot()` so encryption, config, and brain state are available.
+
+Operational note:
+
+- CLI mode now defaults startup logging to `stderr` instead of silently writing early failures to `robot.log`, unless the operator explicitly overrides logging with `-log`.
+- CLI mode forces log level `Warn` for routine command execution, so users see warnings/errors instead of normal startup chatter.
 
 ## Robot Identity and Bootstrap Model
 
