@@ -8,9 +8,6 @@ This guide will help you set up the necessary infrastructure on Google Cloud Pla
 2.  **GCP Project Permissions**: You need permissions to create projects or at least `Owner` permissions on an existing project.
 3.  **Google Cloud Shell**: We will use the Cloud Shell for a consistent environment with `git` and `terraform` pre-installed.
 
-## Using the App
-If you have "npm" available, you can run "make" in this directory, then open `dist/index.html` for the nicer GUI version of this guide.
-
 ## Step 1: Create or Select a GCP Project
 
 1.  Go to the [GCP Console](https://console.cloud.google.com/).
@@ -27,12 +24,21 @@ In the Cloud Shell, run:
 
 ```bash
 git clone https://github.com/lnxjedi/gopherbot.git
-cd gopherbot/resources/gcloud
+cd gopherbot/resources/gcloud/terraform
 ```
 
 *(Note: If the directory doesn't exist in the repo yet, you can create it and use the Terraform files provided below.)*
 
-## Step 4: Configure and Run Terraform
+## Step 4: Enable Base APIs
+
+Before Terraform can manage your project, it needs the Resource Manager and IAM APIs enabled so it can enable other APIs and create service accounts. Run this in your Cloud Shell (replace `YOUR_PROJECT_ID` with your actual project ID):
+
+```bash
+gcloud config set project YOUR_PROJECT_ID
+gcloud services enable cloudresourcemanager.googleapis.com iam.googleapis.com
+```
+
+## Step 5: Configure and Run Terraform
 
 1.  Create a `terraform.tfvars` file or be prepared to enter variables. Example `terraform.tfvars`:
     ```hcl
@@ -49,11 +55,11 @@ cd gopherbot/resources/gcloud
     ```
     You will be prompted for your `project_id` and `region`.
 
-## Step 5: Save Credentials
+## Step 6: Save Credentials
 
 Terraform will output a service account key. Save this as `gopherbot-key.json` in your robot's configuration directory. **Keep this file secure!**
 
-## Step 6: Manual Google Chat Configuration
+## Step 7: Manual Google Chat Configuration
 
 Terraform enables the APIs, but some steps must be done manually in the UI:
 
@@ -70,7 +76,7 @@ Terraform enables the APIs, but some steps must be done manually in the UI:
     *   **Visibility**: Select "Make this Chat app available to specific people and groups in your Workspace domain" (or everyone, depending on your preference).
 5.  Click **Save**.
 
-## Step 7: Start Your Robot
+## Step 8: Start Your Robot
 
 Configure your Gopherbot `conf/gopherbot.yaml` to use the `googlechat` connector and `firestore` brain, pointing to your credentials file and the Pub/Sub subscription ID (`projects/[PROJECT_ID]/subscriptions/gopherbot-chat-sub`).
 
