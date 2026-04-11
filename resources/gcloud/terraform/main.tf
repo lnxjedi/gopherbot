@@ -43,11 +43,21 @@ resource "google_firestore_database" "database" {
   depends_on = [google_project_service.firestore]
 }
 
-# Pub/Sub Topic for Google Chat
+# Pub/Sub Topic for Google Chat interaction events and Workspace Events deliveries.
+# The connector can create per-space Workspace Events subscriptions at runtime;
+# Terraform only needs to create the shared topic and pull subscription.
 resource "google_pubsub_topic" "chat_topic" {
   name = "gopherbot-chat"
 
   depends_on = [google_project_service.pubsub]
+}
+
+# Chat delivers both interaction events and Workspace Events notifications to
+# Pub/Sub using this publisher identity per the current Google Workspace docs.
+resource "google_pubsub_topic_iam_member" "chat_events_publisher" {
+  topic  = google_pubsub_topic.chat_topic.name
+  role   = "roles/pubsub.publisher"
+  member = "serviceAccount:chat-api-push@system.gserviceaccount.com"
 }
 
 # Pub/Sub Subscription for Gopherbot to pull messages
@@ -78,13 +88,6 @@ resource "google_project_iam_member" "pubsub_subscriber" {
   project = var.project_id
   role    = "roles/pubsub.subscriber"
   member  = "serviceAccount:${google_service_account.gopherbot.email}"
-}
-
-# Allow Google Chat to publish to the topic
-resource "google_pubsub_topic_iam_member" "chat_publisher" {
-  topic  = google_pubsub_topic.chat_topic.name
-  role   = "roles/pubsub.publisher"
-  member = "serviceAccount:chat-api-push@system.gserviceaccount.com"
 }
 
 # Service Account Key (for the credentials file)

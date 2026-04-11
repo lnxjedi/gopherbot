@@ -4,7 +4,7 @@ output "gopherbot_service_account_email" {
 
 output "gopherbot_service_account_unique_id" {
   value       = google_service_account.gopherbot.unique_id
-  description = "Use this Client ID for Domain-Wide Delegation in the Google Workspace Admin Console."
+  description = "Service account unique ID for reference. Ambient Google Chat access uses app authentication with administrator approval, not Domain-Wide Delegation."
 }
 
 output "chat_topic_id" {
@@ -21,5 +21,13 @@ output "service_account_key" {
 }
 
 output "instructions" {
-  value = "Save the 'service_account_key' output to a file named 'gopherbot-key.json'. You can use 'terraform output -raw service_account_key | base64 --decode > gopherbot-key.json'"
+  value = <<-EOT
+  Save the 'service_account_key' output to a file named 'gopherbot-key.json':
+    terraform output -raw service_account_key | base64 --decode > gopherbot-key.json
+
+  From your robot's custom/ directory, encrypt it into the default runtime filename:
+    gopherbot encrypt -f path/to/gopherbot-key.json > gopherbot-key.json.enc
+
+  The same encrypted file can be used by both the Firestore brain and the Google Chat connector.
+  EOT
 }

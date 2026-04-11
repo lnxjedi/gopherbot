@@ -1,6 +1,8 @@
 # Gopherbot Google Cloud Setup Guide
 
-This guide will help you set up the necessary infrastructure on Google Cloud Platform (GCP) to run a Gopherbot instance using Firestore for its "brain" and Google Chat for communication.
+This guide sets up the Google Cloud resources Gopherbot needs for a Firestore brain and a Google Chat connector.
+
+The Google Cloud part is only half of the Google Chat setup. Terraform can create the project-level resources, service account, and Pub/Sub plumbing, but ambient message access in Chat also requires manual Google Workspace administrator approval for Chat app scopes. Once that approval is in place, the connector can manage per-space Workspace Events subscriptions itself after the app is invited to spaces.
 
 ## Prerequisites
 
@@ -57,9 +59,7 @@ gcloud services enable cloudresourcemanager.googleapis.com iam.googleapis.com
 
 ## Step 6: Save Credentials
 
-Terraform will output a service account key. Save this as `gopherbot-key.json` in your robot's configuration directory.
-
-From your robot's `custom/` directory, encrypt it into the default filename the Firestore brain expects, `gopherbot-key.json.enc`:
+Terraform outputs a service account key. Save it as `gopherbot-key.json`, then encrypt it from your robot's `custom/` directory into the default runtime filename `gopherbot-key.json.enc`:
 
 ```bash
 cd custom
@@ -67,9 +67,9 @@ gopherbot encrypt -f path/to/gopherbot-key.json > gopherbot-key.json.enc
 rm path/to/gopherbot-key.json
 ```
 
-If you keep that default filename in `custom/`, the Firestore brain can use it without any filename override. The Firestore brain and the future Google Chat connector can read `gopherbot-key.json.enc` directly through Gopherbot's encrypted-file support, so the plaintext key does not need to live on disk at runtime.
+If you keep that default filename in `custom/`, both the Firestore brain and the Google Chat connector can use it without any filename override. Gopherbot reads `gopherbot-key.json.enc` directly through its encrypted-file support, so the plaintext key does not need to live on disk at runtime.
 
-# Step 7: Manual Google Chat Configuration
+## Step 7: Manual Google Chat Configuration
 
 Terraform enables the APIs, but some steps must be done manually in the UI:
 
@@ -82,22 +82,33 @@ Terraform enables the APIs, but some steps must be done manually in the UI:
     *   **Description**: "DevOps Chatbot"
     *   **Functionality**: Enable "Receive 1:1 messages" and "Join spaces and group conversations".
     *   **Connection settings**: Select **Cloud Pub/Sub**.
-    *   **Topic ID**: Use the topic ID created by Terraform (e.g., `projects/[PROJECT_ID]/topics/gopherbot-chat`).
+    *   **Topic ID**: Use the `chat_topic_id` output from Terraform (for example `projects/[PROJECT_ID]/topics/gopherbot-chat`).
     *   **Visibility**: Select "Make this Chat app available to specific people and groups in your Workspace domain" (or everyone, depending on your preference).
 5.  Click **Save**.
 
-## Step 8: Configure Domain-Wide Delegation (Workspace Admin)
+## Step 8: Enable Chat App Admin Approval For Ambient Messages
 
-To allow Gopherbot to read *all* messages in spaces (ambient traffic), it needs to use the Workspace Events API with the `chat.app.messages.readonly` scope. This requires Domain-Wide Delegation and Admin approval.
+To allow Gopherbot to read ambient traffic in spaces after it is invited, Google requires app authentication plus one-time administrator approval for `chat.app.*` scopes. This is not Domain-Wide Delegation.
 
-1.  Go to the [Google Workspace Admin Console](https://admin.google.com/).
-2.  Navigate to **Security > Access and data control > API controls > Manage Domain Wide Delegation**.
-3.  Click **Add new**.
-4.  **Client ID**: Enter the `gopherbot_service_account_unique_id` from the Terraform output.
-5.  **OAuth scopes**: Enter `https://www.googleapis.com/auth/chat.app.messages.readonly`
-6.  Click **Authorize**.
+Use the service account created by Terraform, identified by the `gopherbot_service_account_email` output.
 
-*(Note: Your Gopherbot code must also be updated to use the Workspace Events API to create subscriptions for the spaces it joins.)*
+1.  In Google Cloud Console, go to **IAM & Admin > Service Accounts** and open the Gopherbot service account.
+2.  Under **Advanced settings**, create a **Google Workspace Marketplace-compatible OAuth client** for that service account.
+3.  Enable the **Google Workspace Marketplace SDK** in the project.
+4.  Open **Google Workspace Marketplace SDK > App Configuration**.
+5.  Configure the app as a private Workspace app with Chat enabled.
+6.  Add the Chat app scopes your connector needs. For ambient message capture, include:
+    *   `https://www.googleapis.com/auth/chat.app.messages.readonly`
+7.  Save the Marketplace SDK configuration.
+8.  Have a Google Workspace administrator approve the Chat app for those `chat.app.*` scopes.
+
+After administrator approval, Gopherbot can use the same encrypted service account key to create Workspace Events subscriptions for the spaces the app joins.
+
+Important notes:
+
+*   No Terraform-per-space setup is required.
+*   No Domain-Wide Delegation step is required for `chat.app.messages.readonly`.
+*   The connector should create and maintain Workspace Events subscriptions per space at runtime.
 
 ## Step 9: Configure Your Robot
 
@@ -122,7 +133,28 @@ BrainConfig:
 
 With the default filename above, the only required override is usually `ProjectID`.
 
-For the future Google Chat connector, keep the Pub/Sub subscription ID created by Terraform (`projects/[PROJECT_ID]/subscriptions/gopherbot-chat-sub`).
+For the Google Chat connector, keep the Terraform outputs handy:
+
+*   `gopherbot_service_account_email`: used during the Marketplace/admin-approval setup.
+*   `chat_topic_id`: use this in the Google Chat API configuration page.
+*   `chat_subscription_id`: this is the pull subscription Gopherbot reads from.
+
+## Step 10: What Terraform Does And Does Not Do
+
+Terraform creates:
+
+*   the Firestore database
+*   the Pub/Sub topic and pull subscription
+*   the Gopherbot service account and key
+*   the Pub/Sub publisher permission Chat needs to deliver events to your topic
+
+Terraform does not create:
+
+*   Google Workspace Marketplace SDK app configuration
+*   one-time Workspace administrator approval for `chat.app.*` scopes
+*   per-space Workspace Events subscriptions
+
+Once the app has administrator-approved Chat app scopes, the connector can handle those per-space subscriptions automatically when the app joins spaces.
 
 ---
 
