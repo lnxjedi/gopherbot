@@ -99,10 +99,18 @@ Use the service account created by Terraform, identified by the `gopherbot_servi
 5.  Configure the app as a private Workspace app with Chat enabled.
 6.  Add the Chat app scopes your connector needs. For ambient message capture, include:
     *   `https://www.googleapis.com/auth/chat.app.messages.readonly`
-7.  Save the Marketplace SDK configuration.
-8.  Have a Google Workspace administrator approve the Chat app for those `chat.app.*` scopes.
+7.  Click **Save draft**.
 
-After administrator approval, Gopherbot can use the same encrypted service account key to create Workspace Events subscriptions for the spaces the app joins.
+For this flow, **Save draft** is expected and is sufficient for an internal/private Workspace app. You do not need a published public Marketplace listing.
+
+8.  In the Google Workspace Admin console, go to **Apps > Google Workspace Marketplace apps > Apps list**.
+9.  Click **Install app** and select your app.
+10. Choose **Admin install**.
+11. Review the app's data access requirements and complete the install.
+
+For `chat.app.*` scopes, this **Admin install** step is where the one-time administrator approval happens. There is not a separate Domain-Wide Delegation approval step for `chat.app.messages.readonly`.
+
+After the admin install is complete, Gopherbot can use the same encrypted service account key to create Workspace Events subscriptions for the spaces the app joins.
 
 Important notes:
 
