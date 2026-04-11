@@ -90,6 +90,12 @@ resource "google_project_iam_member" "pubsub_subscriber" {
   member  = "serviceAccount:${google_service_account.gopherbot.email}"
 }
 
+resource "google_project_iam_member" "pubsub_viewer" {
+  project = var.project_id
+  role    = "roles/pubsub.viewer"
+  member  = "serviceAccount:${google_service_account.gopherbot.email}"
+}
+
 # Service Account Key (for the credentials file)
 resource "google_service_account_key" "gopherbot_key" {
   service_account_id = google_service_account.gopherbot.name
