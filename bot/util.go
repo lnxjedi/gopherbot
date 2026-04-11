@@ -100,6 +100,8 @@ func getProtocol(proto string) robot.Protocol {
 	switch proto {
 	case "slack":
 		return robot.Slack
+	case "googlechat":
+		return robot.GoogleChat
 	case "term", "terminal":
 		return robot.Terminal
 	case "nullconn":

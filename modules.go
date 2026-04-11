@@ -26,6 +26,8 @@ import (
 
 	// *** Default Slack connector
 	_ "github.com/lnxjedi/gopherbot/v2/connectors/slack"
+	// *** Default Google Chat connector
+	_ "github.com/lnxjedi/gopherbot/v2/connectors/googlechat"
 	// *** Default SSH connector
 	_ "github.com/lnxjedi/gopherbot/v2/connectors/ssh"
 

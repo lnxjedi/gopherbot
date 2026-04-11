@@ -101,12 +101,18 @@ Use the service account created by Terraform, identified by the `gopherbot_servi
     *   `https://www.googleapis.com/auth/chat.app.messages.readonly`
 7.  Click **Save draft**.
 
-For this flow, **Save draft** is expected and is sufficient for an internal/private Workspace app. You do not need a published public Marketplace listing.
+For this flow, **Save draft** is expected, but it is not enough by itself to make the app show up for installation.
 
-8.  In the Google Workspace Admin console, go to **Apps > Google Workspace Marketplace apps > Apps list**.
-9.  Click **Install app** and select your app.
-10. Choose **Admin install**.
-11. Review the app's data access requirements and complete the install.
+8.  In **Google Workspace Marketplace SDK > Store Listing**, fill in the required store-listing fields for the app.
+9.  Publish the app as a **private** Marketplace app for your organization.
+
+For a private app, this publish step makes the app available internally right away. You do not need a public Marketplace listing or public review.
+
+10. Make sure the Chat app itself is enabled and saved in **Google Chat API > Configuration**.
+11. In the Google Workspace Admin console, go to **Apps > Google Workspace Marketplace apps > Apps list**.
+12. Click **Install app** and select your app.
+13. Choose **Admin install**.
+14. Review the app's data access requirements and complete the install.
 
 For `chat.app.*` scopes, this **Admin install** step is where the one-time administrator approval happens. There is not a separate Domain-Wide Delegation approval step for `chat.app.messages.readonly`.
 

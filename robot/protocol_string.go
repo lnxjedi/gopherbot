@@ -9,15 +9,17 @@ func _() {
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
 	_ = x[Slack-0]
-	_ = x[Rocket-1]
-	_ = x[Terminal-2]
-	_ = x[Test-3]
-	_ = x[Null-4]
+	_ = x[GoogleChat-1]
+	_ = x[Rocket-2]
+	_ = x[Terminal-3]
+	_ = x[Test-4]
+	_ = x[Null-5]
+	_ = x[SSH-6]
 }
 
-const _Protocol_name = "SlackRocketTerminalTestNull"
+const _Protocol_name = "SlackGoogleChatRocketTerminalTestNullSSH"
 
-var _Protocol_index = [...]uint8{0, 5, 11, 19, 23, 27}
+var _Protocol_index = [...]uint8{0, 5, 15, 21, 29, 33, 37, 40}
 
 func (i Protocol) String() string {
 	if i < 0 || i >= Protocol(len(_Protocol_index)-1) {

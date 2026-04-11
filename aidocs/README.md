@@ -20,6 +20,7 @@ Use these first for current behavior:
 - `aidocs/SCHEDULER_FLOW.md`
 - `aidocs/EXECUTION_SECURITY_MODEL.md`
 - `aidocs/setup-style-guide.md`
+- `aidocs/GOOGLECHAT_CONNECTOR.md`
 - `aidocs/SLACK_CONNECTOR.md`
 - `aidocs/SSH_CONNECTOR.md`
 - `aidocs/TESTING_CURRENT.md`

@@ -51,6 +51,8 @@ func protocolNameFromEnum(protocol robot.Protocol) string {
 	switch protocol {
 	case robot.Slack:
 		return "slack"
+	case robot.GoogleChat:
+		return "googlechat"
 	case robot.Rocket:
 		return "rocket"
 	case robot.Terminal:

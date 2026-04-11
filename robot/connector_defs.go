@@ -8,6 +8,8 @@ type Protocol int
 const (
 	// Slack connector
 	Slack Protocol = iota
+	// Google Chat connector
+	GoogleChat
 	// Rocket for Rocket.Chat
 	Rocket
 	// Terminal connector

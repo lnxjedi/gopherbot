@@ -49,6 +49,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 - Default configuration: `conf/README.md`, `conf/robot.yaml`, `conf/protocols/terminal.yaml`.
 - Shipped OAuth2/GitHub linker command config: `conf/plugins/github-link.yaml`.
+- Connector config samples/defaults: `conf/protocols/googlechat.yaml.sample`, `conf/protocols/slack.yaml.sample`, `conf/protocols/ssh.yaml`, `conf/protocols/terminal.yaml`, `conf/protocols/nullconn.yaml`.
 - Brain provider defaults: `conf/brains/*.yaml` (`BrainConfig`).
 - History provider defaults: `conf/history/*.yaml` (`HistoryConfig`).
 - Default job/plugin config examples live under `conf/jobs/` and `conf/plugins/` (e.g., `conf/jobs/pause-notifies.yaml`, `conf/plugins/builtin-help.yaml`).
@@ -56,6 +57,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 ## connectors/
 
 - Slack connector registration + init: `connectors/slack/static.go` (calls `robot.RegisterConnector("slack", Initialize)`), `connectors/slack/connect.go` (func `Initialize`; connector-local `ProtocolConfig.UserMap` identity mapping plus slash-command-driven runtime hidden-command capability).
+- Google Chat connector registration + init: `connectors/googlechat/static.go` (calls `robot.RegisterConnector("googlechat", Initialize)`), `connectors/googlechat/connect.go` (func `Initialize`; connector-local `ProtocolConfig.UserMap` identity mapping, shared encrypted Google credential loading, Pub/Sub subscription receive loop, slash-command hidden-command capability, and thread-default send behavior).
 - Test connector registration + runtime: `connectors/test/init.go` (calls `robot.RegisterConnector("test", Initialize)`; connector-local `ProtocolConfig.Users` identity mapping), `connectors/test/connector.go` (method `(*TestConnector).Run`).
 - SSH connector registration + runtime: `connectors/ssh/static.go` (calls `robot.RegisterConnector("ssh", Initialize)`), `connectors/ssh/connector.go` (method `(*sshConnector).Run`; connector-local `ProtocolConfig.UserKeys` list identity mapping plus runtime hidden-command capability).
 
