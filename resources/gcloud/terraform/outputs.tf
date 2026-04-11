@@ -2,6 +2,11 @@ output "gopherbot_service_account_email" {
   value = google_service_account.gopherbot.email
 }
 
+output "gopherbot_service_account_unique_id" {
+  value       = google_service_account.gopherbot.unique_id
+  description = "Use this Client ID for Domain-Wide Delegation in the Google Workspace Admin Console."
+}
+
 output "chat_topic_id" {
   value = google_pubsub_topic.chat_topic.id
 }

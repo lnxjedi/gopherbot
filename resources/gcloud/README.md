@@ -57,16 +57,19 @@ gcloud services enable cloudresourcemanager.googleapis.com iam.googleapis.com
 
 ## Step 6: Save Credentials
 
-Terraform will output a service account key. Save this as `gopherbot-key.json` in your robot's configuration directory, encrypt it with Gopherbot, then remove the plaintext file:
+Terraform will output a service account key. Save this as `gopherbot-key.json` in your robot's configuration directory.
+
+From your robot's `custom/` directory, encrypt it into the default filename the Firestore brain expects, `gopherbot-key.json.enc`:
 
 ```bash
-gopherbot encrypt -f gopherbot-key.json > gopherbot-key.json.enc
-rm gopherbot-key.json
+cd custom
+gopherbot encrypt -f path/to/gopherbot-key.json > gopherbot-key.json.enc
+rm path/to/gopherbot-key.json
 ```
 
-The Firestore brain and the future Google Chat connector can read `gopherbot-key.json.enc` directly through Gopherbot's encrypted-file support, so the plaintext key does not need to live on disk at runtime.
+If you keep that default filename in `custom/`, the Firestore brain can use it without any filename override. The Firestore brain and the future Google Chat connector can read `gopherbot-key.json.enc` directly through Gopherbot's encrypted-file support, so the plaintext key does not need to live on disk at runtime.
 
-## Step 7: Manual Google Chat Configuration
+# Step 7: Manual Google Chat Configuration
 
 Terraform enables the APIs, but some steps must be done manually in the UI:
 
@@ -83,7 +86,20 @@ Terraform enables the APIs, but some steps must be done manually in the UI:
     *   **Visibility**: Select "Make this Chat app available to specific people and groups in your Workspace domain" (or everyone, depending on your preference).
 5.  Click **Save**.
 
-## Step 8: Configure Your Robot
+## Step 8: Configure Domain-Wide Delegation (Workspace Admin)
+
+To allow Gopherbot to read *all* messages in spaces (ambient traffic), it needs to use the Workspace Events API with the `chat.app.messages.readonly` scope. This requires Domain-Wide Delegation and Admin approval.
+
+1.  Go to the [Google Workspace Admin Console](https://admin.google.com/).
+2.  Navigate to **Security > Access and data control > API controls > Manage Domain Wide Delegation**.
+3.  Click **Add new**.
+4.  **Client ID**: Enter the `gopherbot_service_account_unique_id` from the Terraform output.
+5.  **OAuth scopes**: Enter `https://www.googleapis.com/auth/chat.app.messages.readonly`
+6.  Click **Authorize**.
+
+*(Note: Your Gopherbot code must also be updated to use the Workspace Events API to create subscriptions for the spaces it joins.)*
+
+## Step 9: Configure Your Robot
 
 Configure your robot to use the Firestore brain and point it at the encrypted service-account file:
 
@@ -103,6 +119,8 @@ BrainConfig:
   Collection: "gopherbot-brain"
   CredentialsEncryptedFile: "gopherbot-key.json.enc"
 ```
+
+With the default filename above, the only required override is usually `ProjectID`.
 
 For the future Google Chat connector, keep the Pub/Sub subscription ID created by Terraform (`projects/[PROJECT_ID]/subscriptions/gopherbot-chat-sub`).
 
