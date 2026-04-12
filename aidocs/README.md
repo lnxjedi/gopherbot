@@ -15,6 +15,7 @@ Design goals:
 
 Use these first for current behavior:
 - `aidocs/COMPONENT_MAP.md`
+- `aidocs/CONNECTOR_CONTRACT.md`
 - `aidocs/STARTUP_FLOW.md`
 - `aidocs/PIPELINE_LIFECYCLE.md`
 - `aidocs/SCHEDULER_FLOW.md`

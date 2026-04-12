@@ -16,6 +16,7 @@ This file captures Google Chat connector behavior relevant to routing, hidden co
 - Google Chat uses the Chat API for outbound messages and a Pub/Sub pull subscription for inbound events.
 - Connector initialization loads encrypted service-account credentials through `Handler.ReadEncryptedFile(...)` and `internal/gcloud`.
 - Runtime receive uses one Pub/Sub goroutine with one outstanding message at a time so connector-local event handling remains serialized.
+- At `Info` log level, the connector logs concise summaries of inbound Pub/Sub deliveries so operators can distinguish Chat interaction events from Workspace Events deliveries while debugging Google-side configuration.
 - The connector is text-only in v1. It does not expose cards, dialogs, or other Google Chat-specific UI surfaces through the shared connector contract.
 - The same Pub/Sub subscription receives both normal Chat interaction events and Google Workspace Events CloudEvents when ambient-space subscriptions are enabled.
 
@@ -48,13 +49,18 @@ This file captures Google Chat connector behavior relevant to routing, hidden co
 
 - Google Chat interaction events that produce bot input are normalized as `Protocol: "googlechat"`.
 - Google Workspace Events message-created CloudEvents are also normalized as `Protocol: "googlechat"`.
+- Mention spans are rewritten into Slack-style plain-text mentions before the engine sees them.
+  - bot mentions become `@<bot username>` using the robot's canonical bot username
+  - mapped human mentions become `@<canonical username>`
+  - unmapped mentions are left in their human-visible text form
 - For `MESSAGE` and supported `APP_COMMAND` events:
-  - `BotMessage=true`
-  - `MessageText` prefers `message.argumentText`, then falls back to `message.text`
+  - `BotMessage=true` only for slash-command-style and app-command-style interactions that Google already routes directly to the app
+  - ordinary text messages, including those that mention the app, use `BotMessage=false`
+  - ordinary message text is normalized from `message.text`, not collapsed to `message.argumentText`, so engine bot-name regexes remain the authority for deciding whether the message is addressed to the bot
 - For ambient Workspace Events message-created events:
-  - `BotMessage=true`
+  - `BotMessage=false`
   - `HiddenMessage=false`
-  - `MessageText` prefers `message.argumentText`, then falls back to `message.text`
+  - text is normalized from `message.text` using the same mention-rewrite rules as interaction events
 - `DirectMessage=true` when `space.spaceType == DIRECT_MESSAGE`.
 - For direct messages, `ChannelID`/`ChannelName` are left empty so engine DM behavior continues to use `SendProtocolUserMessage(...)`.
 - For space messages:

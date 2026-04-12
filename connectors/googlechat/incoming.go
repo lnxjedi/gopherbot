@@ -13,6 +13,7 @@ type chatEventMessage struct {
 	Name         string                 `json:"name"`
 	Text         string                 `json:"text"`
 	ArgumentText string                 `json:"argumentText"`
+	Annotations  []*chatEventAnnotation `json:"annotations"`
 	Thread       *chatEventThread       `json:"thread"`
 	ThreadReply  bool                   `json:"threadReply"`
 	Sender       *chatEventUser         `json:"sender"`
@@ -45,4 +46,16 @@ type chatEventAppCommandMeta struct {
 
 type chatEventSlashCommand struct {
 	CommandId int64 `json:"commandId"`
+}
+
+type chatEventAnnotation struct {
+	Type        string                    `json:"type"`
+	StartIndex  int                       `json:"startIndex"`
+	Length      int                       `json:"length"`
+	UserMention *chatEventUserMentionMeta `json:"userMention"`
+}
+
+type chatEventUserMentionMeta struct {
+	Type string         `json:"type"`
+	User *chatEventUser `json:"user"`
 }

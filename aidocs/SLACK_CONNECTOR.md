@@ -26,6 +26,8 @@ This file captures Slack connector behavior relevant to routing, hidden commands
   - `BotMessage=false`
   - `HiddenMessage=false`
   - `DirectMessage` set from Slack channel type (`IM` vs channel).
+- Slack mention tokens are normalized into plain `@username` text before the engine sees them.
+- Ordinary messages that contain a bot mention still remain `BotMessage=false`; the engine's bot-name regexes decide whether that normalized text is addressed to the robot.
 - Slash command events routed to this app are passed as:
   - `BotMessage=true`
   - `HiddenMessage=true`

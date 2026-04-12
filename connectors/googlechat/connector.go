@@ -115,13 +115,16 @@ func (gc *googleChatConnector) Run(stop <-chan struct{}) {
 }
 
 func (gc *googleChatConnector) handlePubSubMessage(msg *pubsub.Message) error {
+	attrSummary := summarizePubSubAttributes(msg.Attributes)
 	if eventType := strings.TrimSpace(msg.Attributes["ce-type"]); eventType != "" {
+		gc.Log(robot.Info, "Google Chat Pub/Sub workspace event received: id=%q type=%q attrs=%s bytes=%d", msg.ID, eventType, attrSummary, len(msg.Data))
 		return gc.handleWorkspaceEventMessage(msg, eventType)
 	}
 	var event chatEvent
 	if err := json.Unmarshal(msg.Data, &event); err != nil {
-		return fmt.Errorf("parsing Google Chat event JSON: %w", err)
+		return fmt.Errorf("parsing Google Chat event JSON (attrs=%s preview=%q): %w", attrSummary, diagnosticPreviewBytes(msg.Data), err)
 	}
+	gc.Log(robot.Info, "Google Chat interaction event received: id=%q %s attrs=%s bytes=%d", msg.ID, summarizeChatEvent(&event), attrSummary, len(msg.Data))
 	return gc.handleEvent(&event)
 }
 
@@ -176,7 +179,7 @@ func (gc *googleChatConnector) normalizeIncomingMessage(event *chatEvent) (*robo
 			Protocol:      "googlechat",
 			UserID:        userID,
 			MessageID:     msg.Name,
-			MessageText:   gc.messageText(msg),
+			MessageText:   gc.normalizeEventText(msg, true),
 			SelfMessage:   true,
 			BotMessage:    true,
 			MessageObject: event,
@@ -206,9 +209,9 @@ func (gc *googleChatConnector) normalizeIncomingMessage(event *chatEvent) (*robo
 		gc.logUnmappedUser(user)
 	}
 
-	botMessage := true
+	botMessage := gc.isExplicitBotMessage(event)
 	hidden := gc.isHiddenInteraction(event)
-	text := gc.messageText(msg)
+	text := gc.normalizeEventText(msg, botMessage)
 
 	connectorMsg := &robot.ConnectorMessage{
 		Protocol:        "googlechat",
@@ -256,14 +259,11 @@ func (gc *googleChatConnector) isHiddenInteraction(event *chatEvent) bool {
 	return false
 }
 
-func (gc *googleChatConnector) messageText(msg *chatEventMessage) string {
-	if msg == nil {
-		return ""
+func (gc *googleChatConnector) isExplicitBotMessage(event *chatEvent) bool {
+	if event == nil || event.Message == nil {
+		return false
 	}
-	if text := strings.TrimSpace(msg.ArgumentText); text != "" {
-		return text
-	}
-	return strings.TrimSpace(msg.Text)
+	return gc.isHiddenInteraction(event) || strings.EqualFold(strings.TrimSpace(event.Type), "APP_COMMAND")
 }
 
 func (gc *googleChatConnector) cacheUser(user *chatEventUser) string {

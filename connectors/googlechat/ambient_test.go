@@ -55,8 +55,93 @@ func TestNormalizeAmbientMessageMappedUser(t *testing.T) {
 	if msg.ChannelID != "spaces/AAAA" {
 		t.Fatalf("ChannelID = %q", msg.ChannelID)
 	}
+	if msg.BotMessage {
+		t.Fatal("plain ambient message should not be treated as addressed to the bot")
+	}
 	if !msg.ThreadedMessage {
 		t.Fatal("expected threaded ambient message")
+	}
+}
+
+func TestNormalizeAmbientMessageMentionBecomesBotMessage(t *testing.T) {
+	mentionText := "@Bishop Gopherbot"
+	handler := &recordingHandler{}
+	connector := &googleChatConnector{
+		Handler:          handler,
+		botName:          "bishop",
+		usersByID:        make(map[string]chatUserRecord),
+		usersByName:      make(map[string]chatUserRecord),
+		channelsByID:     make(map[string]chatChannelRecord),
+		channelIDsByName: make(map[string]string),
+		unmappedUsers:    make(map[string]bool),
+	}
+	msg, ok := connector.normalizeAmbientMessage(&chatapi.Message{
+		Name:         "spaces/AAAA/messages/BBBB",
+		Text:         mentionText + " ping",
+		ArgumentText: "ping",
+		Sender:       &chatapi.User{Name: "users/123", DisplayName: "Alice Example"},
+		Space:        &chatapi.Space{Name: "spaces/AAAA", DisplayName: "Ops", SpaceType: "SPACE"},
+		Annotations: []*chatapi.Annotation{
+			{
+				Type:       "USER_MENTION",
+				StartIndex: 0,
+				Length:     int64(len([]rune(mentionText))),
+				UserMention: &chatapi.UserMentionMetadata{
+					User: &chatapi.User{Name: "users/app"},
+					Type: "MENTION",
+				},
+			},
+		},
+	})
+	if !ok {
+		t.Fatal("normalizeAmbientMessage() = not ok")
+	}
+	if msg.BotMessage {
+		t.Fatal("mentioned ambient message should still flow through normal name matching")
+	}
+	if msg.MessageText != "@bishop ping" {
+		t.Fatalf("MessageText = %q", msg.MessageText)
+	}
+}
+
+func TestNormalizeAmbientMessageMidSentenceMentionIsRewritten(t *testing.T) {
+	mentionText := "@Bishop Gopherbot"
+	prefix := "Did you see what "
+	handler := &recordingHandler{}
+	connector := &googleChatConnector{
+		Handler:          handler,
+		botName:          "bishop",
+		usersByID:        make(map[string]chatUserRecord),
+		usersByName:      make(map[string]chatUserRecord),
+		channelsByID:     make(map[string]chatChannelRecord),
+		channelIDsByName: make(map[string]string),
+		unmappedUsers:    make(map[string]bool),
+	}
+	msg, ok := connector.normalizeAmbientMessage(&chatapi.Message{
+		Name:   "spaces/AAAA/messages/BBBB",
+		Text:   prefix + mentionText + " did?",
+		Sender: &chatapi.User{Name: "users/123", DisplayName: "Alice Example"},
+		Space:  &chatapi.Space{Name: "spaces/AAAA", DisplayName: "Ops", SpaceType: "SPACE"},
+		Annotations: []*chatapi.Annotation{
+			{
+				Type:       "USER_MENTION",
+				StartIndex: int64(len([]rune(prefix))),
+				Length:     int64(len([]rune(mentionText))),
+				UserMention: &chatapi.UserMentionMetadata{
+					User: &chatapi.User{Name: "users/app"},
+					Type: "MENTION",
+				},
+			},
+		},
+	})
+	if !ok {
+		t.Fatal("normalizeAmbientMessage() = not ok")
+	}
+	if msg.BotMessage {
+		t.Fatal("mid-sentence bot mention should not become an explicit bot message")
+	}
+	if msg.MessageText != "Did you see what @bishop did?" {
+		t.Fatalf("MessageText = %q", msg.MessageText)
 	}
 }
 

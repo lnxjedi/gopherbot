@@ -2,6 +2,7 @@ package googlechat
 
 import (
 	"io"
+	"strings"
 	"testing"
 
 	"github.com/lnxjedi/gopherbot/robot"
@@ -51,5 +52,128 @@ func TestNormalizeConfiguredUserMap(t *testing.T) {
 func TestNormalizeSubscriptionID(t *testing.T) {
 	if got := normalizeSubscriptionID("projects/p/subscriptions/gopherbot-chat-sub"); got != "gopherbot-chat-sub" {
 		t.Fatalf("normalizeSubscriptionID() = %q", got)
+	}
+}
+
+func TestNormalizeIncomingMentionRewritesToBotNameWithoutBotMessage(t *testing.T) {
+	mentionText := "@Bishop Gopherbot"
+	connector := &googleChatConnector{
+		Handler:          &logOnlyHandler{},
+		botName:          "bishop",
+		usersByID:        make(map[string]chatUserRecord),
+		usersByName:      make(map[string]chatUserRecord),
+		channelsByID:     make(map[string]chatChannelRecord),
+		channelIDsByName: make(map[string]string),
+		unmappedUsers:    make(map[string]bool),
+	}
+	msg, ok := connector.normalizeIncomingMessage(&chatEvent{
+		Type: "MESSAGE",
+		User: &chatEventUser{Name: "users/123", DisplayName: "Alice Example"},
+		Space: &chatEventSpace{
+			Name:        "spaces/AAAA",
+			DisplayName: "Ops",
+			SpaceType:   "SPACE",
+		},
+		Message: &chatEventMessage{
+			Name:         "spaces/AAAA/messages/BBBB",
+			Text:         mentionText + " ping",
+			ArgumentText: "ping",
+			Annotations: []*chatEventAnnotation{
+				{
+					Type:       "USER_MENTION",
+					StartIndex: 0,
+					Length:     len([]rune(mentionText)),
+					UserMention: &chatEventUserMentionMeta{
+						Type: "MENTION",
+						User: &chatEventUser{Name: "users/app"},
+					},
+				},
+			},
+		},
+	})
+	if !ok {
+		t.Fatal("normalizeIncomingMessage() = not ok")
+	}
+	if msg.BotMessage {
+		t.Fatal("mention should not force explicit bot-message handling")
+	}
+	if msg.MessageText != "@bishop ping" {
+		t.Fatalf("MessageText = %q", msg.MessageText)
+	}
+}
+
+func TestNormalizeIncomingSlashCommandRemainsExplicit(t *testing.T) {
+	connector := &googleChatConnector{
+		Handler:          &logOnlyHandler{},
+		botName:          "bishop",
+		usersByID:        make(map[string]chatUserRecord),
+		usersByName:      make(map[string]chatUserRecord),
+		channelsByID:     make(map[string]chatChannelRecord),
+		channelIDsByName: make(map[string]string),
+		unmappedUsers:    make(map[string]bool),
+	}
+	msg, ok := connector.normalizeIncomingMessage(&chatEvent{
+		Type: "MESSAGE",
+		User: &chatEventUser{Name: "users/123", DisplayName: "Alice Example"},
+		Message: &chatEventMessage{
+			Name:         "spaces/AAAA/messages/BBBB",
+			Text:         "/bishop ping",
+			ArgumentText: "ping",
+			SlashCommand: &chatEventSlashCommand{CommandId: 7},
+		},
+	})
+	if !ok {
+		t.Fatal("normalizeIncomingMessage() = not ok")
+	}
+	if !msg.BotMessage {
+		t.Fatal("slash command should remain explicit")
+	}
+	if !msg.HiddenMessage {
+		t.Fatal("slash command should remain hidden")
+	}
+	if msg.MessageText != "ping" {
+		t.Fatalf("MessageText = %q", msg.MessageText)
+	}
+}
+
+func TestSummarizePubSubAttributesSortsKeys(t *testing.T) {
+	summary := summarizePubSubAttributes(map[string]string{
+		"zeta":  "last",
+		"alpha": "first",
+	})
+	if summary != `alpha="first", zeta="last"` {
+		t.Fatalf("summary = %q", summary)
+	}
+}
+
+func TestSummarizeChatEventIncludesInteractionFlags(t *testing.T) {
+	summary := summarizeChatEvent(&chatEvent{
+		Type: "MESSAGE",
+		User: &chatEventUser{Name: "users/123"},
+		Space: &chatEventSpace{
+			Name:      "spaces/AAAA",
+			SpaceType: "DIRECT_MESSAGE",
+		},
+		Message: &chatEventMessage{
+			Name:         "spaces/AAAA/messages/BBBB",
+			Text:         "/bishop ping",
+			ArgumentText: "ping",
+			SlashCommand: &chatEventSlashCommand{CommandId: 7},
+		},
+	})
+	for _, fragment := range []string{
+		`type="MESSAGE"`,
+		`message="spaces/AAAA/messages/BBBB"`,
+		`user="users/123"`,
+		`space="spaces/AAAA"`,
+		`direct=true`,
+		`slash=true`,
+		`appCommand=false`,
+		`text="/bishop ping"`,
+		`argument="ping"`,
+	} {
+		if !strings.Contains(summary, fragment) {
+			t.Fatalf("summary %q missing %q", summary, fragment)
+		}
 	}
 }

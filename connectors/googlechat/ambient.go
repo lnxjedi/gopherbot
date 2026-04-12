@@ -314,7 +314,7 @@ func (gc *googleChatConnector) normalizeAmbientMessage(message *chatapi.Message)
 			Protocol:      "googlechat",
 			UserID:        userID,
 			MessageID:     strings.TrimSpace(message.Name),
-			MessageText:   ambientMessageText(message),
+			MessageText:   gc.normalizeAPIText(message, false),
 			SelfMessage:   true,
 			BotMessage:    true,
 			MessageObject: message,
@@ -329,7 +329,6 @@ func (gc *googleChatConnector) normalizeAmbientMessage(message *chatapi.Message)
 	if canonicalUser == "" {
 		gc.logUnmappedAPIUser(sender)
 	}
-
 	channelID := ""
 	channelName := ""
 	direct := false
@@ -355,8 +354,8 @@ func (gc *googleChatConnector) normalizeAmbientMessage(message *chatapi.Message)
 		ThreadID:        threadID,
 		ThreadedMessage: threaded,
 		DirectMessage:   direct,
-		BotMessage:      true,
-		MessageText:     ambientMessageText(message),
+		BotMessage:      false,
+		MessageText:     gc.normalizeAPIText(message, false),
 		MessageObject:   message,
 		Client:          gc.chatClient,
 	}
@@ -367,16 +366,6 @@ func (gc *googleChatConnector) normalizeAmbientMessage(message *chatapi.Message)
 		connectorMsg.ChannelName = channelName
 	}
 	return connectorMsg, true
-}
-
-func ambientMessageText(message *chatapi.Message) string {
-	if message == nil {
-		return ""
-	}
-	if text := strings.TrimSpace(message.ArgumentText); text != "" {
-		return text
-	}
-	return strings.TrimSpace(message.Text)
 }
 
 func (gc *googleChatConnector) cacheAPIUser(user *chatapi.User) string {
