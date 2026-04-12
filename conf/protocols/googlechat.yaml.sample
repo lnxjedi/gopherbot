@@ -1,0 +1,24 @@
+## Sample configuration for the Google Chat connector.
+## Copy this file to custom/conf/protocols/googlechat.yaml when you are ready
+## to configure Google Chat for a robot.
+##
+## Keep user directory and admin settings in custom/conf/robot.yaml.
+## Map canonical usernames to Google Chat user resource names in
+## ProtocolConfig.UserMap.
+
+ProtocolConfig:
+  ProjectID: your-gcp-project-id
+  SubscriptionID: gopherbot-chat-sub
+  CredentialsEncryptedFile: gopherbot-key.json.enc
+  # When true, the connector creates and maintains per-space Google Workspace
+  # Events subscriptions so it can receive ambient message traffic in spaces
+  # where the app has been added. Requires admin-approved chat.app.* scopes.
+  AmbientMessages: true
+  ThreadResponses: true
+  # Set this to the slash command name configured in the Google Chat API,
+  # without or with the leading slash. It is used for hidden-command help and
+  # fallback rendering, and enables hidden command support in the connector.
+  SlashCommand: bishop
+  # UserMap:
+  #   alice: users/12345678901234567890
+  #   bishop: users/app
