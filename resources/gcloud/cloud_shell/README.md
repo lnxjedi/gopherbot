@@ -414,11 +414,32 @@ gcloud services enable workspaceevents.googleapis.com
 
 This part is manual in the Google Cloud console.
 
+Before the Marketplace-compatible OAuth client step, enable the Marketplace SDK/API in Cloud Shell:
+
+```bash
+gcloud services enable appsmarket-component.googleapis.com
+```
+
 Open:
 
 - **IAM & Admin > Service Accounts**
 - click the service account used by the Chat app
 - click **Advanced settings**
+
+If Google refuses to let you create the Marketplace-compatible OAuth client yet, it may first require an OAuth consent screen to exist for the project.
+
+If that happens:
+
+1. open **Google Auth Platform > Branding** (or the older **OAuth consent screen** UI if that is what Google shows you)
+2. configure the minimum required fields
+3. choose **Internal** / user-organization-only visibility for a Workspace-internal bot
+4. save the consent-screen configuration
+
+Important note:
+
+- this consent-screen setup is confusing but expected
+- it is a platform prerequisite for creating the Marketplace-compatible OAuth client
+- it does **not** mean the Chat app will use a normal end-user OAuth consent flow at runtime
 
 Then:
 
@@ -428,8 +449,6 @@ Then:
 This is the Google-required prerequisite for app-auth scopes like:
 
 - `https://www.googleapis.com/auth/chat.app.messages.readonly`
-- `https://www.googleapis.com/auth/chat.app.spaces`
-- `https://www.googleapis.com/auth/chat.app.memberships`
 
 Important note:
 
@@ -447,27 +466,38 @@ Then:
 1. configure the app metadata as a private/internal app
 2. add the app-auth scopes needed for ambient Chat subscriptions
 3. `Save draft`
-4. complete the required **Store Listing** fields
-5. publish the app privately
+4. continue with the publish/install flow documented in `resources/gcloud/README.md`
 
 Notes:
 
-- `Save draft` is not sufficient by itself
-- for a private app, publishing makes it available inside your organization
+- Google requires app listing images for the Marketplace store listing
+- prepare a square avatar image ahead of time
+- for a simple internal setup, you can upload the same avatar image for all required image fields
+- in the current Google UI, `Save draft` may be the only explicit action available at this stage
+- after `Save draft`, follow the repo-level setup guide in `resources/gcloud/README.md` for the next publish/install steps
+- the current Google admin help page for that flow is:
+  https://knowledge.workspace.google.com/admin/chat/set-up-app-authorization-for-chat
+- for Bishop's current ambient implementation, add `https://www.googleapis.com/auth/chat.app.messages.readonly`
+- do **not** add `chat.bot` here; Google Chat already includes it for the app
+- `chat.app.spaces` and `chat.app.memberships` are not needed for Bishop's current message-created ambient subscription flow
 
 ### 4. Admin-Install The App
 
-Open the Admin console:
+Treat `resources/gcloud/README.md` as the authoritative guide from this point onward for the publish/admin-install flow.
 
-- **Apps > Google Workspace Marketplace apps > Apps list**
+The current Google admin help page appears to be:
 
-Then:
+- https://knowledge.workspace.google.com/admin/chat/set-up-app-authorization-for-chat
 
-1. click **Install app**
-2. find the newly published private app
-3. choose **Admin install**
+Depending on the UI/version, Google may route you there directly after the Marketplace/OAuth-client setup, or you may need to follow the publish/install sequence documented in `resources/gcloud/README.md`.
+
+If you are taken through the Admin console manually, the flow is still roughly:
+
+1. locate the Chat app authorization/install step
+2. choose the app
+3. complete admin authorization/install
 4. review the data access requirements
-5. complete the install
+5. finish the setup
 
 This is the point where the `chat.app.*` scopes are effectively approved for the app.
 

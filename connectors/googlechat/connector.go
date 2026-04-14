@@ -198,7 +198,7 @@ func (gc *googleChatConnector) normalizeIncomingMessage(event *chatEvent) (*robo
 	channelName := ""
 	if !direct && space != nil {
 		channelID = strings.TrimSpace(space.Name)
-		channelName = strings.TrimSpace(space.DisplayName)
+		channelName = gc.channelDisplayName(channelID, strings.TrimSpace(space.DisplayName))
 	}
 
 	canonicalUser := gc.cacheUser(user)
@@ -319,6 +319,11 @@ func (gc *googleChatConnector) cacheChannel(space *chatEventSpace) {
 
 	gc.mu.Lock()
 	defer gc.mu.Unlock()
+	if existing, ok := gc.channelsByID[resource]; ok {
+		if record.DisplayName == "" {
+			record.DisplayName = existing.DisplayName
+		}
+	}
 	gc.channelsByID[resource] = record
 	if record.DisplayName != "" {
 		nameKey := strings.ToLower(record.DisplayName)
@@ -326,6 +331,23 @@ func (gc *googleChatConnector) cacheChannel(space *chatEventSpace) {
 			gc.channelIDsByName[nameKey] = resource
 		}
 	}
+}
+
+func (gc *googleChatConnector) channelDisplayName(resourceName, fallback string) string {
+	resourceName = strings.TrimSpace(resourceName)
+	fallback = strings.TrimSpace(fallback)
+	if fallback != "" {
+		return fallback
+	}
+	if resourceName == "" {
+		return ""
+	}
+	gc.mu.RLock()
+	defer gc.mu.RUnlock()
+	if record, ok := gc.channelsByID[resourceName]; ok {
+		return strings.TrimSpace(record.DisplayName)
+	}
+	return ""
 }
 
 func (gc *googleChatConnector) logUnmappedUser(user *chatEventUser) {

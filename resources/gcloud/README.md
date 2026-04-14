@@ -95,24 +95,28 @@ Use the service account created by Terraform, identified by the `gopherbot_servi
 1.  In Google Cloud Console, go to **IAM & Admin > Service Accounts** and open the Gopherbot service account.
 2.  Under **Advanced settings**, create a **Google Workspace Marketplace-compatible OAuth client** for that service account.
 3.  Enable the **Google Workspace Marketplace SDK** in the project.
-4.  Open **Google Workspace Marketplace SDK > App Configuration**.
-5.  Configure the app as a private Workspace app with Chat enabled.
-6.  Add the Chat app scopes your connector needs. For ambient message capture, include:
+4.  In Google Cloud Console, go to **APIs & Services > Enabled APIs & services** and open **Google Workspace Marketplace SDK**.
+5.  Open the **App Configuration** section.
+6.  Configure the app as a private Workspace app with Chat enabled.
+7.  Add the Chat app scopes your connector needs. For ambient message capture, include:
     *   `https://www.googleapis.com/auth/chat.app.messages.readonly`
-7.  Click **Save draft**.
+8.  Click **Save draft**.
 
 For this flow, **Save draft** is expected, but it is not enough by itself to make the app show up for installation.
 
-8.  In **Google Workspace Marketplace SDK > Store Listing**, fill in the required store-listing fields for the app.
-9.  Publish the app as a **private** Marketplace app for your organization.
+9.  In **Google Workspace Marketplace SDK > Store Listing**, fill in the required store-listing fields for the app.
+    *   Google requires app listing images.
+    *   Prepare a square avatar image for the robot ahead of time.
+    *   For a simple internal setup, upload the same avatar image for all of the required image fields.
+10. Publish the app as a **private** Marketplace app for your organization.
 
 For a private app, this publish step makes the app available internally right away. You do not need a public Marketplace listing or public review.
 
-10. Make sure the Chat app itself is enabled and saved in **Google Chat API > Configuration**.
-11. In the Google Workspace Admin console, go to **Apps > Google Workspace Marketplace apps > Apps list**.
-12. Click **Install app** and select your app.
-13. Choose **Admin install**.
-14. Review the app's data access requirements and complete the install.
+11. Make sure the Chat app itself is enabled and saved in **Google Chat API > Configuration**.
+12. In the Google Workspace Admin console, go to **Apps > Google Workspace Marketplace apps > Apps list**.
+13. Click **Install app** and select your app.
+14. Choose **Admin install**.
+15. Review the app's data access requirements and complete the install.
 
 For `chat.app.*` scopes, this **Admin install** step is where the one-time administrator approval happens. There is not a separate Domain-Wide Delegation approval step for `chat.app.messages.readonly`.
 

@@ -335,7 +335,7 @@ func (gc *googleChatConnector) normalizeAmbientMessage(message *chatapi.Message)
 	if message.Space != nil {
 		if !strings.EqualFold(message.Space.SpaceType, "DIRECT_MESSAGE") {
 			channelID = strings.TrimSpace(message.Space.Name)
-			channelName = strings.TrimSpace(message.Space.DisplayName)
+			channelName = gc.channelDisplayName(channelID, strings.TrimSpace(message.Space.DisplayName))
 		} else {
 			direct = true
 		}

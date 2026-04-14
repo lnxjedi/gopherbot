@@ -145,6 +145,32 @@ func TestNormalizeAmbientMessageMidSentenceMentionIsRewritten(t *testing.T) {
 	}
 }
 
+func TestNormalizeAmbientMessageFallsBackToCachedChannelDisplayName(t *testing.T) {
+	handler := &recordingHandler{}
+	connector := &googleChatConnector{
+		Handler:          handler,
+		botName:          "bishop",
+		usersByID:        make(map[string]chatUserRecord),
+		usersByName:      make(map[string]chatUserRecord),
+		channelsByID:     map[string]chatChannelRecord{"spaces/AAAA": {ResourceName: "spaces/AAAA", DisplayName: "random"}},
+		channelIDsByName: map[string]string{"random": "spaces/AAAA"},
+		unmappedUsers:    make(map[string]bool),
+	}
+
+	msg, ok := connector.normalizeAmbientMessage(&chatapi.Message{
+		Name:   "spaces/AAAA/messages/BBBB",
+		Text:   "Bishop, tell me a joke",
+		Sender: &chatapi.User{Name: "users/123", DisplayName: "Alice Example"},
+		Space:  &chatapi.Space{Name: "spaces/AAAA", SpaceType: "SPACE"},
+	})
+	if !ok {
+		t.Fatal("normalizeAmbientMessage() = not ok")
+	}
+	if msg.ChannelName != "random" {
+		t.Fatalf("ChannelName = %q", msg.ChannelName)
+	}
+}
+
 func TestHandleWorkspaceMessageCreated(t *testing.T) {
 	handler := &recordingHandler{}
 	connector := &googleChatConnector{

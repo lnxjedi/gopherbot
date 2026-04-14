@@ -171,6 +171,37 @@ func TestNormalizeIncomingSlashCommandRemainsExplicit(t *testing.T) {
 	}
 }
 
+func TestNormalizeIncomingMessageFallsBackToCachedChannelDisplayName(t *testing.T) {
+	connector := &googleChatConnector{
+		Handler:          &logOnlyHandler{},
+		botName:          "bishop",
+		usersByID:        make(map[string]chatUserRecord),
+		usersByName:      make(map[string]chatUserRecord),
+		channelsByID:     map[string]chatChannelRecord{"spaces/AAAA": {ResourceName: "spaces/AAAA", DisplayName: "random"}},
+		channelIDsByName: map[string]string{"random": "spaces/AAAA"},
+		unmappedUsers:    make(map[string]bool),
+	}
+
+	msg, ok := connector.normalizeIncomingMessage(&chatEvent{
+		Type: "MESSAGE",
+		User: &chatEventUser{Name: "users/123", DisplayName: "Alice Example"},
+		Space: &chatEventSpace{
+			Name:      "spaces/AAAA",
+			SpaceType: "SPACE",
+		},
+		Message: &chatEventMessage{
+			Name: "spaces/AAAA/messages/BBBB",
+			Text: "Bishop, tell me a joke",
+		},
+	})
+	if !ok {
+		t.Fatal("normalizeIncomingMessage() = not ok")
+	}
+	if msg.ChannelName != "random" {
+		t.Fatalf("ChannelName = %q", msg.ChannelName)
+	}
+}
+
 func TestChatEventUnmarshalSlashCommandStringID(t *testing.T) {
 	var event chatEvent
 	payload := []byte(`{
