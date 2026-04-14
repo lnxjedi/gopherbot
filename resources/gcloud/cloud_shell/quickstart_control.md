@@ -63,12 +63,20 @@ If billing is not already attached, do that in the Console before continuing.
 
 Then enable the base APIs:
 
+> NOTE: Not used
 ```bash
 gcloud services enable \
   chat.googleapis.com \
   pubsub.googleapis.com \
   iam.googleapis.com \
   cloudresourcemanager.googleapis.com
+```
+
+### Actual command (from quickstart)
+```bash
+gcloud services enable \
+  chat.googleapis.com \
+  pubsub.googleapis.com
 ```
 
 ## Set Up Pub/Sub
@@ -104,10 +112,16 @@ The official quickstart grants `roles/pubsub.publisher` to:
 
 Run:
 
+> NOTE: Not used
 ```bash
 gcloud pubsub topics add-iam-policy-binding "${TOPIC_ID}" \
   --member="serviceAccount:chat-api-push@system.gserviceaccount.com" \
   --role="roles/pubsub.publisher"
+```
+
+#### Actual command (from quickstart)
+```bash
+gcloud projects add-iam-policy-binding $PROJECT_ID --member=serviceAccount:chat-api-push@system.gserviceaccount.com --role=roles/pubsub.publisher
 ```
 
 ### 3. Create A Service Account
