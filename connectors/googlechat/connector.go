@@ -478,9 +478,10 @@ func (gc *googleChatConnector) resolveUserID(uid, username string) (string, bool
 		id = normalizeUserResource(id)
 		return id, id != ""
 	}
-	uid = normalizeUserResource(uid)
-	if uid != "" {
-		return uid, true
+	uid = strings.TrimSpace(uid)
+	if strings.HasPrefix(uid, "users/") {
+		uid = normalizeUserResource(uid)
+		return uid, uid != ""
 	}
 	key := strings.ToLower(strings.TrimSpace(username))
 	if key == "" {
@@ -488,9 +489,16 @@ func (gc *googleChatConnector) resolveUserID(uid, username string) (string, bool
 	}
 	gc.mu.RLock()
 	id, ok := gc.botUserMap[key]
+	if !ok {
+		if record, found := gc.usersByName[key]; found && strings.TrimSpace(record.ResourceName) != "" {
+			id = record.ResourceName
+			ok = true
+		}
+	}
 	gc.mu.RUnlock()
 	if ok {
-		return id, true
+		id = normalizeUserResource(id)
+		return id, id != ""
 	}
 	return "", false
 }

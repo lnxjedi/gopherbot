@@ -1,95 +1,100 @@
-# Google Chat Clean-Room Test From Cloud Shell
+# Google Chat Pub/Sub Quickstart Control
 
-This guide creates a fresh Google Cloud project for a minimal Google Chat experiment.
+This file is a Cloud Shell companion to Google's official Pub/Sub quickstart for a Google Chat app:
 
-The goal is to prove the simple interactive path first:
+- Official quickstart: https://developers.google.com/workspace/chat/quickstart/pub-sub
 
-- direct messages
-- `@mention` commands
-- `/bishop` slash commands
+It is organized to track the quickstart's major sections so you can compare what you run in Cloud Shell with what the official guide says to do.
 
-This guide intentionally does **not** set up ambient message access, Marketplace publication, or Workspace Events subscriptions. We add those only after the basic interactive path works.
+This is a control experiment. The goal is to run Google's published Python sample with the least possible extra machinery:
 
-If the minimal setup works but the full setup breaks later, we have a strong signal that the Marketplace/admin-install/ambient layer is the culprit.
+- no ambient Workspace Events
+- no Marketplace SDK
+- no admin install
+- no Bishop-specific code path
 
-## Phase 1 Goal
-
-At the end of this phase, Bishop should be able to:
-
-- respond to a DM like `hello`
-- respond to `@Bishop Gopherbot ping`
-- respond to `/bishop ping`
-
-Do **not** continue to ambient-message setup until all three work.
+If this control works, then Google Chat interaction events are fine and the remaining issue is in our app/config path. If this control fails in the same way, the issue is upstream of Bishop.
 
 ## Prerequisites
 
-- A Google Workspace account that can use Google Chat.
-- Permission to create a new Google Cloud project.
-- Billing enabled for the new project before enabling APIs.
-- A local checkout of the Gopherbot repo somewhere you can later copy the service-account key from.
+Before you start:
 
-## 1. Open Cloud Shell
+- use a Google Workspace account
+- ensure billing is enabled for the new project
+- use Cloud Shell
 
-In Google Cloud Console, open **Cloud Shell**.
-
-## 2. Set Variables
-
-Pick a fresh project ID and keep the rest of the names simple:
+Set the base variables. The first command uses the exact project name you requested:
 
 ```bash
-export PROJECT_ID="bishop-chat-test-1"
-export PROJECT_NAME="Bishop Chat Test"
+export PROJECT_ID="bishop-gopherbot"
+export PROJECT_NAME="chatapi-bishop-gopherbot"
 export REGION="us-central1"
-export TOPIC_ID="gopherbot-chat"
-export SUBSCRIPTION_ID="gopherbot-chat-sub"
-export DEBUG_SUBSCRIPTION_ID="gopherbot-chat-debug-sub"
-export SERVICE_ACCOUNT_ID="gopherbot-robot"
+export TOPIC_ID="bishop-chat-topic"
+export SUBSCRIPTION_ID="bishop-chat-sub"
+export SERVICE_ACCOUNT_ID="bishop-chat-sa"
 export SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT_ID}@${PROJECT_ID}.iam.gserviceaccount.com"
+export WORKDIR="${HOME}/gopherbot-chatapi-bishop"
 ```
 
-If your first project ID is already taken, change `PROJECT_ID` and rerun the exports.
+Create the working directory:
 
-## 3. Create the Project
+```bash
+mkdir -p "${WORKDIR}"
+cd "${WORKDIR}"
+```
+
+## Set Up The Environment
+
+The quickstart says to enable the Google Chat API and Pub/Sub API. In Cloud Shell, do:
 
 ```bash
 gcloud projects create "${PROJECT_ID}" --name="${PROJECT_NAME}"
 gcloud config set project "${PROJECT_ID}"
 ```
 
-If the new project does not already have billing enabled, link billing in the Console before continuing.
+If billing is not already attached, do that in the Console before continuing.
 
-## 4. Enable Only the Base APIs
+Then enable the base APIs:
 
-For this control experiment, enable only the APIs needed for the interactive Chat app path:
-
+> NOTE: Not used
 ```bash
 gcloud services enable \
   chat.googleapis.com \
-  pubsub.googleapis.com \
-  iam.googleapis.com \
-  cloudresourcemanager.googleapis.com
+  pubsub.googleapis.com
 ```
 
-Do **not** enable `workspaceevents.googleapis.com` yet.
+## Set Up Pub/Sub
 
-## 5. Create Pub/Sub Resources
+The quickstart says to:
 
-Create the topic, the robot's pull subscription, and a temporary debug subscription:
+1. create a Pub/Sub topic
+2. grant Chat permission to publish
+3. create a service account
+4. create a pull subscription
+5. assign the Pub/Sub Subscriber role on the subscription
+
+### 1. Create A Pub/Sub Topic
+
+Try the plain topic create first:
 
 ```bash
 gcloud pubsub topics create "${TOPIC_ID}"
-
-gcloud pubsub subscriptions create "${SUBSCRIPTION_ID}" \
-  --topic="${TOPIC_ID}" \
-  --expiration-period=never
-
-gcloud pubsub subscriptions create "${DEBUG_SUBSCRIPTION_ID}" \
-  --topic="${TOPIC_ID}" \
-  --expiration-period=never
 ```
 
-Grant Google Chat permission to publish to the topic:
+If your organization policy blocks topic creation because the storage region is not explicit, retry with:
+
+```bash
+gcloud pubsub topics create "${TOPIC_ID}" \
+  --message-storage-policy-allowed-regions="${REGION}"
+```
+
+### 2. Grant Chat Permission To Publish
+
+The official quickstart grants `roles/pubsub.publisher` to:
+
+- `chat-api-push@system.gserviceaccount.com`
+
+Run:
 
 ```bash
 gcloud pubsub topics add-iam-policy-binding "${TOPIC_ID}" \
@@ -97,151 +102,485 @@ gcloud pubsub topics add-iam-policy-binding "${TOPIC_ID}" \
   --role="roles/pubsub.publisher"
 ```
 
-## 6. Create the Robot Service Account
+### 3. Create A Service Account
 
 ```bash
 gcloud iam service-accounts create "${SERVICE_ACCOUNT_ID}" \
-  --display-name="Gopherbot Robot Service Account"
+  --display-name="Quickstart Google Chat Service Account"
 ```
 
-Grant the robot the Pub/Sub permissions the connector expects:
+Create the key file in the current directory:
 
 ```bash
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+gcloud iam service-accounts keys create "${WORKDIR}/gopherbot-key.json" \
+  --iam-account="${SERVICE_ACCOUNT_EMAIL}"
+```
+
+### 4. Create A Pull Subscription
+
+```bash
+gcloud pubsub subscriptions create "${SUBSCRIPTION_ID}" \
+  --topic="${TOPIC_ID}" \
+  --expiration-period=never
+```
+
+### 5. Assign The Pub/Sub Subscriber Role On The Subscription
+
+The quickstart scopes this to the subscription, so do the same here:
+
+```bash
+gcloud pubsub subscriptions add-iam-policy-binding "${SUBSCRIPTION_ID}" \
   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/pubsub.subscriber"
+```
 
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+#### Also ran:
+```bash
+gcloud pubsub subscriptions add-iam-policy-binding "${SUBSCRIPTION_ID}" \
   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/pubsub.viewer"
 ```
 
-## 7. Create the Service Account Key
+## Write The Script
 
-Save the key into the current Cloud Shell directory:
+The quickstart's Python section says to:
 
-```bash
-gcloud iam service-accounts keys create gopherbot-key.json \
-  --iam-account="${SERVICE_ACCOUNT_EMAIL}"
-```
+1. provide service account credentials
+2. provide the project ID
+3. provide the subscription ID
+4. create `requirements.txt`
+5. create `app.py`
 
-Later, encrypt this into `gopherbot-key.json.enc` in Bishop's `custom/` directory using:
-
-```bash
-gopherbot encrypt -f path/to/gopherbot-key.json > gopherbot-key.json.enc
-```
-
-## 8. Record the Values Bishop Will Need
-
-These are the values to carry into Bishop's Google Chat config:
+### 1. Provide Service Account Credentials
 
 ```bash
-echo "PROJECT_ID=${PROJECT_ID}"
-echo "TOPIC=projects/${PROJECT_ID}/topics/${TOPIC_ID}"
-echo "SUBSCRIPTION=projects/${PROJECT_ID}/subscriptions/${SUBSCRIPTION_ID}"
-echo "SERVICE_ACCOUNT=${SERVICE_ACCOUNT_EMAIL}"
+export GOOGLE_APPLICATION_CREDENTIALS="${WORKDIR}/gopherbot-key.json"
 ```
 
-## 9. Configure the Google Chat App In The UI
+### 2. Provide The Google Cloud Project ID
+
+```bash
+export PROJECT_ID="${PROJECT_ID}"
+```
+
+### 3. Provide The Pub/Sub Subscription ID
+
+```bash
+export SUBSCRIPTION_ID="${SUBSCRIPTION_ID}"
+```
+
+### 4. Create `requirements.txt`
+
+Fetch the official sample file directly:
+
+```bash
+curl -fsSL \
+  https://raw.githubusercontent.com/googleworkspace/google-chat-samples/main/python/pub-sub-app/requirements.txt \
+  -o requirements.txt
+```
+
+### 5. Create `app.py`
+
+Fetch the official sample file directly:
+
+```bash
+curl -fsSL \
+  https://raw.githubusercontent.com/googleworkspace/google-chat-samples/main/python/pub-sub-app/app.py \
+  -o app.py
+```
+
+If you want to verify the sample contents match the quickstart:
+
+```bash
+sed -n '1,220p' requirements.txt
+sed -n '1,260p' app.py
+```
+
+## Configure The Chat App
+
+This section is still manual in the Console.
 
 Open:
 
 - **APIs & Services > Enabled APIs & services > Google Chat API > Configuration**
 
-Configure the Chat app like this:
+Then follow the quickstart's Chat app settings as closely as possible:
 
-- **App name**: `Bishop Gopherbot` or another clear test name
-- **Description**: anything simple
-- **Functionality**:
-  - enable **Receive 1:1 messages**
-  - enable **Join spaces and group conversations**
-- **Interactive features**: enabled
-- **Connection settings**: **Cloud Pub/Sub**
-- **Topic ID**: `projects/${PROJECT_ID}/topics/${TOPIC_ID}`
-- **Commands**:
-  - add `/bishop`
-  - command ID `1`
-- **Visibility**:
-  - make the app available only to your own Workspace email for this test
-- **Logs**:
-  - enable **Log errors to Logging**
+1. **App name**: `Quickstart App`
+2. **Avatar URL**: `https://developers.google.com/chat/images/quickstart-app-avatar.png`
+3. **Description**: `Quickstart app`
+4. Under **Functionality**, enable **Join spaces and group conversations**
+5. Under **Functionality**, also enable **Receive 1:1 messages**
+6. Under **Connection settings**, select **Cloud Pub/Sub**
+7. Under **Topic ID**, paste:
 
-Important:
-
-- If the UI shows a control like **Build this Chat app as a Google Workspace add-on**, turn it off for this phase. The official Pub/Sub quickstart expects a Pub/Sub Chat app, not the add-on trigger flow.
-- Do **not** configure Marketplace SDK, admin install, or `chat.app.*` scopes yet.
-- Do **not** enable ambient-message setup yet.
-
-After saving, wait a few minutes for the config to propagate.
-
-## 10. Point Bishop At The New Project
-
-Update Bishop's Google Chat config to use only the new interactive-test project.
-
-Suggested config shape:
-
-```yaml
-ProtocolConfig:
-  ProjectID: "YOUR_NEW_PROJECT_ID"
-  SubscriptionID: "projects/YOUR_NEW_PROJECT_ID/subscriptions/gopherbot-chat-sub"
-  CredentialsEncryptedFile: "gopherbot-key.json.enc"
-  AmbientMessages: false
-  ThreadResponses: true
-  SlashCommand: bishop
-  UserMap:
-    yourusername: users/YOUR_USER_ID
+```text
+projects/PROJECT_ID/topics/quickstart-chat-topic
 ```
 
-Notes:
+Replace `PROJECT_ID` with your real project ID.
 
-- Keep `AmbientMessages: false` for this phase.
-- Do not add Bishop's bot ID yet unless you discover you need it.
+8. Under **Visibility**, select **Make this Google Chat app available to specific people and groups in your domain**
+9. Enter your own Workspace email address only
+10. Under **Logs**, select **Log errors to Logging**
+11. Click **Save**
 
-## 11. Test The Interactive Path
+Wait a few minutes after saving.
 
-Restart Bishop, then test in this order:
+## Run The Script
 
-1. Open a DM with the test app and send `hello`
-2. In a space, send `@Bishop Gopherbot ping`
-3. In a space, send `/bishop ping`
-
-With the current connector logging, Bishop should log something for every Pub/Sub delivery it receives.
-
-## 12. Use The Debug Subscription To Inspect Raw Deliveries
-
-If something fails, pull from the debug subscription immediately after the test action:
+The quickstart says:
 
 ```bash
-gcloud pubsub subscriptions pull \
-  "projects/${PROJECT_ID}/subscriptions/${DEBUG_SUBSCRIPTION_ID}" \
+python -m venv env
+source env/bin/activate
+pip install -r requirements.txt -U
+python app.py
+```
+
+Run exactly that:
+
+```bash
+cd "${WORKDIR}"
+python -m venv env
+source env/bin/activate
+pip install -r requirements.txt -U
+python app.py
+```
+
+If it starts correctly, you should see it listening on the Pub/Sub subscription.
+
+## Test Your Chat App
+
+The quickstart says to open a DM with the Chat app and send `Hello`.
+
+Do exactly that:
+
+1. Open Google Chat with the same Workspace account you entered in **Visibility**
+2. Click **New chat**
+3. Search for `Quickstart App`
+4. Open the DM
+5. Send:
+
+```text
+Hello
+```
+
+Expected control result:
+
+- the Python sample logs the inbound event
+- the app replies with an echo-style response
+
+## Troubleshoot
+
+If the Chat app still says `not responding`, check these in order:
+
+### 1. Confirm The Sample Process Is Still Running
+
+Your Cloud Shell terminal should still be running `python app.py`.
+
+### 2. Confirm The Topic And Subscription Exist
+
+```bash
+gcloud pubsub topics describe "${TOPIC_ID}"
+gcloud pubsub subscriptions describe "${SUBSCRIPTION_ID}"
+```
+
+### 3. Confirm Chat Can Publish To The Topic
+
+```bash
+gcloud pubsub topics get-iam-policy "${TOPIC_ID}"
+```
+
+Look for:
+
+```text
+serviceAccount:chat-api-push@system.gserviceaccount.com
+roles/pubsub.publisher
+```
+
+### 4. Confirm The Service Account Can Pull From The Subscription
+
+```bash
+gcloud pubsub subscriptions get-iam-policy "${SUBSCRIPTION_ID}"
+```
+
+Look for:
+
+```text
+serviceAccount:QUICKSTART_SERVICE_ACCOUNT_EMAIL
+roles/pubsub.subscriber
+```
+
+### 5. Confirm The Chat App Config Matches The Quickstart
+
+Re-check:
+
+- `Join spaces and group conversations`
+- `Receive 1:1 messages`
+- `Cloud Pub/Sub`
+- correct topic name
+- your email in `Visibility`
+- `Log errors to Logging`
+
+### 6. Check Chat App Error Logs
+
+In Logs Explorer, query:
+
+```text
+resource.type="chat.googleapis.com/Project"
+severity=ERROR
+```
+
+If you see errors, save them.
+
+### 7. Optional: Inspect Raw Pub/Sub Messages
+
+Create a temporary debug subscription:
+
+```bash
+gcloud pubsub subscriptions create quickstart-chat-debug-sub \
+  --topic="${TOPIC_ID}" \
+  --expiration-period=never
+```
+
+Then, after a failed DM test, pull from it:
+
+```bash
+gcloud pubsub subscriptions pull quickstart-chat-debug-sub \
   --limit=10 \
   --auto-ack \
   --format=json
 ```
 
-Interpretation:
+If even the official quickstart does not receive DM events in this fresh project, the issue is upstream of Bishop and likely in Google-side app delivery or org policy behavior.
 
-- If you see plain Chat interaction JSON, the interactive path is publishing correctly.
-- If you see only `ce-type=google.workspace.chat.message.v1.created`, you are only seeing ambient-style Workspace Events payloads.
-- If you see nothing for a DM or `/bishop ping`, Google did not publish that interaction event to the topic.
+## Phase 2: Add Ambient Message Support
 
-## 13. Stop Here If Interactive Events Fail
+There does not appear to be a single Google quickstart for "Chat app with Pub/Sub interaction events plus ambient Workspace Events subscriptions".
 
-Do **not** continue to Marketplace/admin-install/ambient setup if DMs, mentions, and slash commands are not all working in this clean project.
+The closest official documents are:
 
-This phase is the control experiment.
+- Chat app authentication and one-time administrator approval for `chat.app.*` scopes:
+  https://developers.google.com/workspace/chat/authenticate-authorize-chat-app
+- General Chat app auth overview:
+  https://developers.google.com/workspace/chat/authenticate-authorize
+- Google Chat events via the Workspace Events API:
+  https://developers.google.com/workspace/events/guides/events-chat
+- Create a Google Workspace subscription:
+  https://developers.google.com/workspace/events/guides/create-subscription
+- Publish a private Marketplace app:
+  https://developers.google.com/workspace/marketplace/how-to-publish
 
-## 14. Only After Phase 1 Passes
+This section turns those into the closest thing we currently have to a reproducible ambient-message setup flow for Gopherbot.
 
-Once the minimal interactive path works, move on to the fuller setup in:
+### Goal
 
-- [../README.md](/home/david/git/gopherbot-work/gopherbot/resources/gcloud/README.md)
+Keep the known-good interactive baseline working:
 
-At that point, add:
+- DM works
+- `@mention` works
+- slash command works
 
-- `workspaceevents.googleapis.com`
-- Marketplace SDK configuration
-- admin install for `chat.app.*` scopes
-- ambient Workspace Events subscriptions
+Then add:
 
-Then re-test the same three interactive behaviors again before trusting the ambient setup.
+- administrator-approved `chat.app.*` scopes
+- private Marketplace publication
+- admin install
+- connector-managed per-space Workspace Events subscriptions
+- `AmbientMessages: true`
+
+### Before You Start
+
+Do this only after Phase 1 is working.
+
+Before adding any ambient setup, confirm again:
+
+- DM `hello` works
+- `@Bishop help` works
+- `/bishop ping` works
+
+If those are not all working, stop and fix that first.
+
+### 1. Enable The Workspace Events API
+
+In Cloud Shell:
+
+```bash
+gcloud services enable workspaceevents.googleapis.com
+```
+
+### 2. Prepare The Service Account For `chat.app.*` Scopes
+
+This part is manual in the Google Cloud console.
+
+Open:
+
+- **IAM & Admin > Service Accounts**
+- click the service account used by the Chat app
+- click **Advanced settings**
+
+Then:
+
+1. click **Create Google Workspace Marketplace-compatible OAuth client**
+2. wait for that to complete
+
+This is the Google-required prerequisite for app-auth scopes like:
+
+- `https://www.googleapis.com/auth/chat.app.messages.readonly`
+- `https://www.googleapis.com/auth/chat.app.spaces`
+- `https://www.googleapis.com/auth/chat.app.memberships`
+
+Important note:
+
+- this is not the normal end-user OAuth consent flow
+- this is preparation for one-time administrator approval of `chat.app.*` scopes
+
+### 3. Configure The Marketplace SDK
+
+Open:
+
+- **Google Workspace Marketplace SDK**
+
+Then:
+
+1. configure the app metadata as a private/internal app
+2. add the app-auth scopes needed for ambient Chat subscriptions
+3. `Save draft`
+4. complete the required **Store Listing** fields
+5. publish the app privately
+
+Notes:
+
+- `Save draft` is not sufficient by itself
+- for a private app, publishing makes it available inside your organization
+
+### 4. Admin-Install The App
+
+Open the Admin console:
+
+- **Apps > Google Workspace Marketplace apps > Apps list**
+
+Then:
+
+1. click **Install app**
+2. find the newly published private app
+3. choose **Admin install**
+4. review the data access requirements
+5. complete the install
+
+This is the point where the `chat.app.*` scopes are effectively approved for the app.
+
+### 5. Re-Check The Chat API Configuration
+
+Open:
+
+- **APIs & Services > Enabled APIs & services > Google Chat API > Configuration**
+
+Confirm all of these are still correct:
+
+- **Join spaces and group conversations** is enabled
+- **Receive 1:1 messages** is enabled
+- **Cloud Pub/Sub** is still the connection setting
+- **Topic ID** still points at the same Pub/Sub topic
+- **Commands** still includes your slash command
+- **Visibility** is set the way you intend for current testing
+- **Log errors to Logging** is enabled
+
+### 6. Turn On Ambient Messages In Bishop
+
+In Bishop's Google Chat protocol config, enable the ambient path:
+
+```yaml
+ProtocolConfig:
+  AmbientMessages: true
+```
+
+Keep the rest of the known-good interactive settings the same:
+
+- `ProjectID`
+- `SubscriptionID`
+- `CredentialsEncryptedFile`
+- `UserMap`
+- `SlashCommand`
+
+If you created a new service-account key during this process and it differs from the old one, re-encrypt it before restarting Bishop:
+
+```bash
+gopherbot encrypt -f path/to/gopherbot-key.json > gopherbot-key.json.enc
+```
+
+If the key file did not change, the existing encrypted JSON is still fine.
+
+### 7. Restart Bishop And Watch The Logs
+
+After restarting, look for messages like:
+
+- ambient subscription creation for joined spaces
+- ambient subscription renewal
+- any Workspace Events API warnings or failures
+
+Expected healthy behavior:
+
+- the connector lists joined spaces
+- it creates or renews per-space subscriptions
+- DM, mention, and slash behavior still work
+
+### 8. Test Ambient Behavior Carefully
+
+Use a space where Bishop is already present.
+
+Test these one at a time:
+
+1. plain message that is not addressed to the bot
+2. `Bishop, ping`
+3. `@Bishop ping`
+4. `Did you see what @Bishop did?`
+5. `/bishop ping`
+
+Expected behavior:
+
+- plain ambient messages are seen by the bot but not treated as addressed-to-bot commands
+- `Bishop, ping` works through normal engine name matching
+- `@Bishop ping` works
+- `Did you see what @Bishop did?` does not trigger a command
+- `/bishop ping` still stays hidden/private
+
+### 9. If Ambient Subscription Creation Fails
+
+Check:
+
+- Chat app error logs:
+
+```text
+resource.type="chat.googleapis.com/Project"
+severity=ERROR
+```
+
+- Workspace Events/API errors:
+
+```text
+resource.type="audited_resource"
+protoPayload.serviceName="workspaceevents.googleapis.com"
+severity>=WARNING
+```
+
+- Bishop's own `robot.log` warnings about:
+  - subscription creation
+  - subscription renewal
+  - permission or scope failures
+
+### 10. Only After Ambient Works, Revisit Visibility
+
+Once all of the above works together:
+
+- interactive events still work
+- ambient events work
+- no obvious regressions
+
+Then decide whether to:
+
+- add more test users to **Visibility**
+- or move to the broader private-app rollout path for your Workspace
+
+Do not widen visibility before the combined interactive + ambient path is proven stable.

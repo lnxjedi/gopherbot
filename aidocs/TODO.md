@@ -52,3 +52,11 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
   - make the SSH and terminal parsing/path shaping consistent with each other
   - review whether `IncomingMessage.MessageText`, `HiddenMessage`, and `BotMessage` are being populated in the cleanest possible way for local hidden commands
   - preserve engine-owned hidden-command policy while reducing connector-local surprises
+
+- [ ] Revisit the connector contract around canonical usernames vs transport user IDs:
+  The current split between engine username authority, connector-local `UserMap`, inbound `ProtocolUser`, and outbound user-targeted send helpers grew organically over time and is now subtle enough to cause connector drift.
+  Follow-up goals:
+  - make the contract for canonical username, protocol user ID, and connector-side lookup/fallback explicit
+  - decide what the engine may assume about `userProto` / `userIDProto` population from connector-local identity maps
+  - document when connectors may treat a string as an already-resolved transport ID versus when they must resolve a canonical username
+  - re-check Slack, Google Chat, SSH, terminal, and test connector behavior against that contract

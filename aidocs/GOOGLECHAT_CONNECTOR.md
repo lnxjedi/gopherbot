@@ -39,6 +39,7 @@ This file captures Google Chat connector behavior relevant to routing, hidden co
 - Engine policy checks remain username-based against global `UserRoster`.
 - Inbound interaction events carry the Google Chat user resource name (for example `users/12345678901234567890`) as `ConnectorMessage.UserID`.
 - If the resource name exists in `ProtocolConfig.UserMap`, the connector sets `ConnectorMessage.UserName` to the canonical Gopherbot username.
+- Outbound user-targeted sends only treat `users/{id}` (or bracketed internal IDs) as transport IDs. Canonical usernames are resolved through `ProtocolConfig.UserMap` / cached records; the connector must not invent `users/<username>` resource names from arbitrary text.
 - If a human user is not mapped, the connector leaves canonical username unset and logs a one-time warning including:
   - display name
   - email (when provided by Chat)

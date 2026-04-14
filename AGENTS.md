@@ -200,16 +200,17 @@ After implementation:
 3. confirm startup sequence integrity
 4. confirm connector isolation and ordering guarantees
 5. run applicable tests and docs hygiene checks
+6. if the change touched core engine code or connector runtime behavior, rebuild the binary with `make` before closing out work
 
 For any task where integration tests are applicable:
-6. run the applicable integration suite before closing out work — always redirect output to file, never stream to context:
+7. run the applicable integration suite before closing out work — always redirect output to file, never stream to context:
    ```
    go test -run TestFoo -v --tags 'test integration netgo osusergo static_build' -mod readonly -race ./test \
      > /tmp/gopherbot-test.txt 2>&1; echo "EXIT:$?"
    ```
    Then read summary only: `grep -E "^(--- (PASS|FAIL)|FAIL\t|ok\t)" /tmp/gopherbot-test.txt`
    On failure, extract the failing test only: `awk '/=== RUN   TestFoo$/,/--- FAIL: TestFoo/' /tmp/gopherbot-test.txt`
-7. classify every integration failure as either:
+8. classify every integration failure as either:
    - a real regression / newly introduced bug
    - an intentional behavior change with outdated test expectations
-8. do not update test expectations until that classification is explicit
+9. do not update test expectations until that classification is explicit

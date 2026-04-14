@@ -56,6 +56,40 @@ func TestNormalizeSubscriptionID(t *testing.T) {
 	}
 }
 
+func TestResolveUserIDPrefersConfiguredMapForUsername(t *testing.T) {
+	connector := &googleChatConnector{
+		botUserMap: map[string]string{"parsley": "users/104265192829011490173"},
+		usersByID:  make(map[string]chatUserRecord),
+		usersByName: map[string]chatUserRecord{
+			"parsley": {ResourceName: "users/104265192829011490173", CanonicalName: "parsley"},
+		},
+	}
+
+	got, ok := connector.resolveUserID("parsley", "parsley")
+	if !ok {
+		t.Fatal("resolveUserID() = not ok")
+	}
+	if got != "users/104265192829011490173" {
+		t.Fatalf("resolveUserID() = %q", got)
+	}
+}
+
+func TestResolveUserIDDoesNotInventResourceNameFromUsername(t *testing.T) {
+	connector := &googleChatConnector{
+		botUserMap:       map[string]string{},
+		usersByID:        make(map[string]chatUserRecord),
+		usersByName:      make(map[string]chatUserRecord),
+		channelsByID:     make(map[string]chatChannelRecord),
+		channelIDsByName: make(map[string]string),
+		unmappedUsers:    make(map[string]bool),
+	}
+
+	got, ok := connector.resolveUserID("parsley", "parsley")
+	if ok {
+		t.Fatalf("resolveUserID() unexpectedly succeeded with %q", got)
+	}
+}
+
 func TestNormalizeIncomingMentionRewritesToBotNameWithoutBotMessage(t *testing.T) {
 	mentionText := "@Bishop Gopherbot"
 	connector := &googleChatConnector{
