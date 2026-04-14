@@ -1,5 +1,0 @@
-{
-  "name": "Gopherbot GCloud Setup Assistant",
-  "description": "A guide and Terraform generator for setting up Gopherbot with Firestore and Google Chat on Google Cloud Platform.",
-  "requestFramePermissions": []
-}
