@@ -1,5 +1,11 @@
 # Google Chat Pub/Sub Quickstart Control
 
+Reference note:
+
+- this file is older field-note material and control-experiment guidance
+- the preferred setup path is now `resources/gcloud/README.md`
+- keep this file around for comparison and troubleshooting until the newer flow is fully settled
+
 This file is a Cloud Shell companion to Google's official Pub/Sub quickstart for a Google Chat app:
 
 - Official quickstart: https://developers.google.com/workspace/chat/quickstart/pub-sub

@@ -1,147 +1,190 @@
-# Gopherbot Google Cloud Setup Guide
+# Gopherbot Google Cloud Setup
 
-This guide sets up the Google Cloud resources Gopherbot needs for a Firestore brain and a Google Chat connector.
+This is the preferred path for setting up a new Gopherbot robot on Google
+Cloud.
 
-The Google Cloud part is only half of the Google Chat setup. Terraform can create the project-level resources, service account, and Pub/Sub plumbing, but ambient message access in Chat also requires manual Google Workspace administrator approval for Chat app scopes. Once that approval is in place, the connector can manage per-space Workspace Events subscriptions itself after the app is invited to spaces.
+The goal is to get all of the project resources in place with `gcloud`, then use
+the Google UI only for the Chat app, Marketplace SDK, and admin-install steps
+that cannot realistically be automated away.
 
-## Prerequisites
+The intended sequence is:
 
-1.  **Google Workspace Account**: You need a Google Workspace account (e.g., `you@yourcompany.com`). Personal `@gmail.com` accounts have limited support for Google Chat bots.
-2.  **GCP Project Permissions**: You need permissions to create projects or at least `Owner` permissions on an existing project.
-3.  **Google Cloud Shell**: We will use the Cloud Shell for a consistent environment with `git` and `terraform` pre-installed.
+1. set up the Chat API and Pub/Sub interaction path first
+2. create the robot resources with `gcloud`
+3. configure the Chat app
+4. add the Marketplace/admin-install layer for ambient messages
 
-## Step 1: Create or Select a GCP Project
+This README is the canonical setup path. Older notes remain in this directory
+for reference while the process continues to settle down.
 
-1.  Go to the [GCP Console](https://console.cloud.google.com/).
-2.  If you don't have a project, click the project selector at the top and select **New Project**.
-3.  Note your **Project ID**.
+## Best Google Document
 
-## Step 2: Open Google Cloud Shell
+The single most useful Google document for the Chat app auth/admin-approval
+path appears to be:
 
-Click the **Activate Cloud Shell** icon ( `>_` ) in the top right of the GCP Console.
+- https://developers.google.com/workspace/chat/authenticate-authorize-chat-app
 
-## Step 3: Clone the Gopherbot Repository
+There is not currently a single Google document that cleanly covers:
 
-In the Cloud Shell, run:
+- Pub/Sub interaction events
+- Firestore brain credentials
+- Marketplace-compatible OAuth client setup
+- private Marketplace publication
+- admin install
+- Workspace Events ambient subscriptions
+
+So this guide stitches together the closest official docs plus the sharp edges
+we hit while bringing a real robot online.
+
+If you get stuck on the interactive baseline, keep
+[cloud_shell/README.md](/home/david/git/gopherbot-work/gopherbot/resources/gcloud/cloud_shell/README.md)
+around as older troubleshooting/reference material.
+
+## Directory Layout
+
+- [`gcloud.env.example`](/home/david/git/gopherbot-work/gopherbot/resources/gcloud/gcloud.env.example):
+  editable environment template for your project and robot
+- [`scripts/enable-project-services.sh`](/home/david/git/gopherbot-work/gopherbot/resources/gcloud/scripts/enable-project-services.sh):
+  enable all required GCP APIs in one `gcloud services enable` command
+- [`scripts/create-project-resources.sh`](/home/david/git/gopherbot-work/gopherbot/resources/gcloud/scripts/create-project-resources.sh):
+  create Firestore, Pub/Sub, service-account, and IAM resources
+- [`scripts/create-service-account-key.sh`](/home/david/git/gopherbot-work/gopherbot/resources/gcloud/scripts/create-service-account-key.sh):
+  create the JSON key that you will then encrypt for the robot
+- [`cloud_shell/`](/home/david/git/gopherbot-work/gopherbot/resources/gcloud/cloud_shell):
+  older field notes and sample/control material, kept for reference
+- [`terraform/`](/home/david/git/gopherbot-work/gopherbot/resources/gcloud/terraform):
+  older infrastructure reference, kept for comparison only; it is not the
+  preferred path now
+
+## Step 1: Open The Cloud Editor
+
+In Google Cloud:
+
+1. open your target GCP project
+2. open **Cloud Shell**
+3. switch to the **Editor** view
+
+The Editor view matters because users can edit files there, not just paste
+commands into a terminal.
+
+## Step 2: Clone Gopherbot
+
+In the Cloud Editor terminal:
 
 ```bash
 git clone https://github.com/lnxjedi/gopherbot.git
-cd gopherbot/resources/gcloud/terraform
+cd gopherbot/resources/gcloud
 ```
 
-*(Note: If the directory doesn't exist in the repo yet, you can create it and use the Terraform files provided below.)*
+## Step 3: Create And Edit `gcloud.env`
 
-## Step 4: Enable Base APIs
-
-Before Terraform can manage your project, it needs the Resource Manager and IAM APIs enabled so it can enable other APIs and create service accounts. Run this in your Cloud Shell (replace `YOUR_PROJECT_ID` with your actual project ID):
+Copy the example file:
 
 ```bash
-gcloud config set project YOUR_PROJECT_ID
-gcloud services enable cloudresourcemanager.googleapis.com iam.googleapis.com
+cp gcloud.env.example gcloud.env
 ```
 
-## Step 5: Configure and Run Terraform
+Edit `gcloud.env` in the Cloud Editor.
 
-1.  Create a `terraform.tfvars` file or be prepared to enter variables. Example `terraform.tfvars`:
-    ```hcl
-    project_id = "your-gcp-project-id"
-    region     = "us-central1"
-    ```
-2.  Initialize Terraform:
-    ```bash
-    terraform init
-    ```
-3.  Apply the configuration:
-    ```bash
-    terraform apply
-    ```
-    You will be prompted for your `project_id` and `region`.
+Important values:
 
-## Step 6: Save Credentials
+- `PROJECT_ID`
+- `REGION`
+- `TOPIC_ID`
+- `SUBSCRIPTION_ID`
+- `SERVICE_ACCOUNT_ID`
+- `SERVICE_ACCOUNT_KEY_JSON`
+- `WORKSPACE_TEST_USER`
+- `ROBOT_NAME`
+- `ROBOT_SLASH_COMMAND`
 
-Terraform outputs a service account key. Save it as `gopherbot-key.json`, then encrypt it from your robot's `custom/` directory into the default runtime filename `gopherbot-key.json.enc`:
+Then source it:
 
 ```bash
-cd custom
-gopherbot encrypt -f path/to/gopherbot-key.json > gopherbot-key.json.enc
-rm path/to/gopherbot-key.json
+source ./gcloud.env
 ```
 
-If you keep that default filename in `custom/`, both the Firestore brain and the Google Chat connector can use it without any filename override. Gopherbot reads `gopherbot-key.json.enc` directly through its encrypted-file support, so the plaintext key does not need to live on disk at runtime.
+Re-run that `source` command any time you change the file or open a new shell
+tab.
 
-## Step 7: Manual Google Chat Configuration
+## Step 4: Enable Project Services
 
-Terraform enables the APIs, but some steps must be done manually in the UI:
+Run:
 
-1.  Go to **APIs & Services > Enabled APIs & services**.
-2.  Search for **Google Chat API** and click it.
-3.  Click the **Configuration** tab.
-4.  Set the following:
-    *   **App name**: Your Robot's Name (e.g., "Gopherbot")
-    *   **Avatar URL**: (Optional) A link to an image.
-    *   **Description**: "DevOps Chatbot"
-    *   **Functionality**: Enable "Receive 1:1 messages" and "Join spaces and group conversations".
-    *   **Connection settings**: Select **Cloud Pub/Sub**.
-    *   **Topic ID**: Use the `chat_topic_id` output from Terraform (for example `projects/[PROJECT_ID]/topics/gopherbot-chat`).
-    *   **Visibility**: Select "Make this Chat app available to specific people and groups in your Workspace domain" (or everyone, depending on your preference).
-5.  Click **Save**.
-
-## Step 8: Enable Chat App Admin Approval For Ambient Messages
-
-To allow Gopherbot to read ambient traffic in spaces after it is invited, Google requires app authentication plus one-time administrator approval for `chat.app.*` scopes. This is not Domain-Wide Delegation.
-
-Use the service account created by Terraform, identified by the `gopherbot_service_account_email` output.
-
-1.  In Google Cloud Console, go to **IAM & Admin > Service Accounts** and open the Gopherbot service account.
-2.  Under **Advanced settings**, create a **Google Workspace Marketplace-compatible OAuth client** for that service account.
-3.  Enable the **Google Workspace Marketplace SDK** in the project.
-4.  In Google Cloud Console, go to **APIs & Services > Enabled APIs & services** and open **Google Workspace Marketplace SDK**.
-5.  Open the **App Configuration** section.
-6.  Configure the app as a private Workspace app with Chat enabled.
-7.  Add the Chat app scopes your connector needs. For ambient message capture, include:
-    *   `https://www.googleapis.com/auth/chat.app.messages.readonly`
-8.  Click **Save draft**.
-
-For this flow, **Save draft** is expected, but it is not enough by itself to make the app show up for installation.
-
-9.  In **Google Workspace Marketplace SDK > Store Listing**, fill in the required store-listing fields for the app.
-    *   Google requires app listing images.
-    *   Prepare a square avatar image for the robot ahead of time.
-    *   For a simple internal setup, upload the same avatar image for all of the required image fields.
-10. Publish the app as a **private** Marketplace app for your organization.
-
-For a private app, this publish step makes the app available internally right away. You do not need a public Marketplace listing or public review.
-
-11. Make sure the Chat app itself is enabled and saved in **Google Chat API > Configuration**.
-12. In the Google Workspace Admin console, go to **Apps > Google Workspace Marketplace apps > Apps list**.
-13. Click **Install app** and select your app.
-14. Choose **Admin install**.
-15. Review the app's data access requirements and complete the install.
-
-For `chat.app.*` scopes, this **Admin install** step is where the one-time administrator approval happens. There is not a separate Domain-Wide Delegation approval step for `chat.app.messages.readonly`.
-
-After the admin install is complete, Gopherbot can use the same encrypted service account key to create Workspace Events subscriptions for the spaces the app joins.
-
-Important notes:
-
-*   No Terraform-per-space setup is required.
-*   No Domain-Wide Delegation step is required for `chat.app.messages.readonly`.
-*   The connector should create and maintain Workspace Events subscriptions per space at runtime.
-
-## Step 9: Configure Your Robot
-
-Configure your robot to use the Firestore brain and point it at the encrypted service-account file:
-
-```yaml
-# conf/environments/production.yaml
-PrimaryProtocol: ssh
-DefaultProtocol: ssh
-Brain: firestore
-LogDest: stdout
+```bash
+./scripts/enable-project-services.sh
 ```
 
+This coalesces the required APIs into a single `gcloud services enable`
+command:
+
+- Cloud Resource Manager
+- IAM
+- Firestore
+- Google Chat API
+- Pub/Sub
+- Workspace Events API
+- Google Workspace Marketplace SDK support
+
+Note:
+
+- during Bishop setup, we explicitly used
+  `gcloud services enable appsmarket-component.googleapis.com`
+- that API enable is already included in the script
+
+## Step 5: Create The Project Resources
+
+Run:
+
+```bash
+./scripts/create-project-resources.sh
+```
+
+This script creates or verifies:
+
+- Firestore database
+- Pub/Sub topic
+- Pub/Sub pull subscription
+- service account
+- Pub/Sub publisher permission for `chat-api-push@system.gserviceaccount.com`
+- robot project roles:
+  - `roles/datastore.user`
+  - `roles/pubsub.subscriber`
+  - `roles/pubsub.viewer`
+
+Expected resource names are controlled by `gcloud.env`.
+
+If your organization policy blocks Pub/Sub topic creation unless a storage
+region is explicit, set `PUBSUB_ALLOWED_REGIONS` in `gcloud.env`. Using the
+same region as Firestore is fine for a simple setup.
+
+## Step 6: Create And Encrypt The Service Account Key
+
+Run:
+
+```bash
+./scripts/create-service-account-key.sh
+```
+
+That writes the plaintext JSON key to `SERVICE_ACCOUNT_KEY_JSON`.
+
+Then encrypt it from your robot's `custom/` directory:
+
+```bash
+gopherbot encrypt -f /path/to/gopherbot-key.json > gopherbot-key.json.enc
+```
+
+If you use the default filename `gopherbot-key.json.enc`, both the Firestore
+brain and the Google Chat connector can use it without extra filename
+overrides.
+
+After encrypting it, remove the plaintext JSON.
+
+## Step 7: Configure The Firestore Brain
+
+If you are using the Firestore brain, the usual minimal config is:
+
 ```yaml
-# conf/brains/firestore.yaml
 BrainConfig:
   ProjectID: "your-gcp-project-id"
   DatabaseID: "(default)"
@@ -149,31 +192,243 @@ BrainConfig:
   CredentialsEncryptedFile: "gopherbot-key.json.enc"
 ```
 
-With the default filename above, the only required override is usually `ProjectID`.
+If the credential file keeps the default name, usually the only thing you need
+to override is `ProjectID`.
 
-For the Google Chat connector, keep the Terraform outputs handy:
+### Optional: Reuse An Existing Firestore Brain Project
 
-*   `gopherbot_service_account_email`: used during the Marketplace/admin-approval setup.
-*   `chat_topic_id`: use this in the Google Chat API configuration page.
-*   `chat_subscription_id`: this is the pull subscription Gopherbot reads from.
+For a brand-new robot, you can usually ignore this subsection. The helper
+script already creates the Firestore database and grants `roles/datastore.user`
+to the robot service account, so usually you only need to set `ProjectID` in
+[`conf/brains/firestore.yaml`](/home/david/git/gopherbot-work/gopherbot/conf/brains/firestore.yaml)
+and set `Brain: firestore` in the right environment.
 
-## Step 10: What Terraform Does And Does Not Do
+Only use the following if the new robot should reuse an older Firestore brain in
+a different project. In that case, grant the current robot service account
+access to that older project:
 
-Terraform creates:
+```bash
+export FIRESTORE_PROJECT_ID="your-old-firestore-project"
+export SERVICE_ACCOUNT_EMAIL="gopherbot-robot@your-chat-project.iam.gserviceaccount.com"
 
-*   the Firestore database
-*   the Pub/Sub topic and pull subscription
-*   the Gopherbot service account and key
-*   the Pub/Sub publisher permission Chat needs to deliver events to your topic
+gcloud config set project "${FIRESTORE_PROJECT_ID}"
 
-Terraform does not create:
+# Only needed if Firestore has never been created in the old project.
+gcloud firestore databases create \
+  --database="(default)" \
+  --location="${REGION}" \
+  --type=firestore-native
 
-*   Google Workspace Marketplace SDK app configuration
-*   one-time Workspace administrator approval for `chat.app.*` scopes
-*   per-space Workspace Events subscriptions
+gcloud projects add-iam-policy-binding "${FIRESTORE_PROJECT_ID}" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/datastore.user"
+```
 
-Once the app has administrator-approved Chat app scopes, the connector can handle those per-space subscriptions automatically when the app joins spaces.
+If the old project already had a working Firestore brain, skip the
+`gcloud firestore databases create ...` command and just add the IAM binding.
 
----
+Then point the brain config at the old project:
 
-*Generated by Gopherbot GCloud Setup Assistant*
+```yaml
+BrainConfig:
+  ProjectID: "your-old-firestore-project"
+  DatabaseID: "(default)"
+  Collection: "gopherbot-brain"
+  CredentialsEncryptedFile: "gopherbot-key.json.enc"
+```
+
+## Step 8: Configure The Google Chat API
+
+Open:
+
+- **APIs & Services > Enabled APIs & services > Google Chat API > Configuration**
+
+Configure the interactive Chat app first.
+
+Recommended values:
+
+- **App name**: your robot name, for example `Bishop`
+- **Avatar**: upload a square avatar image
+- **Description**: something short and internal
+- **Functionality**:
+  - enable **Receive 1:1 messages**
+  - enable **Join spaces and group conversations**
+- **Connection settings**: **Cloud Pub/Sub**
+- **Topic ID**:
+  `projects/${PROJECT_ID}/topics/${TOPIC_ID}`
+- **Visibility**: start with only specific users/groups while testing
+- **Logs**: enable **Log errors to Logging**
+
+Slash commands:
+
+- add the slash command you want, for example `/bishop`
+
+## Step 9: Verify The Interactive Baseline
+
+Before touching ambient message setup, verify all of these work:
+
+- DM the bot: `ping`
+- mention the bot: `@Bishop help`
+- slash command: `/bishop ping`
+
+Do not move on until those are working.
+
+## Step 10: Ambient Message Setup
+
+Ambient message capture is the part Google makes awkward.
+
+### 10a. Prepare The Service Account For Chat App Scopes
+
+Open:
+
+- **IAM & Admin > Service Accounts**
+- open the robot service account created by the script
+- open **Advanced settings**
+
+Before creating the Marketplace-compatible OAuth client, Google may require an
+OAuth consent screen / branding config to exist.
+
+If Google blocks you there:
+
+1. open **Google Auth Platform > Branding** or the older consent-screen UI
+2. fill in the minimum required fields
+3. choose **Internal** / organization-only visibility
+4. save
+
+This is confusing but expected. It is a prerequisite for the
+Marketplace-compatible OAuth client, not the runtime auth model for the bot.
+
+Then:
+
+1. create a **Google Workspace Marketplace-compatible OAuth client** for the
+   service account
+
+### 10b. Open The Marketplace SDK
+
+Open:
+
+- **APIs & Services > Enabled APIs & services**
+- open **Google Workspace Marketplace SDK**
+- open **App Configuration**
+
+### 10c. Configure App Auth Scopes
+
+For Bishop's current ambient implementation, add:
+
+- `https://www.googleapis.com/auth/chat.app.messages.readonly`
+
+Notes:
+
+- do **not** add `chat.bot` there; Google Chat already includes it
+- `chat.app.spaces` and `chat.app.memberships` are not needed for the current
+  message-created ambient flow
+
+### 10d. Save Draft, Fill Store Listing, Publish
+
+In practice, the flow we observed is:
+
+1. configure the app
+2. click **Save draft**
+3. fill out **Store Listing**
+4. click **Save draft** again if needed
+5. once the listing is complete, **Publish** becomes available
+6. click **Publish**
+
+Practical notes:
+
+- Google requires app listing images
+- prepare a square avatar image ahead of time
+- for a simple internal setup, it is fine to upload the same avatar image for
+  all required image fields
+- for required URLs such as privacy/support, it is fine to use a robot README
+  or similar internal documentation page while you are still iterating
+- for **Distribution**, `All regions` is fine and the least surprising choice
+  for an internal app unless you have a reason to restrict it
+
+After publishing, the app should appear under **Internal Apps** in the
+Workspace admin area.
+
+### 10e. Admin Install
+
+This step is easy to get wrong.
+
+Do **not** rely on the generic `Install` button from the listing if it is
+offering an individual/user install.
+
+Instead:
+
+1. open the app card/details page
+2. choose **Admin Install**
+3. not **Individual Install**
+
+This is where the one-time administrator approval for `chat.app.*` scopes
+effectively happens.
+
+The Google admin help page that appeared relevant during Bishop setup is:
+
+- https://knowledge.workspace.google.com/admin/chat/set-up-app-authorization-for-chat
+
+### 10f. Turn On Ambient Messages In The Robot
+
+In the robot's Google Chat protocol config:
+
+```yaml
+ProtocolConfig:
+  AmbientMessages: true
+```
+
+Keep the working interactive values the same:
+
+- `ProjectID`
+- `SubscriptionID`
+- `CredentialsEncryptedFile`
+- `UserMap`
+- `SlashCommand`
+
+## Step 11: Restart And Test Ambient Behavior
+
+Restart the robot and watch the logs.
+
+You want to see:
+
+- ambient subscription creation for joined spaces
+- no new permission errors
+- interactive behavior still working
+
+Then test in a joined space:
+
+1. plain message not addressed to the bot
+2. `Bishop, ping`
+3. `@Bishop ping`
+4. `Did you see what @Bishop did?`
+5. `/bishop ping`
+
+Expected behavior:
+
+- ambient messages are seen, but not all treated as bot-addressed commands
+- `Bishop, ping` works
+- `@Bishop ping` works
+- mid-sentence mentions do not trigger commands
+- slash commands remain private
+
+## Troubleshooting Notes
+
+- If the interactive baseline does not work, go back to
+  [cloud_shell/README.md](/home/david/git/gopherbot-work/gopherbot/resources/gcloud/cloud_shell/README.md)
+  and use the older sample/control notes to prove the basic Chat path first.
+- If ambient subscription creation fails with a 403 about missing admin scope
+  approval, the app was probably not truly **Admin Installed** yet.
+- If the app appears installed only for your user, that is not enough for the
+  `chat.app.*` ambient flow.
+- If Google makes you configure a consent screen first, choose **Internal**.
+- If topic creation is blocked by org policy, use an explicit message storage
+  region.
+
+## Status
+
+This setup is still being refined, but the intended shape is now:
+
+- `resources/gcloud/README.md` is the canonical setup path
+- `resources/gcloud/scripts/` is the runnable helper layer
+- `resources/gcloud/cloud_shell/` remains reference-only until we fully replace
+  it
