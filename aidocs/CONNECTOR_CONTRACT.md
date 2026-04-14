@@ -60,6 +60,8 @@ Examples:
 
 The engine remains the owner of hidden-command policy and user-facing denial/help behavior.
 
+For outbound replies in that same hidden context, connectors may recover the original invoking user from the inbound hidden message so transport-private reply semantics are preserved even when engine code uses a channel/thread-style send helper.
+
 ### 5. `DirectMessage` is connector-authoritative
 
 Connectors are the sole authority for whether an inbound message is a DM/private conversation.

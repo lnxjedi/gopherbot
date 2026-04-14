@@ -39,6 +39,46 @@ func TestBuildOutgoingMessageUsesPrivateMessageViewerForHiddenReply(t *testing.T
 	}
 }
 
+func TestBuildOutgoingMessageUsesPrivateMessageViewerForHiddenChannelReplyWithoutExplicitUser(t *testing.T) {
+	gc := &googleChatConnector{}
+	incoming := &robot.ConnectorMessage{
+		HiddenMessage: true,
+		ChannelID:     "spaces/AAA",
+		UserID:        "users/123",
+	}
+
+	message, _ := gc.buildOutgoingMessage("spaces/AAA", "", "spaces/AAA/threads/T1", "hello", robot.Variable, incoming)
+	if message == nil {
+		t.Fatal("buildOutgoingMessage() returned nil")
+	}
+	if message.PrivateMessageViewer == nil || message.PrivateMessageViewer.Name != "users/123" {
+		t.Fatalf("PrivateMessageViewer = %#v", message.PrivateMessageViewer)
+	}
+	if message.Text != "hello" {
+		t.Fatalf("Text = %q, want %q", message.Text, "hello")
+	}
+}
+
+func TestBuildOutgoingMessageDoesNotUsePrivateMessageViewerWhenHiddenContextUserChanges(t *testing.T) {
+	gc := &googleChatConnector{}
+	incoming := &robot.ConnectorMessage{
+		HiddenMessage: true,
+		ChannelID:     "spaces/AAA",
+		UserID:        "users/123",
+	}
+
+	message, _ := gc.buildOutgoingMessage("spaces/AAA", "users/999", "", "hello", robot.Variable, incoming)
+	if message == nil {
+		t.Fatal("buildOutgoingMessage() returned nil")
+	}
+	if message.PrivateMessageViewer != nil {
+		t.Fatalf("PrivateMessageViewer = %#v, want nil", message.PrivateMessageViewer)
+	}
+	if message.Text != "<users/999>: hello" {
+		t.Fatalf("Text = %q, want %q", message.Text, "<users/999>: hello")
+	}
+}
+
 func TestBuildOutgoingMessagePrefixesVisibleDirectedReply(t *testing.T) {
 	gc := &googleChatConnector{}
 	message, _ := gc.buildOutgoingMessage("spaces/AAA", "users/123", "", "hello", robot.Variable, nil)

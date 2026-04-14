@@ -549,7 +549,7 @@ func (gc *googleChatConnector) buildOutgoingMessage(channelID, userID, threadID,
 		return nil, chatpb.CreateMessageRequest_MESSAGE_REPLY_OPTION_UNSPECIFIED
 	}
 
-	sameHiddenContext := gc.sameHiddenContext(channelID, userID, msgObject)
+	hiddenUserID, sameHiddenContext := gc.hiddenReplyContext(channelID, userID, msgObject)
 	if userID != "" && !sameHiddenContext {
 		body = gc.prefixMention(userID, body)
 	}
@@ -561,25 +561,33 @@ func (gc *googleChatConnector) buildOutgoingMessage(channelID, userID, threadID,
 		replyOption = chatpb.CreateMessageRequest_REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD
 	}
 	if sameHiddenContext {
-		message.PrivateMessageViewer = &chatpb.User{Name: userID}
+		message.PrivateMessageViewer = &chatpb.User{Name: hiddenUserID}
 	}
 	return message, replyOption
 }
 
-func (gc *googleChatConnector) sameHiddenContext(channelID, userID string, msgObject *robot.ConnectorMessage) bool {
+func (gc *googleChatConnector) hiddenReplyContext(channelID, userID string, msgObject *robot.ConnectorMessage) (string, bool) {
 	if msgObject == nil || !msgObject.HiddenMessage {
-		return false
-	}
-	if userID == "" {
-		return false
+		return "", false
 	}
 	if msgObject.DirectMessage {
-		return false
+		return "", false
 	}
 	if strings.TrimSpace(msgObject.ChannelID) != strings.TrimSpace(channelID) {
-		return false
+		return "", false
 	}
-	return normalizeUserResource(msgObject.UserID) == userID
+	incomingUserID := normalizeUserResource(msgObject.UserID)
+	if incomingUserID == "" {
+		return "", false
+	}
+	if userID == "" {
+		return incomingUserID, true
+	}
+	userID = normalizeUserResource(userID)
+	if userID != incomingUserID {
+		return "", false
+	}
+	return incomingUserID, true
 }
 
 func (gc *googleChatConnector) prefixMention(userID, msg string) string {

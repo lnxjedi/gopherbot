@@ -1,6 +1,7 @@
 package googlechat
 
 import (
+	"encoding/json"
 	"io"
 	"strings"
 	"testing"
@@ -133,6 +134,29 @@ func TestNormalizeIncomingSlashCommandRemainsExplicit(t *testing.T) {
 	}
 	if msg.MessageText != "ping" {
 		t.Fatalf("MessageText = %q", msg.MessageText)
+	}
+}
+
+func TestChatEventUnmarshalSlashCommandStringID(t *testing.T) {
+	var event chatEvent
+	payload := []byte(`{
+		"type": "MESSAGE",
+		"user": {"name": "users/123"},
+		"message": {
+			"name": "spaces/AAAA/messages/BBBB",
+			"text": "/bishop ping",
+			"argumentText": "ping",
+			"slashCommand": {"commandId": "1"}
+		}
+	}`)
+	if err := json.Unmarshal(payload, &event); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if event.Message == nil || event.Message.SlashCommand == nil {
+		t.Fatal("slash command missing after unmarshal")
+	}
+	if int64(event.Message.SlashCommand.CommandId) != 1 {
+		t.Fatalf("CommandId = %d", event.Message.SlashCommand.CommandId)
 	}
 }
 

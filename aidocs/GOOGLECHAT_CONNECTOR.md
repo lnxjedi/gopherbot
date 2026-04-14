@@ -82,6 +82,7 @@ This file captures Google Chat connector behavior relevant to routing, hidden co
 - Help/fallback rendering uses the configured slash command name, for example `/bishop help ping`.
 - When replying to a hidden slash command:
   - if reply stays in the same user + same space context, connector uses `privateMessageViewer` so only that user sees the response
+  - if engine code uses a channel/thread-style send in that same hidden context, the connector still recovers the original invoking user from the hidden event so the reply remains private
   - if target user or space changes, connector drops hidden/private treatment and sends a normal visible message instead
 
 ## ThreadResponses
