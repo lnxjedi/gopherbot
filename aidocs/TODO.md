@@ -15,27 +15,8 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
   - Added admin-only built-in `validate user <username>` with a short-lived 7-digit code and pre-pipeline DM/hidden consume path for returning protocol-local internal IDs to the requesting admin.
 ## Current Cleanup TODOs
 
-- [x] Restore environment-specific encryption key behavior for `GOPHER_ENVIRONMENT`, but with safe fallback:
-  If `custom/binary-encrypted-key.<environment>` is missing, log a warning and fall back to the usual `custom/binary-encrypted-key` so development can reuse production-era encrypted secrets unless a separate per-environment key is intentionally created.
-
-- [x] Enumerate branch changes made during the current AI fallback / wrong-channel / help UX work:
-  Build a concise, decision-oriented list of what changed on this branch so we can separate "definitely merge", "maybe keep", and "back out or rethink".
-  Current inventory:
-  - wrong-channel detection moved into the engine, with improved availability/location hints and updated tests
-  - alias fallback/help work added engine help metadata and deterministic built-in fallback ranking
-  - builtin help/fallback UX changed, including `help <keyword> brief` and smarter deterministic recovery behavior
-  - OpenAI fallback fixes landed for compaction, `max_completion_tokens`, and a Yaegi multi-return workaround/repro
-  - multiprocess/interpreter cleanup landed, including more generic interpreter RPC naming and related docs/tests
-  - startup/config fixes landed, including the prune-job config fix, `GOPHER_ENVIRONMENT` encryption-key fallback behavior, and the integration-test fixture cleanup needed after the new fallback defaults
-
-- [ ] Decide how to merge the changes we definitely want into `v3-dev`:
-  After enumerating the branch work, choose a clean merge strategy for `v3-dev` and identify anything that should stay behind for now.
-
-- [ ] Revisit AI-assisted UX for mistyped commands and syntax mistakes:
-  Now that wrong-channel detection has moved into the engine, re-evaluate where AI still adds value for alias fallback, especially around syntax recovery, missing arguments, and likely intended command help.
-
-- [ ] Take a hard look at help-system UX:
-  Re-evaluate quick help, `help <keyword>`, brief help, channel/context guidance, and how fallback/help should compose so the user gets the most useful next step with the least noise.
+- [ ] Clean-up / wrap up googlechat connector
+  - Remove new user detection and logging from googlechat connector, now superceded by new Validated user bits.
 
 - [x] Define connector capability semantics for hidden-command help/examples:
   Hidden-command help now uses an engine-owned connector `Capabilities` runtime flag (`HiddenCommands`) plus connector-owned hidden-help rendering through the shared `robot/` contract.
