@@ -13,12 +13,9 @@ gcloud config set project "${PROJECT_ID}"
 
 echo "Enabling required project services for Gopherbot Google Cloud setup"
 gcloud services enable \
-  cloudresourcemanager.googleapis.com \
-  iam.googleapis.com \
   firestore.googleapis.com \
   chat.googleapis.com \
   pubsub.googleapis.com \
-  workspaceevents.googleapis.com \
-  appsmarket-component.googleapis.com
+  workspaceevents.googleapis.com
 
 echo "Project services enabled for ${PROJECT_ID}"
