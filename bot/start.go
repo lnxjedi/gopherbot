@@ -23,6 +23,7 @@ var (
 
 	// CLI flags
 	logFile         string
+	logLevelFlag    string
 	plainlog        bool
 	helpRequested   bool
 	sshPortOverride int
@@ -64,12 +65,15 @@ func Start(v VersionInfo) {
 	args := os.Args[1:]
 	// Process command-line flags
 	lusage := "path to robot's log file (or 'stdout' or 'stderr')"
+	levusage := "set the log level (trace, debug, info, audit, warn, error)"
 	plusage := "omit timestamps from the log"
 	husage := "help for gopherbot"
 	rootFlags := flag.NewFlagSet("gopherbot", flag.ContinueOnError)
 	rootFlags.SetOutput(io.Discard)
 	rootFlags.StringVar(&logFile, "log", "", lusage)
-	rootFlags.StringVar(&logFile, "l", "", "")
+	rootFlags.StringVar(&logFile, "L", "", "")
+	rootFlags.StringVar(&logLevelFlag, "level", "", levusage)
+	rootFlags.StringVar(&logLevelFlag, "l", "", "")
 	rootFlags.BoolVar(&plainlog, "plainlog", false, plusage)
 	rootFlags.BoolVar(&plainlog, "p", false, "")
 	rootFlags.BoolVar(&helpRequested, "help", false, husage)
@@ -207,7 +211,9 @@ func Start(v VersionInfo) {
 	}
 	logger = log.New(logOut, "", logFlags)
 	botLogger.logger = logger
-	if cliOp {
+	if logLevelFlag != "" {
+		setLogLevel(logStrToLevel(logLevelFlag))
+	} else if cliOp {
 		setLogLevel(robot.Warn)
 	} else if elle, ok := lookupEnv("GOPHER_LOGLEVEL"); ok {
 		ele := logStrToLevel(elle)
@@ -294,9 +300,7 @@ func Start(v VersionInfo) {
 	logger = log.New(logOut, "", logFlags)
 	botLogger.logger = logger
 
-	if cliOp {
-		setLogLevel(robot.Warn)
-	} else {
+	if !cliOp && logLevelFlag == "" {
 		setLogLevel(currentCfg.logLevel)
 	}
 

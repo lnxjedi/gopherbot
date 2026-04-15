@@ -672,7 +672,9 @@ func loadConfig(preConnect bool) error {
 
 	// Defaults to robot.Error if not set
 	processed.logLevel = logStrToLevel(newconfig.LogLevel)
-	setLogLevel(processed.logLevel)
+	if !cliOp && logLevelFlag == "" {
+		setLogLevel(processed.logLevel)
+	}
 
 	if newconfig.AdminUsers != nil {
 		processed.adminUsers = newconfig.AdminUsers
