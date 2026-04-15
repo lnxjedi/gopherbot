@@ -9,8 +9,17 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
   This affects long-running AI thread continuity after inactivity when using subscription-based routing.
   Candidate direction:
   add a config value in `robot.yaml` for thread subscription TTL (and possibly a separate TTL for ephemeral thread memories), defaulting to current behavior.
-- Evaluate the multiple locations where `binary-encryption-key` are created and if necessary remove duplication.
-
+- User validation
+  - Add ValidatedUser flag to ConnectorMessage struct; meaning: the connector has a mapping entry from internalID to username and can vouch for the username being accurate. Connector guarantees that no message will be delivered for a username in it's usermap where the internalID of the user doesn't match.
+  - Update engine incoming message handing of "IgnoreUnlistedUsers: true" - a message will be dropped if any of these is true:
+    - ValidatedUser is unset
+    - ValidatedUser is set but username not in directory
+  - When IgnoreUnlistedUsers is false, if the incoming message has a username in the directory but it's not validated, the message will be dropped
+  - Create a new admin-only built-in "validate user" plugin; usage:
+    - Validated Admin user (incoming message for admin user and ValidatedUser set) in DM or hidden message sends the "validate user \<username\>" command, e.g. "validate user joe"
+    - Robot replies with a 7-digit OTP code valid for ~30s (stored in in-memory non-persistent map, expired by brain tick when age > 30s)
+    - Admin gives code to the user, who sends a message to the robot by DM or hidden message
+    - When the message is seen by incoming message, and message length is 7, and the message was a DM to the robot or hidden message, the engine checks the validation map for the code; if the code matches an unexpired entry, the robot sends a DM to the admin who requested it "User validation received: \<protocol\> user '\<user\>' has internal ID '\<ID\>'" e.g. "User validation recieved: googlechat user 'parsley' has internal ID 'users/1234567'", where "parsley" came from the original validate user request.
 ## Current Cleanup TODOs
 
 - [x] Restore environment-specific encryption key behavior for `GOPHER_ENVIRONMENT`, but with safe fallback:
