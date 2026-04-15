@@ -9,7 +9,7 @@ source "${SCRIPT_DIR}/lib.sh"
 load_gcloud_env "${1:-}"
 
 echo "Adding project ${PROJECT_ID}"
-gcloud create project "${PROJECT_ID}"
+gcloud projects create "${PROJECT_ID}"
 echo "Setting active project to ${PROJECT_ID}"
 gcloud config set project "${PROJECT_ID}"
 
