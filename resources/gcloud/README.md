@@ -17,7 +17,11 @@ The intended sequence is:
 This README is the canonical setup path. Older notes remain in this directory
 for reference while the process continues to settle down.
 
-## Best Google Document
+## Best Google Documents
+
+The single best document for initial Chat app setup:
+
+- https://developers.google.com/workspace/chat/quickstart/pub-sub
 
 The single most useful Google document for the Chat app auth/admin-approval
 path appears to be:
@@ -107,7 +111,11 @@ source ./gcloud.env
 Re-run that `source` command any time you change the file or open a new shell
 tab.
 
-## Step 4: Enable Project Services
+## Step 4: Create Project and Enable Project Services
+
+> USER NOTES: split into two scripts; initialize project and create services; projects create and config set in first script
+
+> USER NOTES: After creating the project, the user should be sure the project is selected in the upper-left, to ensure any new terminal windows opened use the new project
 
 Run:
 
@@ -132,6 +140,9 @@ Note:
   `gcloud services enable appsmarket-component.googleapis.com`
 - that API enable is already included in the script
 
+## Step 4a: Set up billing for the project
+Follow [these directions](https://docs.cloud.google.com/billing/docs/how-to/verify-billing-enabled) to ensure your project is linked to a billing account.
+
 ## Step 5: Create The Project Resources
 
 Run:
@@ -151,6 +162,8 @@ This script creates or verifies:
   - `roles/datastore.user`
   - `roles/pubsub.subscriber`
   - `roles/pubsub.viewer`
+
+> USER NOTES: pause after creating service account and check for it's existence - the script errored out the first time when trying to update the service account
 
 Expected resource names are controlled by `gcloud.env`.
 
@@ -192,50 +205,7 @@ BrainConfig:
   CredentialsEncryptedFile: "gopherbot-key.json.enc"
 ```
 
-If the credential file keeps the default name, usually the only thing you need
-to override is `ProjectID`.
-
-### Optional: Reuse An Existing Firestore Brain Project
-
-For a brand-new robot, you can usually ignore this subsection. The helper
-script already creates the Firestore database and grants `roles/datastore.user`
-to the robot service account, so usually you only need to set `ProjectID` in
-[`conf/brains/firestore.yaml`](/home/david/git/gopherbot-work/gopherbot/conf/brains/firestore.yaml)
-and set `Brain: firestore` in the right environment.
-
-Only use the following if the new robot should reuse an older Firestore brain in
-a different project. In that case, grant the current robot service account
-access to that older project:
-
-```bash
-export FIRESTORE_PROJECT_ID="your-old-firestore-project"
-export SERVICE_ACCOUNT_EMAIL="gopherbot-robot@your-chat-project.iam.gserviceaccount.com"
-
-gcloud config set project "${FIRESTORE_PROJECT_ID}"
-
-# Only needed if Firestore has never been created in the old project.
-gcloud firestore databases create \
-  --database="(default)" \
-  --location="${REGION}" \
-  --type=firestore-native
-
-gcloud projects add-iam-policy-binding "${FIRESTORE_PROJECT_ID}" \
-  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
-  --role="roles/datastore.user"
-```
-
-If the old project already had a working Firestore brain, skip the
-`gcloud firestore databases create ...` command and just add the IAM binding.
-
-Then point the brain config at the old project:
-
-```yaml
-BrainConfig:
-  ProjectID: "your-old-firestore-project"
-  DatabaseID: "(default)"
-  Collection: "gopherbot-brain"
-  CredentialsEncryptedFile: "gopherbot-key.json.enc"
-```
+Add this content to your robot's `conf/brains/firestore.yaml`. If the credential file keeps the default name, usually the only thing you need to override is `ProjectID`.
 
 ## Step 8: Configure The Google Chat API
 
@@ -243,19 +213,19 @@ Open:
 
 - **APIs & Services > Enabled APIs & services > Google Chat API > Configuration**
 
-Configure the interactive Chat app first.
+Clear **Build this Chat app as a Google Workspace add-on**. A dialog opens asking you to confirm. In the dialog, click **Disable**.
 
 Recommended values:
 
-- **App name**: your robot name, for example `Bishop`
-- **Avatar**: upload a square avatar image
+- **App name**: your robot name, for example `Bishop` - this is important for your robot's `@mention` to match the robot's name
+- **Avatar**: add a square image to your robot's repository, provide a URL for it
 - **Description**: something short and internal
+- **Interactive Features**: turned on
 - **Functionality**:
-  - enable **Receive 1:1 messages**
   - enable **Join spaces and group conversations**
 - **Connection settings**: **Cloud Pub/Sub**
 - **Topic ID**:
-  `projects/${PROJECT_ID}/topics/${TOPIC_ID}`
+  `projects/${PROJECT_ID}/topics/${TOPIC_ID}` - or use `gcloud pubsub topics list`
 - **Visibility**: start with only specific users/groups while testing
 - **Logs**: enable **Log errors to Logging**
 
@@ -264,6 +234,23 @@ Slash commands:
 - add the slash command you want, for example `/bishop`
 
 ## Step 9: Verify The Interactive Baseline
+
+Add `conf/protocols/googlechat.yaml`, example:
+```yaml
+ProtocolConfig:
+  ProjectID: <your-project-id>
+  SubscriptionID: "gopherbot-chat-sub"
+  CredentialsEncryptedFile: gopherbot-key.json.enc
+  # When true, the connector creates and maintains per-space Google Workspace
+  # Events subscriptions so it can receive ambient message traffic in spaces
+  # where the app has been added. Requires admin-approved chat.app.* scopes.
+  AmbientMessages: false
+  ThreadResponses: false
+  # Set this to the slash command name configured in the Google Chat API,
+  # without or with the leading slash. It is used for hidden-command help and
+  # fallback rendering, and enables hidden command support in the connector.
+  SlashCommand: bishop
+```
 
 Before touching ambient message setup, verify all of these work:
 
@@ -277,6 +264,10 @@ Do not move on until those are working.
 
 Ambient message capture is the part Google makes awkward.
 
+The best article for this:
+
+- https://developers.google.com/workspace/chat/authenticate-authorize-chat-app
+
 ### 10a. Prepare The Service Account For Chat App Scopes
 
 Open:
@@ -286,7 +277,7 @@ Open:
 - open **Advanced settings**
 
 Before creating the Marketplace-compatible OAuth client, Google may require an
-OAuth consent screen / branding config to exist.
+OAuth consent screen / branding config to exist, even though it won't be used.
 
 If Google blocks you there:
 
@@ -329,7 +320,9 @@ In practice, the flow we observed is:
 
 1. configure the app
 2. click **Save draft**
-3. fill out **Store Listing**
+3. switch tab to **Store Listing** and fill in the blanks
+    * Upload the same image for all the required images, it doesn't seem picky; this was tested with a 512px square png
+    * Similarly for required URLs, you can use a link to the README for your robot
 4. click **Save draft** again if needed
 5. once the listing is complete, **Publish** becomes available
 6. click **Publish**
