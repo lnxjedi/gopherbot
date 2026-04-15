@@ -362,8 +362,12 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	ignoreUnlisted := currentCfg.ignoreUnlistedUsers
 	botAlias := currentCfg.alias
 	currentCfg.RUnlock()
-	if !listedUser && ignoreUnlisted {
-		Log(robot.Debug, "IgnoreUnlistedUsers - ignoring protocol '%s': %s / %s (identityResolved=%t directoryListed=%t)", incomingProtocol, inc.UserID, userName, protocolMapped, directoryListed)
+	if consumeIncomingUserValidationCode(inc) {
+		Log(robot.Debug, "Consumed user validation code on protocol '%s' from internal user '%s'", incomingProtocol, inc.UserID)
+		return
+	}
+	if !shouldAcceptIncomingUser(listedUser, ignoreUnlisted, inc.ValidatedUser) {
+		Log(robot.Debug, "Incoming user validation gate - ignoring protocol '%s': %s / %s (identityResolved=%t directoryListed=%t validated=%t ignoreUnlisted=%t)", incomingProtocol, inc.UserID, userName, protocolMapped, directoryListed, inc.ValidatedUser, ignoreUnlisted)
 		emit(IgnoredUser)
 		return
 	}

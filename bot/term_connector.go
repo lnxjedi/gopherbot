@@ -465,6 +465,7 @@ loop:
 					Protocol:        "terminal",
 					UserName:        tc.currentUser,
 					UserID:          ui.InternalID,
+					ValidatedUser:   true,
 					ChannelName:     tc.currentChannel,
 					ChannelID:       channelID,
 					MessageID:       messageID,

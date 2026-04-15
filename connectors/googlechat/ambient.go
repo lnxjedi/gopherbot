@@ -349,6 +349,7 @@ func (gc *googleChatConnector) normalizeAmbientMessage(message *chatapi.Message)
 	connectorMsg := &robot.ConnectorMessage{
 		Protocol:        "googlechat",
 		UserID:          userID,
+		ValidatedUser:   canonicalUser != "",
 		ChannelID:       channelID,
 		MessageID:       strings.TrimSpace(message.Name),
 		ThreadID:        threadID,

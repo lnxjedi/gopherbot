@@ -307,8 +307,11 @@ This keeps upgrade behavior predictable and prevents stale custom copies from di
 Identity policy is username-authoritative in engine flows.
 
 - `UserRoster` is the global user directory (email/name/phone/etc.) and policy membership list.
-- Inbound security identity uses connector-provided canonical username.
-- `IgnoreUnlistedUsers: true` gates on username membership in global `UserRoster` (connector username trust boundary).
+- Inbound security identity uses connector-provided canonical username only when the connector also sets `ConnectorMessage.ValidatedUser=true`.
+- `IgnoreUnlistedUsers: true` now requires both:
+  - `ValidatedUser=true`
+  - canonical username membership in global `UserRoster`
+- With `IgnoreUnlistedUsers: false`, inbound messages for directory users are still rejected when the connector supplied a directory username without validating it.
 - Outbound engine-to-connector user sends are username-based; connectors resolve protocol-local IDs internally.
 - Connector-reported bot IDs are stored per protocol (`protocol -> botID`) via `SetBotID(...)`.
 - `GetBotAttribute("id")` resolves to:
@@ -321,6 +324,7 @@ Identity policy is username-authoritative in engine flows.
 - SSH identity mapping: `ProtocolConfig.UserKeys` list entries (`UserName` + `PublicKeys`).
 - Terminal/test identity mapping: connector-local `ProtocolConfig.Users` tables.
 - `UserRoster.UserID` is accepted for config compatibility but ignored by engine identity policy.
+- Built-in admin command `validate user <username>` issues a short-lived 7-digit code so an administrator can ask a user on another protocol to reveal that protocol account's internal ID without weakening the normal inbound trust gate.
 - Ephemeral user-scoped memory keys are username-based (not `UserID`-based).
 - Thread-scoped ephemeral memory keys include protocol context (`protocol + threadID`) to avoid cross-protocol thread key collisions.
 

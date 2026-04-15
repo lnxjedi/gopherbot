@@ -116,6 +116,8 @@ These apply to `bot/handler.go`, `bot/available.go`, `bot/authorize.go`, `bot/el
 
 - `IgnoreUsers` and `IgnoreUnlistedUsers` are checked in `handler.IncomingMessage` before any worker is created. They must remain pre-pipeline filters. Never move this logic into dispatch or pipeline code.
 - The `IgnoreUsers` check is case-insensitive. New pre-pipeline user filtering must use the same comparison.
+- `IgnoreUnlistedUsers` is now validation-aware: the engine only trusts a canonical inbound username for policy when the connector set `ConnectorMessage.ValidatedUser=true`.
+- The one intentional exception is the user-validation OTP receive path: an exact 7-digit DM/hidden message is checked before normal user dropping so an unvalidated user can prove a protocol account to an administrator.
 
 ### Admin authority sources
 

@@ -77,6 +77,7 @@ name-addressed hidden input, hidden-help rendering, and local bot labeling. If
 - Multiple keys per user are supported.
 - Bot user is auto-added, using the server host public key line as `UserID`.
 - Engine outbound user-targeting is username-based; SSH resolves connector-local user IDs internally.
+- Inbound SSH messages are always emitted with `ConnectorMessage.ValidatedUser=true` for authenticated configured users because the connector authenticated the presented public key and matched it to the configured canonical username.
 
 ## Message Model
 

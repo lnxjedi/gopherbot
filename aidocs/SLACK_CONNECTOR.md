@@ -13,6 +13,8 @@ This file captures Slack connector behavior relevant to routing, hidden commands
 - Slack connector identity mapping is connector-local in `ProtocolConfig.UserMap` (`username -> Slack user ID`).
 - Connector config mapping is treated as canonical when username/ID collisions exist.
 - Engine policy checks remain username-based against global `UserRoster`.
+- Inbound Slack messages set `ConnectorMessage.ValidatedUser=true` only when the Slack user ID resolves through configured canonical mapping in `ProtocolConfig.UserMap`.
+- Slack may still attach a readable `UserName` derived from Slack's own user list for unmapped users, but that username is not trusted for engine security decisions and arrives with `ValidatedUser=false`.
 - Inbound worker state preserves both identities:
   - `User` is the canonical Gopherbot username used for policy and plugin-facing identity.
   - `ProtocolUser` preserves the Slack transport identity as a bracketed internal ID (for example `<U0ABC1234>`) when Slack provided one.
@@ -26,6 +28,7 @@ This file captures Slack connector behavior relevant to routing, hidden commands
   - `BotMessage=false`
   - `HiddenMessage=false`
   - `DirectMessage` set from Slack channel type (`IM` vs channel).
+- `ValidatedUser=true` only when the inbound Slack user ID matches configured canonical mapping.
 - Slack mention tokens are normalized into plain `@username` text before the engine sees them.
 - Ordinary messages that contain a bot mention still remain `BotMessage=false`; the engine's bot-name regexes decide whether that normalized text is addressed to the robot.
 - Slash command events routed to this app are passed as:

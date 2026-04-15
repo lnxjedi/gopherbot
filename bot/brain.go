@@ -212,6 +212,7 @@ loop:
 			}
 		case <-brainTicker.C:
 			now := time.Now()
+			expireUserValidationRequests(now)
 			// Expire thread subscriptions - see thread_subscriptions.go
 			isDirty := expireSubscriptions(now)
 			if isDirty {

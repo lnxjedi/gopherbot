@@ -61,6 +61,7 @@ loop:
 				Protocol:        "test",
 				UserName:        userName,
 				UserID:          msg.User,
+				ValidatedUser:   userName != "",
 				ChannelName:     msg.Channel,
 				ChannelID:       channelID,
 				ThreadID:        static_thread_id,

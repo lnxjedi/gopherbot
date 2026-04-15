@@ -225,6 +225,17 @@ func (s *slackConnector) userName(i string) (user string, found bool) {
 	return
 }
 
+func (s *slackConnector) configuredCanonicalUser(i string) (string, bool) {
+	s.RLock()
+	defer s.RUnlock()
+	for name, id := range s.botUserMap {
+		if id == i {
+			return name, true
+		}
+	}
+	return "", false
+}
+
 func (s *slackConnector) updateChannelMaps(want string) (ret string) {
 	var (
 		err    error

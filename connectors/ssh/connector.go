@@ -582,6 +582,7 @@ func (sc *sshConnector) sendIncoming(client *sshClient, line string, hidden bool
 		Protocol:        "ssh",
 		UserName:        client.userName,
 		UserID:          client.userID,
+		ValidatedUser:   true,
 		ChannelName:     channelName,
 		ChannelID:       channelID,
 		MessageID:       messageID,

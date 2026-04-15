@@ -1930,6 +1930,39 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			w.Log(robot.Debug, "Unable to refresh runtime git state from info command: %v", err)
 		}
 		r.Say(strings.Join(runtimeGitDetailLines(snapshot), "\n"))
+	case "validateuser":
+		if !r.Incoming.ValidatedUser {
+			r.Say("This command requires a validated administrator account.")
+			return
+		}
+		if !r.Incoming.DirectMessage && !r.Incoming.HiddenMessage {
+			r.Say("This command is only available in direct messages or hidden messages.")
+			return
+		}
+		if len(args) == 0 {
+			r.Say("Usage: validate user <username>")
+			return
+		}
+		userName := strings.ToLower(strings.TrimSpace(args[0]))
+		if !isValidRosterUserName(userName) {
+			r.Say("Usernames must be lower-case roster usernames.")
+			return
+		}
+		if r.maps == nil {
+			r.Say("I couldn't access the user directory.")
+			return
+		}
+		if _, ok := r.maps.user[userName]; !ok {
+			r.Say("I don't know a roster user named '%s'.", userName)
+			return
+		}
+		code, err := issueUserValidationRequest(userName, r.User, protocolFromIncoming(r.Incoming, r.Protocol), time.Now())
+		if err != nil {
+			Log(robot.Error, "Issuing user validation request for '%s' by '%s': %v", userName, r.User, err)
+			r.Say("I couldn't issue a validation code right now.")
+			return
+		}
+		r.Reply("Validation code for '%s': %s (expires in about 30 seconds)", userName, code)
 	case "abort":
 		buf := make([]byte, 32768)
 		runtime.Stack(buf, true)

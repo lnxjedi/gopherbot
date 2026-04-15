@@ -93,10 +93,14 @@ func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent)
 		MessageObject:   msg,
 		Client:          s.api,
 	}
+	if validatedName, validated := s.configuredCanonicalUser(userID); validated {
+		botMsg.UserName = validatedName
+		botMsg.ValidatedUser = true
+	}
 	userName, ok := s.userName(userID)
 	if !ok {
 		s.Log(robot.Debug, "Couldn't find user name for user ID", userID)
-	} else {
+	} else if botMsg.UserName == "" {
 		botMsg.UserName = userName
 	}
 	if !ci.IsIM {
@@ -133,6 +137,10 @@ func (s *slackConnector) processSlashCmdSocketMode(cmd *slack.SlashCommand) {
 		MessageObject: cmd,
 		Client:        s.api,
 	}
+	if validatedName, validated := s.configuredCanonicalUser(userID); validated {
+		botMsg.UserName = validatedName
+		botMsg.ValidatedUser = true
+	}
 
 	// Show the user what they typed
 	if s.reflectHidden {
@@ -153,7 +161,7 @@ func (s *slackConnector) processSlashCmdSocketMode(cmd *slack.SlashCommand) {
 	userName, ok := s.userName(userID)
 	if !ok {
 		s.Log(robot.Debug, "Couldn't find user name for user ID", userID)
-	} else {
+	} else if botMsg.UserName == "" {
 		botMsg.UserName = userName
 	}
 	if !ci.IsIM {
@@ -242,10 +250,14 @@ func (s *slackConnector) processMessageRTM(msg *slack.MessageEvent) {
 		MessageObject:   msg,
 		Client:          s.api,
 	}
+	if validatedName, validated := s.configuredCanonicalUser(userID); validated {
+		botMsg.UserName = validatedName
+		botMsg.ValidatedUser = true
+	}
 	userName, ok := s.userName(userID)
 	if !ok {
 		s.Log(robot.Debug, "Couldn't find user name for user ID", userID)
-	} else {
+	} else if botMsg.UserName == "" {
 		botMsg.UserName = userName
 	}
 	if !ci.IsIM {

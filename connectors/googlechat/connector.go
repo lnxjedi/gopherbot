@@ -216,6 +216,7 @@ func (gc *googleChatConnector) normalizeIncomingMessage(event *chatEvent) (*robo
 	connectorMsg := &robot.ConnectorMessage{
 		Protocol:        "googlechat",
 		UserID:          userID,
+		ValidatedUser:   canonicalUser != "",
 		ChannelID:       channelID,
 		MessageID:       strings.TrimSpace(msg.Name),
 		ThreadID:        threadID,

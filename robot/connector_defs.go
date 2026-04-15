@@ -30,6 +30,9 @@ type ConnectorMessage struct {
 	Protocol string
 	// optional UserName and required internal UserID
 	UserName, UserID string
+	// ValidatedUser - true when the connector can vouch that UserName is the
+	// correct canonical username for this specific UserID.
+	ValidatedUser bool
 	// optional / required channel values
 	ChannelName, ChannelID string
 	// Opaque values

@@ -13,7 +13,7 @@ Compatibility scope for this guide:
 3. Make sure the primary protocol has a valid `ProtocolConfig` source.
 4. Move shared policy/config keys (especially `AdminUsers`) to `conf/robot.yaml`.
 5. Use global `UserRoster` for canonical usernames and directory attributes.
-6. Ensure connector-emitted usernames match global `UserRoster` entries (especially with `IgnoreUnlistedUsers: true`).
+6. Ensure connector-emitted validated usernames match global `UserRoster` entries (especially with `IgnoreUnlistedUsers: true`).
 7. Confirm connector-specific identity mapping config is correct inside each connector `ProtocolConfig` (for example Slack `ProtocolConfig.UserMap`, SSH `ProtocolConfig.UserKeys`).
 8. Confirm your preferred `DefaultMessageFormat` (v3 default is now `BasicMarkdown`; set `Raw` explicitly to preserve legacy protocol-native output).
 9. Reload and verify runtime with `protocol-list` (or `protocol list`).
@@ -75,7 +75,7 @@ Upgrade actions:
 These slices changed runtime behavior in ways that matter for upgrades:
 
 - Outbound engine-to-connector user sends are now username-based.
-- `IgnoreUnlistedUsers` now gates on trusted connector username membership in global `UserRoster`.
+- `IgnoreUnlistedUsers` now gates on trusted connector username membership in global `UserRoster`, where trust means the connector emitted `ValidatedUser=true` for that `UserID -> UserName` mapping.
 - Inbound `UserID` remains metadata/provenance, but is no longer required for engine policy checks.
 - Engine no longer owns/distributes per-protocol `UserMap`; mapping is connector-local inside `ProtocolConfig`.
 - Bot internal IDs are protocol-scoped in engine runtime state (`protocol -> botID`).
@@ -85,8 +85,8 @@ These slices changed runtime behavior in ways that matter for upgrades:
 
 Upgrade actions:
 
-1. Verify each connector emits canonical usernames that match `UserRoster.UserName`.
-2. If `IgnoreUnlistedUsers: true`, ensure each allowed user exists in global `UserRoster`.
+1. Verify each connector emits validated canonical usernames that match `UserRoster.UserName`.
+2. If `IgnoreUnlistedUsers: true`, ensure each allowed user exists in global `UserRoster` and is validated by the relevant connector mapping/authentication path.
 3. Validate user-targeted replies/DMs by username in each active connector.
 
 Slack-specific notes:
@@ -183,10 +183,13 @@ Validation note:
 `IgnoreUnlistedUsers: true` requires:
 
 - connector-authenticated canonical username exists in global `UserRoster`
+- the connector marks that inbound mapping as validated (`ValidatedUser=true`)
 
 Notes:
 
 - Engine policy decisions are username-based.
+- If `IgnoreUnlistedUsers: false`, inbound traffic for a directory username is still rejected when the connector supplied that username without validating it.
+- Administrators can use `validate user <username>` from DM or hidden context to issue a short-lived 7-digit code and learn a user's protocol-local internal ID without weakening the normal inbound trust model.
 
 SSH example (recommended):
 

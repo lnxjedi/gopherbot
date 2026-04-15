@@ -57,6 +57,12 @@ Commands:
   Keywords: [ "git", "branch", "status", "config" ]
   Usage: "git-info | show-branch"
   Summary: "show current/default/startup branch for the config repository"
+- Command: validateuser
+  # Regex: '(?i:validate[ -]user ([A-Za-z0-9][\w-]*))'
+  SimpleMatcher: "validate user <username:token>"
+  Keywords: [ "validate", "user", "identity", "protocol", "id" ]
+  Usage: "validate user <username>"
+  Summary: "issue a short-lived validation code so a user can prove a protocol account and reveal its internal ID"
 - Command: quit
   # Regex: '(?i:quit|exit)'
   SimpleMatcher: "(quit|exit)"

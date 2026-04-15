@@ -1,7 +1,8 @@
 ## Local robot.yaml overrides default Gopherbot conf/robot.yaml settings.
 
 ## "BIG HAMMER" security - if IgnoreUnlistedUsers is set, your robot drops all
-## messages from users that do not appear in the UserRoster.
+## messages unless the connector validated the canonical username for that
+## transport user and that username appears in UserRoster.
 IgnoreUnlistedUsers: true
 
 ## Improved security for secrets - if SecureParameters is true, jobs, plugins,

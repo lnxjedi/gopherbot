@@ -76,8 +76,20 @@ The engine must not infer or overwrite this after connector normalization.
 
 - Connectors may use transport-local internal user IDs for routing and live mentions.
 - Connectors should map transport identity to canonical Gopherbot username deterministically through connector config or authoritative transport data.
+- `ConnectorMessage.ValidatedUser=true` means the connector can vouch that this specific `UserID` maps to this canonical `UserName`.
+- Connectors must not set `ValidatedUser=true` for a guessed, display-name-derived, or heuristic username.
 - Engine policy remains username-authoritative.
 - A connector must not invent cross-protocol identity equivalence heuristically.
+
+### Validated User Contract
+
+- `ValidatedUser=true` is the trust boundary for inbound security decisions.
+- `ValidatedUser=false` is allowed for ordinary ambient traffic when the connector can observe a transport user but cannot yet vouch for the canonical Gopherbot username.
+- Engine pre-pipeline user filtering may reject a message even when `UserName` is present, if `ValidatedUser` is false.
+- The intended pattern is:
+  - local/authenticated connectors like SSH/terminal/test set `ValidatedUser=true` for their configured users
+  - Slack/Google Chat set `ValidatedUser=true` only when the transport ID resolves through connector-local canonical mapping such as `ProtocolConfig.UserMap`
+  - unmapped Slack/Google Chat users may still arrive with `UserName` text for human readability, but with `ValidatedUser=false`
 
 ## Threading Rules
 

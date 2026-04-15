@@ -4,6 +4,7 @@
 package tbot_test
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -185,6 +186,43 @@ func TestBuiltins(t *testing.T) {
 		{aliceID, null, ";show log page 1", false, []TestMessage{{alice, null, ".*", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
+
+	teardown(t, done, conn)
+}
+
+func TestValidateUser(t *testing.T) {
+	done, conn := setup("test/membrain", "/tmp/bottest-validate-user.log", t)
+
+	WaitForBackgroundInitsForTesting()
+	GetEvents()
+
+	conn.SendBotMessage(&testc.TestMessage{aliceID, null, "validate user bob", false, false})
+	got, err := conn.GetBotMessage()
+	if err != nil {
+		t.Fatalf("timed out waiting for validation code reply: %v", err)
+	}
+	if got.User != alice || got.Channel != null {
+		t.Fatalf("validation code reply target = {%s, %s}, want {%s, %s}", got.User, got.Channel, alice, null)
+	}
+	codeRe := regexp.MustCompile(`Validation code for 'bob': ([0-9]{7})`)
+	matches := codeRe.FindStringSubmatch(got.Message)
+	if len(matches) != 2 {
+		t.Fatalf("validation code reply = %q", got.Message)
+	}
+	GetEvents()
+
+	conn.SendBotMessage(&testc.TestMessage{bobID, null, matches[1], false, false})
+	got, err = conn.GetBotMessage()
+	if err != nil {
+		t.Fatalf("timed out waiting for validation notification: %v", err)
+	}
+	if got.User != alice || got.Channel != null {
+		t.Fatalf("validation notification target = {%s, %s}, want {%s, %s}", got.User, got.Channel, alice, null)
+	}
+	if got.Message != "User validation received: test user 'bob' has internal ID 'u0002'" {
+		t.Fatalf("validation notification = %q", got.Message)
+	}
+	GetEvents()
 
 	teardown(t, done, conn)
 }
