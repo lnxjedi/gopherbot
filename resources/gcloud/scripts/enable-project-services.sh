@@ -18,6 +18,7 @@ gcloud services enable \
   firestore.googleapis.com \
   chat.googleapis.com \
   pubsub.googleapis.com \
-  workspaceevents.googleapis.com
+  workspaceevents.googleapis.com \
+  appsmarket-component.googleapis.com
 
 echo "Project services enabled for ${PROJECT_ID}"
