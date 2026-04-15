@@ -17,6 +17,7 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
 
 - [ ] Clean-up / wrap up googlechat connector
   - Remove new user detection and logging from googlechat connector, now superceded by new Validated user bits.
+  - Adjust logging: remove logging that should never be necessary, use "debug" when appropriate for debugging and "trace" for logs that should only show when we absolutely want to see everything happening.
 
 - [x] Define connector capability semantics for hidden-command help/examples:
   Hidden-command help now uses an engine-owned connector `Capabilities` runtime flag (`HiddenCommands`) plus connector-owned hidden-help rendering through the shared `robot/` contract.
