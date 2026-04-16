@@ -151,6 +151,19 @@ Run:
 ./scripts/create-project-resources.sh
 ```
 
+> USER NOTES: this gives too broad of permissions to the service account; it should be more similar to bishop:
+```
+$ gcloud pubsub subscriptions get-iam-policy bishop-chat-sub \
+    --project=bishop-gopherbot-chatapi
+bindings:
+- members:
+  - serviceAccount:bishop-chat-sa@bishop-gopherbot-chatapi.iam.gserviceaccount.com
+  role: roles/pubsub.subscriber
+- members:
+  - serviceAccount:bishop-chat-sa@bishop-gopherbot-chatapi.iam.gserviceaccount.com
+  role: roles/pubsub.viewer
+```
+
 This script creates or verifies:
 
 - Firestore database
