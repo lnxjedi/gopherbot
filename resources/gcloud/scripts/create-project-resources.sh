@@ -59,12 +59,13 @@ echo "Granting project roles to ${SERVICE_ACCOUNT_EMAIL}"
 gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --role="roles/datastore.user" >/dev/null
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
-  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
-  --role="roles/pubsub.subscriber" >/dev/null
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
-  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
-  --role="roles/pubsub.viewer" >/dev/null
+
+# gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+#   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+#   --role="roles/pubsub.subscriber" >/dev/null
+# gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+#   --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+#   --role="roles/pubsub.viewer" >/dev/null
 
 echo
 echo "Project resources are ready:"
