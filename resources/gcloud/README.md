@@ -236,7 +236,10 @@ that first.
 Use values like these:
 
 - **App name**: your robot name
-  The app name should match the robot name you expect users to `@mention`.
+  Keeping the app name close to the robot name makes `@mention` behavior more
+  intuitive, but it does not have to be an exact match. If you have had false
+  starts with an earlier app name, choosing a fresh app name can be the safer
+  choice.
 - **Avatar URL**: the public HTTPS URL for the avatar image
 - **Description**: short and internal
 - **Functionality**:
