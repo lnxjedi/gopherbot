@@ -13,6 +13,7 @@ plugins/gopherbot_v2.py
 jobs/gopherbot_v2.py
 tasks/gopherbot_v2.py
 .env
+/resources/gcloud/gcloud.env
 *.so
 # For dev env
 gopherbot-doc

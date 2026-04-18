@@ -32,3 +32,28 @@ set_active_project() {
   echo "Setting active project to ${PROJECT_ID}"
   gcloud config set project "${PROJECT_ID}" >/dev/null
 }
+
+retry_command() {
+  local attempts="$1"
+  local sleep_seconds="$2"
+  shift 2
+
+  local attempt=1
+  while true; do
+    if "$@"; then
+      return 0
+    fi
+
+    if (( attempt >= attempts )); then
+      return 1
+    fi
+
+    echo "Command failed; retrying in ${sleep_seconds}s (${attempt}/${attempts})" >&2
+    sleep "${sleep_seconds}"
+    attempt=$((attempt + 1))
+  done
+}
+
+project_exists() {
+  gcloud projects describe "${PROJECT_ID}" >/dev/null 2>&1
+}
