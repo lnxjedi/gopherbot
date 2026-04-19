@@ -11,9 +11,39 @@ func TestRenderBasicMarkdownConvertsChatTextSyntax(t *testing.T) {
 		botUserMap: map[string]string{"alice": "users/123"},
 	}
 
-	in := "**bold** *italic* [Example](https://example.com) @alice"
+	in := "**bold** *italic* [Example](https://example.com) @alice :rocket:"
 	got := gc.renderMessageText(in, robot.BasicMarkdown)
-	want := "*bold* _italic_ <https://example.com|Example> <users/123>"
+	want := "*bold* _italic_ <https://example.com|Example> <users/123> \U0001f680"
+	if got != want {
+		t.Fatalf("renderMessageText() = %q, want %q", got, want)
+	}
+}
+
+func TestRenderBasicMarkdownEmojiNotParsedInCode(t *testing.T) {
+	gc := &googleChatConnector{}
+	in := "Inline `:joy:`\n```txt\n:rocket:\n```\nDone :rocket:"
+	got := gc.renderMessageText(in, robot.BasicMarkdown)
+	want := "Inline `:joy:`\n```\n:rocket:\n```\nDone \U0001f680"
+	if got != want {
+		t.Fatalf("renderMessageText() = %q, want %q", got, want)
+	}
+}
+
+func TestRenderBasicMarkdownEmojiLinkLabel(t *testing.T) {
+	gc := &googleChatConnector{}
+	in := "See [:eyes: runbook](https://example.com/runbook)"
+	got := gc.renderMessageText(in, robot.BasicMarkdown)
+	want := "See <https://example.com/runbook|\U0001f440 runbook>"
+	if got != want {
+		t.Fatalf("renderMessageText() = %q, want %q", got, want)
+	}
+}
+
+func TestRenderBasicMarkdownEmojiMalformedToken(t *testing.T) {
+	gc := &googleChatConnector{}
+	in := "Keep abc:joy: and http://example.com and :rocket:"
+	got := gc.renderMessageText(in, robot.BasicMarkdown)
+	want := "Keep abc:joy: and http://example.com and \U0001f680"
 	if got != want {
 		t.Fatalf("renderMessageText() = %q, want %q", got, want)
 	}

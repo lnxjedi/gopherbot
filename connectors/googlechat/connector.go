@@ -3,9 +3,11 @@ package googlechat
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	chat "cloud.google.com/go/chat/apiv1"
@@ -14,17 +16,23 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/lnxjedi/gopherbot/robot/util"
 	chatapi "google.golang.org/api/chat/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
-	sendTimeout             = 20 * time.Second
-	dmFindTimeout           = 20 * time.Second
+	sendTimeout             = 4 * time.Second
+	dmFindTimeout           = 4 * time.Second
+	maxChatCallAttempts     = 2
+	chatRetryDelay          = 250 * time.Millisecond
 	maxMessageSize          = 32000
 	ambientSyncTimeout      = 45 * time.Second
 	ambientRenewInterval    = 90 * time.Minute
 	recentMessageWindow     = 2 * time.Minute
 	ambientSubscriptionLead = 90 * time.Minute
 )
+
+var googleChatRequestSeq atomic.Uint64
 
 type chatpbCreateMessageRequest struct {
 	request *chatpb.CreateMessageRequest
@@ -70,6 +78,7 @@ type googleChatConnector struct {
 	createMessage     createMessageFunc
 	findDirectMessage findDirectMessageFunc
 	workspaceEvents   *workspaceEventsClient
+	retrySleep        func(time.Duration)
 
 	mu               sync.RWMutex
 	botUserMap       map[string]string
@@ -442,11 +451,16 @@ func (gc *googleChatConnector) SendProtocolUserMessage(user, msg string, format 
 		gc.Log(robot.Error, "Google Chat user not found for DM: %s", user)
 		return robot.UserNotFound
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), dmFindTimeout)
-	defer cancel()
-	space, err := gc.findDirectMessage(ctx, &chatpb.FindDirectMessageRequest{Name: userID})
+	var space *chatpb.Space
+	err := gc.callChatWithRetry("direct-message lookup", userID, dmFindTimeout, func(ctx context.Context) error {
+		found, err := gc.findDirectMessage(ctx, &chatpb.FindDirectMessageRequest{Name: userID})
+		if err == nil {
+			space = found
+		}
+		return err
+	})
 	if err != nil {
-		gc.Log(robot.Error, "Google Chat direct message lookup failed for %s: %v", userID, err)
+		gc.Log(robot.Error, "Google Chat direct message lookup failed for %s after %d attempt(s): %v", userID, maxChatCallAttempts, err)
 		return robot.FailedMessageSend
 	}
 	if space == nil || strings.TrimSpace(space.Name) == "" {
@@ -531,6 +545,55 @@ func (gc *googleChatConnector) resolveThreadForContext(channelID, userID, explic
 	return strings.TrimSpace(msgObject.ThreadID)
 }
 
+func newGoogleChatRequestID() string {
+	return fmt.Sprintf("gopherbot-%d-%d", time.Now().UnixNano(), googleChatRequestSeq.Add(1))
+}
+
+func isRetryableGoogleChatError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	switch status.Code(err) {
+	case codes.DeadlineExceeded, codes.Unavailable:
+		return true
+	default:
+		return false
+	}
+}
+
+func (gc *googleChatConnector) sleepForRetry(delay time.Duration) {
+	if delay <= 0 {
+		return
+	}
+	if gc.retrySleep != nil {
+		gc.retrySleep(delay)
+		return
+	}
+	time.Sleep(delay)
+}
+
+func (gc *googleChatConnector) callChatWithRetry(op, target string, timeout time.Duration, call func(context.Context) error) error {
+	var lastErr error
+	for attempt := 1; attempt <= maxChatCallAttempts; attempt++ {
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		err := call(ctx)
+		cancel()
+		if err == nil {
+			return nil
+		}
+		lastErr = err
+		if attempt == maxChatCallAttempts || !isRetryableGoogleChatError(err) {
+			break
+		}
+		gc.Log(robot.Warn, "Google Chat %s attempt %d/%d failed for %s; retrying: %v", op, attempt, maxChatCallAttempts, target, err)
+		gc.sleepForRetry(chatRetryDelay)
+	}
+	return lastErr
+}
+
 func (gc *googleChatConnector) sendMessage(channelID, userID, threadID, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {
 	message, replyOption := gc.buildOutgoingMessage(channelID, userID, threadID, msg, format, msgObject)
 	if message == nil {
@@ -545,12 +608,14 @@ func (gc *googleChatConnector) sendMessage(channelID, userID, threadID, msg stri
 		Parent:             channelID,
 		Message:            message,
 		MessageReplyOption: replyOption,
+		RequestId:          newGoogleChatRequestID(),
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), sendTimeout)
-	defer cancel()
-	if _, err := gc.createMessage(ctx, req); err != nil {
-		gc.Log(robot.Error, "Google Chat send failed to %s: %v", channelID, err)
+	if err := gc.callChatWithRetry("send", channelID, sendTimeout, func(ctx context.Context) error {
+		_, err := gc.createMessage(ctx, req)
+		return err
+	}); err != nil {
+		gc.Log(robot.Error, "Google Chat send failed to %s after %d attempt(s): %v", channelID, maxChatCallAttempts, err)
 		return robot.FailedMessageSend
 	}
 	return robot.Ok

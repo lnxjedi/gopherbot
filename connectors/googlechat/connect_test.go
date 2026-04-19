@@ -1,12 +1,17 @@
 package googlechat
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"strings"
 	"testing"
+	"time"
 
+	"cloud.google.com/go/chat/apiv1/chatpb"
 	"github.com/lnxjedi/gopherbot/robot"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type logOnlyHandler struct {
@@ -218,6 +223,108 @@ func TestChatEventUnmarshalSlashCommandStringID(t *testing.T) {
 	}
 	if int64(event.Message.SlashCommand.CommandId) != 1 {
 		t.Fatalf("CommandId = %d", event.Message.SlashCommand.CommandId)
+	}
+}
+
+func TestSendMessageRetriesWithStableRequestID(t *testing.T) {
+	connector := &googleChatConnector{
+		Handler:    &logOnlyHandler{},
+		retrySleep: func(time.Duration) {},
+	}
+
+	var gotRequestIDs []string
+	attempts := 0
+	connector.createMessage = func(_ context.Context, req *chatpb.CreateMessageRequest) (*chatpb.Message, error) {
+		attempts++
+		gotRequestIDs = append(gotRequestIDs, req.GetRequestId())
+		if attempts == 1 {
+			return nil, context.DeadlineExceeded
+		}
+		return &chatpb.Message{Name: "spaces/AAA/messages/BBB"}, nil
+	}
+
+	ret := connector.sendMessage("spaces/AAA", "", "", "hello", robot.Variable, nil)
+	if ret != robot.Ok {
+		t.Fatalf("sendMessage() ret = %v", ret)
+	}
+	if attempts != 2 {
+		t.Fatalf("attempts = %d, want 2", attempts)
+	}
+	if len(gotRequestIDs) != 2 {
+		t.Fatalf("request ID count = %d, want 2", len(gotRequestIDs))
+	}
+	if gotRequestIDs[0] == "" {
+		t.Fatal("request ID was empty")
+	}
+	if gotRequestIDs[0] != gotRequestIDs[1] {
+		t.Fatalf("request IDs differ: %q vs %q", gotRequestIDs[0], gotRequestIDs[1])
+	}
+}
+
+func TestSendMessageDoesNotRetryPermanentError(t *testing.T) {
+	connector := &googleChatConnector{
+		Handler:    &logOnlyHandler{},
+		retrySleep: func(time.Duration) {},
+	}
+
+	attempts := 0
+	connector.createMessage = func(_ context.Context, req *chatpb.CreateMessageRequest) (*chatpb.Message, error) {
+		attempts++
+		if req.GetRequestId() == "" {
+			t.Fatal("request ID was empty")
+		}
+		return nil, status.Error(codes.InvalidArgument, "bad request")
+	}
+
+	ret := connector.sendMessage("spaces/AAA", "", "", "hello", robot.Variable, nil)
+	if ret != robot.FailedMessageSend {
+		t.Fatalf("sendMessage() ret = %v, want %v", ret, robot.FailedMessageSend)
+	}
+	if attempts != 1 {
+		t.Fatalf("attempts = %d, want 1", attempts)
+	}
+}
+
+func TestSendProtocolUserMessageRetriesDirectMessageLookup(t *testing.T) {
+	connector := &googleChatConnector{
+		Handler:    &logOnlyHandler{},
+		retrySleep: func(time.Duration) {},
+		usersByID:  make(map[string]chatUserRecord),
+		usersByName: map[string]chatUserRecord{
+			"alice": {ResourceName: "users/123", CanonicalName: "alice"},
+		},
+	}
+
+	lookupAttempts := 0
+	connector.findDirectMessage = func(_ context.Context, req *chatpb.FindDirectMessageRequest) (*chatpb.Space, error) {
+		lookupAttempts++
+		if req.GetName() != "users/123" {
+			t.Fatalf("FindDirectMessage name = %q", req.GetName())
+		}
+		if lookupAttempts == 1 {
+			return nil, status.Error(codes.Unavailable, "try again")
+		}
+		return &chatpb.Space{Name: "spaces/DM123"}, nil
+	}
+
+	sendAttempts := 0
+	connector.createMessage = func(_ context.Context, req *chatpb.CreateMessageRequest) (*chatpb.Message, error) {
+		sendAttempts++
+		if req.GetParent() != "spaces/DM123" {
+			t.Fatalf("CreateMessage parent = %q", req.GetParent())
+		}
+		return &chatpb.Message{Name: "spaces/DM123/messages/BBB"}, nil
+	}
+
+	ret := connector.SendProtocolUserMessage("alice", "hello", robot.Variable, nil)
+	if ret != robot.Ok {
+		t.Fatalf("SendProtocolUserMessage() ret = %v", ret)
+	}
+	if lookupAttempts != 2 {
+		t.Fatalf("lookup attempts = %d, want 2", lookupAttempts)
+	}
+	if sendAttempts != 1 {
+		t.Fatalf("send attempts = %d, want 1", sendAttempts)
 	}
 }
 

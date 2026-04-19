@@ -17,6 +17,7 @@ This file captures Google Chat connector behavior relevant to routing, hidden co
 - Google Chat uses the Chat API for outbound messages and a Pub/Sub pull subscription for inbound events.
 - Connector initialization loads encrypted service-account credentials through `Handler.ReadEncryptedFile(...)` and `internal/gcloud`.
 - Runtime receive uses one Pub/Sub goroutine with one outstanding message at a time so connector-local event handling remains serialized.
+- Outbound Chat API calls use connector-managed short deadlines and retry once on transient timeout/unavailable failures; `CreateMessage` retries reuse the same Google Chat `requestId` so a timed-out first attempt does not double-post if Google accepted it.
 - At `Trace` log level, the connector logs concise summaries of inbound Pub/Sub deliveries so operators can distinguish Chat interaction events from Workspace Events deliveries while debugging Google-side configuration.
 - The connector is text-only in v1. It does not expose cards, dialogs, or other Google Chat-specific UI surfaces through the shared connector contract.
 - The same Pub/Sub subscription receives both normal Chat interaction events and Google Workspace Events CloudEvents when ambient-space subscriptions are enabled.
@@ -112,7 +113,11 @@ The connector is text-only in v1 and sends through the Google Chat `Message.text
   - `*italic*` -> Chat italic
   - fenced code, inline code, block quotes, and single-level unordered lists are preserved in Chat-compatible text form
   - `[label](url)` -> Chat hyperlink syntax
+  - the documented BasicMarkdown core shortcode set is translated to Unicode in normal text:
+    `:white_check_mark:`, `:warning:`, `:x:`, `:rocket:`, `:fire:`, `:joy:`, `:thinking_face:`, `:eyes:`, `:thumbsup:`, `:thumbsdown:`
   - `@username` -> `<users/{id}>` only when `UserMap` resolves unambiguously; otherwise literal `@username` is preserved
+  - inline code and fenced code blocks remain literal, so shortcode text inside code is not converted
+  - connector does not synthesize Google Chat custom emoji resource tags on the current app-authenticated send path
 - `Variable`:
   - sent as normal Chat text without protocol-specific decoration
 - `Fixed`:
@@ -125,6 +130,7 @@ The connector is text-only in v1 and sends through the Google Chat `Message.text
 
 - Google Chat has no separate native “user-in-channel” send primitive in the shared connector contract.
 - For visible directed replies in a space, the connector prefixes a real Chat mention (`<users/{id}>: `) and posts the message into the target space/thread.
+- DM sends first resolve the direct-message space with the same short-deadline retry policy used for visible outbound sends.
 - For hidden slash-command replies in the original context, the connector prefers `privateMessageViewer` over a visible mention prefix.
 
 ## Limitations
