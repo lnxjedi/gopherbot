@@ -49,7 +49,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 - Default configuration: `conf/README.md`, `conf/robot.yaml`, `conf/protocols/terminal.yaml`.
 - Shipped OAuth2/GitHub linker command config: `conf/plugins/github-link.yaml`.
-- Connector config samples/defaults: `conf/protocols/googlechat.yaml.sample`, `conf/protocols/slack.yaml.sample`, `conf/protocols/ssh.yaml`, `conf/protocols/terminal.yaml`, `conf/protocols/nullconn.yaml`.
+- Installed connector defaults plus inert setup templates: `conf/protocols/googlechat.yaml`, `conf/protocols/slack.yaml.sample`, `conf/protocols/ssh.yaml`, `conf/protocols/terminal.yaml`, `conf/protocols/nullconn.yaml`. Active robot-specific changes belong under `custom/conf/`.
 - Brain provider defaults: `conf/brains/*.yaml` (`BrainConfig`).
 - History provider defaults: `conf/history/*.yaml` (`HistoryConfig`).
 - Default job/plugin config examples live under `conf/jobs/` and `conf/plugins/` (e.g., `conf/jobs/pause-notifies.yaml`, `conf/plugins/builtin-help.yaml`).

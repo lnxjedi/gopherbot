@@ -87,12 +87,16 @@ Try the plain topic create first:
 gcloud pubsub topics create "${TOPIC_ID}"
 ```
 
-If your organization policy blocks topic creation because the storage region is not explicit, retry with:
+Do not add `--message-storage-policy-allowed-regions="${REGION}"` here if this
+topic might ever be reused for Google Chat ambient Workspace Events.
 
-```bash
-gcloud pubsub topics create "${TOPIC_ID}" \
-  --message-storage-policy-allowed-regions="${REGION}"
-```
+Why this matters:
+
+- a narrow Pub/Sub topic region policy can look fine during initial setup
+- later, Workspace Events subscriptions can become `SUSPENDED` with reason
+  `OTHER` when Google publishes from another region
+- that failure is extremely difficult to trace back to the original topic
+  create command
 
 ### 2. Grant Chat Permission To Publish
 

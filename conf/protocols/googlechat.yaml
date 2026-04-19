@@ -4,7 +4,7 @@
 ProtocolConfig:
   # ProjectID: your-gcp-project-id
   ## NOTE, if the gcloud/README.md was used, the configured values
-  ## shouldn't need and override.
+  ## usually should not need a custom override.
   SubscriptionID: gopherbot-chat-sub
   CredentialsEncryptedFile: gopherbot-key.json.enc
   ## When true, the connector creates and maintains per-space Google Workspace

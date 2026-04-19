@@ -130,7 +130,7 @@ func (gc *googleChatConnector) ensureAmbientSubscriptionForSpace(ctx context.Con
 			Ttl: durationString(4 * time.Hour),
 		})
 		if err == nil {
-			gc.Log(robot.Info, "Google Chat ambient subscription created for %s", space.Name)
+			gc.Log(robot.Debug, "Google Chat ambient subscription created for %s", space.Name)
 		}
 		return err
 	}
@@ -170,7 +170,7 @@ func (gc *googleChatConnector) deleteAmbientSubscriptionForSpace(ctx context.Con
 		if err := gc.workspaceEvents.deleteSubscription(ctx, subscription.Name, true); err != nil {
 			return err
 		}
-		gc.Log(robot.Info, "Google Chat ambient subscription deleted for %s", spaceName)
+		gc.Log(robot.Debug, "Google Chat ambient subscription deleted for %s", spaceName)
 	}
 	return nil
 }
@@ -205,7 +205,7 @@ func (gc *googleChatConnector) handleSpaceLifecycleEvent(event *chatEvent) error
 	if event == nil {
 		return nil
 	}
-	gc.Log(robot.Info, "Google Chat event %s for %s", event.Type, spaceName)
+	gc.Log(robot.Debug, "Google Chat event %s for %s", event.Type, spaceName)
 	if !gc.ambientMessages || strings.TrimSpace(spaceName) == "" {
 		return nil
 	}
@@ -326,9 +326,6 @@ func (gc *googleChatConnector) normalizeAmbientMessage(message *chatapi.Message)
 	if message.Space != nil {
 		gc.cacheAPIChannel(message.Space)
 	}
-	if canonicalUser == "" {
-		gc.logUnmappedAPIUser(sender)
-	}
 	channelID := ""
 	channelName := ""
 	direct := false
@@ -403,23 +400,6 @@ func (gc *googleChatConnector) cacheAPIUser(user *chatapi.User) string {
 		gc.usersByName[record.CanonicalName] = record
 	}
 	return record.CanonicalName
-}
-
-func (gc *googleChatConnector) logUnmappedAPIUser(user *chatapi.User) {
-	if user == nil {
-		return
-	}
-	resource := normalizeUserResource(user.Name)
-	if resource == "" {
-		return
-	}
-	gc.mu.Lock()
-	defer gc.mu.Unlock()
-	if gc.unmappedUsers[resource] {
-		return
-	}
-	gc.unmappedUsers[resource] = true
-	gc.Log(robot.Warn, "Google Chat user is not mapped in ProtocolConfig.UserMap: display=%q id=%q", user.DisplayName, resource)
 }
 
 func (gc *googleChatConnector) cacheAPIChannel(space *chatapi.Space) {

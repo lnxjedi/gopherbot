@@ -36,7 +36,6 @@ func TestNormalizeAmbientMessageMappedUser(t *testing.T) {
 		usersByName:      make(map[string]chatUserRecord),
 		channelsByID:     make(map[string]chatChannelRecord),
 		channelIDsByName: make(map[string]string),
-		unmappedUsers:    make(map[string]bool),
 	}
 	msg, ok := connector.normalizeAmbientMessage(&chatapi.Message{
 		Name:        "spaces/AAAA/messages/BBBB",
@@ -73,7 +72,6 @@ func TestNormalizeAmbientMessageMentionBecomesBotMessage(t *testing.T) {
 		usersByName:      make(map[string]chatUserRecord),
 		channelsByID:     make(map[string]chatChannelRecord),
 		channelIDsByName: make(map[string]string),
-		unmappedUsers:    make(map[string]bool),
 	}
 	msg, ok := connector.normalizeAmbientMessage(&chatapi.Message{
 		Name:         "spaces/AAAA/messages/BBBB",
@@ -115,7 +113,6 @@ func TestNormalizeAmbientMessageMidSentenceMentionIsRewritten(t *testing.T) {
 		usersByName:      make(map[string]chatUserRecord),
 		channelsByID:     make(map[string]chatChannelRecord),
 		channelIDsByName: make(map[string]string),
-		unmappedUsers:    make(map[string]bool),
 	}
 	msg, ok := connector.normalizeAmbientMessage(&chatapi.Message{
 		Name:   "spaces/AAAA/messages/BBBB",
@@ -154,7 +151,6 @@ func TestNormalizeAmbientMessageFallsBackToCachedChannelDisplayName(t *testing.T
 		usersByName:      make(map[string]chatUserRecord),
 		channelsByID:     map[string]chatChannelRecord{"spaces/AAAA": {ResourceName: "spaces/AAAA", DisplayName: "random"}},
 		channelIDsByName: map[string]string{"random": "spaces/AAAA"},
-		unmappedUsers:    make(map[string]bool),
 	}
 
 	msg, ok := connector.normalizeAmbientMessage(&chatapi.Message{
@@ -180,7 +176,6 @@ func TestHandleWorkspaceMessageCreated(t *testing.T) {
 		usersByName:      make(map[string]chatUserRecord),
 		channelsByID:     make(map[string]chatChannelRecord),
 		channelIDsByName: make(map[string]string),
-		unmappedUsers:    make(map[string]bool),
 		recentMessages:   make(map[string]time.Time),
 	}
 

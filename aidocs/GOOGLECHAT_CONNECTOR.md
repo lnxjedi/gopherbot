@@ -8,7 +8,8 @@ This file captures Google Chat connector behavior relevant to routing, hidden co
 - Incoming event normalization + send behavior: `connectors/googlechat/connector.go`
 - Ambient Workspace Events subscription lifecycle + CloudEvent normalization: `connectors/googlechat/ambient.go`, `connectors/googlechat/workspaceevents.go`
 - BasicMarkdown rendering: `connectors/googlechat/basic_markdown.go`
-- Sample config: `conf/protocols/googlechat.yaml.sample`
+- Installed default config: `conf/protocols/googlechat.yaml` (custom robots
+  override from `custom/conf/protocols/googlechat.yaml`)
 - Shared Google credential loading: `internal/gcloud/credentials.go`
 
 ## Transport Model
@@ -16,13 +17,17 @@ This file captures Google Chat connector behavior relevant to routing, hidden co
 - Google Chat uses the Chat API for outbound messages and a Pub/Sub pull subscription for inbound events.
 - Connector initialization loads encrypted service-account credentials through `Handler.ReadEncryptedFile(...)` and `internal/gcloud`.
 - Runtime receive uses one Pub/Sub goroutine with one outstanding message at a time so connector-local event handling remains serialized.
-- At `Info` log level, the connector logs concise summaries of inbound Pub/Sub deliveries so operators can distinguish Chat interaction events from Workspace Events deliveries while debugging Google-side configuration.
+- At `Trace` log level, the connector logs concise summaries of inbound Pub/Sub deliveries so operators can distinguish Chat interaction events from Workspace Events deliveries while debugging Google-side configuration.
 - The connector is text-only in v1. It does not expose cards, dialogs, or other Google Chat-specific UI surfaces through the shared connector contract.
 - The same Pub/Sub subscription receives both normal Chat interaction events and Google Workspace Events CloudEvents when ambient-space subscriptions are enabled.
 
 ## Ambient Message Support
 
 - `ProtocolConfig.AmbientMessages` enables connector-managed Google Workspace Events subscriptions.
+- The installed default Google Chat config lives in `conf/protocols/googlechat.yaml`.
+  Custom robots should override only the fields they need in
+  `custom/conf/protocols/googlechat.yaml` rather than copying the full default
+  unless they are intentionally redefining behavior.
 - When enabled, the connector:
   - lists non-DM spaces the app is already a member of
   - creates or renews a per-space Workspace Events subscription targeting the shared Pub/Sub topic
@@ -32,6 +37,11 @@ This file captures Google Chat connector behavior relevant to routing, hidden co
 - Ambient delivery currently subscribes to Chat message-created events and normalizes them into the same `ConnectorMessage` flow as interaction events.
 - This path requires administrator-approved `chat.app.*` scopes and the Google Workspace Events API. Terraform remains project-level only; the connector owns per-space subscription lifecycle.
 - Because Chat app ambient subscriptions currently use payload data, subscription TTL is short-lived and the connector renews them automatically.
+- The shared Pub/Sub topic must not be created with a narrow
+  `--message-storage-policy-allowed-regions=...` setting. A topic pinned to a
+  single region can look healthy at first and later cause ambient Workspace
+  Events subscriptions to become `SUSPENDED` with suspension reason `OTHER`
+  when Google publishes from another region.
 
 ## Identity Mapping
 
@@ -40,11 +50,8 @@ This file captures Google Chat connector behavior relevant to routing, hidden co
 - Inbound interaction events carry the Google Chat user resource name (for example `users/12345678901234567890`) as `ConnectorMessage.UserID`.
 - If the resource name exists in `ProtocolConfig.UserMap`, the connector sets `ConnectorMessage.UserName` to the canonical Gopherbot username and sets `ConnectorMessage.ValidatedUser=true`.
 - Outbound user-targeted sends only treat `users/{id}` (or bracketed internal IDs) as transport IDs. Canonical usernames are resolved through `ProtocolConfig.UserMap` / cached records; the connector must not invent `users/<username>` resource names from arbitrary text.
-- If a human user is not mapped, the connector leaves canonical username unset and logs a one-time warning including:
-  - display name
-  - email (when provided by Chat)
-  - Google Chat user resource name
-- This warning is the intended operator-discovery path for finding the internal Google Chat user ID to add to `UserMap`.
+- If a human user is not mapped, the connector leaves canonical username unset and `ValidatedUser=false`.
+- Internal Google Chat user IDs should be discovered through the built-in `validate user <username>` flow rather than passive warning logs.
 
 ## Inbound Message Normalization
 

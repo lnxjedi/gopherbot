@@ -160,7 +160,6 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.InitializedConnector
 		usersByName:       make(map[string]chatUserRecord),
 		channelsByID:      make(map[string]chatChannelRecord),
 		channelIDsByName:  make(map[string]string),
-		unmappedUsers:     make(map[string]bool),
 		recentMessages:    make(map[string]time.Time),
 	}
 	connector.rebuildConfiguredUserIndexes()

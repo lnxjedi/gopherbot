@@ -81,7 +81,6 @@ func TestResolveUserIDDoesNotInventResourceNameFromUsername(t *testing.T) {
 		usersByName:      make(map[string]chatUserRecord),
 		channelsByID:     make(map[string]chatChannelRecord),
 		channelIDsByName: make(map[string]string),
-		unmappedUsers:    make(map[string]bool),
 	}
 
 	got, ok := connector.resolveUserID("parsley", "parsley")
@@ -99,7 +98,6 @@ func TestNormalizeIncomingMentionRewritesToBotNameWithoutBotMessage(t *testing.T
 		usersByName:      make(map[string]chatUserRecord),
 		channelsByID:     make(map[string]chatChannelRecord),
 		channelIDsByName: make(map[string]string),
-		unmappedUsers:    make(map[string]bool),
 	}
 	msg, ok := connector.normalizeIncomingMessage(&chatEvent{
 		Type: "MESSAGE",
@@ -145,7 +143,6 @@ func TestNormalizeIncomingSlashCommandRemainsExplicit(t *testing.T) {
 		usersByName:      make(map[string]chatUserRecord),
 		channelsByID:     make(map[string]chatChannelRecord),
 		channelIDsByName: make(map[string]string),
-		unmappedUsers:    make(map[string]bool),
 	}
 	msg, ok := connector.normalizeIncomingMessage(&chatEvent{
 		Type: "MESSAGE",
@@ -179,7 +176,6 @@ func TestNormalizeIncomingMessageFallsBackToCachedChannelDisplayName(t *testing.
 		usersByName:      make(map[string]chatUserRecord),
 		channelsByID:     map[string]chatChannelRecord{"spaces/AAAA": {ResourceName: "spaces/AAAA", DisplayName: "random"}},
 		channelIDsByName: map[string]string{"random": "spaces/AAAA"},
-		unmappedUsers:    make(map[string]bool),
 	}
 
 	msg, ok := connector.normalizeIncomingMessage(&chatEvent{

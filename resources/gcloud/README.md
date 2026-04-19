@@ -96,6 +96,15 @@ Important values:
 - `SERVICE_ACCOUNT_KEY_JSON`
 - `ROBOT_NAME`
 
+Important warning:
+
+- `REGION` is for Firestore and other explicitly regional resources.
+- Do not create the shared Google Chat Pub/Sub topic with
+  `--message-storage-policy-allowed-regions="${REGION}"`.
+- A topic can look healthy at first and later cause ambient Workspace Events
+  subscriptions to become `SUSPENDED` with reason `OTHER` when Google publishes
+  from another region.
+
 Then source it:
 
 ```bash
@@ -173,6 +182,9 @@ Important note:
 - the script retries the create/bind steps most likely to fail during that
   propagation window, including the first service-account/IAM updates
 - if it still fails, wait a minute and rerun it
+- the helper script intentionally creates the Pub/Sub topic without an explicit
+  message storage policy because a narrow region policy can later suspend Google
+  Chat ambient Workspace Events subscriptions with reason `OTHER`
 
 ## Step 8: Create The Service-Account Key And Encrypt It
 
@@ -215,7 +227,13 @@ subscription, and encrypted credential file.
 
 The sample config remains:
 
-- [`conf/protocols/googlechat.yaml.sample`](/home/david/git/gopherbot-work/gopherbot/conf/protocols/googlechat.yaml.sample)
+- [`conf/protocols/googlechat.yaml`](/home/david/git/gopherbot-work/gopherbot/conf/protocols/googlechat.yaml)
+
+That file is the installed default Google Chat connector config shipped with the
+engine. For a real robot, keep local changes in
+`custom/conf/protocols/googlechat.yaml` as overrides instead of editing the
+installed default in place. This installed-default plus custom-override pattern
+is the normal Gopherbot config model.
 
 ## Step 10: Configure The Google Chat API
 
@@ -354,6 +372,9 @@ ProtocolConfig:
   SlashCommand: <your robot's slash command> (e.g. bishop)
 ```
 
+Put those overrides in `custom/conf/protocols/googlechat.yaml`, leaving the
+installed `conf/protocols/googlechat.yaml` as the engine-shipped default base.
+
 Start the robot and watch the logs.
 
 You want to see:
@@ -389,6 +410,12 @@ Expected behavior:
 - If the app appears installed only for your user, that is not enough for the
   ambient `chat.app.*` flow.
 - If Google makes you configure Branding first, choose **Internal**.
+- If ambient subscriptions later become `SUSPENDED` with reason `OTHER`, inspect
+  how the Pub/Sub topic was created.
+- If someone created the topic with
+  `--message-storage-policy-allowed-regions="${REGION}"` or another narrow
+  region list, that can be the root cause even when the app initially seemed to
+  work.
 
 ## Reference Docs
 

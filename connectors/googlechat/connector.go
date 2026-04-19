@@ -78,7 +78,6 @@ type googleChatConnector struct {
 	usersByName      map[string]chatUserRecord
 	channelsByID     map[string]chatChannelRecord
 	channelIDsByName map[string]string
-	unmappedUsers    map[string]bool
 	recentMessages   map[string]time.Time
 }
 
@@ -117,14 +116,14 @@ func (gc *googleChatConnector) Run(stop <-chan struct{}) {
 func (gc *googleChatConnector) handlePubSubMessage(msg *pubsub.Message) error {
 	attrSummary := summarizePubSubAttributes(msg.Attributes)
 	if eventType := strings.TrimSpace(msg.Attributes["ce-type"]); eventType != "" {
-		gc.Log(robot.Info, "Google Chat Pub/Sub workspace event received: id=%q type=%q attrs=%s bytes=%d", msg.ID, eventType, attrSummary, len(msg.Data))
+		gc.Log(robot.Trace, "Google Chat Pub/Sub workspace event received: id=%q type=%q attrs=%s bytes=%d", msg.ID, eventType, attrSummary, len(msg.Data))
 		return gc.handleWorkspaceEventMessage(msg, eventType)
 	}
 	var event chatEvent
 	if err := json.Unmarshal(msg.Data, &event); err != nil {
 		return fmt.Errorf("parsing Google Chat event JSON (attrs=%s preview=%q): %w", attrSummary, diagnosticPreviewBytes(msg.Data), err)
 	}
-	gc.Log(robot.Info, "Google Chat interaction event received: id=%q %s attrs=%s bytes=%d", msg.ID, summarizeChatEvent(&event), attrSummary, len(msg.Data))
+	gc.Log(robot.Trace, "Google Chat interaction event received: id=%q %s attrs=%s bytes=%d", msg.ID, summarizeChatEvent(&event), attrSummary, len(msg.Data))
 	return gc.handleEvent(&event)
 }
 
@@ -204,9 +203,6 @@ func (gc *googleChatConnector) normalizeIncomingMessage(event *chatEvent) (*robo
 	canonicalUser := gc.cacheUser(user)
 	if space != nil {
 		gc.cacheChannel(space)
-	}
-	if canonicalUser == "" {
-		gc.logUnmappedUser(user)
 	}
 
 	botMessage := gc.isExplicitBotMessage(event)
@@ -351,20 +347,6 @@ func (gc *googleChatConnector) channelDisplayName(resourceName, fallback string)
 	return ""
 }
 
-func (gc *googleChatConnector) logUnmappedUser(user *chatEventUser) {
-	resource := normalizeUserResource(user.Name)
-	if resource == "" {
-		return
-	}
-	gc.mu.Lock()
-	defer gc.mu.Unlock()
-	if gc.unmappedUsers[resource] {
-		return
-	}
-	gc.unmappedUsers[resource] = true
-	gc.Log(robot.Warn, "Google Chat user is not mapped in ProtocolConfig.UserMap: display=%q email=%q id=%q", user.DisplayName, user.Email, resource)
-}
-
 func (gc *googleChatConnector) GetProtocolUserAttribute(u, attr string) (string, robot.RetVal) {
 	record, ok := gc.lookupUserRecord(u)
 	if !ok {
@@ -425,7 +407,7 @@ func (gc *googleChatConnector) MessageHeard(user, channel string) {}
 func (gc *googleChatConnector) DefaultHelp() []string { return nil }
 
 func (gc *googleChatConnector) JoinChannel(c string) robot.RetVal {
-	gc.Log(robot.Warn, "JoinChannel is not implemented for Google Chat spaces: %s", c)
+	gc.Log(robot.Debug, "JoinChannel is not implemented for Google Chat spaces: %s", c)
 	return robot.FailedChannelJoin
 }
 
