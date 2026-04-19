@@ -389,8 +389,6 @@ Expected behavior:
 - If the app appears installed only for your user, that is not enough for the
   ambient `chat.app.*` flow.
 - If Google makes you configure Branding first, choose **Internal**.
-- If Pub/Sub topic creation is blocked by org policy, set an explicit
-  `PUBSUB_ALLOWED_REGIONS` value in `gcloud.env`.
 
 ## Reference Docs
 
