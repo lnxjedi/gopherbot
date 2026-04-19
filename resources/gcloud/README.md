@@ -347,30 +347,23 @@ In the Google Admin console:
 This is the point where the one-time administrator approval for
 `chat.app.messages.readonly` effectively happens.
 
-## Step 16: Turn On Ambient Messages And Restart The Robot
+## Step 16: Configure Google Chat and Start Your Robot
 
 In the robot's Google Chat protocol config:
 
 ```yaml
 ProtocolConfig:
-  AmbientMessages: true
+  ProjectID: <your project ID>
+  SlashCommand: <your robot's slash command> (e.g. bishop)
 ```
 
-Keep the already-working interactive values unchanged:
-
-- `ProjectID`
-- `SubscriptionID`
-- `CredentialsEncryptedFile`
-- `UserMap`
-- `SlashCommand`
-
-Restart the robot and watch the logs.
+Start the robot and watch the logs.
 
 You want to see:
 
 - ambient subscription creation for joined spaces
 - no new permission errors
-- DM, `@mention`, and slash-command behavior still working
+- DM, `@mention`, and slash-command behavior working
 
 ## Step 17: Test Ambient Behavior
 
@@ -392,7 +385,6 @@ Expected behavior:
 
 ## Troubleshooting
 
-- If the interactive baseline does not work, stop there and debug that first.
 - If resource creation fails right after project creation, billing setup, or
   API enablement, wait a minute and rerun the script.
 - If ambient subscription creation fails with a 403 about missing approval, the
