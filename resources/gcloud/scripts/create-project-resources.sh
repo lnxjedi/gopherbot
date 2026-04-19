@@ -20,12 +20,7 @@ create_firestore_database() {
 }
 
 create_pubsub_topic() {
-  if [[ -n "${PUBSUB_ALLOWED_REGIONS:-}" ]]; then
-    gcloud pubsub topics create "${TOPIC_ID}" \
-      --message-storage-policy-allowed-regions="${PUBSUB_ALLOWED_REGIONS}"
-  else
-    gcloud pubsub topics create "${TOPIC_ID}"
-  fi
+  gcloud pubsub topics create "${TOPIC_ID}"
 }
 
 grant_chat_publish_permission() {

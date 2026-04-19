@@ -174,9 +174,6 @@ Important note:
   propagation window, including the first service-account/IAM updates
 - if it still fails, wait a minute and rerun it
 
-If your organization requires an explicit Pub/Sub storage region, set
-`PUBSUB_ALLOWED_REGIONS` in `gcloud.env` and rerun the script.
-
 ## Step 8: Create The Service-Account Key And Encrypt It
 
 Create the plaintext key:
