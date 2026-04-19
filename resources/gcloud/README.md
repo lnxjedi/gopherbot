@@ -8,12 +8,8 @@ The goal is to finish with:
 - a new GCP project
 - Firestore, Pub/Sub, IAM, and service-account resources in place
 - a working Chat app for DM, `@mention`, and slash-command use
+- full access to all messages in invited spaces enabled through Marketplace publish + Workspace admin install
 - a `gopherbot-key.json.enc` file stored with the robot
-- optional ambient space-message support enabled through Marketplace publish +
-  Workspace admin install
-
-This directory's older `cloud_shell/` and `terraform/` material is now
-reference-only. The preferred path is Cloud Shell Editor plus `gcloud`.
 
 ## Best Google Docs
 
@@ -243,30 +239,14 @@ Use values like these:
 - **Avatar URL**: the public HTTPS URL for the avatar image
 - **Description**: short and internal
 - **Functionality**:
-  - enable **Receive 1:1 messages**
   - enable **Join spaces and group conversations**
 - **Connection settings**: **Cloud Pub/Sub**
-- **Topic ID**: `projects/${PROJECT_ID}/topics/${TOPIC_ID}`
+- **Topic ID**: `projects/${PROJECT_ID}/topics/${TOPIC_ID}` (this value was output during resource creation)
 - **Commands**: add your slash command, for example `/bishop`
+- **Visibility**: clear the checkbox for making the app visible to specific users - this app will be shared with all users via admin install
 - **Logs**: enable **Log errors to Logging**
 
-Practical note:
-
-- do not spend time curating a tester list here
-- if the current UI insists on a specific test user before later publish/admin
-  install steps, add only yourself and move on
-
-## Step 11: Verify The Interactive Baseline
-
-Before touching Marketplace or ambient setup, verify all of these work:
-
-- DM the bot: `ping`
-- mention the bot in a space: `@Bishop help`
-- slash command: `/bishop ping`
-
-Do not continue until those are working.
-
-## Step 12: Prepare The Service Account For Chat App Authorization
+## Step 11: Prepare The Service Account For Chat App Authorization
 
 Ambient message support requires app-auth scopes, which means Google wants a
 Marketplace-compatible OAuth client tied to the service account.
@@ -292,7 +272,7 @@ If Google blocks that step and demands branding or consent-screen setup first:
 This is a Google platform prerequisite for `chat.app.*` approval. It is not the
 normal runtime auth model for the bot.
 
-## Step 13: Configure Marketplace SDK For Ambient Messages
+## Step 12: Configure Marketplace SDK For Ambient Messages
 
 Open:
 
@@ -316,7 +296,7 @@ Important notes:
 
 Save the draft when App Configuration is complete.
 
-## Step 14: Fill The Store Listing And Publish Privately
+## Step 13: Fill The Store Listing And Publish Privately
 
 Open the **Store Listing** tab in Marketplace SDK.
 
@@ -348,7 +328,7 @@ Publish the app as a private Marketplace app for your organization.
 After private publish, the app should appear under **Internal Apps** for the
 organization.
 
-## Step 15: Have A Workspace Admin Do The Admin Install
+## Step 14: Have A Workspace Admin Do The Admin Install
 
 This step matters. `Individual install` is not enough for the app-auth scope
 approval path.
