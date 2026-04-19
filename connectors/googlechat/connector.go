@@ -30,6 +30,7 @@ const (
 	ambientRenewInterval    = 90 * time.Minute
 	recentMessageWindow     = 2 * time.Minute
 	ambientSubscriptionLead = 90 * time.Minute
+	robotValidationTTL      = 30 * time.Second
 )
 
 var googleChatRequestSeq atomic.Uint64
@@ -65,6 +66,7 @@ type googleChatConnector struct {
 	subscriptionID    string
 	subscriptionTopic string
 	botName           string
+	selfID            string
 	slashCommand      string
 
 	ambientMessages bool
@@ -88,6 +90,7 @@ type googleChatConnector struct {
 	channelsByID     map[string]chatChannelRecord
 	channelIDsByName map[string]string
 	recentMessages   map[string]time.Time
+	robotValidation  map[string]robotValidationRequest
 }
 
 func (gc *googleChatConnector) rebuildConfiguredUserIndexes() {
@@ -98,9 +101,19 @@ func (gc *googleChatConnector) rebuildConfiguredUserIndexes() {
 	gc.configuredUsers = configured
 }
 
+func (gc *googleChatConnector) runtimeBotID() string {
+	gc.mu.RLock()
+	defer gc.mu.RUnlock()
+	if gc.selfID != "" {
+		return gc.selfID
+	}
+	return "users/app"
+}
+
 func (gc *googleChatConnector) Run(stop <-chan struct{}) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	defer clearActiveGoogleChatConnector(gc)
 
 	gc.subscription.ReceiveSettings.NumGoroutines = 1
 	gc.subscription.ReceiveSettings.MaxOutstandingMessages = 1
@@ -149,6 +162,9 @@ func (gc *googleChatConnector) handleEvent(event *chatEvent) error {
 		if !gc.shouldProcessMessage(msg.MessageID) {
 			return nil
 		}
+		if gc.consumeRobotValidationForEvent(event) {
+			return nil
+		}
 		gc.IncomingMessage(msg)
 		return nil
 	case "ADDED_TO_SPACE", "REMOVED_FROM_SPACE":
@@ -182,7 +198,7 @@ func (gc *googleChatConnector) normalizeIncomingMessage(event *chatEvent) (*robo
 		gc.Log(robot.Warn, "Ignoring Google Chat event with empty user name: %+v", user)
 		return nil, false
 	}
-	if userID == "users/app" {
+	if gc.isBotResource(userID) {
 		return &robot.ConnectorMessage{
 			Protocol:      "googlechat",
 			UserID:        userID,

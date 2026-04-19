@@ -15,7 +15,8 @@ import (
 )
 
 type logOnlyHandler struct {
-	logs []string
+	logs  []string
+	botID string
 }
 
 func (h *logOnlyHandler) IncomingMessage(*robot.ConnectorMessage)  {}
@@ -24,7 +25,7 @@ func (h *logOnlyHandler) GetBrainConfig(interface{}) error         { return nil 
 func (h *logOnlyHandler) GetEventStrings() *[]string               { return nil }
 func (h *logOnlyHandler) GetHistoryConfig(interface{}) error       { return nil }
 func (h *logOnlyHandler) GetBotInfo() robot.BotInfo                { return robot.BotInfo{} }
-func (h *logOnlyHandler) SetBotID(string)                          {}
+func (h *logOnlyHandler) SetBotID(id string)                       { h.botID = id }
 func (h *logOnlyHandler) SetTerminalWriter(io.Writer)              {}
 func (h *logOnlyHandler) SetBotMention(string)                     {}
 func (h *logOnlyHandler) GetLogLevel() robot.LogLevel              { return robot.Debug }
@@ -140,6 +141,49 @@ func TestNormalizeIncomingMentionRewritesToBotNameWithoutBotMessage(t *testing.T
 	}
 }
 
+func TestNormalizeIncomingMentionRewritesToBotNameWithConfiguredSelfID(t *testing.T) {
+	mentionText := "@Bishop Gopherbot"
+	connector := &googleChatConnector{
+		Handler:          &logOnlyHandler{},
+		botName:          "bishop",
+		selfID:           "users/999",
+		usersByID:        make(map[string]chatUserRecord),
+		usersByName:      make(map[string]chatUserRecord),
+		channelsByID:     make(map[string]chatChannelRecord),
+		channelIDsByName: make(map[string]string),
+	}
+	msg, ok := connector.normalizeIncomingMessage(&chatEvent{
+		Type: "MESSAGE",
+		User: &chatEventUser{Name: "users/123", DisplayName: "Alice Example"},
+		Space: &chatEventSpace{
+			Name:        "spaces/AAAA",
+			DisplayName: "Ops",
+			SpaceType:   "SPACE",
+		},
+		Message: &chatEventMessage{
+			Name: "spaces/AAAA/messages/BBBB",
+			Text: mentionText + " ping",
+			Annotations: []*chatEventAnnotation{
+				{
+					Type:       "USER_MENTION",
+					StartIndex: 0,
+					Length:     len([]rune(mentionText)),
+					UserMention: &chatEventUserMentionMeta{
+						Type: "MENTION",
+						User: &chatEventUser{Name: "users/999", Type: "BOT"},
+					},
+				},
+			},
+		},
+	})
+	if !ok {
+		t.Fatal("normalizeIncomingMessage() = not ok")
+	}
+	if msg.MessageText != "@bishop ping" {
+		t.Fatalf("MessageText = %q", msg.MessageText)
+	}
+}
+
 func TestNormalizeIncomingSlashCommandRemainsExplicit(t *testing.T) {
 	connector := &googleChatConnector{
 		Handler:          &logOnlyHandler{},
@@ -170,6 +214,98 @@ func TestNormalizeIncomingSlashCommandRemainsExplicit(t *testing.T) {
 	}
 	if msg.MessageText != "ping" {
 		t.Fatalf("MessageText = %q", msg.MessageText)
+	}
+}
+
+func TestNormalizeIncomingMessageTreatsConfiguredSelfIDAsSelf(t *testing.T) {
+	connector := &googleChatConnector{
+		Handler:          &logOnlyHandler{},
+		botName:          "bishop",
+		selfID:           "users/999",
+		usersByID:        make(map[string]chatUserRecord),
+		usersByName:      make(map[string]chatUserRecord),
+		channelsByID:     make(map[string]chatChannelRecord),
+		channelIDsByName: make(map[string]string),
+	}
+	msg, ok := connector.normalizeIncomingMessage(&chatEvent{
+		Type: "MESSAGE",
+		User: &chatEventUser{Name: "users/999", Type: "BOT"},
+		Message: &chatEventMessage{
+			Name: "spaces/AAAA/messages/BBBB",
+			Text: "hello from self",
+		},
+	})
+	if !ok {
+		t.Fatal("normalizeIncomingMessage() = not ok")
+	}
+	if !msg.SelfMessage {
+		t.Fatal("expected self message")
+	}
+}
+
+func TestHandleEventRobotValidationLearnsSelfID(t *testing.T) {
+	handler := &logOnlyHandler{}
+	connector := &googleChatConnector{
+		Handler:          handler,
+		botName:          "bishop",
+		retrySleep:       func(time.Duration) {},
+		usersByID:        make(map[string]chatUserRecord),
+		usersByName:      make(map[string]chatUserRecord),
+		channelsByID:     make(map[string]chatChannelRecord),
+		channelIDsByName: make(map[string]string),
+		recentMessages:   make(map[string]time.Time),
+	}
+
+	code, resultCh, err := connector.IssueRobotValidation()
+	if err != nil {
+		t.Fatalf("IssueRobotValidation() error = %v", err)
+	}
+	if resultCh == nil {
+		t.Fatal("IssueRobotValidation() returned nil result channel")
+	}
+
+	err = connector.handleEvent(&chatEvent{
+		Type: "MESSAGE",
+		User: &chatEventUser{Name: "users/123", DisplayName: "Alice Example", Type: "HUMAN"},
+		Space: &chatEventSpace{
+			Name:      "spaces/AAA",
+			SpaceType: "SPACE",
+		},
+		Message: &chatEventMessage{
+			Name: "spaces/AAA/messages/BBBB",
+			Text: "@Bishop " + code,
+			Annotations: []*chatEventAnnotation{
+				{
+					Type:       "USER_MENTION",
+					StartIndex: 0,
+					Length:     len([]rune("@Bishop")),
+					UserMention: &chatEventUserMentionMeta{
+						Type: "MENTION",
+						User: &chatEventUser{Name: "users/999", Type: "BOT"},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("handleEvent() error = %v", err)
+	}
+	if got := connector.CurrentSelfID(); got != "users/999" {
+		t.Fatalf("CurrentSelfID() = %q", got)
+	}
+	if handler.botID != "users/999" {
+		t.Fatalf("SetBotID() = %q", handler.botID)
+	}
+	select {
+	case result := <-resultCh:
+		if result.BotID != "users/999" {
+			t.Fatalf("result.BotID = %q", result.BotID)
+		}
+		if result.AckSpace != "spaces/AAA" {
+			t.Fatalf("result.AckSpace = %q", result.AckSpace)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for validation result")
 	}
 }
 

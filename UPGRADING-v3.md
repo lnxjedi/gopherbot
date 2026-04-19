@@ -52,6 +52,42 @@ Upgrade actions:
 2. Create the required `ParameterSets` in custom config and attach them explicitly to each extension/job/task that uses that provider.
 3. Do not rely on stock defaults to activate credentialed extensions automatically.
 
+## 2026-04-19 Google Chat Variable Portability Note
+
+Google Chat `Variable` output now uses connector-local homoglyph substitution for punctuation that Google Chat otherwise reparses as text-message formatting.
+
+Behavior note:
+
+- This improves approximate visual literal display for Google Chat `Variable` sends.
+- It does not preserve byte-for-byte authored text, so copy/paste fidelity is intentionally weaker than Slack's block-backed `Variable` rendering.
+- Google Chat `Raw` remains protocol-native passthrough and is therefore also non-portable for literal display.
+
+Guidance:
+
+1. Prefer `BasicMarkdown` for portable rich formatting across SaaS chat connectors.
+2. Prefer `Fixed` when you need stable literal-ish display in both Slack and Google Chat.
+3. Treat `Variable` and `Raw` as connector-sensitive modes on SaaS chat connectors rather than portable formatting contracts.
+
+Forward-looking note:
+
+- For a future v4 planning pass, `Variable` and possibly `Raw` should be reviewed as candidates for de-emphasis or deprecation as portable formats on SaaS chat connectors.
+
+## 2026-04-19 Google Chat SelfID Config Note
+
+Google Chat now supports a connector-local `ProtocolConfig.SelfID` value for the bot's numeric `users/{id}`.
+
+Behavior and guidance:
+
+- Do not place the robot's own numeric Google Chat ID in `ProtocolConfig.UserMap`.
+- Use `ProtocolConfig.UserMap` only for human canonical username mapping.
+- Use `ProtocolConfig.SelfID` for the bot's own numeric Google Chat identity when available.
+- Administrators can bootstrap this value with the connector-owned `google validate robot` command from any validated admin DM or hidden context, then persist the learned ID into custom Google Chat protocol config if desired.
+
+Why this exists:
+
+- Google Chat can return the bot's own messages and mention annotations with a numeric bot `users/{id}` instead of the alias `users/app`.
+- Separating `SelfID` from `UserMap` lets the connector recognize self messages and bot mentions without forcing the robot to masquerade as a human roster mapping.
+
 ## 2026-02-18 Provider Config Layout Update (Slice 1)
 
 Provider-specific configuration moved out of `conf/robot.yaml`:

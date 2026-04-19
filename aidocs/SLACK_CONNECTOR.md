@@ -55,8 +55,11 @@ This file captures Slack connector behavior relevant to routing, hidden commands
 - `Raw` keeps legacy Slack-native behavior (including connector-local `@username` handling outside fenced blocks).
 - Targeted `Raw` replies add the live mention prefix after Raw formatting so Slack mention tokens are not re-parsed as plain text.
 - `Variable` sends a Block Kit `rich_text` block with a plain `rich_text_section` so the visible body preserves the exact message text without relying on Slack markdown parsing.
+- Slack does not use zero-width spaces for this visible `Variable` body; visual rendering and normal copy/paste fidelity are preserved for the block-backed text.
 - `Fixed` sends a Block Kit `rich_text` block using `rich_text_preformatted` so fixed-width output renders as native Slack preformatted content instead of literal triple-backtick fences.
+- Slack does not use zero-width spaces for this visible `Fixed` body either; visual rendering and normal copy/paste fidelity are preserved for the block-backed preformatted text.
 - Block-backed `Variable` / `Fixed` sends still include top-level fallback text for notifications/accessibility and legacy RTM fallback behavior.
+- Some fallback/legacy Slack text paths still use connector-local soft-hyphen padding to avoid Slack re-parsing, but that is distinct from the visible block-backed `Variable` / `Fixed` body and is not a Google Chat-style ZWSP literalization strategy.
 - Long `Variable` / `Fixed` sends currently use a conservative application chunk size of 2,800 characters per chunk rather than Slack's theoretical maximum for these block types.
 - Targeted user-in-channel sends use a readable literal prefix in block-backed output (for example `@alice: ...`) instead of exposing Slack internal mention tokens in the visible body.
 - `BasicMarkdown` is sent through Slack's native `markdown_text` field for normal Web API sends.

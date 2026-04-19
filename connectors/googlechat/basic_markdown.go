@@ -21,13 +21,27 @@ var basicMarkdownCoreEmoji = map[string]string{
 	"thumbsdown":       "\U0001f44e",
 }
 
+const googleChatZWSP = "\u200B"
+
+const (
+	googleChatHomoglyphAsterisk    = "\u2217"
+	googleChatHomoglyphUnderscore  = "\uff3f"
+	googleChatHomoglyphTilde       = "\uff5e"
+	googleChatHomoglyphBacktick    = "\uff40"
+	googleChatHomoglyphLessThan    = "\uff1c"
+	googleChatHomoglyphGreaterThan = "\uff1e"
+	googleChatHomoglyphHyphen      = "\u2010"
+)
+
 func (gc *googleChatConnector) renderMessageText(msg string, format robot.MessageFormat) string {
 	switch format {
 	case robot.BasicMarkdown:
 		return gc.renderBasicMarkdown(msg)
 	case robot.Fixed:
 		return gc.renderFixed(msg)
-	case robot.Raw, robot.Variable:
+	case robot.Variable:
+		return renderGoogleChatVariableLiteralText(msg)
+	case robot.Raw:
 		return msg
 	default:
 		return msg
@@ -38,7 +52,7 @@ func (gc *googleChatConnector) renderFixed(msg string) string {
 	if strings.TrimSpace(msg) == "" {
 		return ""
 	}
-	return "```\n" + msg + "\n```"
+	return "```\n" + renderGoogleChatCodeLiteralText(msg) + "\n```"
 }
 
 func (gc *googleChatConnector) renderBasicMarkdown(msg string) string {
@@ -49,7 +63,7 @@ func (gc *googleChatConnector) renderBasicMarkdown(msg string) string {
 		idx := strings.Index(msg, "```")
 		if idx == -1 {
 			if inFence {
-				out.WriteString(msg)
+				out.WriteString(renderGoogleChatCodeLiteralText(msg))
 			} else {
 				out.WriteString(gc.renderBasicMarkdownInline(msg))
 			}
@@ -58,7 +72,7 @@ func (gc *googleChatConnector) renderBasicMarkdown(msg string) string {
 
 		chunk := msg[:idx]
 		if inFence {
-			out.WriteString(chunk)
+			out.WriteString(renderGoogleChatCodeLiteralText(chunk))
 		} else {
 			out.WriteString(gc.renderBasicMarkdownInline(chunk))
 		}
@@ -99,7 +113,9 @@ func (gc *googleChatConnector) renderBasicMarkdownInline(msg string) string {
 			out.WriteString(gc.renderBasicMarkdownChunk(msg[start:]))
 			break
 		}
-		out.WriteString(msg[start : end+1])
+		out.WriteByte('`')
+		out.WriteString(renderGoogleChatCodeLiteralText(msg[start+1 : end]))
+		out.WriteByte('`')
 		msg = msg[end+1:]
 	}
 	return out.String()
@@ -177,7 +193,7 @@ func markdownPlaceholder(idx int) string {
 
 func restoreEscapedLiterals(msg string, escaped []string) string {
 	for idx, literal := range escaped {
-		msg = strings.ReplaceAll(msg, escapedPlaceholder(idx), literal)
+		msg = strings.ReplaceAll(msg, escapedPlaceholder(idx), renderGoogleChatEscapedLiteral(literal))
 	}
 	return msg
 }
@@ -219,7 +235,7 @@ func replaceBasicMarkdownLinks(msg string) string {
 		}
 		end += close + 2
 
-		label := msg[open+1 : close]
+		label := renderGoogleChatLabelLiteralText(replaceBasicMarkdownEmoji(msg[open+1 : close]))
 		url := msg[close+2 : end]
 		if !isBasicMarkdownLinkURL(url) {
 			out.WriteString(msg[open : end+1])
@@ -243,6 +259,148 @@ func isBasicMarkdownLinkURL(url string) bool {
 		return false
 	}
 	return strings.HasPrefix(url, "https://") || strings.HasPrefix(url, "http://")
+}
+
+func renderGoogleChatVariableLiteralText(msg string) string {
+	var out strings.Builder
+	lineStart := true
+	for i := 0; i < len(msg); i++ {
+		ch := msg[i]
+		if lineStart && i+1 < len(msg) && msg[i+1] == ' ' {
+			switch ch {
+			case '-':
+				out.WriteString(googleChatHomoglyphHyphen)
+				lineStart = false
+				continue
+			case '>':
+				out.WriteString(googleChatHomoglyphGreaterThan)
+				lineStart = false
+				continue
+			}
+		}
+		switch ch {
+		case '*':
+			out.WriteString(googleChatHomoglyphAsterisk)
+		case '_':
+			out.WriteString(googleChatHomoglyphUnderscore)
+		case '~':
+			out.WriteString(googleChatHomoglyphTilde)
+		case '`':
+			out.WriteString(googleChatHomoglyphBacktick)
+		case '<':
+			out.WriteString(googleChatHomoglyphLessThan)
+		case '>':
+			out.WriteString(googleChatHomoglyphGreaterThan)
+		default:
+			out.WriteByte(ch)
+		}
+		lineStart = ch == '\n'
+	}
+	return out.String()
+}
+
+func renderGoogleChatLabelLiteralText(msg string) string {
+	var out strings.Builder
+	for i := 0; i < len(msg); i++ {
+		ch := msg[i]
+		switch ch {
+		case '*', '_', '~', '`', '<', '>', '|':
+			out.WriteString(googleChatZWSP)
+			out.WriteByte(ch)
+			out.WriteString(googleChatZWSP)
+		default:
+			out.WriteByte(ch)
+		}
+	}
+	return out.String()
+}
+
+func renderGoogleChatCodeLiteralText(msg string) string {
+	var out strings.Builder
+	lastWasZWSP := false
+	inURL := false
+	writeZWSP := func() {
+		if lastWasZWSP {
+			return
+		}
+		out.WriteString(googleChatZWSP)
+		lastWasZWSP = true
+	}
+	writeByte := func(ch byte) {
+		out.WriteByte(ch)
+		lastWasZWSP = false
+	}
+
+	for i := 0; i < len(msg); i++ {
+		ch := msg[i]
+		switch ch {
+		case '<', '>', '|':
+			writeZWSP()
+			writeByte(ch)
+			writeZWSP()
+			inURL = ch == '<'
+			continue
+		case ':':
+			if i+2 < len(msg) && msg[i+1] == '/' && msg[i+2] == '/' && looksLikeURLSchemePrefix(msg, i) {
+				writeZWSP()
+				writeByte(ch)
+				writeZWSP()
+				inURL = true
+				continue
+			}
+		case '/', '.', '?', '#', '&', '=', '%':
+			if inURL {
+				writeZWSP()
+				writeByte(ch)
+				writeZWSP()
+				continue
+			}
+		}
+		if inURL {
+			switch ch {
+			case ' ', '\t', '\r', '\n', '>', ')', ']', '}':
+				inURL = false
+			}
+		}
+		writeByte(ch)
+	}
+	return out.String()
+}
+
+func looksLikeURLSchemePrefix(msg string, colon int) bool {
+	if colon <= 0 {
+		return false
+	}
+	start := colon - 1
+	for start >= 0 {
+		ch := msg[start]
+		switch {
+		case ch >= 'a' && ch <= 'z':
+		case ch >= 'A' && ch <= 'Z':
+		case ch >= '0' && ch <= '9':
+		case ch == '+' || ch == '-' || ch == '.':
+		default:
+			start++
+			goto done
+		}
+		start--
+	}
+	start = 0
+done:
+	if start >= colon {
+		return false
+	}
+	first := msg[start]
+	return (first >= 'a' && first <= 'z') || (first >= 'A' && first <= 'Z')
+}
+
+func renderGoogleChatEscapedLiteral(literal string) string {
+	switch literal {
+	case "*", "_", "~", "`", "<", ">", "|":
+		return googleChatZWSP + literal + googleChatZWSP
+	default:
+		return literal
+	}
 }
 
 func replaceBasicMarkdownEmoji(msg string) string {

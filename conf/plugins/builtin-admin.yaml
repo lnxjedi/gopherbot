@@ -2,6 +2,8 @@
 AllChannels: true
 AllowDirect: true
 RequireAdmin: true
+AllowedHiddenCommands:
+- validateuser
 Commands:
 - Command: reload
   # Regex: '(?i:reload)'

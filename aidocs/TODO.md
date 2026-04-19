@@ -44,3 +44,10 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
   - decide what the engine may assume about `userProto` / `userIDProto` population from connector-local identity maps
   - document when connectors may treat a string as an already-resolved transport ID versus when they must resolve a canonical username
   - re-check Slack, Google Chat, SSH, terminal, and test connector behavior against that contract
+
+- [ ] Revisit runtime bot-ID fallback handling (`getRuntimeBotID`) in the engine:
+  The current runtime bot-ID helpers are useful for engine-owned bot identity lookups, but they are tempting as a generic fallback for connector self-message detection.
+  Follow-up goals:
+  - keep self-message shaping connector-authoritative unless we intentionally redefine that contract
+  - document which engine paths may legitimately consult runtime bot IDs
+  - decide whether `getRuntimeBotID` should remain a narrow lookup helper or evolve into a more explicit contract with clearer boundaries

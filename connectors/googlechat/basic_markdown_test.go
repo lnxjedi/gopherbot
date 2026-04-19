@@ -19,6 +19,26 @@ func TestRenderBasicMarkdownConvertsChatTextSyntax(t *testing.T) {
 	}
 }
 
+func TestRenderVariableLiteralizesChatFormatting(t *testing.T) {
+	gc := &googleChatConnector{}
+	in := "*italic* _also_ ~gone~ `code` <https://cnn.com|*CNN*> https://cnn.com\n- list\n> quote"
+	got := gc.renderMessageText(in, robot.Variable)
+	want := "\u2217italic\u2217 \uff3falso\uff3f \uff5egone\uff5e \uff40code\uff40 \uff1chttps://cnn.com|∗CNN∗\uff1e https://cnn.com\n\u2010 list\n\uff1e quote"
+	if got != want {
+		t.Fatalf("renderMessageText() = %q, want %q", got, want)
+	}
+}
+
+func TestRenderFixedLiteralizesInnerFormatting(t *testing.T) {
+	gc := &googleChatConnector{}
+	in := "<https://cnn.com|*CNN*>"
+	got := gc.renderMessageText(in, robot.Fixed)
+	want := "```\n" + googleChatZWSP + "<" + googleChatZWSP + "https" + googleChatZWSP + ":" + googleChatZWSP + "/" + googleChatZWSP + "/" + googleChatZWSP + "cnn" + googleChatZWSP + "." + googleChatZWSP + "com" + googleChatZWSP + "|" + googleChatZWSP + "*CNN*" + googleChatZWSP + ">" + googleChatZWSP + "\n```"
+	if got != want {
+		t.Fatalf("renderMessageText() = %q, want %q", got, want)
+	}
+}
+
 func TestRenderBasicMarkdownEmojiNotParsedInCode(t *testing.T) {
 	gc := &googleChatConnector{}
 	in := "Inline `:joy:`\n```txt\n:rocket:\n```\nDone :rocket:"
@@ -29,11 +49,31 @@ func TestRenderBasicMarkdownEmojiNotParsedInCode(t *testing.T) {
 	}
 }
 
+func TestRenderBasicMarkdownCodeLiteralizesFormattingInsideCode(t *testing.T) {
+	gc := &googleChatConnector{}
+	in := "Inline `*bold* <https://cnn.com|CNN>`\n```txt\n*bold* <https://cnn.com|CNN>\n```"
+	got := gc.renderMessageText(in, robot.BasicMarkdown)
+	want := "Inline `*bold* " + googleChatZWSP + "<" + googleChatZWSP + "https" + googleChatZWSP + ":" + googleChatZWSP + "/" + googleChatZWSP + "/" + googleChatZWSP + "cnn" + googleChatZWSP + "." + googleChatZWSP + "com" + googleChatZWSP + "|" + googleChatZWSP + "CNN" + googleChatZWSP + ">" + googleChatZWSP + "`\n```\n*bold* " + googleChatZWSP + "<" + googleChatZWSP + "https" + googleChatZWSP + ":" + googleChatZWSP + "/" + googleChatZWSP + "/" + googleChatZWSP + "cnn" + googleChatZWSP + "." + googleChatZWSP + "com" + googleChatZWSP + "|" + googleChatZWSP + "CNN" + googleChatZWSP + ">" + googleChatZWSP + "\n```"
+	if got != want {
+		t.Fatalf("renderMessageText() = %q, want %q", got, want)
+	}
+}
+
 func TestRenderBasicMarkdownEmojiLinkLabel(t *testing.T) {
 	gc := &googleChatConnector{}
 	in := "See [:eyes: runbook](https://example.com/runbook)"
 	got := gc.renderMessageText(in, robot.BasicMarkdown)
 	want := "See <https://example.com/runbook|\U0001f440 runbook>"
+	if got != want {
+		t.Fatalf("renderMessageText() = %q, want %q", got, want)
+	}
+}
+
+func TestRenderBasicMarkdownEscapedFormattingStaysLiteral(t *testing.T) {
+	gc := &googleChatConnector{}
+	in := "Escaped \\*not bold\\* and \\`not code\\` and [\\*CNN\\*](https://cnn.com)"
+	got := gc.renderMessageText(in, robot.BasicMarkdown)
+	want := "Escaped " + googleChatZWSP + "*" + googleChatZWSP + "not bold" + googleChatZWSP + "*" + googleChatZWSP + " and " + googleChatZWSP + "`" + googleChatZWSP + "not code" + googleChatZWSP + "`" + googleChatZWSP + " and <https://cnn.com|" + googleChatZWSP + "*" + googleChatZWSP + "CNN" + googleChatZWSP + "*" + googleChatZWSP + ">"
 	if got != want {
 		t.Fatalf("renderMessageText() = %q, want %q", got, want)
 	}

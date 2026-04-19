@@ -1,0 +1,12 @@
+---
+AllChannels: true
+AllowDirect: true
+RequireAdmin: true
+AllowedHiddenCommands:
+- googlevalidaterobot
+Commands:
+- Command: googlevalidaterobot
+  SimpleMatcher: "google validate robot"
+  Keywords: [ "google", "validate", "robot", "identity", "protocol", "id" ]
+  Usage: "google validate robot"
+  Summary: "issue a short-lived code so a Google Chat @mention can reveal and learn the bot's numeric internal ID"

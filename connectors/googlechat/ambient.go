@@ -248,6 +248,9 @@ func (gc *googleChatConnector) handleWorkspaceMessageCreated(data []byte) error 
 	if !gc.shouldProcessMessage(connectorMsg.MessageID) {
 		return nil
 	}
+	if gc.consumeRobotValidationForAPIMessage(payload.Message) {
+		return nil
+	}
 	gc.IncomingMessage(connectorMsg)
 	return nil
 }
@@ -263,6 +266,9 @@ func (gc *googleChatConnector) handleWorkspaceMessageBatchCreated(data []byte) e
 		}
 		connectorMsg, ok := gc.normalizeAmbientMessage(item.Message)
 		if !ok || !gc.shouldProcessMessage(connectorMsg.MessageID) {
+			continue
+		}
+		if gc.consumeRobotValidationForAPIMessage(item.Message) {
 			continue
 		}
 		gc.IncomingMessage(connectorMsg)
@@ -309,7 +315,7 @@ func (gc *googleChatConnector) normalizeAmbientMessage(message *chatapi.Message)
 		return nil, false
 	}
 	userID := normalizeUserResource(sender.Name)
-	if userID == "users/app" {
+	if gc.isBotResource(userID) {
 		return &robot.ConnectorMessage{
 			Protocol:      "googlechat",
 			UserID:        userID,

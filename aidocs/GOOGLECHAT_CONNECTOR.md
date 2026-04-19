@@ -4,7 +4,7 @@ This file captures Google Chat connector behavior relevant to routing, hidden co
 
 ## Source Anchors
 
-- Registration/init: `connectors/googlechat/static.go`, `connectors/googlechat/connect.go`
+- Registration/init + Google Chat utility plugin: `connectors/googlechat/static.go`, `connectors/googlechat/plugin.go`, `connectors/googlechat/connect.go`
 - Incoming event normalization + send behavior: `connectors/googlechat/connector.go`
 - Ambient Workspace Events subscription lifecycle + CloudEvent normalization: `connectors/googlechat/ambient.go`, `connectors/googlechat/workspaceevents.go`
 - BasicMarkdown rendering: `connectors/googlechat/basic_markdown.go`
@@ -47,17 +47,20 @@ This file captures Google Chat connector behavior relevant to routing, hidden co
 ## Identity Mapping
 
 - Google Chat connector identity mapping is connector-local in `ProtocolConfig.UserMap` (`username -> users/{id}`).
+- Google Chat bot self-identification is separate in `ProtocolConfig.SelfID`; robot owners should not overload the bot's own numeric `users/{id}` into `UserMap`.
 - Engine policy checks remain username-based against global `UserRoster`.
 - Inbound interaction events carry the Google Chat user resource name (for example `users/12345678901234567890`) as `ConnectorMessage.UserID`.
 - If the resource name exists in `ProtocolConfig.UserMap`, the connector sets `ConnectorMessage.UserName` to the canonical Gopherbot username and sets `ConnectorMessage.ValidatedUser=true`.
 - Outbound user-targeted sends only treat `users/{id}` (or bracketed internal IDs) as transport IDs. Canonical usernames are resolved through `ProtocolConfig.UserMap` / cached records; the connector must not invent `users/<username>` resource names from arbitrary text.
 - If a human user is not mapped, the connector leaves canonical username unset and `ValidatedUser=false`.
 - Internal Google Chat user IDs should be discovered through the built-in `validate user <username>` flow rather than passive warning logs.
+- If Google Chat returns the bot's own messages or mention annotations with a numeric bot `users/{id}` rather than `users/app`, administrators can discover and learn that ID with the Google Chat utility command `google validate robot`. The connector stores the learned ID in runtime state for self-message recognition, and robots can persist it in `ProtocolConfig.SelfID`.
 
 ## Inbound Message Normalization
 
 - Google Chat interaction events that produce bot input are normalized as `Protocol: "googlechat"`.
 - Google Workspace Events message-created CloudEvents are also normalized as `Protocol: "googlechat"`.
+- Self-message recognition accepts both the Google Chat alias `users/app` and the configured/learned numeric `ProtocolConfig.SelfID`.
 - Mention spans are rewritten into Slack-style plain-text mentions before the engine sees them.
   - bot mentions become `@<bot username>` using the robot's canonical bot username
   - mapped human mentions become `@<canonical username>`
@@ -94,6 +97,25 @@ This file captures Google Chat connector behavior relevant to routing, hidden co
   - if engine code uses a channel/thread-style send in that same hidden context, the connector still recovers the original invoking user from the hidden event so the reply remains private
   - if target user or space changes, connector drops hidden/private treatment and sends a normal visible message instead
 
+## Robot SelfID Validation
+
+- Google Chat registers its own utility plugin `googlechatutil`, so `google validate robot` is only available when the Google Chat connector is compiled in.
+- The command can be started from any validated administrator DM or hidden context.
+- If the connector already knows a numeric bot `SelfID`, the command reports it immediately.
+- Otherwise the command issues a short-lived 7-digit code.
+- The plugin then waits on a connector-local result channel for about 30 seconds, similar in spirit to `PromptForReply(...)` but without using engine reply matchers.
+- An administrator can then mention the bot in Google Chat with that code in a visible message.
+- When the connector sees a bot mention annotation carrying a numeric bot `users/{id}` plus a live validation code, it:
+  - learns that ID for the current runtime
+  - delivers a result back to the waiting Google Chat utility plugin
+- When the waiting plugin receives that result, it:
+  - replies in the visible Google Chat mention context with `Code accepted.`
+  - replies to the original requesting administrator in the original command context with the discovered internal ID
+  - learns that ID for the current runtime
+- The connector updates the runtime bot ID used for self-message recognition as soon as the Google Chat mention is consumed.
+- If the code is not used before the timeout expires, the waiting plugin cancels the pending request and reports the timeout to the original requester.
+- This flow is connector-local and diagnostic; it does not change username-authoritative engine policy.
+
 ## ThreadResponses
 
 - `ProtocolConfig.ThreadResponses` defaults to `true`.
@@ -117,14 +139,20 @@ The connector is text-only in v1 and sends through the Google Chat `Message.text
     `:white_check_mark:`, `:warning:`, `:x:`, `:rocket:`, `:fire:`, `:joy:`, `:thinking_face:`, `:eyes:`, `:thumbsup:`, `:thumbsdown:`
   - `@username` -> `<users/{id}>` only when `UserMap` resolves unambiguously; otherwise literal `@username` is preserved
   - inline code and fenced code blocks remain literal, so shortcode text inside code is not converted
+  - code-style literal regions use a narrower zero-width-space pass aimed at suppressing Google Chat link parsing and auto-linking without rewriting unrelated punctuation
   - connector does not synthesize Google Chat custom emoji resource tags on the current app-authenticated send path
 - `Variable`:
-  - sent as normal Chat text without protocol-specific decoration
+  - rendered with a Google Chat-specific homoglyph substitution pass for the small set of delimiters that Chat otherwise insists on re-parsing as emphasis, inline code, block quotes, lists, or angle-bracket link syntax
+  - this preserves approximate visual intent better than zero-width spaces for Google Chat text messages, but the visible characters are not byte-for-byte identical to the authored input
+  - unlike Slack's block-backed `Variable` rendering, this is only an approximation layer and does not provide clean copy/paste fidelity
 - `Fixed`:
   - sent as a fenced monospace block
+  - inner content uses a narrower zero-width-space pass focused on preserving literal link-like text such as `<https://...|label>` and bare URLs inside the fenced block
+  - unlike Slack's block-backed `Fixed` rendering, this is visual fidelity only, not clean copy/paste fidelity
 - `Raw`:
   - treated as literal-ish text passthrough
   - connector does not attempt to interpret protocol-specific Slack-style raw formatting
+  - because Google Chat still parses its own text-message formatting on raw text sends, `Raw` remains non-portable and should not be relied on for connector-neutral literal display
 
 ## Directed Replies
 
@@ -139,3 +167,4 @@ The connector is text-only in v1 and sends through the Google Chat `Message.text
 - `JoinChannel(...)` is not implemented for Google Chat spaces and returns `FailedChannelJoin`.
 - Arbitrary channel lookup by plain display name is best-effort from connector-observed spaces only; the authoritative route is the Chat space resource name (`spaces/{space}`).
 - Ambient message capture currently only consumes message-created events. Message edits/deletes are not routed into the engine.
+- `Variable` on Google Chat is now a best-effort visual approximation using homoglyph substitution because Google Chat text messages do not expose a documented general-purpose escape mechanism for emphasis/code parsing.

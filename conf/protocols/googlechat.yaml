@@ -15,6 +15,12 @@ ProtocolConfig:
   ## robot to always respond in the thread, set this true in your
   ## custom configuration.
   ThreadResponses: false
+  ## Optional numeric bot user resource, for example users/1234567890.
+  ## When set, the connector can recognize its own returned messages and
+  ## numeric @mentions without needing the Google Chat alias users/app.
+  ## This can also be discovered at runtime with the Google Chat utility command:
+  ##   google validate robot
+  # SelfID: users/1234567890
   ## Set this to the slash command name configured in the Google Chat API,
   ## without or with the leading slash. It is used for hidden-command help and
   ## fallback rendering, and enables hidden command support in the connector.

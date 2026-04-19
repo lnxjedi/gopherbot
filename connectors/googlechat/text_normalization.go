@@ -92,7 +92,7 @@ func (gc *googleChatConnector) canonicalMentionName(user string) string {
 	if resource == "" {
 		return ""
 	}
-	if resource == "users/app" {
+	if gc.isBotResource(resource) {
 		return strings.ToLower(strings.TrimSpace(gc.botName))
 	}
 
@@ -105,6 +105,84 @@ func (gc *googleChatConnector) canonicalMentionName(user string) string {
 		return record.CanonicalName
 	}
 	return ""
+}
+
+func (gc *googleChatConnector) eventMentionedBotID(message *chatEventMessage) string {
+	if gc == nil || message == nil {
+		return ""
+	}
+	return gc.findMentionedBotID(message.Text, func(yield func(resource, userType string, start, length int)) {
+		for _, annotation := range message.Annotations {
+			if annotation == nil || !strings.EqualFold(strings.TrimSpace(annotation.Type), "USER_MENTION") {
+				continue
+			}
+			if annotation.StartIndex < 0 || annotation.Length <= 0 || annotation.UserMention == nil || annotation.UserMention.User == nil {
+				continue
+			}
+			yield(annotation.UserMention.User.Name, annotation.UserMention.User.Type, annotation.StartIndex, annotation.Length)
+		}
+	})
+}
+
+func (gc *googleChatConnector) apiMentionedBotID(message *chatapi.Message) string {
+	if gc == nil || message == nil {
+		return ""
+	}
+	return gc.findMentionedBotID(message.Text, func(yield func(resource, userType string, start, length int)) {
+		for _, annotation := range message.Annotations {
+			if annotation == nil || !strings.EqualFold(strings.TrimSpace(annotation.Type), "USER_MENTION") {
+				continue
+			}
+			if annotation.StartIndex < 0 || annotation.Length <= 0 || annotation.UserMention == nil || annotation.UserMention.User == nil {
+				continue
+			}
+			yield(annotation.UserMention.User.Name, annotation.UserMention.User.Type, int(annotation.StartIndex), int(annotation.Length))
+		}
+	})
+}
+
+func (gc *googleChatConnector) findMentionedBotID(text string, walk func(func(resource, userType string, start, length int))) string {
+	if gc == nil || walk == nil {
+		return ""
+	}
+	botName := strings.ToLower(strings.TrimSpace(gc.botName))
+	runes := []rune(text)
+	found := ""
+	walk(func(resource, userType string, start, length int) {
+		normalized := normalizeUserResource(resource)
+		if normalized == "" || found != "" {
+			return
+		}
+		if gc.isBotResource(normalized) {
+			found = normalized
+			return
+		}
+		if !strings.EqualFold(strings.TrimSpace(userType), "BOT") {
+			return
+		}
+		if start < 0 || length <= 0 || start+length > len(runes) {
+			return
+		}
+		mentionText := strings.ToLower(strings.TrimSpace(string(runes[start : start+length])))
+		mentionText = strings.TrimPrefix(mentionText, "@")
+		if botName != "" && strings.Contains(mentionText, botName) {
+			found = normalized
+		}
+	})
+	return found
+}
+
+func (gc *googleChatConnector) isBotResource(resource string) bool {
+	resource = normalizeUserResource(resource)
+	if resource == "" {
+		return false
+	}
+	if resource == "users/app" {
+		return true
+	}
+	gc.mu.RLock()
+	defer gc.mu.RUnlock()
+	return resource != "" && resource == gc.selfID
 }
 
 func applyMentionRewrites(text string, spans []mentionSpan) string {

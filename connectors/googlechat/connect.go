@@ -28,6 +28,7 @@ type config struct {
 	AmbientMessages          *bool
 	ThreadResponses          *bool
 	SlashCommand             string
+	SelfID                   string
 	UserMap                  map[string]string
 }
 
@@ -155,6 +156,7 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.InitializedConnector
 		threadResponses:   boolValueOrDefault(c.ThreadResponses, true),
 		slashCommand:      normalizeSlashCommand(firstNonEmpty(c.SlashCommand, botName)),
 		botName:           botName,
+		selfID:            normalizeUserResource(c.SelfID),
 		botUserMap:        normalizeConfiguredUserMap(c.UserMap, handler),
 		usersByID:         make(map[string]chatUserRecord),
 		usersByName:       make(map[string]chatUserRecord),
@@ -170,7 +172,8 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.InitializedConnector
 		return connector.chatClient.FindDirectMessage(ctx, req)
 	}
 
-	handler.SetBotID("users/app")
+	setActiveGoogleChatConnector(connector)
+	handler.SetBotID(connector.runtimeBotID())
 	return robot.InitializedConnector{
 		Connector:    connector,
 		Capabilities: robot.ConnectorCapabilities{HiddenCommands: connector.slashCommand != ""},
