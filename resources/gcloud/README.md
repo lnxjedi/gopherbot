@@ -246,6 +246,8 @@ Use values like these:
 - **Visibility**: clear the checkbox for making the app visible to specific users - this app will be shared with all users via admin install
 - **Logs**: enable **Log errors to Logging**
 
+Now save the configuration.
+
 ## Step 11: Prepare The Service Account For Chat App Authorization
 
 Ambient message support requires app-auth scopes, which means Google wants a
@@ -285,7 +287,7 @@ Use this shape:
 - **App visibility**: `Private`
 - **Installation settings**: `Individual + Admin Install`
 - **App integrations**: `Chat app`
-- **OAuth scopes**:
+- Add to **OAuth scopes**:
   - `https://www.googleapis.com/auth/chat.app.messages.readonly`
 
 Important notes:
