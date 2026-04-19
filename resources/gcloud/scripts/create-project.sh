@@ -12,7 +12,7 @@ if project_exists; then
   echo "Project ${PROJECT_ID} already exists"
 else
   echo "Creating project ${PROJECT_ID} (${ROBOT_NAME})"
-  gcloud projects create "${PROJECT_ID}" --name="${ROBOT_NAME}"
+  gcloud projects create "${PROJECT_ID}" --name="${ROBOT_NAME} Robot Project"
 fi
 
 set_active_project
