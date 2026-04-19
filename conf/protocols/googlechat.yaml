@@ -1,0 +1,27 @@
+## Base configuration for the Google Chat connector. Add overrides
+## to your robot's custom conf/protocols/googlechat.yaml
+
+ProtocolConfig:
+  # ProjectID: your-gcp-project-id
+  ## NOTE, if the gcloud/README.md was used, the configured values
+  ## shouldn't need and override.
+  SubscriptionID: gopherbot-chat-sub
+  CredentialsEncryptedFile: gopherbot-key.json.enc
+  ## When true, the connector creates and maintains per-space Google Workspace
+  ## Events subscriptions so it can receive ambient message traffic in spaces
+  ## where the app has been added. Requires admin-approved chat.app.* scopes.
+  AmbientMessages: true
+  ## The Google Chat interface likes threads; if you want your
+  ## robot to always respond in the thread, set this true in your
+  ## custom configuration.
+  ThreadResponses: false
+  ## Set this to the slash command name configured in the Google Chat API,
+  ## without or with the leading slash. It is used for hidden-command help and
+  ## fallback rendering, and enables hidden command support in the connector.
+  # SlashCommand: bishop
+  ## If IgnoreUnlistedUsers is true (and it should be), you'll
+  ## need to add map entries here for all your robot's users. User
+  ## IDs can be discovered with the "validate user" admin plugin,
+  ## which you can bootstrap from the ssh connector.
+  # UserMap:
+  #   alice: users/12345678901234567890

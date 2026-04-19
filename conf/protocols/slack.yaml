@@ -1,0 +1,19 @@
+## Base configuration for Slack. Add overrides to your custom
+## slack.yaml.
+
+ProtocolConfig:
+  MaxMessageSplit: 2
+  # AppToken: # requires override
+  # BotToken: # requires override
+  ## You will probably want to override this to allow slash (hidden)
+  ## commands.
+  AcceptSlashCommands: false
+  # SlashCommand: clu
+  ## Some robots need to hear their own messages
+  HearSelf: false
+  ## If IgnoreUnlistedUsers is true (and it should be), you'll
+  ## need to add map entries here for all your robot's users. User
+  ## IDs are easily discoverable in Slack.
+  # UserMap:
+  #   alice: U12345
+  #   yourbot: U67890
