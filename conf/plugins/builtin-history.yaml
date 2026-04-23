@@ -1,6 +1,11 @@
 ---
 AllChannels: true
 AllowDirect: false
+AllowedHiddenCommands:
+- maillog
+- taillog
+- linklog
+- joblogs
 Commands:
 - Command: maillog
   Regex: '(?i:(?:send|mail|email)[- ]?log ([A-Za-z0-9]+)(?: to (?:(?:user (.*))|([^@]+@[^@]+)))?)'

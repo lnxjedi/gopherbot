@@ -95,6 +95,7 @@ type ConfigLoader struct {
 	IgnoreUsers          []string                          `yaml:"IgnoreUsers"`          // Users the bot never talks to - like other bots
 	JoinChannels         []string                          `yaml:"JoinChannels"`         // Channels the bot should join on login (not supported by all protocols)
 	DefaultJobChannel    string                            `yaml:"DefaultJobChannel"`    // Where job status is posted by default
+	TimeOuts             TimeOutsConfig                    `yaml:"TimeOuts"`             // Default timeout warn/kill settings for plugin and job pipelines
 	TimeZone             string                            `yaml:"TimeZone"`             // For evaluating the hour in a job schedule
 	IdentityProviders    map[string]IdentityProviderConfig `yaml:"IdentityProviders"`    // Internal registry for user-linked identity providers used by GetIdentityCredential
 	ExternalJobs         map[string]TaskSettings           `yaml:"ExternalJobs"`         // List of available jobs; config in conf/jobs/<jobname>.yaml
@@ -397,6 +398,7 @@ func loadConfig(preConnect bool) error {
 		var mailval botMailer
 		var boolval bool
 		var intval int
+		var timeoutVal TimeOutsConfig
 		var val interface{}
 		skip := false
 		switch key {
@@ -422,6 +424,8 @@ func loadConfig(preConnect bool) error {
 			val = &sarrval
 		case "MailConfig":
 			val = &mailval
+		case "TimeOuts":
+			val = &timeoutVal
 		case "BrainConfig", "HistoryConfig":
 			targetDir, _ := providerConfigDirectoryForKey(key)
 			err := fmt.Errorf("invalid configuration key in %s: %s (move to conf/%s/<provider>.yaml)", robotConfigFileName, key, targetDir)
@@ -446,6 +450,8 @@ func loadConfig(preConnect bool) error {
 			newconfig.BotInfo = *(val.(**UserInfo))
 		case "MailConfig":
 			newconfig.MailConfig = *(val.(*botMailer))
+		case "TimeOuts":
+			newconfig.TimeOuts = *(val.(*TimeOutsConfig))
 		case "PrimaryProtocol":
 			newconfig.PrimaryProtocol = *(val.(*string))
 		case "DefaultProtocol":
@@ -525,6 +531,13 @@ func loadConfig(preConnect bool) error {
 	processed.ignoreUnlistedUsers = newconfig.IgnoreUnlistedUsers
 	processed.secureParamRetrieve = newconfig.SecureParameters
 	processed.httpDebug = newconfig.HttpDebug
+	if err := validateTimeOutThresholds("TimeOuts.Plugin", newconfig.TimeOuts.Plugin); err != nil {
+		return err
+	}
+	if err := validateTimeOutThresholds("TimeOuts.Job", newconfig.TimeOuts.Job); err != nil {
+		return err
+	}
+	processed.timeOuts = newconfig.TimeOuts.runtime()
 	if strings.TrimSpace(newconfig.PrimaryProtocol) == "" {
 		return fmt.Errorf("PrimaryProtocol not specified in %s", robotConfigFileName)
 	}

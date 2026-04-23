@@ -3,7 +3,24 @@ AllChannels: true
 AllowDirect: true
 RequireAdmin: true
 AllowedHiddenCommands:
+- reload
+- update
+- branch
+- defaultbranch
+- protocollist
+- protocolstart
+- protocolstop
+- protocolrestart
+- gitinfo
 - validateuser
+- ps
+- getpipelinelog
+- kill
+- pause
+- resume
+- pauselist
+- chanlog
+- stopchanlog
 Commands:
 - Command: reload
   # Regex: '(?i:reload)'
@@ -84,11 +101,17 @@ Commands:
   Usage: "abort"
   Summary: "request an immediate shutdown without waiting for plugins to finish"
 - Command: ps
-  # Regex: '(?i:ps)'
-  SimpleMatcher: "ps"
+  # Regex: '(?i:ps(?: +(-v|--verbose|verbose))?)'
+  SimpleMatcher: "ps [<mode:token>]"
   Keywords: [ "process", "processes", "ps", "pipeline", "pipelines" ]
-  Usage: "ps"
-  Summary: "list running pipelines"
+  Usage: "ps (-v)"
+  Summary: "list running pipelines, optionally with verbose process details"
+- Command: getpipelinelog
+  # Regex: '(?i:get[- ]pipeline[- ]log ([\\d]+))'
+  SimpleMatcher: "get pipeline log <wid:number>"
+  Keywords: [ "pipeline", "log", "logs", "inspect", "debug", "process" ]
+  Usage: "get-pipeline-log <wid>"
+  Summary: "show the current buffered log for an active pipeline"
 - Command: "kill"
   # Regex: '(?i:kill(?:[- ](?:job|pipeline|process))? ([\d]+))'
   SimpleMatcher: "kill [job|pipeline|process] <wid:number>"

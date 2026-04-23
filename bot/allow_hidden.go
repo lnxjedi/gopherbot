@@ -57,14 +57,9 @@ func (r Robot) checkHiddenCommands(w *worker, t interface{}, command string) (re
 	if plugin == nil {
 		return robot.Success
 	}
-	if len(plugin.AllowedHiddenCommands) == 0 {
-		return robot.Fail
-	}
-	for _, i := range plugin.AllowedHiddenCommands {
-		if command == i {
-			w.Log(robot.Audit, "Hidden command '%s' from plugin '%s' issued by user '%s' in channel '%s'", command, plugin.name, r.User, r.Channel)
-			return robot.Success
-		}
+	if commandAllowsHidden(plugin, command) {
+		w.Log(robot.Audit, "Hidden command '%s' from plugin '%s' issued by user '%s' in channel '%s'", command, plugin.name, r.User, r.Channel)
+		return robot.Success
 	}
 	return robot.Fail
 }

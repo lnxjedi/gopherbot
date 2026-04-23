@@ -100,6 +100,13 @@ LogLevel: {{ $loglevel }}
 AdminUsers: [ "alice" ]
 DefaultChannels: [ "general", "random" ]
 DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default "general" }}
+TimeOuts:
+  Plugin:
+    Warn: 7m
+    Kill: 14m
+  Job:
+    Warn: 1h
+    Kill: 2h
 
 BotInfo:
   UserName: {{ $botname }}

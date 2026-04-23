@@ -90,6 +90,9 @@ Catch-all mode scoping:
 
 - Plugin match → `startPipeline(..., plugCommand|plugMessage, ...)`: `bot/dispatch.go:checkPluginMatchersAndRun`, `bot/constants.go` `pipelineType`.
 - Job trigger / command → `startPipeline(..., jobTrigger|jobCommand, ...)`: `bot/jobrun.go:checkJobMatchersAndRun`, `bot/constants.go` `pipelineType`.
+- `startPipeline` now stamps each pipeline with `startedAt`, effective timeout settings, and operator-channel routing metadata before the primary task runs: `bot/run_pipelines.go`, `bot/pipecontext.go`.
+- A bounded live log buffer is attached to every pipeline through `newPipelineLiveLogger(...)`: `bot/history.go`, `bot/pipeline_monitoring.go`.
+  - The live buffer tees normal history logging and keeps recent section markers, `Robot.Log(...)` / `worker.Log(...)`, and child stdout/stderr even when a job/plugin later discards persisted history (`KeepLogs: 0`).
 
 ## Task Execution + Privilege Anchors
 
@@ -99,6 +102,33 @@ Catch-all mode scoping:
 - Adding privileged work to unprivileged pipelines is blocked in pipeline mutation APIs: `bot/robot_pipecmd.go`.
 
 For a full execution/security walkthrough, see `aidocs/EXECUTION_SECURITY_MODEL.md`.
+
+## Pipeline Monitoring And Timeouts
+
+- Default warn/kill thresholds now live in `conf/robot.yaml` under:
+  - `TimeOuts.Plugin.Warn`
+  - `TimeOuts.Plugin.Kill`
+  - `TimeOuts.Job.Warn`
+  - `TimeOuts.Job.Kill`
+- Per-plugin/per-job overrides live in `conf/plugins/<name>.yaml` and `conf/jobs/<name>.yaml` under `TimeOuts.Warn` / `TimeOuts.Kill`.
+- Effective timeout resolution rules:
+  - explicit task-level value overrides the type default
+  - explicit `0` disables that threshold for the task
+  - when both thresholds are non-zero, `Kill` must be greater than `Warn`
+- A watchdog goroutine is started for active pipelines with any effective timeout: `bot/pipeline_monitoring.go`.
+  - Warn threshold posts an operator-facing alert with WID, pipeline/task, start time, age, and a recent live-log excerpt.
+  - Plugin alerts go to `DefaultJobChannel`; job alerts go to the job's configured channel.
+  - Kill threshold appends a timeout marker to the live/history log and then:
+    - cancels RPC-backed child work when available
+    - kills external process groups for executable child work
+    - emits a manual-intervention alert instead of force-killing compiled-in Go work
+- Admin inspection commands for active pipelines:
+  - `ps` now defaults to WID/PWID/type/start/age/pipeline/task/command view and intentionally hides PID
+  - `ps -v` includes PID and execution class details
+  - `get-pipeline-log <wid>` returns the current live buffer for an active pipeline
+- Failure diagnostics now favor operator-facing alerts plus live-log excerpts over relying only on `<plugin>-fail.log`.
+  - compiled-in Go panic recovery logs stack traces into the live buffer
+  - interpreter/external stderr and traceback text is preserved in the same live buffer and alert path
 
 ## Pipeline Assembly (tasks/jobs/plugins)
 

@@ -1,6 +1,8 @@
 ---
 AllChannels: true
 AllowDirect: false
+AllowedHiddenCommands:
+- jobs
 Commands:
 - Command: jobs
   # Regex: '(?i:list (all )?jobs)'

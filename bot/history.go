@@ -53,7 +53,7 @@ Returns:
 - ref: 8 hex digit reference for e.g. "email|view log abcdef01"
 - idx: the run index, or wid fallback - can always be used for tail-log, mail-log in pipeline
 */
-func newLogger(tag, eid, descriptor string, wid, keep int) (logger robot.HistoryLogger, url, ref string, idx int) {
+func newLogger(tag, eid, descriptor string, wid, keep int) (logger *pipelineLiveLogger, url, ref string, idx int) {
 	var ph pipeHistory
 	// limit the number of logs kept to 64 =< 4096/64 (back of napkin
 	// calculation for listing logs w/ max message size of 4096)
@@ -126,7 +126,8 @@ func newLogger(tag, eid, descriptor string, wid, keep int) (logger robot.History
 	}
 	var err error
 	hprovider := getHistoryProvider()
-	logger, err = hprovider.NewLog(tag, idx, keep)
+	var baseLogger robot.HistoryLogger
+	baseLogger, err = hprovider.NewLog(tag, idx, keep)
 	if err != nil {
 		Log(robot.Error, "Starting history for '%s' failed (%v) - falling back to memory log", tag, err)
 		idx = wid
@@ -134,12 +135,13 @@ func newLogger(tag, eid, descriptor string, wid, keep int) (logger robot.History
 		if memHistories == nil {
 			mhprovider(handler{})
 		}
-		logger, _ = memHistories.NewLog(tag, idx, 0)
+		baseLogger, _ = memHistories.NewLog(tag, idx, 0)
 	} else {
 		if keep > 0 {
 			url, _ = hprovider.GetLogURL(tag, idx)
 		}
 	}
+	logger = newPipelineLiveLogger(baseLogger)
 	return
 }
 

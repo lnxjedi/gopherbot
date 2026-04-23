@@ -82,6 +82,7 @@ Notes:
   - `pause` (milliseconds) to sleep between cases (see `test/common_test.go`).
 - Hidden messages are signaled by a leading `/` in `message` and transformed before sending (see `test/common_test.go`).
 - The harness sets the test connector's `Hidden` flag directly; the test connector does not parse slash syntax itself. That is intentional so integration suites can simulate protocols with and without hidden-command support using the same connector.
+- Hidden admin/history/job-command coverage should continue using that same mechanism rather than trying to emulate connector-local slash parsing in the test connector.
 
 ## Protocol selection for tests
 
@@ -102,6 +103,10 @@ Notes:
 - External yaegi Go full coverage: `test/go_full_test.go`.
 - Gopherbot shell full coverage: `test/sh_full_test.go` plus `plugins/test/shfull.gsh`.
 - JavaScript full coverage: `test/js_full_test.go` plus `plugins/test/jsfull.js`, including the OAuth2 link/get/unlink engine API cycle.
+- Admin/watchdog coverage: `test/admin_watchdog_integration_test.go`, using `test/membrain/plugins/admininspect.sh` and `test/membrain/plugins/admintimeout.sh` to exercise:
+  - hidden `ps` and `get-pipeline-log`
+  - timeout warn/kill operator alerts for external pipelines
+  - operator-facing failure alerts with stderr/traceback excerpts
 
 ## Focused routing/help metadata checks
 
@@ -111,6 +116,15 @@ Notes:
   - engine-side help metadata filtering, ranking inputs, and deterministic fallback advice in `bot/help_metadata_api_test.go`
   - Yaegi symbol/runtime coverage for active Robot API methods in `modules/yaegi-dynamic-go/yaegi_dynamic_test.go`
   - shared `.yaegi-gopath` import coverage for installed (`gopherbot.internal/lib/...`) and custom (`robot.internal/lib/...`) interpreted-Go libraries
+
+## Focused Admin/Watchdog Verification
+
+- Bot unit package:
+  - `go test ./bot`
+  - includes timeout parsing/precedence tests, live log buffer tests, admin `ps` / `get-pipeline-log` rendering tests, compiled Go panic stack logging, and manual-intervention timeout alert behavior
+- Targeted integration slice:
+  - `go test -v --tags 'test integration' ./test -run 'TestBotNameHiddenCommandsUnsupportedConnector|TestHiddenPSAndGetPipelineLog|TestPipelineTimeoutWarnAndKillAlerts|TestPipelineFailureAlertIncludesTracebackExcerpt'`
+  - covers hidden-command connector support/denial, live pipeline inspection, external timeout warn/kill alerts, and traceback-rich failure alerts
 
 ## Targeted Yaegi runtime repros
 

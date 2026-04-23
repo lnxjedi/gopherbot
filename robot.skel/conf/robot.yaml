@@ -38,6 +38,13 @@ HistoryProvider: {{ $history }}
 
 ## Outgoing format when a plugin or job does not choose one explicitly.
 DefaultMessageFormat: BasicMarkdown
+TimeOuts:
+  Plugin:
+    Warn: 7m
+    Kill: 14m
+  Job:
+    Warn: 1h
+    Kill: 2h
 
 ## The installed engine defaults already enable a useful baseline:
 ## - built-in admin/help/history/jobcmd/logging/ping/fallback

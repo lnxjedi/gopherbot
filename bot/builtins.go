@@ -1729,6 +1729,30 @@ type psList struct {
 	wids    []int
 }
 
+func psVerboseRequested(args []string) bool {
+	for _, arg := range args {
+		switch strings.ToLower(strings.TrimSpace(arg)) {
+		case "-v", "--verbose", "verbose":
+			return true
+		}
+	}
+	return false
+}
+
+func activePipelineByWID(raw string) (*worker, int, error) {
+	widx, err := strconv.ParseInt(strings.TrimSpace(raw), 10, 0)
+	if err != nil {
+		return nil, 0, err
+	}
+	activePipelines.Lock()
+	worker, ok := activePipelines.i[int(widx)]
+	activePipelines.Unlock()
+	if !ok {
+		return nil, int(widx), fmt.Errorf("not found")
+	}
+	return worker, int(widx), nil
+}
+
 func formatReloadOutcome(r Robot, reloadErr error) string {
 	op := strings.ToLower(strings.TrimSpace(r.GetParameter("GIT_OPERATION")))
 	targetBranch := strings.TrimSpace(r.GetParameter("GIT_TARGET_BRANCH"))
@@ -1970,12 +1994,16 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		time.Sleep(2 * time.Second)
 		panic("Abort command issued")
 	case "ps":
+		verbose := psVerboseRequested(args)
 		// wid pwid pid Go|Ext plugin|task|job
 		psl := &psList{
-			pslines: []string{
-				"WID    PWID  PID   G/E TYPE   PIPENAME         TASK             PLUG-COMMAND ARGS",
-			},
-			wids: []int{-1},
+			pslines: []string{},
+			wids:    []int{-1},
+		}
+		if verbose {
+			psl.pslines = append(psl.pslines, "WID    PWID  PID   CLS TYPE   STARTED         AGE      PIPENAME         TASK             COMMAND      ARGS")
+		} else {
+			psl.pslines = append(psl.pslines, "WID    PWID  TYPE   STARTED         AGE      PIPENAME         TASK             COMMAND      ARGS")
 		}
 		activePipelines.Lock()
 		if len(activePipelines.i) == 1 {
@@ -1994,40 +2022,65 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			pid := ""
 			if worker.osCmd != nil {
 				pid = strconv.Itoa(worker.osCmd.Process.Pid)
-				wid = wid + "*"
+			} else if verbose {
+				pid = "-"
 			}
 			class := worker.taskClass
 			ttype := worker.taskType
 			tname := worker.taskName
 			command := worker.plugCommand
 			args := strings.Join(worker.taskArgs, " ")
+			started := formatPipelineClock(worker.startedAt, worker.timeZone)
+			age := formatPipelineAge(time.Since(worker.startedAt))
 			worker.Unlock()
 			if pipename == "builtin-admin" && command == "ps" {
 				continue
 			}
-			psline := fmt.Sprintf("%6.6s %5.5s %5.5s %-3.3s %-6.6s %-16.16s %-16.16s %-12.12s %s", wid, pwid, pid, class, ttype, pipename, tname, command, args)
+			var psline string
+			if verbose {
+				psline = fmt.Sprintf("%6.6s %5.5s %5.5s %-3.3s %-6.6s %-15.15s %-8.8s %-16.16s %-16.16s %-12.12s %s", wid, pwid, pid, class, ttype, started, age, pipename, tname, command, args)
+			} else {
+				psline = fmt.Sprintf("%6.6s %5.5s %-6.6s %-15.15s %-8.8s %-16.16s %-16.16s %-12.12s %s", wid, pwid, ttype, started, age, pipename, tname, command, args)
+			}
 			psl.pslines = append(psl.pslines, psline)
 			psl.wids = append(psl.wids, widx)
 		}
 		activePipelines.Unlock()
 		sort.Sort(psl)
 		r.Fixed().Say(strings.Join(psl.pslines, "\n"))
+	case "getpipelinelog":
+		if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
+			r.Say("Usage: get-pipeline-log <wid>")
+			return
+		}
+		worker, widx, err := activePipelineByWID(args[0])
+		if err != nil {
+			if strings.Contains(err.Error(), "invalid syntax") {
+				r.Say("Couldn't convert '%s' to an int", args[0])
+				return
+			}
+			r.Say("Pipeline %d not found", widx)
+			return
+		}
+		snapshot := strings.TrimSpace(worker.liveLogSnapshot())
+		if snapshot == "" {
+			r.Say("No live log buffered for pipeline %d", widx)
+			return
+		}
+		r.Fixed().Say("Live log for pipeline %d:\n%s", widx, snapshot)
 	case "kill":
 		if len(args) == 0 {
 			r.Say("Usage: kill <wid>")
 			return
 		}
 		wid := args[0]
-		widx, err := strconv.ParseInt(wid, 10, 0)
+		worker, widx, err := activePipelineByWID(wid)
 		if err != nil {
-			r.Say("Couldn't convert '%s' to an int", wid)
-			return
-		}
-		activePipelines.Lock()
-		worker, ok := activePipelines.i[int(widx)]
-		activePipelines.Unlock()
-		if !ok {
-			r.Say("Pipeline %s not found", wid)
+			if strings.Contains(err.Error(), "invalid syntax") {
+				r.Say("Couldn't convert '%s' to an int", wid)
+				return
+			}
+			r.Say("Pipeline %d not found", widx)
 			return
 		}
 		var pid int

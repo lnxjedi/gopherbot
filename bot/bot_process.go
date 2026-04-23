@@ -112,6 +112,7 @@ type configuration struct {
 	logLevel             robot.LogLevel  // one of warn, audit, info, debug, trace, error
 	logDest              string          // log to stdout, stderr, or <filename>
 	defaultJobChannel    string          // where job statuses will post if not otherwise specified
+	timeOuts             runtimeTimeOutsConfig
 }
 
 // The current configuration and task list

@@ -139,6 +139,7 @@ type pipeContext struct {
 	active           bool               // whether this context has been registered as active
 	environment      map[string]string  // environment vars set for each job/plugin in the pipeline
 	parameters       map[string]string  // parameters (often secrets) for the pipeline
+	startedAt        time.Time          // pipeline start time for ps/timeouts/alerts
 	runIndex         int                // run number of a job
 	histName         string             // GetLog(histName, index) can be used in final/fail pipes
 	verbose          bool               // flag if initializing job was verbose
@@ -162,17 +163,25 @@ type pipeContext struct {
 	privileged          bool                // privileged jobs flip this flag, causing tasks in the pipeline to run in cfgdir
 	timeZone            *time.Location      // for history timestamping
 	logger              robot.HistoryLogger // where to send stdout / stderr
-	ptype               pipelineType        // what started this pipeline
-	elevated            bool                // set when required elevation succeeds
-	stage               pipeStage           // which pipeline is being run; primaryP, finalP, failP
-	jobInitialized      bool                // whether a job has started
-	jobName             string              // name of the running job
-	nameSpace           string              // namespace for the pipeline, used by exclusive, brain and environment
-	nameSpaceParameters []Parameter         // namespace shared parameters
-	parameterSets       []string            // parametersets for the pipeline for environment
-	pipeName, pipeDesc  string              // name and description of task that started pipeline
-	currentTask         interface{}         // pointer to currently executing task
-	exclusive           bool                // indicates task was running exclusively
+	liveLogger          *pipelineLiveLogger // bounded live log buffer for active-pipeline inspection
+	operatorChannel     string              // job/admin operator channel for timeout/crash alerts
+	timeOuts            runtimeTimeOutThresholds
+	timeOutWarnSent     bool
+	timeOutKillSent     bool
+	timeOutKillManual   bool
+	executedPrimaryTask bool
+	watchdogCancel      context.CancelFunc
+	ptype               pipelineType // what started this pipeline
+	elevated            bool         // set when required elevation succeeds
+	stage               pipeStage    // which pipeline is being run; primaryP, finalP, failP
+	jobInitialized      bool         // whether a job has started
+	jobName             string       // name of the running job
+	nameSpace           string       // namespace for the pipeline, used by exclusive, brain and environment
+	nameSpaceParameters []Parameter  // namespace shared parameters
+	parameterSets       []string     // parametersets for the pipeline for environment
+	pipeName, pipeDesc  string       // name and description of task that started pipeline
+	currentTask         interface{}  // pointer to currently executing task
+	exclusive           bool         // indicates task was running exclusively
 }
 
 func (c *pipeContext) section(name, info string) {
