@@ -1,12 +1,11 @@
 ---
 # builtin-dmadmin plugin configuration - commands only available to bot
 # admins via DM
-DirectOnly: true
+# DirectOnly: true
 RequireAdmin: true
 Commands:
 - Command: "listplugins"
-  # Regex: '(?i:list(?:[- ](disabled))?[- ]plugins?)'
-  SimpleMatcher: "list [disabled] (plugin|plugins)"
+  Regex: '(?i:list(?:[- ](disabled))?[- ]plugins?)'
   Keywords: [ "list", "plugin", "plugins" ]
   Usage: "list (disabled) plugins"
   Summary: "list all known plugins, or list disabled plugins with the reason disabled"

@@ -182,6 +182,10 @@ func TestBuiltins(t *testing.T) {
 		{aliceID, null, "dump plugin rubydemo", false, []TestMessage{{alice, null, "ALLCHANNELS.*", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, "dump plugin default rubydemo", false, []TestMessage{{alice, null, "HERE'S.*", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, "dump plugin junk", false, []TestMessage{{alice, null, "Didn't find .* junk", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, null, "list plugins", false, []TestMessage{{alice, null, `(?s:Here are the plugins I have configured:.*builtin-dmadmin)`, false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, null, "list disabled plugins", false, []TestMessage{{alice, null, `(?s:(Here's a list of all disabled plugins:|There are no disabled plugins))`, false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";list jobs", false, []TestMessage{{null, general, `(?s:(Here's a list of jobs for this channel:|I don't see any jobs configured for this channel))`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";list all jobs", false, []TestMessage{{null, general, `(?s:(Here's a list of all the jobs I know about:|I dont' have any jobs configured))`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, ";show log", false, []TestMessage{{alice, null, ".*", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, ";show log page 1", false, []TestMessage{{alice, null, ".*", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 	}

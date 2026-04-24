@@ -2108,6 +2108,10 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		}
 		r.Say("Killed pid %d", pid)
 	case "pause":
+		if len(args) == 0 {
+			r.Say("Usage: pause <job>")
+			return
+		}
 		name := args[0]
 		notfound := "I don't have a job configured with that name"
 		t := r.tasks.getTaskByName(name)
@@ -2132,6 +2136,10 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		r.Say("Ok, I'll stop running '%s' as a scheduled task", name)
 		return
 	case "resume":
+		if len(args) == 0 {
+			r.Say("Usage: resume <job>")
+			return
+		}
 		name := args[0]
 		t := r.tasks.getTaskByName(name)
 		_, _, job := getTask(t)

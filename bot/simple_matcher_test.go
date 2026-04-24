@@ -36,10 +36,18 @@ func TestCompileSimpleMatcherLiteralAndWhitespace(t *testing.T) {
 			t.Fatalf("SimpleMatcher literal unexpectedly matched %q", input)
 		}
 	}
+
+	reSingle := mustCompileSimpleMatcherRegexp(t, "reload")
+	if !reSingle.MatchString("reload") {
+		t.Fatalf("SimpleMatcher literal failed to match single word %q", "reload")
+	}
+	if !reSingle.MatchString("  reload  ") {
+		t.Fatalf("SimpleMatcher literal failed to match single word with spaces")
+	}
 }
 
 func TestCompileSimpleMatcherOptionalAndAlternatives(t *testing.T) {
-	re := mustCompileSimpleMatcherRegexp(t, "tell me [another] [knock-knock] joke")
+	re := mustCompileSimpleMatcherRegexp(t, "tell me {another} {knock-knock} joke")
 	for _, input := range []string{
 		"tell me joke",
 		"tell me another joke",
@@ -57,7 +65,7 @@ func TestCompileSimpleMatcherOptionalAndAlternatives(t *testing.T) {
 }
 
 func TestCompileSimpleMatcherTypedCaptures(t *testing.T) {
-	re := mustCompileSimpleMatcherRegexp(t, "block [ticket|story] <story:slug> [<reason:rest>]")
+	re := mustCompileSimpleMatcherRegexp(t, "block {ticket|story} <story:slug> {<reason:rest>}")
 
 	matches := re.FindStringSubmatch("block story train-123 because prod is broken")
 	if len(matches) != 3 {
@@ -111,6 +119,85 @@ func TestCompileSimpleMatcherBuiltInTypes(t *testing.T) {
 func TestCompileSimpleMatcherRejectsUnknownType(t *testing.T) {
 	if _, err := compileSimpleMatcher("show <mystery>"); err == nil {
 		t.Fatal("expected unknown type error")
+	}
+}
+
+func TestCapturingOptional(t *testing.T) {
+	re := mustCompileSimpleMatcherRegexp(t, "set log-level <level:ident> [disabled]")
+
+	matches := re.FindStringSubmatch("set log-level debug disabled")
+	if len(matches) != 3 {
+		t.Fatalf("len(matches) = %d, want 3 (%v)", len(matches), matches)
+	}
+	if matches[1] != "debug" || matches[2] != "disabled" {
+		t.Fatalf("captures = %#v, want debug / disabled", matches[1:])
+	}
+
+	matches = re.FindStringSubmatch("set log-level debug")
+	if len(matches) != 3 {
+		t.Fatalf("len(matches) = %d, want 3 (%v)", len(matches), matches)
+	}
+	if matches[1] != "debug" || matches[2] != "" {
+		t.Fatalf("captures = %#v, want debug / empty", matches[1:])
+	}
+}
+
+func TestNoiseWordsGroup(t *testing.T) {
+	re := mustCompileSimpleMatcherRegexp(t, "enable {the} feature <name:ident>")
+
+	for _, input := range []string{
+		"enable the feature foo",
+		"enable feature foo",
+	} {
+		matches := re.FindStringSubmatch(input)
+		if len(matches) != 2 {
+			t.Fatalf("len(matches) = %d for %q, want 2", len(matches), input)
+		}
+		if matches[1] != "foo" {
+			t.Fatalf("captures = %#v, want foo", matches[1:])
+		}
+	}
+}
+
+func TestMixedGroupsGroupCount(t *testing.T) {
+	re := mustCompileSimpleMatcherRegexp(t, "[verbose] show {me} <name:ident>")
+
+	matches := re.FindStringSubmatch("verbose show me foo")
+	if len(matches) != 3 {
+		t.Fatalf("len(matches) = %d, want 3", len(matches))
+	}
+	if matches[1] != "verbose" || matches[2] != "foo" {
+		t.Fatalf("captures = %#v, want verbose / foo", matches[1:])
+	}
+
+	matches = re.FindStringSubmatch("show foo")
+	if len(matches) != 3 {
+		t.Fatalf("len(matches) = %d, want 3", len(matches))
+	}
+	if matches[1] != "" || matches[2] != "foo" {
+		t.Fatalf("captures = %#v, want empty / foo", matches[1:])
+	}
+}
+
+func TestCapturingOptionalWithSlots(t *testing.T) {
+	// If [...] contains a slot, the [...] itself should be non-capturing to avoid double-captures.
+	// This means we expect only ONE capture group (from the slot itself).
+	re := mustCompileSimpleMatcherRegexp(t, "show [<name:ident>]")
+
+	matches := re.FindStringSubmatch("show debug")
+	if len(matches) != 2 {
+		t.Fatalf("len(matches) = %d, want 2", len(matches))
+	}
+	if matches[1] != "debug" {
+		t.Fatalf("captures = %#v, want debug", matches[1:])
+	}
+
+	matches = re.FindStringSubmatch("show")
+	if len(matches) != 2 {
+		t.Fatalf("len(matches) = %d, want 2", len(matches))
+	}
+	if matches[1] != "" {
+		t.Fatalf("captures = %#v, want empty", matches[1:])
 	}
 }
 

@@ -114,25 +114,25 @@ Commands:
   Summary: "show the current buffered log for an active pipeline"
 - Command: "kill"
   # Regex: '(?i:kill(?:[- ](?:job|pipeline|process))? ([\d]+))'
-  SimpleMatcher: "kill [job|pipeline|process] <wid:number>"
+  SimpleMatcher: "kill {job|pipeline|process} <wid:number>"
   Keywords: [ "kill", "process", "job" ]
   Usage: "kill-pipeline <wid>"
   Summary: "kill the current process for the pipeline identified by <wid>"
 - Command: "pause"
   # Regex: '(?i:pause(?:[- ]job)? ([A-Za-z][\w-]*))'
-  SimpleMatcher: "pause [job] <job:ident>"
+  SimpleMatcher: "pause {job} <job:ident>"
   Keywords: [ "pause", "job", "jobs" ]
   Usage: "pause-job <job>"
   Summary: "pause running of <job> as a scheduled task"
 - Command: "resume"
   # Regex: '(?i:resume(?:[- ]job)? ([A-Za-z][\w-]*))'
-  SimpleMatcher: "resume [job] <job:ident>"
+  SimpleMatcher: "resume {job} <job:ident>"
   Keywords: [ "pause", "resume", "job", "jobs", "unpause", "un-pause" ]
   Usage: "resume-job <job>"
   Summary: "resume running of <job> as a scheduled task"
 - Command: pauselist
   # Regex: '(?i:(list[- ])?paused[- ]jobs)'
-  SimpleMatcher: "[list] paused jobs"
+  SimpleMatcher: "{list} paused jobs"
   Keywords: [ "pause", "resume", "job", "jobs" ]
   Usage: "paused-jobs"
   Summary: "list the paused jobs"
