@@ -926,6 +926,9 @@ func (sc *sshConnector) appendBuffer(evt bufferMsg) uint64 {
 }
 
 func prepareSSHDisplayMessage(msg string, f robot.MessageFormat) (plain string, basicMarkdownSource string) {
+	if f == robot.Fixed && strings.Contains(msg, "\n") {
+		msg = "\n" + msg
+	}
 	if f != robot.BasicMarkdown {
 		return msg, ""
 	}

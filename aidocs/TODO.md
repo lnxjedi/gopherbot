@@ -14,7 +14,7 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
   - Updated engine handling of `IgnoreUnlistedUsers` so validated canonical identity is required for directory-gated inbound policy.
   - Added admin-only built-in `validate user <username>` with a short-lived 7-digit code and pre-pipeline DM/hidden consume path for returning protocol-local internal IDs to the requesting admin.
 - [ ] Update connectors to take a Reload method that, at the very least, updates the list of Validated Users.
-- [ ] Make external interpreter failures ALSO send error output to jobs channel, like built-in interpreters
+- [ ] Make external interpreter failures ALSO send error output to jobs channel for default connector, like built-in interpreters
 
 ## Current Cleanup TODOs
 
