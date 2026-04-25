@@ -20,7 +20,7 @@ Commands:
   - "(alias) help"
 - Command: commands
   # Regex: '(?i:commands?)'
-  SimpleMatcher: "(command|commands)"
+  SimpleMatcher: "/command|commands/"
   Keywords: [ "help", "commands", "list", "browse" ]
   Usage: "commands"
   Summary: "browse plugins and command groups available in this channel"
@@ -28,7 +28,7 @@ Commands:
   - "(alias) commands"
 - Command: info
   # Regex: '(?i:info|tell me about yourself|about|information)'
-  SimpleMatcher: "(info|tell me about yourself|about|information)"
+  SimpleMatcher: "/info|tell me about yourself|about|information/"
   Keywords: [ "info", "information", "robot", "admin", "administrators" ]
   Usage: "info | tell me about yourself"
   Summary: "provide useful information for admins, including git branch status"

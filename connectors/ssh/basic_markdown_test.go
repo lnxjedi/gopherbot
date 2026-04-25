@@ -160,6 +160,39 @@ func TestFormatMessageBasicMarkdownUsesStyledDisplaySource(t *testing.T) {
 	}
 }
 
+func TestFormatMessageFixedMultilineStartsBodyAtColumnZero(t *testing.T) {
+	client := &sshClient{
+		userName: "alice",
+		channel:  "general",
+		width:    20,
+	}
+	evt := bufferMsg{
+		timestamp: time.Date(2026, time.March, 20, 9, 15, 45, 0, time.UTC),
+		userName:  "floyd",
+		userID:    "botid",
+		isBot:     true,
+		channel:   "general",
+		text:      "PID COMMAND\n1   init",
+		fixed:     true,
+	}
+
+	got := client.formatMessage(evt, false, false)
+	want := "(09:15:45)=@floyd/#general:\nPID COMMAND\n1   init"
+	if got != want {
+		t.Fatalf("formatMessage() = %q, want %q", got, want)
+	}
+}
+
+func TestPrepareSSHDisplayMessageDoesNotInjectFixedNewline(t *testing.T) {
+	got, markdownSource := prepareSSHDisplayMessage("PID COMMAND\n1   init", robot.Fixed)
+	if got != "PID COMMAND\n1   init" {
+		t.Fatalf("prepareSSHDisplayMessage() plain = %q", got)
+	}
+	if markdownSource != "" {
+		t.Fatalf("prepareSSHDisplayMessage() markdownSource = %q, want empty", markdownSource)
+	}
+}
+
 func TestSendProtocolChannelThreadMessageRawUnchanged(t *testing.T) {
 	sc := &sshConnector{
 		cfg:     sshConfig{DefaultChannel: "general"},

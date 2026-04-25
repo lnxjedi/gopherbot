@@ -3,7 +3,7 @@
 Commands:
 - Command: 'help'
   # Regex: '(?i:help with groups?)'
-  SimpleMatcher: "help with (group|groups)"
+  SimpleMatcher: "help with /group|groups/"
   Keywords: [ "group", "groups" ]
   Usage: "help with groups"
   Summary: "give general help for using groups"
@@ -11,7 +11,7 @@ Commands:
   - "(alias) help with groups"
 - Command: 'add'
   # Regex: '(?i:add ([\w-.:]+) to (?:the )?(?:([~\w-'' ]+) )?group)'
-  SimpleMatcher: "add <user:token> to [the] [<group:rest>] group"
+  SimpleMatcher: "add <user:token> to {the} [<group:rest>] group"
   Contexts: [ "user", "group" ]
   Keywords: [ "group", "groups", "add" ]
   Usage: "add <user> to the <groupname> group"
@@ -28,7 +28,7 @@ Commands:
   - "(alias) list groups"
 - Command: 'remove'
   # Regex: '(?i:(?:remove|delete) ([\w-.:]+) from (?:the )?(?:([~\w-'' ]+) )?group)'
-  SimpleMatcher: "(remove|delete) <user:token> from [the] [<group:rest>] group"
+  SimpleMatcher: "/remove|delete/ <user:token> from {the} [<group:rest>] group"
   Contexts: [ "user", "group" ]
   Keywords: [ "group", "groups", "remove" ]
   Usage: "remove <user> from the <groupname> group"
@@ -37,7 +37,7 @@ Commands:
   - "(alias) remove alice from the Helpdesk group"
 - Command: 'empty'
   # Regex: '(?i:(?:empty|clear) (?:the )?(?:([~\w-'' ]+) )?group)'
-  SimpleMatcher: "(empty|clear) [the] [<group:rest>] group"
+  SimpleMatcher: "/empty|clear/ {the} [<group:rest>] group"
   Contexts: [ "group" ]
   Keywords: [ "group", "groups", "empty" ]
   Usage: "empty the <groupname> group"
@@ -46,7 +46,7 @@ Commands:
   - "(alias) empty the Helpdesk group"
 - Command: 'show'
   # Regex: '(?i:show (?:the )?(?:([~\w-'' ]+) )?group)'
-  SimpleMatcher: "show [the] [<group:rest>] group"
+  SimpleMatcher: "show {the} [<group:rest>] group"
   Contexts: [ "group" ]
   Keywords: [ "group", "groups", "show", "view" ]
   Usage: "show the <groupname> group"

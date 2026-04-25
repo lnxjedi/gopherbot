@@ -5,7 +5,7 @@ AllChannels: true
 Commands:
 - Command: "theia"
   # Regex: '(?i:start-(?:theia|ide))'
-  SimpleMatcher: "start (theia|ide)"
+  SimpleMatcher: "start /theia|ide/"
   Keywords: [ "theia", "code", "ide", "gopherbot" ]
   Usage: "start-ide"
   Summary: "start theia IDE (requires gopherbot-theia image)"

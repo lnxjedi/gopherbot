@@ -145,7 +145,10 @@ Color output uses ANSI 256 sequences. User input remains uncolored; prompts, bot
 
 Message format behavior:
 
-- `Raw` / `Fixed` / `Variable`: preserved as-is (same connector behavior as before).
+- `Raw` / `Variable`: preserved as-is (same connector behavior as before).
+- `Fixed`: preserved as-is; when a fixed message has multiple lines, SSH displays
+  the header on its own line and starts the fixed body at column zero without
+  normal message wrapping so table columns remain aligned.
 - `BasicMarkdown`: rendered to plain-text-safe output for SSH:
   - when `Color` is enabled, bold and italics use ANSI SGR in live SSH output; otherwise markers are removed
   - when `Color` is enabled, inline code uses the `inlinecode` color and fenced code blocks use the `codeblock` color in live SSH output

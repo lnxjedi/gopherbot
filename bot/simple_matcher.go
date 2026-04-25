@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const simpleMatcherSeparatorRegex = `(?:[ -]+)`
+const simpleMatcherSeparatorRegex = `(?:\s+|-+)`
 
 var simpleMatcherIdentifierRe = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_-]*$`)
 
@@ -151,8 +151,7 @@ func (p *simpleMatcherParser) parseExpr(end rune) (simpleMatcherExpr, error) {
 			return simpleMatcherExpr{alternatives: alternatives}, nil
 		}
 		if p.peek() == '|' {
-			p.pos++
-			continue
+			return simpleMatcherExpr{}, fmt.Errorf("unexpected character %q in SimpleMatcher", p.peek())
 		}
 		return simpleMatcherExpr{}, fmt.Errorf("unexpected character %q in SimpleMatcher", p.peek())
 	}
@@ -194,12 +193,28 @@ func (p *simpleMatcherParser) parseTerm() (simpleMatcherTerm, error) {
 		if err != nil {
 			return nil, err
 		}
+		if expr.containsSlot() {
+			return nil, fmt.Errorf("non-capturing SimpleMatcher group cannot contain typed captures")
+		}
 		return simpleMatcherGroup{expr: expr, optional: true, capturing: false}, nil
 	case '(':
 		p.pos++
 		expr, err := p.parseExpr(')')
 		if err != nil {
 			return nil, err
+		}
+		if expr.containsSlot() {
+			return nil, fmt.Errorf("capturing SimpleMatcher choice cannot contain typed captures")
+		}
+		return simpleMatcherGroup{expr: expr, capturing: true}, nil
+	case '/':
+		p.pos++
+		expr, err := p.parseExpr('/')
+		if err != nil {
+			return nil, err
+		}
+		if expr.containsSlot() {
+			return nil, fmt.Errorf("non-capturing SimpleMatcher synonym group cannot contain typed captures")
 		}
 		return simpleMatcherGroup{expr: expr}, nil
 	case '<':
@@ -218,7 +233,7 @@ func (p *simpleMatcherParser) parseTerm() (simpleMatcherTerm, error) {
 		start := p.pos
 		for !p.eof() {
 			ch := p.peek()
-			if strings.ContainsRune("[]{}()|<>", ch) || isSimpleMatcherSpace(ch) {
+			if strings.ContainsRune("[]{}()/|<>", ch) || isSimpleMatcherSpace(ch) {
 				break
 			}
 			p.pos++

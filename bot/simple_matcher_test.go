@@ -65,7 +65,7 @@ func TestCompileSimpleMatcherOptionalAndAlternatives(t *testing.T) {
 }
 
 func TestCompileSimpleMatcherTypedCaptures(t *testing.T) {
-	re := mustCompileSimpleMatcherRegexp(t, "block {ticket|story} <story:slug> {<reason:rest>}")
+	re := mustCompileSimpleMatcherRegexp(t, "block /ticket|story/ <story:slug> [<reason:rest>]")
 
 	matches := re.FindStringSubmatch("block story train-123 because prod is broken")
 	if len(matches) != 3 {
@@ -122,6 +122,169 @@ func TestCompileSimpleMatcherRejectsUnknownType(t *testing.T) {
 	}
 }
 
+func TestCompileSimpleMatcherRejectsBareAlternation(t *testing.T) {
+	if _, err := compileSimpleMatcher("get|take <thing:rest>"); err == nil {
+		t.Fatal("expected bare alternation error")
+	}
+}
+
+func TestCompileSimpleMatcherRequiredCapturingChoice(t *testing.T) {
+	re := mustCompileSimpleMatcherRegexp(t, "set log level {to} (trace|debug|info|warn|error)")
+
+	matches := re.FindStringSubmatch("set log-level to debug")
+	if len(matches) != 2 {
+		t.Fatalf("len(matches) = %d, want 2 (%v)", len(matches), matches)
+	}
+	if matches[1] != "debug" {
+		t.Fatalf("captures = %#v, want debug", matches[1:])
+	}
+
+	matches = re.FindStringSubmatch("set log level warn")
+	if len(matches) != 2 {
+		t.Fatalf("len(matches) = %d, want 2 (%v)", len(matches), matches)
+	}
+	if matches[1] != "warn" {
+		t.Fatalf("captures = %#v, want warn", matches[1:])
+	}
+}
+
+func TestCompileSimpleMatcherRequiredNonCapturingSynonyms(t *testing.T) {
+	re := mustCompileSimpleMatcherRegexp(t, "/remove|delete/ <user:token> from {the} <group:rest> group")
+
+	for _, input := range []string{
+		"remove alice from ops group",
+		"delete alice from the ops group",
+	} {
+		matches := re.FindStringSubmatch(input)
+		if len(matches) != 3 {
+			t.Fatalf("len(matches) = %d for %q, want 3 (%v)", len(matches), input, matches)
+		}
+		if matches[1] != "alice" || matches[2] != "ops" {
+			t.Fatalf("captures for %q = %#v, want alice / ops", input, matches[1:])
+		}
+	}
+}
+
+func TestCompileSimpleMatcherRequiredNonCapturingPhraseSynonyms(t *testing.T) {
+	re := mustCompileSimpleMatcherRegexp(t, "/pick up|take|grab/ <item:rest>")
+
+	for _, input := range []string{
+		"pick up wrench",
+		"pick-up wrench",
+		"take wrench",
+		"grab wrench",
+	} {
+		matches := re.FindStringSubmatch(input)
+		if len(matches) != 2 {
+			t.Fatalf("len(matches) = %d for %q, want 2 (%v)", len(matches), input, matches)
+		}
+		if matches[1] != "wrench" {
+			t.Fatalf("captures for %q = %#v, want wrench", input, matches[1:])
+		}
+	}
+}
+
+func TestCompileSimpleMatcherRejectsNestedCapturesInGroups(t *testing.T) {
+	tests := []string{
+		"show {<name:ident>}",
+		"show /<name:ident>|all/",
+		"show (prefix <name:ident>)",
+	}
+	for _, spec := range tests {
+		if _, err := compileSimpleMatcher(spec); err == nil {
+			t.Fatalf("compileSimpleMatcher(%q) succeeded, want error", spec)
+		}
+	}
+}
+
+func TestCompileSimpleMatcherShippedConfigArgPositions(t *testing.T) {
+	tests := []struct {
+		name    string
+		spec    string
+		input   string
+		capture []string
+	}{
+		{
+			name:    "logging level captures selected level only",
+			spec:    "set log level {to} (trace|debug|info|warn|error)",
+			input:   "set log-level to debug",
+			capture: []string{"debug"},
+		},
+		{
+			name:    "logging page captures page only",
+			spec:    "show /log|logs/ [page <page:number>]",
+			input:   "show logs page 2",
+			capture: []string{"2"},
+		},
+		{
+			name:    "logging page omitted captures empty page",
+			spec:    "show /log|logs/ [page <page:number>]",
+			input:   "show log",
+			capture: []string{""},
+		},
+		{
+			name:    "logging lines ignores noise",
+			spec:    "set log lines {to} <lines:number>",
+			input:   "set log lines to 3",
+			capture: []string{"3"},
+		},
+		{
+			name:    "groups add ignores article",
+			spec:    "add <user:token> to {the} [<group:rest>] group",
+			input:   "add alice to the Helpdesk group",
+			capture: []string{"alice", "Helpdesk"},
+		},
+		{
+			name:    "groups remove ignores synonym and article",
+			spec:    "/remove|delete/ <user:token> from {the} [<group:rest>] group",
+			input:   "delete alice from the Helpdesk group",
+			capture: []string{"alice", "Helpdesk"},
+		},
+		{
+			name:    "admin branch ignores synonym",
+			spec:    "/switch|change/ branch <branch:token>",
+			input:   "change branch feature/test",
+			capture: []string{"feature/test"},
+		},
+		{
+			name:    "admin git info synonyms do not capture",
+			spec:    "/git info|branch info|show branch/",
+			input:   "show branch",
+			capture: []string{},
+		},
+		{
+			name:    "ping thread ignores optional verb",
+			spec:    "{new|start|create} thread [<topic:rest>]",
+			input:   "new thread db migration",
+			capture: []string{"db migration"},
+		},
+		{
+			name:    "admin ps optional mode",
+			spec:    "ps [<mode:token>]",
+			input:   "ps -v",
+			capture: []string{"-v"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			re := mustCompileSimpleMatcherRegexp(t, tc.spec)
+			matches := re.FindStringSubmatch(tc.input)
+			if matches == nil {
+				t.Fatalf("SimpleMatcher %q did not match %q", tc.spec, tc.input)
+			}
+			if len(matches[1:]) != len(tc.capture) {
+				t.Fatalf("captures = %#v, want %#v", matches[1:], tc.capture)
+			}
+			for i, want := range tc.capture {
+				if matches[i+1] != want {
+					t.Fatalf("captures = %#v, want %#v", matches[1:], tc.capture)
+				}
+			}
+		})
+	}
+}
+
 func TestCapturingOptional(t *testing.T) {
 	re := mustCompileSimpleMatcherRegexp(t, "set log-level <level:ident> [disabled]")
 
@@ -156,6 +319,18 @@ func TestNoiseWordsGroup(t *testing.T) {
 		if matches[1] != "foo" {
 			t.Fatalf("captures = %#v, want foo", matches[1:])
 		}
+	}
+}
+
+func TestNoiseWordsGroupDoesNotCapture(t *testing.T) {
+	re := mustCompileSimpleMatcherRegexp(t, "set log lines {to} <lines:number>")
+
+	matches := re.FindStringSubmatch("set log lines to 3")
+	if len(matches) != 2 {
+		t.Fatalf("len(matches) = %d, want 2 (%v)", len(matches), matches)
+	}
+	if matches[1] != "3" {
+		t.Fatalf("captures = %#v, want 3", matches[1:])
 	}
 }
 

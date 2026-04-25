@@ -75,14 +75,20 @@ Catch-all mode scoping:
   - `Regex` — raw Go regex, preserving legacy behavior
   - `SimpleMatcher` — simplified command syntax compiled to regex during config load (`bot/simple_matcher.go`)
 - `CommandMatchers` and top-level `Help` are rejected in v3 plugin config validation.
-- `SimpleMatcher` semantics for directed commands:
+- Intended `SimpleMatcher` semantics for directed commands:
   - case-insensitive by default
   - leading/trailing whitespace tolerated through the normal command compile wrapper
   - runs of whitespace are still collapsed during dispatch retry, preserving existing whitespace-forgiveness
   - spaces in the spec act as command separators and match either spaces or dashes in input
-  - optional segments use `[ ... ]`
-  - literal alternatives use `(a|b|c)`
-  - typed captures use `<name:type>` or `<type>` and still arrive positionally in the task handler
+  - plain literal text is required and non-capturing
+  - `/a|b|c/` is required non-capturing synonym text for choices the plugin does not need to know
+  - `(a|b|c)` is a required capturing choice; the selected value arrives as a positional plugin arg
+  - `[a|b|c]` is an optional capturing choice/phrase; omitted values arrive as `""`
+  - `{a|b|c}` is optional non-capturing noise text
+  - typed captures use `<name:type>` or `<type>` and arrive positionally in the task handler
+  - when a bracketed group contains a typed capture slot, the slot is the semantic capture; the wrapper should not create a second positional arg
+  - bare `foo|bar` is intentionally not part of the grammar; use `/foo|bar/`, `(foo|bar)`, `[foo|bar]`, or `{foo|bar}`
+  - detailed authoring contract: `devdocs/SimpleMatcher.md`
 - Ambient matchers continue to load from `MessageMatchers` and remain regex-only.
 - Reply matchers and job argument matchers remain regex-based.
 

@@ -336,6 +336,12 @@ func (c *sshClient) formatMessageBodyWithHeader(header, headerColored string, ev
 			codeBlockANSI:  [2]string{c.colorStart("codeblock"), bodyRestore},
 		})
 	}
+	if evt.fixed && strings.Contains(bodyText, "\n") {
+		if !c.color || headerColored == "" {
+			return header + "\n" + bodyText
+		}
+		return headerColored + "\n" + c.colorize(bodyKind, bodyText)
+	}
 	body := " " + bodyText
 	if !c.color || headerColored == "" {
 		return c.wrapLine(header + body)

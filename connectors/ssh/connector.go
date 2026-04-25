@@ -64,6 +64,7 @@ type bufferMsg struct {
 	hidden    bool
 	visibleTo string
 
+	fixed               bool
 	basicMarkdownSource string
 }
 
@@ -672,6 +673,7 @@ func (sc *sshConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f 
 		threadID:            thr,
 		threaded:            threaded,
 		text:                msg,
+		fixed:               f == robot.Fixed,
 		basicMarkdownSource: markdownSource,
 	}
 	sc.broadcast(evt, msgObject)
@@ -701,6 +703,7 @@ func (sc *sshConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr
 		threadID:            thr,
 		threaded:            threaded,
 		text:                formatted,
+		fixed:               f == robot.Fixed,
 		basicMarkdownSource: markdownSource,
 	}
 	sc.broadcast(evt, msgObject)
@@ -722,6 +725,7 @@ func (sc *sshConnector) SendProtocolUserMessage(u string, msg string, f robot.Me
 	}
 
 	evt := sc.directEvent(sc.botName, sc.botID, true, info.userName, info.userID, msg, time.Now())
+	evt.fixed = f == robot.Fixed
 	evt.basicMarkdownSource = markdownSource
 	sc.appendBuffer(evt)
 	for _, client := range clients {
@@ -926,9 +930,6 @@ func (sc *sshConnector) appendBuffer(evt bufferMsg) uint64 {
 }
 
 func prepareSSHDisplayMessage(msg string, f robot.MessageFormat) (plain string, basicMarkdownSource string) {
-	if f == robot.Fixed && strings.Contains(msg, "\n") {
-		msg = "\n" + msg
-	}
 	if f != robot.BasicMarkdown {
 		return msg, ""
 	}

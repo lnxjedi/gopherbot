@@ -1,85 +1,130 @@
 # SimpleMatcher DSL
 
-`SimpleMatcher` provides a human-friendly syntax for matching user commands in Clu plugins. It is compiled into standard regular expressions under the hood. It allows developers to specify command formats naturally, without needing to write or escape complex regex strings.
+`SimpleMatcher` is the v3 command-matcher DSL for Gopherbot plugins. It is intended to cover normal chat command shapes without forcing plugin authors to write Go regular expressions. The engine compiles it to regex during config load, and matched capture groups are passed positionally to the plugin handler.
 
-**Note:** `SimpleMatcher` can only be used for directed commands (e.g. `bot, do something`), not for ambient message matching.
+Status note: this document is the v3 authoring contract. The parser and shipped `SimpleMatcher` configs are expected to follow this bracket model; `bot/simple_matcher_test.go` includes representative shipped-pattern argument-position coverage.
+
+`SimpleMatcher` is only for directed plugin `Commands`, such as `bot, do something` or alias-prefixed hidden commands. Ambient `MessageMatchers`, reply matchers, and job argument matchers remain regex-based.
+
+## Design Rule
+
+Use `SimpleMatcher` for the common 99% of command matchers. If a command needs escaping rules, lookarounds, unusual punctuation handling, or subtle regex precedence, use `Regex` instead.
 
 ## Syntax Rules
 
-| Syntax | Description | Example |
-|---|---|---|
-| **Literal Words** | Matches the word exactly, ignoring case. | `hello world` |
-| **Hyphenated Words** | Hyphens are treated as flexible separators (matches spaces or hyphens). | `log-level` matches `log level`, `log-level`, `log  level` |
-| **`<type>`** | An unnamed capture slot of a given type. Emits a regex capture group. | `<ident>` |
-| **`<label:type>`** | A labeled capture slot. Emits a regex capture group. The `label:` is ignored by the compiler and is solely for human readability. | `<level:ident>` |
-| **`[...]`** | A capturing optional group (if it contains no slots). If present, it creates a capture group containing the words. If omitted, it emits an empty capture group `""`. If the group contains slots, it behaves as a non-capturing optional to avoid double-captures. | `[disabled]` |
-| **`{...}`** | A non-capturing noise-word group. Words inside are entirely optional and ignored (they do not create a capture group). | `{please}` |
-| **`(a \| b)`** | Required alternation. Must match one of the choices. | `(start\|stop)` |
-| **`{a \| b}`** | Optional alternation. May match one of the choices, or be omitted. | `{ticket\|story}` |
+| Syntax | Meaning | Captures? | Example |
+|---|---|---:|---|
+| `literal words` | Required literal text. Spaces in the spec match spaces or dashes in input. | No | `show log` matches `show log` and `show-log` |
+| `/a|b/` | Required non-capturing synonyms. Use when choices are equivalent to the plugin. | No | `/remove|delete/ <user:token>` |
+| `(a|b)` | Required capturing choice. Use when the plugin needs the selected value. | Yes | `(trace|debug|info|warn|error)` |
+| `[a|b]` | Optional capturing choice or phrase. If omitted, the argument is `""`. | Yes | `[disabled]` |
+| `{a|b}` | Optional non-capturing noise text. Use only to widen accepted wording. | No | `{please|kindly}` |
+| `<type>` | Required typed capture slot. | Yes | `<ident>` |
+| `<label:type>` | Required typed capture slot with a human-readable label. | Yes | `<level:ident>` |
+
+The delimiter characters are part of the SimpleMatcher grammar, not regex syntax. Do not rely on regex escaping inside a `SimpleMatcher`; switch to `Regex` when the simple grammar is not enough.
+
+## Capture Semantics
+
+Captured values are passed to plugin handlers in the order their capturing syntax appears. Literal text, required synonym groups (`/.../`), and optional noise groups (`{...}`) do not shift argument indexes.
+
+Examples:
+
+```yaml
+SimpleMatcher: "set log level {to} (trace|debug|info|warn|error)"
+```
+
+```text
+set log level debug     -> args[0] = "debug"
+set log level to debug  -> args[0] = "debug"
+```
+
+```yaml
+SimpleMatcher: "/remove|delete/ <user:token> from {the} <group:rest> group"
+```
+
+```text
+remove alice from ops group      -> args[0] = "alice", args[1] = "ops"
+delete alice from the ops group  -> args[0] = "alice", args[1] = "ops"
+```
+
+```yaml
+SimpleMatcher: "set feature <name:ident> [disabled]"
+```
+
+```text
+set feature cache disabled -> args[0] = "cache", args[1] = "disabled"
+set feature cache          -> args[0] = "cache", args[1] = ""
+```
+
+When a bracketed group contains a typed capture slot, the slot is the semantic capture. The wrapper should not add a second capture group around the slot.
+
+```yaml
+SimpleMatcher: "ps [<mode:token>]"
+```
+
+```text
+ps -v -> args[0] = "-v"
+ps    -> args[0] = ""
+```
+
+Use non-capturing noise for words that should not affect plugin behavior:
+
+```yaml
+SimpleMatcher: "show {the} <group:rest> group"
+```
+
+`the` is accepted but never passed to the plugin.
+
+## Required Synonyms
+
+Use `/.../` for required synonyms where the selected word should not matter to the handler:
+
+```yaml
+SimpleMatcher: "/start|launch/ <service:ident>"
+```
+
+This avoids ambiguous bare `foo|bar` precedence and keeps `(...)` available for choices that are meaningful plugin input.
+
+Phrases are allowed inside synonym groups:
+
+```yaml
+SimpleMatcher: "/pick up|take|grab/ <item:rest>"
+```
+
+Do not use bare `foo|bar` in a SimpleMatcher. It is intentionally not part of the grammar.
 
 ## Capture Types
 
-When using slots like `<label:type>`, the `type` determines the regex pattern used. 
+When using slots like `<label:type>`, the `type` determines the regex pattern used.
 
-| Type | Matches | Regex | Example |
-|---|---|---|---|
-| `token` | Any non-whitespace | `[^\s]+` | `abc` |
-| `ident` | Identifier | `[A-Za-z][\w-]*` | `slack-prod` |
-| `number` | Integer | `[+-]?\d+` | `-42` |
-| `decimal` | Float / Decimal | `[+-]?(?:\d+(?:\.\d+)?\|\.\d+)` | `3.14` |
-| `bool` | Boolean | `(?:true\|false\|yes\|no\|on\|off\|1\|0)` | `true`, `on` |
-| `url` | Full URL | `[A-Za-z][A-Za-z0-9+.-]*://[^\s]+` | `https://example.com` |
-| `email` | Email address | `[^\s@]+@[^\s@]+\.[^\s@]+` | `ops@example.com` |
-| `ip` / `ipv4` / `ipv6` | IP addresses | `(?:\d{1,3}\.){3}\d{1,3}` etc. | `10.0.0.1` |
-| `duration` | Go-style durations | `(?:\d+(?:ns\|us\|ms\|s\|m\|h))+` | `5m30s` |
-| `dnsname` | DNS hostname | standard DNS hostname regex | `api.example.com` |
-| `slug` | Slug identifier | `[\w.*-]+` | `train-123*` |
-| `rest` | Everything remaining | `.+` | `because prod is broken` |
+| Type | Matches | Example |
+|---|---|---|
+| `token` | Any non-whitespace token | `abc`, `foo/bar` |
+| `ident` | Identifier starting with a letter | `slack-prod` |
+| `number` | Integer | `-42` |
+| `decimal` | Decimal number | `3.14` |
+| `bool` | Boolean-ish values | `true`, `on`, `0` |
+| `url` | Full URL | `https://example.com` |
+| `email` | Email address | `ops@example.com` |
+| `ip` / `ipv4` / `ipv6` | IP addresses | `10.0.0.1` |
+| `duration` | Go-style duration | `5m30s` |
+| `dnsname` | DNS hostname | `api.example.com` |
+| `slug` | Slug-like identifier | `train-123*` |
+| `rest` | Everything remaining | `because prod is broken` |
 
-## Understanding `<label:type>`
+The label in `<label:type>` is documentation only. `<level:ident>` and `<ident>` compile to the same capture behavior; the label helps humans understand what the captured value represents.
 
-When you write a capture slot like `<level:ident>`, the word `level:` is just a **human-readable label**. 
+## Choosing The Right Brackets
 
-Under the hood, `SimpleMatcher` compiles this down to a standard, *unnamed* capture group, like `([A-Za-z][\w-]*)`. 
-The Go regex engine assigns it a standard numeric index (e.g. `matches[1]`). The `level:` label is completely ignored by the code — it exists purely so that developers reading the YAML configuration can understand what the `<ident>` represents.
+- Use `(...)` when the selected required choice changes what the plugin should do.
+- Use `[...]` when the optional value itself is meaningful to the plugin.
+- Use `{...}` when optional words only make the command easier to say.
+- Use `/.../` when required words are synonyms and should not become plugin arguments.
+- Use `<label:type>` for typed values supplied by the user.
 
-You can write `<ident>` or `<level:ident>`, and both behave identically in the engine.
+## Restrictions
 
-## Examples and Regex Mapping
-
-Here is how `SimpleMatcher` strings are interpreted and mapped into regular expressions.
-*(Note: All final regexes are wrapped in `^(?s:\s*(?i:PATTERN)\s*)$` to ensure full string matching, case-insensitivity, and padding safety. The examples below show the inner `PATTERN` for clarity.)*
-
-### Example 1: Basic Command
-**SimpleMatcher:** `ping`
-**Generated Regex:** `ping`
-**Matches:** `"ping"`, `"PING"`
-
-### Example 2: Captures and Noise Words
-**SimpleMatcher:** `set log-level {to} <level:ident>`
-**Generated Regex:** `set(?:[ -]+)?log(?:[ -]+)?level(?:[ -]+to)?(?:[ -]+)?([A-Za-z][\w-]*)`
-- `"set log level debug"` -> matches, group 1 is `"debug"`
-- `"set log-level to info"` -> matches, group 1 is `"info"`
-- `"set log level"` -> fails (missing `<ident>`)
-
-### Example 3: Capturing Optionals
-**SimpleMatcher:** `set log-level <level:ident> [disabled]`
-**Generated Regex:** `set(?:[ -]+)?log(?:[ -]+)?level(?:[ -]+)?([A-Za-z][\w-]*)(?:[ -]+(disabled))?`
-- `"set log-level debug disabled"` -> matches, group 1 is `"debug"`, group 2 is `"disabled"`
-- `"set log-level debug"` -> matches, group 1 is `"debug"`, group 2 is `""`
-
-**SimpleMatcher:** `ps [<mode:token>]`
-**Generated Regex:** `ps(?:[ -]+([^\s]+))?`
-- `"ps -v"` -> matches, group 1 is `"-v"`
-- `"ps"` -> matches, group 1 is `""`
-
-### Example 4: Alternations
-**SimpleMatcher:** `(start|stop|restart) <service:ident>`
-**Generated Regex:** `(?:start|stop|restart)(?:[ -]+)?([A-Za-z][\w-]*)`
-- `"restart web"` -> matches, group 1 is `"web"`
-
-## Important Restrictions
-
-1. **Optional Groups and Slots**: You can put a capture slot `<...>` inside a capturing optional `[...]` (like `[<name:ident>]`). When you do this, the `[...]` wrapper automatically becomes non-capturing so you only get ONE capture group (the slot itself), preventing double-capture bugs. For pure literal optionals like `[disabled]`, it remains capturing.
-2. **Cannot be empty**: The matcher must contain at least one literal, slot, or group.
-3. **Cannot specify both**: A plugin configuration command cannot define both `Regex` and `SimpleMatcher`. You must choose one.
+1. A matcher cannot specify both `Regex` and `SimpleMatcher`.
+2. A `SimpleMatcher` cannot be empty.
+3. `SimpleMatcher` does not support arbitrary regex syntax. Use `Regex` for the uncommon cases that need it.
