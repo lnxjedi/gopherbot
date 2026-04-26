@@ -15,12 +15,18 @@ import (
 )
 
 type logOnlyHandler struct {
-	logs  []string
-	botID string
+	logs           []string
+	botID          string
+	protocolConfig *config
 }
 
-func (h *logOnlyHandler) IncomingMessage(*robot.ConnectorMessage)  {}
-func (h *logOnlyHandler) GetProtocolConfig(interface{}) error      { return nil }
+func (h *logOnlyHandler) IncomingMessage(*robot.ConnectorMessage) {}
+func (h *logOnlyHandler) GetProtocolConfig(v interface{}) error {
+	if h.protocolConfig != nil {
+		*(v.(*config)) = *h.protocolConfig
+	}
+	return nil
+}
 func (h *logOnlyHandler) GetBrainConfig(interface{}) error         { return nil }
 func (h *logOnlyHandler) GetEventStrings() *[]string               { return nil }
 func (h *logOnlyHandler) GetHistoryConfig(interface{}) error       { return nil }
@@ -92,6 +98,54 @@ func TestResolveUserIDDoesNotInventResourceNameFromUsername(t *testing.T) {
 	got, ok := connector.resolveUserID("parsley", "parsley")
 	if ok {
 		t.Fatalf("resolveUserID() unexpectedly succeeded with %q", got)
+	}
+}
+
+func TestReloadAtomicallySwapsConfiguredUserMap(t *testing.T) {
+	h := &logOnlyHandler{
+		protocolConfig: &config{UserMap: map[string]string{
+			"bob":   "users/222",
+			"david": "333",
+		}},
+	}
+	connector := &googleChatConnector{
+		Handler: h,
+		botUserMap: map[string]string{
+			"alice": "users/111",
+		},
+		configuredUsers: map[string]string{
+			"users/111": "alice",
+		},
+		usersByID: map[string]chatUserRecord{
+			"users/111": {ResourceName: "users/111", CanonicalName: "alice"},
+			"users/222": {ResourceName: "users/222", DisplayName: "Bob Example"},
+		},
+		usersByName: map[string]chatUserRecord{
+			"alice": {ResourceName: "users/111", CanonicalName: "alice"},
+		},
+	}
+
+	if err := connector.Reload(); err != nil {
+		t.Fatalf("Reload() error = %v", err)
+	}
+
+	if _, ok := connector.botUserMap["alice"]; ok {
+		t.Fatalf("expected removed configured user alice to be absent from botUserMap")
+	}
+	if connector.botUserMap["bob"] != "users/222" || connector.botUserMap["david"] != "users/333" {
+		t.Fatalf("unexpected botUserMap after reload: %#v", connector.botUserMap)
+	}
+	if _, ok := connector.configuredUsers["users/111"]; ok {
+		t.Fatalf("expected old configured resource to be removed")
+	}
+	if connector.configuredUsers["users/222"] != "bob" || connector.configuredUsers["users/333"] != "david" {
+		t.Fatalf("unexpected configuredUsers after reload: %#v", connector.configuredUsers)
+	}
+	if _, ok := connector.usersByName["alice"]; ok {
+		t.Fatalf("expected stale canonical user index to be removed")
+	}
+	if record := connector.usersByID["users/222"]; record.CanonicalName != "bob" {
+		t.Fatalf("expected cached user record to receive new canonical name, got %+v", record)
 	}
 }
 

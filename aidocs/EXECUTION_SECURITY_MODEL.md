@@ -160,9 +160,10 @@ These apply to `bot/handler.go`, `bot/available.go`, `bot/authorize.go`, `bot/el
 - Hidden-command allow/deny remains engine-owned and still requires connector support plus plugin `AllowedHiddenCommands`.
 - The broadened hidden admin surface does not weaken underlying auth/elevation checks:
   - `builtin-admin` may expose most admin commands as hidden-capable, but `quit`, `restart`, and `abort` remain excluded.
+  - Legacy `builtin-dmadmin` inspection commands (`dump robot`, `dump plugin`, `dump plugin default`, `list plugins`) now live on `builtin-admin` as globally available hidden-required commands; direct or channel-visible invocation is rejected by the handler before returning configuration data.
   - `builtin-history` and `builtin-jobcmd` can now expose their allowed hidden commands.
   - job/history security checks still authorize against the target job/task and preserve normal admin/authorization/elevation ordering.
-- Practical implication: hidden `ps`, `get-pipeline-log`, `jobs`, and history lookups are a transport/privacy convenience, not a policy bypass.
+- Practical implication: hidden `ps`, `get-pipeline-log`, config inspection, `jobs`, and history lookups are a transport/privacy convenience, not a policy bypass.
 
 ## Message Context and Privacy Invariants
 

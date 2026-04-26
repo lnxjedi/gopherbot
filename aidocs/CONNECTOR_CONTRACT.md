@@ -91,6 +91,18 @@ The engine must not infer or overwrite this after connector normalization.
   - Slack/Google Chat set `ValidatedUser=true` only when the transport ID resolves through connector-local canonical mapping such as `ProtocolConfig.UserMap`
   - unmapped Slack/Google Chat users may still arrive with `UserName` text for human readability, but with `ValidatedUser=false`
 
+## Reload Rules
+
+- `robot.Connector.Reload() error` is called by the engine for each active connector after a successful normal configuration reload has loaded the new protocol config and reconciled active secondary connectors.
+- Reload is for connector-local runtime configuration that can be applied without reconnecting the transport. Current identity examples:
+  - Slack `ProtocolConfig.UserMap`
+  - Google Chat `ProtocolConfig.UserMap`
+  - SSH `ProtocolConfig.UserKeys`
+- Connector reload implementations must parse and normalize new config before mutating live state.
+- Connector reload implementations must apply live state changes atomically under connector-owned locks so concurrent readers see either the old complete mapping or the new complete mapping.
+- Connector reload must not bypass engine policy. It only changes connector-local mapping/lookup state; authorization and command availability remain engine-owned and username-authoritative.
+- A reload failure in one connector is logged by the engine and does not stop other active connectors from attempting reload.
+
 ## Threading Rules
 
 - Connectors may preserve protocol-local thread metadata in `ThreadID` and `ThreadedMessage`.

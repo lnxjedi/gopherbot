@@ -46,6 +46,7 @@ Catch-all mode scoping:
     - connector-marked bot message (`Incoming.BotMessage=true`, e.g. Slack slash route), or
     - name-addressed command mode (`cmdMode == "name"`).
 - Practical effect: hidden `/...` payloads that are not bot-addressed by connector or name will not execute hidden commands.
+- Some admin inspection commands are hidden-required even though they are globally available by matcher location. For example, `dump robot`, `dump plugin`, `dump plugin default`, and `list plugins` are implemented by `builtin-admin` but reject non-hidden invocation before returning configuration data.
 - User-facing denial behavior is split cleanly:
   - if the active connector does not support hidden commands, engine returns a single protocol-specific unsupported message
   - if the connector does support hidden commands but the user addressed them incorrectly, engine returns a single engine-authored guidance string built from the connector's concrete hidden-command formatter (for example ``Use `/clu <command>` to address a hidden command.``)

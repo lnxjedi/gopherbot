@@ -124,6 +124,7 @@ type _github_com_lnxjedi_gopherbot_robot_Connector struct {
 	WGetProtocolUserAttribute             func(user string, attr string) (value string, ret robot.RetVal)
 	WJoinChannel                          func(c string) robot.RetVal
 	WMessageHeard                         func(user string, channel string)
+	WReload                               func() error
 	WRun                                  func(stopchannel <-chan struct{})
 	WSendProtocolChannelThreadMessage     func(channelname string, threadid string, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal
 	WSendProtocolUserChannelThreadMessage func(userid string, username string, channelname string, threadid string, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal
@@ -141,6 +142,9 @@ func (W _github_com_lnxjedi_gopherbot_robot_Connector) JoinChannel(c string) rob
 }
 func (W _github_com_lnxjedi_gopherbot_robot_Connector) MessageHeard(user string, channel string) {
 	W.WMessageHeard(user, channel)
+}
+func (W _github_com_lnxjedi_gopherbot_robot_Connector) Reload() error {
+	return W.WReload()
 }
 func (W _github_com_lnxjedi_gopherbot_robot_Connector) Run(stopchannel <-chan struct{}) {
 	W.WRun(stopchannel)

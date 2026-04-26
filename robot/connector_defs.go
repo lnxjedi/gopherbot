@@ -146,6 +146,11 @@ type Connector interface {
 	// SendProtocolUserMessage sends a direct message to a user if supported.
 	// The value of user is the engine's canonical username identity.
 	SendProtocolUserMessage(user, msg string, format MessageFormat, msgObject *ConnectorMessage) RetVal
+	// Reload refreshes connector-local runtime configuration after a
+	// successful engine configuration reload. Implementations must apply
+	// changes atomically so live readers see either the old complete connector
+	// state or the new complete connector state.
+	Reload() error
 	// The Run method starts the main loop and takes a channel for stopping it.
 	Run(stopchannel <-chan struct{})
 }

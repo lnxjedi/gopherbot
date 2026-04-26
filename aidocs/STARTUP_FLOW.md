@@ -334,6 +334,7 @@ Identity policy is username-authoritative in engine flows.
 - secondary startup failures are logged and do not abort startup
 - `terminal` is not supported as a secondary protocol; if listed it is ignored with a warning
 - reload reconciles secondary runtime (removed secondaries stop; configured secondaries are re-attempted)
+- after successful reload config processing and secondary reconciliation, active connectors receive `Connector.Reload()` so connector-local runtime mappings such as Slack/Google Chat `UserMap` and SSH `UserKeys` pick up the new protocol config without a process restart
 - changing primary protocol on reload is rejected and logged; active primary remains unchanged
 
 ### AI Development Mode (`--aidev`)
@@ -496,6 +497,8 @@ run()
         │
         └─> Log("Robot is initialized and running")
 ```
+
+On normal engine reload (`reload`, git-update reload follow-up, or branch-switch reload follow-up), `loadConfig(false)` parses and validates the new configuration, updates the active runtime configuration, reconciles secondary connector membership, then calls `Reload()` on all currently running connectors before refreshing regexes, schedules, and plugin init state.
 
 ## Runtime Protocol Controls
 

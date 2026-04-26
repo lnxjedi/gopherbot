@@ -37,6 +37,7 @@ func (c *validationCaptureConnector) SendProtocolUserMessage(user, msg string, _
 	}
 	return robot.Ok
 }
+func (c *validationCaptureConnector) Reload() error       { return nil }
 func (c *validationCaptureConnector) Run(<-chan struct{}) {}
 
 func resetUserValidationRequestsForTesting() {

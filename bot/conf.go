@@ -986,6 +986,9 @@ func loadConfig(preConnect bool) error {
 
 	if !preConnect {
 		reconcileSecondaryConnectorRuntimes(processed.secondaryProtocols)
+		if err := reloadActiveConnectorRuntimes(); err != nil {
+			Log(robot.Error, "Reloading active connectors: %v", err)
+		}
 		updateRegexes()
 		scheduleTasks()
 		initializePlugins()

@@ -599,7 +599,7 @@ func (sc *sshConnector) sendIncoming(client *sshClient, line string, hidden bool
 
 func (sc *sshConnector) MessageHeard(u, c string) {}
 
-func (sc *sshConnector) configureUsers(entries []userKeysEntry) {
+func (sc *sshConnector) buildUserMaps(entries []userKeysEntry) (map[string]userKeyInfo, map[string]userKeyInfo, map[string]userKeyInfo) {
 	keys := make(map[string]userKeyInfo)
 	names := make(map[string]userKeyInfo)
 	ids := make(map[string]userKeyInfo)
@@ -638,11 +638,48 @@ func (sc *sshConnector) configureUsers(entries []userKeysEntry) {
 			addUserKey(entry.UserName, key)
 		}
 	}
+	return keys, names, ids
+}
+
+func (sc *sshConnector) configureUsers(entries []userKeysEntry) {
+	keys, names, ids := sc.buildUserMaps(entries)
 	sc.mu.Lock()
 	sc.userKeys = keys
 	sc.userNames = names
 	sc.userIDs = ids
 	sc.mu.Unlock()
+}
+
+func (sc *sshConnector) Reload() error {
+	var cfg sshConfig
+	if err := sc.handler.GetProtocolConfig(&cfg); err != nil {
+		return fmt.Errorf("retrieve SSH protocol configuration: %w", err)
+	}
+	keys, names, ids := sc.buildUserMaps(cfg.UserKeys)
+
+	clientsToClose := make([]*sshClient, 0)
+	sc.mu.Lock()
+	for client := range sc.clients {
+		if _, ok := ids[client.userID]; !ok {
+			clientsToClose = append(clientsToClose, client)
+		}
+	}
+	sc.cfg.UserKeys = cfg.UserKeys
+	sc.userKeys = keys
+	sc.userNames = names
+	sc.userIDs = ids
+	sc.mu.Unlock()
+
+	for _, client := range clientsToClose {
+		if client.conn != nil {
+			_ = client.conn.Close()
+		}
+	}
+	if len(keys) == 0 {
+		sc.handler.Log(robot.Warn, "SSH connector reloaded with no configured user keys; no new SSH user can authenticate until UserKeys is configured in ProtocolConfig")
+	}
+	sc.handler.Log(robot.Info, "SSH connector reloaded %d configured public key(s); closed %d stale session(s)", len(keys), len(clientsToClose))
+	return nil
 }
 
 func (sc *sshConnector) GetProtocolUserAttribute(u, attr string) (value string, ret robot.RetVal) {

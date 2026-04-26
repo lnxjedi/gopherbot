@@ -101,6 +101,51 @@ func (gc *googleChatConnector) rebuildConfiguredUserIndexes() {
 	gc.configuredUsers = configured
 }
 
+func configuredUsersByResource(userMap map[string]string) map[string]string {
+	configured := make(map[string]string, len(userMap))
+	for name, id := range userMap {
+		configured[id] = name
+	}
+	return configured
+}
+
+func (gc *googleChatConnector) Reload() error {
+	var c config
+	if err := gc.GetProtocolConfig(&c); err != nil {
+		return fmt.Errorf("retrieve Google Chat protocol configuration: %w", err)
+	}
+	newBotUserMap := normalizeConfiguredUserMap(c.UserMap, gc.Handler)
+	newConfiguredUsers := configuredUsersByResource(newBotUserMap)
+
+	gc.mu.Lock()
+	oldConfiguredUsers := gc.configuredUsers
+	for resource, oldName := range oldConfiguredUsers {
+		if newName, ok := newConfiguredUsers[resource]; ok && newName == oldName {
+			continue
+		}
+		if record, ok := gc.usersByName[oldName]; ok && record.ResourceName == resource {
+			delete(gc.usersByName, oldName)
+		}
+		if record, ok := gc.usersByID[resource]; ok && record.CanonicalName == oldName {
+			record.CanonicalName = ""
+			gc.usersByID[resource] = record
+		}
+	}
+	for resource, name := range newConfiguredUsers {
+		if record, ok := gc.usersByID[resource]; ok {
+			record.CanonicalName = name
+			gc.usersByID[resource] = record
+			gc.usersByName[name] = record
+		}
+	}
+	gc.botUserMap = newBotUserMap
+	gc.configuredUsers = newConfiguredUsers
+	gc.mu.Unlock()
+
+	gc.Log(robot.Info, "Google Chat connector reloaded %d configured user mapping(s)", len(newBotUserMap))
+	return nil
+}
+
 func (gc *googleChatConnector) runtimeBotID() string {
 	gc.mu.RLock()
 	defer gc.mu.RUnlock()

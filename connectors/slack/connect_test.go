@@ -7,10 +7,17 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-type testHandler struct{}
+type testHandler struct {
+	protocolConfig *config
+}
 
-func (t *testHandler) IncomingMessage(_ *robot.ConnectorMessage)  {}
-func (t *testHandler) GetProtocolConfig(_ interface{}) error      { return nil }
+func (t *testHandler) IncomingMessage(_ *robot.ConnectorMessage) {}
+func (t *testHandler) GetProtocolConfig(v interface{}) error {
+	if t.protocolConfig != nil {
+		*(v.(*config)) = *t.protocolConfig
+	}
+	return nil
+}
 func (t *testHandler) GetBrainConfig(_ interface{}) error         { return nil }
 func (t *testHandler) GetEventStrings() *[]string                 { return nil }
 func (t *testHandler) GetHistoryConfig(_ interface{}) error       { return nil }
@@ -61,6 +68,49 @@ func TestNormalizeConfiguredUserMapEmpty(t *testing.T) {
 	}
 	if got := normalizeConfiguredUserMap(map[string]string{}, h); got != nil {
 		t.Fatalf("expected nil map for empty input")
+	}
+}
+
+func TestReloadAtomicallySwapsConfiguredUserMap(t *testing.T) {
+	h := &testHandler{
+		protocolConfig: &config{UserMap: map[string]string{
+			"bob":   "U22",
+			"david": "U4",
+		}},
+	}
+	sc := &slackConnector{
+		Handler:    h,
+		botUserMap: map[string]string{"alice": "U1"},
+		userMap: map[string]string{
+			"alice": "U1",
+			"bob":   "U2",
+			"carol": "U3",
+		},
+		userIDMap: map[string]string{
+			"U1": "alice",
+			"U2": "bob",
+			"U3": "carol",
+		},
+	}
+
+	if err := sc.Reload(); err != nil {
+		t.Fatalf("Reload() error = %v", err)
+	}
+
+	if _, ok := sc.botUserMap["alice"]; ok {
+		t.Fatalf("expected removed configured user alice to be absent from botUserMap")
+	}
+	if sc.botUserMap["bob"] != "U22" || sc.botUserMap["david"] != "U4" {
+		t.Fatalf("unexpected botUserMap after reload: %#v", sc.botUserMap)
+	}
+	if _, ok := sc.userMap["alice"]; ok {
+		t.Fatalf("expected old configured user alice to be removed from userMap")
+	}
+	if sc.userMap["bob"] != "U22" || sc.userIDMap["U22"] != "bob" {
+		t.Fatalf("expected bob mapping to be replaced atomically, userMap=%#v userIDMap=%#v", sc.userMap, sc.userIDMap)
+	}
+	if sc.userMap["carol"] != "U3" || sc.userIDMap["U3"] != "carol" {
+		t.Fatalf("expected non-configured user map entries to be preserved")
 	}
 }
 

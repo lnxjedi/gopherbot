@@ -23,7 +23,6 @@ const tooManyChannels = 4
 
 func init() {
 	robot.RegisterPlugin("builtin-fallback", robot.PluginHandler{Handler: fallback})
-	robot.RegisterPlugin("builtin-dmadmin", robot.PluginHandler{Handler: dmadmin})
 	robot.RegisterPlugin("builtin-help", robot.PluginHandler{Handler: help})
 	robot.RegisterPlugin("builtin-admin", robot.PluginHandler{Handler: admin})
 	robot.RegisterPlugin("builtin-logging", robot.PluginHandler{Handler: logging})
@@ -1586,99 +1585,131 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 	return
 }
 
-func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
-	r := m.(Robot)
-	if command == "init" {
-		return // ignore init
+func adminHiddenCommandRequired(r Robot) bool {
+	if r.Incoming != nil && r.Incoming.HiddenMessage {
+		return true
 	}
-	switch command {
-	case "dumprobot":
-		if r.Protocol != robot.Terminal && r.Protocol != robot.Test && r.Protocol != robot.SSH {
-			r.Say("This command is only valid with the 'terminal' or 'ssh' connector")
-			return
-		}
-		confLock.RLock()
-		c, _ := yaml.Marshal(config)
-		confLock.RUnlock()
-		r.Fixed().Say("Here's how I've been configured, irrespective of interactive changes:\n%s", c)
-	case "dumpplugdefault":
-		found := false
-		for _, t := range r.tasks.t[1:] {
-			task, plugin, _ := getTask(t)
-			if args[0] == task.name {
-				if plugin == nil {
-					r.Say("No default configuration available for task type 'job'")
-					return
-				}
-				if plugin.taskType == taskExternal {
-					found = true
-					if cfg, err := getDefCfg(t); err == nil {
-						r.Fixed().Say("Here's the default configuration for \"%s\":\n%s", args[0], *cfg)
-					} else {
-						r.Say("I had a problem looking that up - somebody should check my logs")
-					}
-				}
-			}
-		}
-		if !found {
-			r.Say("Didn't find a plugin named " + args[0])
-		}
-	case "dumpplugin":
-		if r.Protocol != robot.Terminal && r.Protocol != robot.Test && r.Protocol != robot.SSH {
-			r.Say("This command is only valid with the 'terminal' or 'ssh' connector")
-			return
-		}
-		found := false
-		for _, t := range r.tasks.t[1:] {
-			task, plugin, _ := getTask(t)
-			if args[0] == task.name {
-				if plugin == nil {
-					r.Say("Task '%s' is a job, not a plugin", task.name)
-					return
-				}
-				found = true
-				c, _ := yaml.Marshal(plugin)
-				r.Fixed().Say("%s", c)
-			}
-		}
-		if !found {
-			r.Say("Didn't find a plugin named " + args[0])
-		}
-	case "listplugins":
-		joiner := ", "
-		message := "Here are the plugins I have configured:\n%s"
-		wantDisabled := false
-		if len(args[0]) > 0 {
-			wantDisabled = true
-			joiner = "\n"
-			message = "Here's a list of all disabled plugins:\n%s"
-		}
-		plist := make([]string, 0, len(r.tasks.t))
-		for _, t := range r.tasks.t[1:] {
-			task, plugin, _ := getTask(t)
+	r.Say("This command is only available as a hidden command.")
+	return false
+}
+
+func adminDumpRobot(r Robot) {
+	confLock.RLock()
+	c, _ := yaml.Marshal(config)
+	confLock.RUnlock()
+	r.Fixed().Say("Here's how I've been configured, irrespective of interactive changes:\n%s", c)
+}
+
+func adminDumpPluginDefault(r Robot, args []string) {
+	if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
+		r.Say("Usage: dump plugin default <plugin>")
+		return
+	}
+	plugName := strings.TrimSpace(args[0])
+	found := false
+	for _, t := range r.tasks.t[1:] {
+		task, plugin, _ := getTask(t)
+		if plugName == task.name {
 			if plugin == nil {
-				continue
+				r.Say("No default configuration available for task type 'job'")
+				return
 			}
-			ptext := task.name
-			if wantDisabled {
-				if task.Disabled {
-					ptext += "; reason: " + task.reason
-					plist = append(plist, ptext)
+			if plugin.taskType == taskExternal {
+				found = true
+				if cfg, err := getDefCfg(t); err == nil {
+					r.Fixed().Say("Here's the default configuration for \"%s\":\n%s", plugName, *cfg)
+				} else {
+					r.Say("I had a problem looking that up - somebody should check my logs")
 				}
-			} else {
-				if task.Disabled {
-					ptext += " (disabled)"
-				}
+			}
+		}
+	}
+	if !found {
+		r.Say("Didn't find a plugin named " + plugName)
+	}
+}
+
+func adminDumpPlugin(r Robot, args []string) {
+	if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
+		r.Say("Usage: dump plugin <plugin>")
+		return
+	}
+	plugName := strings.TrimSpace(args[0])
+	found := false
+	for _, t := range r.tasks.t[1:] {
+		task, plugin, _ := getTask(t)
+		if plugName == task.name {
+			if plugin == nil {
+				r.Say("Task '%s' is a job, not a plugin", task.name)
+				return
+			}
+			found = true
+			c, _ := yaml.Marshal(plugin)
+			r.Fixed().Say("%s", c)
+		}
+	}
+	if !found {
+		r.Say("Didn't find a plugin named " + plugName)
+	}
+}
+
+func adminListPlugins(r Robot, args []string) {
+	joiner := ", "
+	message := "Here are the plugins I have configured:\n%s"
+	wantDisabled := false
+	if len(args) > 0 && len(args[0]) > 0 {
+		wantDisabled = true
+		joiner = "\n"
+		message = "Here's a list of all disabled plugins:\n%s"
+	}
+	plist := make([]string, 0, len(r.tasks.t))
+	for _, t := range r.tasks.t[1:] {
+		task, plugin, _ := getTask(t)
+		if plugin == nil {
+			continue
+		}
+		ptext := task.name
+		if wantDisabled {
+			if task.Disabled {
+				ptext += "; reason: " + task.reason
 				plist = append(plist, ptext)
 			}
-		}
-		if len(plist) > 0 {
-			r.Say(message, strings.Join(plist, joiner))
-		} else { // note because of builtin plugins, plist is ALWAYS > 0 if disabled wasn't specified
-			r.Say("There are no disabled plugins")
+		} else {
+			if task.Disabled {
+				ptext += " (disabled)"
+			}
+			plist = append(plist, ptext)
 		}
 	}
-	return
+	if len(plist) > 0 {
+		r.Say(message, strings.Join(plist, joiner))
+	} else {
+		r.Say("There are no disabled plugins")
+	}
+}
+
+func handleAdminInspectCommand(r Robot, command string, args []string) bool {
+	switch command {
+	case "dumprobot":
+		if adminHiddenCommandRequired(r) {
+			adminDumpRobot(r)
+		}
+	case "dumpplugdefault":
+		if adminHiddenCommandRequired(r) {
+			adminDumpPluginDefault(r, args)
+		}
+	case "dumpplugin":
+		if adminHiddenCommandRequired(r) {
+			adminDumpPlugin(r, args)
+		}
+	case "listplugins":
+		if adminHiddenCommandRequired(r) {
+			adminListPlugins(r, args)
+		}
+	default:
+		return false
+	}
+	return true
 }
 
 var byebye = []string{
@@ -1900,6 +1931,9 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 	r := m.(Robot)
 	w := getLockedWorker(r.tid)
 	w.Unlock()
+	if handleAdminInspectCommand(r, command, args) {
+		return
+	}
 	switch command {
 	case "update":
 		if ret := r.AddJob("go-update"); ret != robot.Ok {

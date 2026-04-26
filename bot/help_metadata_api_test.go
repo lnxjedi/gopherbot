@@ -32,6 +32,8 @@ func (c *hiddenHelpTestConnector) SendProtocolUserMessage(string, string, robot.
 	return robot.Ok
 }
 
+func (c *hiddenHelpTestConnector) Reload() error { return nil }
+
 func (c *hiddenHelpTestConnector) Run(<-chan struct{}) {}
 
 func (c *hiddenHelpTestConnector) FormatHiddenCommand(input string) string {
