@@ -84,6 +84,27 @@ func TestPipelineLiveLoggerKeepsLiveBufferAfterBaseClose(t *testing.T) {
 	}
 }
 
+func TestFormatPipelineAgeUsesCompactOperatorUnits(t *testing.T) {
+	tests := []struct {
+		name string
+		age  time.Duration
+		want string
+	}{
+		{name: "seconds", age: 77 * time.Second, want: "77s"},
+		{name: "minutes", age: 59 * time.Minute, want: "59m"},
+		{name: "hours minutes", age: 3*time.Hour + 30*time.Minute, want: "3h30m"},
+		{name: "days hours", age: 2*24*time.Hour + 14*time.Hour, want: "2d14h"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := formatPipelineAge(tt.age); got != tt.want {
+				t.Fatalf("formatPipelineAge(%s) = %q, want %q", tt.age, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestAdminPSAndGetPipelineLog(t *testing.T) {
 	fake := installFormatCaptureConnector(t)
 	resetActivePipelinesForTest(t)
@@ -116,28 +137,56 @@ func TestAdminPSAndGetPipelineLog(t *testing.T) {
 		},
 	}
 	target.osCmd = &exec.Cmd{Process: &os.Process{Pid: 4321}}
+	jobTarget := &worker{
+		User: "alice",
+		id:   43,
+		pipeContext: &pipeContext{
+			pipeName:  "nightly",
+			jobName:   "nightly",
+			taskName:  "archive",
+			taskType:  "task",
+			taskClass: "Go",
+			taskArgs:  []string{"prod"},
+			startedAt: time.Now().Add(-3*time.Hour - 30*time.Minute),
+			timeZone:  time.UTC,
+			ptype:     scheduled,
+		},
+	}
 
 	activePipelines.Lock()
 	activePipelines.i[1] = adminWorker
 	activePipelines.i[42] = target
+	activePipelines.i[43] = jobTarget
 	activePipelines.Unlock()
 
+	admin(r, "ps")
+	if !strings.Contains(fake.lastMessage, "direct messages or hidden messages") {
+		t.Fatalf("visible ps did not require hidden/DM context: %q", fake.lastMessage)
+	}
+
+	r.Incoming.HiddenMessage = true
 	admin(r, "ps")
 	if fake.lastFormat != robot.Fixed {
 		t.Fatalf("ps format = %v, want %v", fake.lastFormat, robot.Fixed)
 	}
-	if !strings.Contains(fake.lastMessage, "WID    PWID  TYPE") {
+	if !strings.Contains(fake.lastMessage, "Plugins\nID") {
 		t.Fatalf("ps output missing non-verbose header: %q", fake.lastMessage)
 	}
 	if !strings.Contains(fake.lastMessage, "adminwatchdog") {
 		t.Fatalf("ps output missing pipeline row: %q", fake.lastMessage)
 	}
+	if !strings.Contains(fake.lastMessage, "Jobs\nID") || !strings.Contains(fake.lastMessage, "nightly") || !strings.Contains(fake.lastMessage, "sched") {
+		t.Fatalf("ps output missing job section: %q", fake.lastMessage)
+	}
 	if strings.Contains(fake.lastMessage, "4321") {
 		t.Fatalf("non-verbose ps unexpectedly exposed pid: %q", fake.lastMessage)
 	}
+	if !strings.Contains(fake.lastMessage, "(use 'ps -v' for more verbose output)") {
+		t.Fatalf("ps output missing verbose hint: %q", fake.lastMessage)
+	}
 
 	admin(r, "ps", "-v")
-	if !strings.Contains(fake.lastMessage, "PID") {
+	if !strings.Contains(fake.lastMessage, "OSPID") {
 		t.Fatalf("verbose ps output missing PID header: %q", fake.lastMessage)
 	}
 	if !strings.Contains(fake.lastMessage, "4321") {

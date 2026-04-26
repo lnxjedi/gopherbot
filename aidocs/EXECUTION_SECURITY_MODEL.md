@@ -98,9 +98,11 @@ Key invariant in current model: dropping/raising privilege for task execution re
 - The live buffer is engine-owned and exists independently of persisted history retention.
   - It captures section markers, engine log lines (`Robot.Log(...)` / `worker.Log(...)`), and child stdout/stderr.
 - Admin/operator inspection surface:
-  - `ps` is the default low-risk view for active pipelines and intentionally omits PID.
-  - `ps -v` exposes PID plus execution-class details for operators who need kill/debug context.
-  - `get-pipeline-log <wid>` exposes the current live ring buffer for an active pipeline.
+  - `ps` is available only in direct/hidden message contexts because task arguments can contain sensitive operator data.
+  - `ps` is the default low-risk view for active pipelines and intentionally omits OS PID.
+  - `ps` presents the kill/log handle as pipeline `ID`, groups active plugins and jobs into separate sections, and includes a compact age plus a `ps -v` hint.
+  - `ps -v` exposes OS child PID (`OSPID`) plus start time, parent pipeline, and execution-class details for operators who need kill/debug context.
+  - `get-pipeline-log <id>` exposes the current live ring buffer for an active pipeline.
 - Timeout watchdog kill scope is intentionally narrower than alert scope:
   - external executable child pipelines can be killed by process group
   - RPC-backed interpreter/child-Go pipelines can be canceled and/or killed through parent-held child state

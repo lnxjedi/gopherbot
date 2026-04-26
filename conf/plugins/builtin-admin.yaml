@@ -105,19 +105,19 @@ Commands:
   SimpleMatcher: "ps [<mode:token>]"
   Keywords: [ "process", "processes", "ps", "pipeline", "pipelines" ]
   Usage: "ps (-v)"
-  Summary: "list running pipelines, optionally with verbose process details"
+  Summary: "list running pipelines in a direct or hidden message, optionally with verbose process details"
 - Command: getpipelinelog
   # Regex: '(?i:get[- ]pipeline[- ]log ([\\d]+))'
-  SimpleMatcher: "get pipeline log <wid:number>"
+  SimpleMatcher: "get pipeline log <id:number>"
   Keywords: [ "pipeline", "log", "logs", "inspect", "debug", "process" ]
-  Usage: "get-pipeline-log <wid>"
+  Usage: "get-pipeline-log <id>"
   Summary: "show the current buffered log for an active pipeline"
 - Command: "kill"
   # Regex: '(?i:kill(?:[- ](?:job|pipeline|process))? ([\d]+))'
-  SimpleMatcher: "kill {job|pipeline|process} <wid:number>"
+  SimpleMatcher: "kill {job|pipeline|process} <id:number>"
   Keywords: [ "kill", "process", "job" ]
-  Usage: "kill-pipeline <wid>"
-  Summary: "kill the current process for the pipeline identified by <wid>"
+  Usage: "kill-pipeline <id>"
+  Summary: "kill the current process for the pipeline identified by <id>"
 - Command: "pause"
   # Regex: '(?i:pause(?:[- ]job)? ([A-Za-z][\w-]*))'
   SimpleMatcher: "pause {job} <job:ident>"

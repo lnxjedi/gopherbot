@@ -129,9 +129,10 @@ For a full execution/security walkthrough, see `aidocs/EXECUTION_SECURITY_MODEL.
     - kills external process groups for executable child work
     - emits a manual-intervention alert instead of force-killing compiled-in Go work
 - Admin inspection commands for active pipelines:
-  - `ps` now defaults to WID/PWID/type/start/age/pipeline/task/command view and intentionally hides PID
-  - `ps -v` includes PID and execution class details
-  - `get-pipeline-log <wid>` returns the current live buffer for an active pipeline
+  - `ps` is available only in direct/hidden message contexts because task arguments can contain sensitive operator data.
+  - `ps` defaults to sectioned `Plugins` / `Jobs` output with pipeline `ID`, compact `AGE`, `USER`, pipeline name, current task, command/source, args, and an explicit hint for `ps -v`.
+  - `ps -v` includes `STARTED`, execution class, OS child PID (`OSPID`), and parent pipeline (`FROM`) details.
+  - `get-pipeline-log <id>` returns the current live buffer for an active pipeline.
 - Failure diagnostics now favor operator-facing alerts plus live-log excerpts over relying only on `<plugin>-fail.log`.
   - compiled-in Go panic recovery logs stack traces into the live buffer
   - interpreter/external stderr and traceback text is preserved in the same live buffer and alert path

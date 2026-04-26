@@ -1724,10 +1724,23 @@ func logging(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 	return
 }
 
-type psList struct {
-	pslines []string
-	wids    []int
+type psEntry struct {
+	id       int
+	pid      string
+	class    string
+	pipeName string
+	taskName string
+	command  string
+	args     string
+	started  string
+	age      string
+	user     string
+	source   string
+	parent   string
+	isJob    bool
 }
+
+type psEntries []psEntry
 
 func psVerboseRequested(args []string) bool {
 	for _, arg := range args {
@@ -1737,6 +1750,38 @@ func psVerboseRequested(args []string) bool {
 		}
 	}
 	return false
+}
+
+func psAllowedInContext(incoming *robot.ConnectorMessage) bool {
+	return incoming != nil && (incoming.DirectMessage || incoming.HiddenMessage)
+}
+
+func psDisplayValue(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "-"
+	}
+	return value
+}
+
+func psSourceLabel(ptype pipelineType, hasParent bool) string {
+	if hasParent {
+		return "spawn"
+	}
+	switch ptype {
+	case scheduled:
+		return "sched"
+	case initJob:
+		return "init"
+	case jobTrigger:
+		return "trigger"
+	case jobCommand:
+		return "run"
+	case spawnedTask:
+		return "spawn"
+	default:
+		return psDisplayValue(ptype.String())
+	}
 }
 
 func activePipelineByWID(raw string) (*worker, int, error) {
@@ -1751,6 +1796,54 @@ func activePipelineByWID(raw string) (*worker, int, error) {
 		return nil, int(widx), fmt.Errorf("not found")
 	}
 	return worker, int(widx), nil
+}
+
+func (p psEntries) Len() int {
+	return len(p)
+}
+
+func (p psEntries) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+
+func (p psEntries) Less(i, j int) bool {
+	return p[i].id < p[j].id
+}
+
+func appendPsSection(lines []string, title string, entries psEntries, verbose bool) []string {
+	if len(entries) == 0 {
+		return lines
+	}
+	if len(lines) > 0 {
+		lines = append(lines, "")
+	}
+	lines = append(lines, title)
+	if title == "Plugins" {
+		if verbose {
+			lines = append(lines, "ID     AGE      STARTED         USER           PLUGIN          CMD          TASK            CLASS OSPID FROM   ARGS")
+			for _, e := range entries {
+				lines = append(lines, fmt.Sprintf("%-6d %-8.8s %-15.15s %-14.14s %-15.15s %-12.12s %-15.15s %-5.5s %-5.5s %-6.6s %s", e.id, e.age, e.started, e.user, e.pipeName, e.command, e.taskName, e.class, e.pid, e.parent, e.args))
+			}
+		} else {
+			lines = append(lines, "ID     AGE      USER           PLUGIN          CMD          TASK            ARGS")
+			for _, e := range entries {
+				lines = append(lines, fmt.Sprintf("%-6d %-8.8s %-14.14s %-15.15s %-12.12s %-15.15s %s", e.id, e.age, e.user, e.pipeName, e.command, e.taskName, e.args))
+			}
+		}
+		return lines
+	}
+	if verbose {
+		lines = append(lines, "ID     AGE      STARTED         JOB             TASK            SOURCE   FROM   USER           CLASS OSPID ARGS")
+		for _, e := range entries {
+			lines = append(lines, fmt.Sprintf("%-6d %-8.8s %-15.15s %-15.15s %-15.15s %-8.8s %-6.6s %-14.14s %-5.5s %-5.5s %s", e.id, e.age, e.started, e.pipeName, e.taskName, e.source, e.parent, e.user, e.class, e.pid, e.args))
+		}
+	} else {
+		lines = append(lines, "ID     AGE      JOB             TASK            SOURCE   FROM   USER           ARGS")
+		for _, e := range entries {
+			lines = append(lines, fmt.Sprintf("%-6d %-8.8s %-15.15s %-15.15s %-8.8s %-6.6s %-14.14s %s", e.id, e.age, e.pipeName, e.taskName, e.source, e.parent, e.user, e.args))
+		}
+	}
+	return lines
 }
 
 func formatReloadOutcome(r Robot, reloadErr error) string {
@@ -1798,19 +1891,6 @@ func formatReloadOutcome(r Robot, reloadErr error) string {
 		msg = msg[:320] + "..."
 	}
 	return status + " Error: " + msg
-}
-
-func (p *psList) Len() int {
-	return len(p.pslines)
-}
-
-func (p *psList) Swap(i, j int) {
-	p.pslines[i], p.pslines[j] = p.pslines[j], p.pslines[i]
-	p.wids[i], p.wids[j] = p.wids[j], p.wids[i]
-}
-
-func (p *psList) Less(i, j int) bool {
-	return p.wids[i] < p.wids[j]
 }
 
 func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
@@ -1994,63 +2074,70 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		time.Sleep(2 * time.Second)
 		panic("Abort command issued")
 	case "ps":
+		if !psAllowedInContext(r.Incoming) {
+			r.Say("This command is only available in direct messages or hidden messages.")
+			return
+		}
 		verbose := psVerboseRequested(args)
-		// wid pwid pid Go|Ext plugin|task|job
-		psl := &psList{
-			pslines: []string{},
-			wids:    []int{-1},
-		}
-		if verbose {
-			psl.pslines = append(psl.pslines, "WID    PWID  PID   CLS TYPE   STARTED         AGE      PIPENAME         TASK             COMMAND      ARGS")
-		} else {
-			psl.pslines = append(psl.pslines, "WID    PWID  TYPE   STARTED         AGE      PIPENAME         TASK             COMMAND      ARGS")
-		}
+		var pluginEntries psEntries
+		var jobEntries psEntries
 		activePipelines.Lock()
-		if len(activePipelines.i) == 1 {
-			activePipelines.Unlock()
+		for widx, worker := range activePipelines.i {
+			worker.Lock()
+			pipename := worker.pipeName
+			command := worker.plugCommand
+			if pipename == "builtin-admin" && command == "ps" {
+				worker.Unlock()
+				continue
+			}
+			parent := "-"
+			hasParent := worker._parent != nil
+			if worker._parent != nil {
+				parent = strconv.Itoa(worker._parent.id)
+			}
+			pid := "-"
+			if worker.osCmd != nil {
+				pid = strconv.Itoa(worker.osCmd.Process.Pid)
+			}
+			entry := psEntry{
+				id:       widx,
+				pid:      pid,
+				class:    psDisplayValue(worker.taskClass),
+				pipeName: psDisplayValue(pipename),
+				taskName: psDisplayValue(worker.taskName),
+				command:  psDisplayValue(command),
+				args:     strings.Join(worker.taskArgs, " "),
+				started:  formatPipelineClock(worker.startedAt, worker.timeZone),
+				age:      formatPipelineAge(time.Since(worker.startedAt)),
+				user:     psDisplayValue(worker.User),
+				source:   psSourceLabel(worker.ptype, hasParent),
+				parent:   parent,
+				isJob:    worker.jobName != "",
+			}
+			worker.Unlock()
+			if entry.isJob {
+				jobEntries = append(jobEntries, entry)
+			} else {
+				pluginEntries = append(pluginEntries, entry)
+			}
+		}
+		activePipelines.Unlock()
+		if len(pluginEntries) == 0 && len(jobEntries) == 0 {
 			r.Say("No pipelines running")
 			return
 		}
-		for widx, worker := range activePipelines.i {
-			pipename := worker.pipeName
-			worker.Lock()
-			wid := strconv.Itoa(widx)
-			pwid := ""
-			if worker._parent != nil {
-				pwid = strconv.Itoa(worker._parent.id)
-			}
-			pid := ""
-			if worker.osCmd != nil {
-				pid = strconv.Itoa(worker.osCmd.Process.Pid)
-			} else if verbose {
-				pid = "-"
-			}
-			class := worker.taskClass
-			ttype := worker.taskType
-			tname := worker.taskName
-			command := worker.plugCommand
-			args := strings.Join(worker.taskArgs, " ")
-			started := formatPipelineClock(worker.startedAt, worker.timeZone)
-			age := formatPipelineAge(time.Since(worker.startedAt))
-			worker.Unlock()
-			if pipename == "builtin-admin" && command == "ps" {
-				continue
-			}
-			var psline string
-			if verbose {
-				psline = fmt.Sprintf("%6.6s %5.5s %5.5s %-3.3s %-6.6s %-15.15s %-8.8s %-16.16s %-16.16s %-12.12s %s", wid, pwid, pid, class, ttype, started, age, pipename, tname, command, args)
-			} else {
-				psline = fmt.Sprintf("%6.6s %5.5s %-6.6s %-15.15s %-8.8s %-16.16s %-16.16s %-12.12s %s", wid, pwid, ttype, started, age, pipename, tname, command, args)
-			}
-			psl.pslines = append(psl.pslines, psline)
-			psl.wids = append(psl.wids, widx)
+		sort.Sort(pluginEntries)
+		sort.Sort(jobEntries)
+		lines := []string{}
+		lines = appendPsSection(lines, "Plugins", pluginEntries, verbose)
+		lines = appendPsSection(lines, "Jobs", jobEntries, verbose)
+		if !verbose {
+			lines = append(lines, "", "(use 'ps -v' for more verbose output)")
 		}
-		activePipelines.Unlock()
-		sort.Sort(psl)
-		r.Fixed().Say(strings.Join(psl.pslines, "\n"))
+		r.Fixed().Say(strings.Join(lines, "\n"))
 	case "getpipelinelog":
 		if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
-			r.Say("Usage: get-pipeline-log <wid>")
+			r.Say("Usage: get-pipeline-log <id>")
 			return
 		}
 		worker, widx, err := activePipelineByWID(args[0])
@@ -2070,7 +2157,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		r.Fixed().Say("Live log for pipeline %d:\n%s", widx, snapshot)
 	case "kill":
 		if len(args) == 0 {
-			r.Say("Usage: kill <wid>")
+			r.Say("Usage: kill <id>")
 			return
 		}
 		wid := args[0]

@@ -105,10 +105,23 @@ func formatPipelineAge(d time.Duration) string {
 	if d < 0 {
 		d = 0
 	}
-	if d < time.Second {
-		return d.String()
+	seconds := int64(d.Round(time.Second) / time.Second)
+	if seconds < 0 {
+		seconds = 0
 	}
-	return d.Round(time.Second).String()
+	if seconds < 120 {
+		return fmt.Sprintf("%ds", seconds)
+	}
+	minutes := seconds / 60
+	if minutes < 60 {
+		return fmt.Sprintf("%dm", minutes)
+	}
+	hours := minutes / 60
+	if hours < 24 {
+		return fmt.Sprintf("%dh%dm", hours, minutes%60)
+	}
+	days := hours / 24
+	return fmt.Sprintf("%dd%dh", days, hours%24)
 }
 
 func bufferTailFromReader(logReader io.Reader, trunc string, buffsize, linesize int) []byte {
