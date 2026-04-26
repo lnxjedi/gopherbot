@@ -424,6 +424,41 @@ func shutdownConnectorRuntimes() {
 	}
 }
 
+func reloadActiveConnectorRuntimes() error {
+	type activeConnector struct {
+		protocol  string
+		connector robot.Connector
+	}
+
+	runtimeConnectors.RLock()
+	active := make([]activeConnector, 0, len(runtimeConnectors.runtimes))
+	for protocol, mc := range runtimeConnectors.runtimes {
+		if mc != nil && mc.running && mc.connector != nil {
+			active = append(active, activeConnector{protocol: protocol, connector: mc.connector})
+		}
+	}
+	runtimeConnectors.RUnlock()
+
+	sort.Slice(active, func(i, j int) bool {
+		return active[i].protocol < active[j].protocol
+	})
+
+	errs := make([]string, 0)
+	for _, item := range active {
+		if err := item.connector.Reload(); err != nil {
+			msg := fmt.Sprintf("connector '%s' reload failed: %v", item.protocol, err)
+			Log(robot.Error, msg)
+			errs = append(errs, msg)
+			continue
+		}
+		Log(robot.Debug, "Connector '%s' reloaded", item.protocol)
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf("%s", strings.Join(errs, "; "))
+	}
+	return nil
+}
+
 func reconcileSecondaryConnectorRuntimes(secondaries []string) {
 	primary, ok := getRuntimePrimaryProtocol()
 	if !ok || primary == "" {
@@ -630,6 +665,10 @@ func (rc *runtimeConnectorRouter) SendProtocolUserMessage(user, msg string, form
 		return robot.Failed
 	}
 	return conn.SendProtocolUserMessage(user, msg, format, msgObject)
+}
+
+func (rc *runtimeConnectorRouter) Reload() error {
+	return reloadActiveConnectorRuntimes()
 }
 
 func (rc *runtimeConnectorRouter) Run(stopchannel <-chan struct{}) {

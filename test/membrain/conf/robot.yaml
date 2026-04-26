@@ -63,6 +63,10 @@ ExternalPlugins:
     Path: plugins/samples/hello2.sh
   "format":
     Path: plugins/samples/format.sh
+  "admininspect":
+    Path: plugins/admininspect.sh
+  "admintimeout":
+    Path: plugins/admintimeout.sh
 
 WorkSpace: workspace
 

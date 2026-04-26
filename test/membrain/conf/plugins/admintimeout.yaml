@@ -1,0 +1,5 @@
+---
+AllChannels: true
+TimeOuts:
+  Warn: 300ms
+  Kill: 600ms

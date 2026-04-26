@@ -313,6 +313,7 @@ LoadLoop:
 			var sarrval []string
 			var mval []InputMatcher
 			var tval []JobTrigger
+			var timeoutval TimeOutThresholds
 			var val interface{}
 			skip := false
 			switch key {
@@ -320,6 +321,8 @@ LoadLoop:
 				val = &strval
 			case "KeepLogs":
 				val = &intval
+			case "TimeOuts":
+				val = &timeoutval
 			case "Disabled":
 				skip = true
 			case "AllowDirect", "AmbientMatchCommand", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll", "MatchUnlisted", "Quiet":
@@ -487,6 +490,8 @@ LoadLoop:
 				}
 			case "Config":
 				task.Config = value
+			case "TimeOuts":
+				task.TimeOuts = *(val.(*TimeOutThresholds))
 			}
 			if mismatch {
 				var msg string
@@ -522,6 +527,29 @@ LoadLoop:
 
 		if !explicitAllowDirect {
 			task.AllowDirect = processed.defaultAllowDirect
+		}
+		if err := validateTimeOutThresholds(fmt.Sprintf("task '%s' TimeOuts", task.name), task.TimeOuts); err != nil {
+			msg := fmt.Sprintf("Disabling task '%s' - invalid TimeOuts: %v", task.name, err)
+			Log(robot.Error, msg)
+			task.Disabled = true
+			task.reason = msg
+			continue
+		}
+		if isJob || isPlugin {
+			defaults := runtimeTimeOutThresholds{}
+			if isJob {
+				defaults = processed.timeOuts.Job
+			} else {
+				defaults = processed.timeOuts.Plugin
+			}
+			effective := resolveTimeOutThresholds(defaults, task.TimeOuts)
+			if err := validateRuntimeTimeOutThresholds(fmt.Sprintf("task '%s' effective TimeOuts", task.name), effective); err != nil {
+				msg := fmt.Sprintf("Disabling task '%s' - invalid effective TimeOuts: %v", task.name, err)
+				Log(robot.Error, msg)
+				task.Disabled = true
+				task.reason = msg
+				continue
+			}
 		}
 
 		// Sanity checking / default for channel / channels

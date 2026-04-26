@@ -64,6 +64,7 @@ type bufferMsg struct {
 	hidden    bool
 	visibleTo string
 
+	fixed               bool
 	basicMarkdownSource string
 }
 
@@ -598,7 +599,7 @@ func (sc *sshConnector) sendIncoming(client *sshClient, line string, hidden bool
 
 func (sc *sshConnector) MessageHeard(u, c string) {}
 
-func (sc *sshConnector) configureUsers(entries []userKeysEntry) {
+func (sc *sshConnector) buildUserMaps(entries []userKeysEntry) (map[string]userKeyInfo, map[string]userKeyInfo, map[string]userKeyInfo) {
 	keys := make(map[string]userKeyInfo)
 	names := make(map[string]userKeyInfo)
 	ids := make(map[string]userKeyInfo)
@@ -637,11 +638,48 @@ func (sc *sshConnector) configureUsers(entries []userKeysEntry) {
 			addUserKey(entry.UserName, key)
 		}
 	}
+	return keys, names, ids
+}
+
+func (sc *sshConnector) configureUsers(entries []userKeysEntry) {
+	keys, names, ids := sc.buildUserMaps(entries)
 	sc.mu.Lock()
 	sc.userKeys = keys
 	sc.userNames = names
 	sc.userIDs = ids
 	sc.mu.Unlock()
+}
+
+func (sc *sshConnector) Reload() error {
+	var cfg sshConfig
+	if err := sc.handler.GetProtocolConfig(&cfg); err != nil {
+		return fmt.Errorf("retrieve SSH protocol configuration: %w", err)
+	}
+	keys, names, ids := sc.buildUserMaps(cfg.UserKeys)
+
+	clientsToClose := make([]*sshClient, 0)
+	sc.mu.Lock()
+	for client := range sc.clients {
+		if _, ok := ids[client.userID]; !ok {
+			clientsToClose = append(clientsToClose, client)
+		}
+	}
+	sc.cfg.UserKeys = cfg.UserKeys
+	sc.userKeys = keys
+	sc.userNames = names
+	sc.userIDs = ids
+	sc.mu.Unlock()
+
+	for _, client := range clientsToClose {
+		if client.conn != nil {
+			_ = client.conn.Close()
+		}
+	}
+	if len(keys) == 0 {
+		sc.handler.Log(robot.Warn, "SSH connector reloaded with no configured user keys; no new SSH user can authenticate until UserKeys is configured in ProtocolConfig")
+	}
+	sc.handler.Log(robot.Info, "SSH connector reloaded %d configured public key(s); closed %d stale session(s)", len(keys), len(clientsToClose))
+	return nil
 }
 
 func (sc *sshConnector) GetProtocolUserAttribute(u, attr string) (value string, ret robot.RetVal) {
@@ -672,6 +710,7 @@ func (sc *sshConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f 
 		threadID:            thr,
 		threaded:            threaded,
 		text:                msg,
+		fixed:               f == robot.Fixed,
 		basicMarkdownSource: markdownSource,
 	}
 	sc.broadcast(evt, msgObject)
@@ -701,6 +740,7 @@ func (sc *sshConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr
 		threadID:            thr,
 		threaded:            threaded,
 		text:                formatted,
+		fixed:               f == robot.Fixed,
 		basicMarkdownSource: markdownSource,
 	}
 	sc.broadcast(evt, msgObject)
@@ -722,6 +762,7 @@ func (sc *sshConnector) SendProtocolUserMessage(u string, msg string, f robot.Me
 	}
 
 	evt := sc.directEvent(sc.botName, sc.botID, true, info.userName, info.userID, msg, time.Now())
+	evt.fixed = f == robot.Fixed
 	evt.basicMarkdownSource = markdownSource
 	sc.appendBuffer(evt)
 	for _, client := range clients {

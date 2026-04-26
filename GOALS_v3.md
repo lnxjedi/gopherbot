@@ -35,8 +35,42 @@ These goals are intended to unblock and accelerate later v3 work. Changes that a
 
 ## Core v3 Goals
 
+### Robot Administration Improvements
+We want to make the life of a robot administrator easier.
+
+#### Make most commands available hidden
+Log and process inspection commands should be available as hidden commands.
+
+#### Plugin Crash Handling
+* Plugin crashes should log error/traceback to the robot's job channel
+* Built-in interpreters should likewise generate some kind of traceback or errors in a crash and send those to job channel
+
+#### Timeouts for Plugins and Jobs
+Plugins and Jobs should have timeouts; robot.yaml:
+```
+TimeOuts:
+  Plugin: 
+    Warn: 7m
+    Kill: 14m
+  Job:
+    Warn: 1h
+    Kill: 2h
+```
+So, at `Warn`, the robot should message the administrators in the job channel that the plugin/job has been running a long time.
+
+#### Better PS plus inspection command
+* 'ps' should show the robot's ID for the pipeline, but not the underlying os pid, unless a "-v" verbose flag is given. It should also show the time when the command started.
+* When a job or plugin starts, it should keep an ephemeral buffer for Log lines, whether the log is being written to file or not; if the plugin crashes or times out, the logs should also be sent to jobs
+* While a plugin/job is still running, the admin should be able to inspect the log buffer with e.g. `get-pipeline-log <id>`
+
 ### Stretch Goal: Add a shell-like built-in interpreter to mostly obviate system "bash"
 Deep research uncovered [mvdan.cc/sh](https://github.com/mvdan/sh) as a possibility for an embedded interpreter that could be used for most cases where plugins/extensions are currently written in bash with jq. We could wrap gojq for a "jq" built-in, as well as find implementations for most of the common shell utilities ala *busybox*. This would make gopherbot plugins more portable and easier to test, as well as allow for removing the system shell for system hardening.
+
+Status: done!
+
+### Support for running external system processes in Lua, JS
+
+If there are existing libraries or patterns for running external system processes (e.g. `wg` for wireguard), our Lua
 
 ### Backward Compatibility with v2 Custom Extensions, but Not Configuration
 To the greatest extent possible, custom extensions written to the robot API from v2 should continue to function unmodified. To support greater functionality, `robot.yaml` and other configuration will be changed, no longer supporting v2 configuration syntax. `UPGRADING-v3.md` will be the definitely guide for upgrading v2 robots to v3 robots.
@@ -54,7 +88,7 @@ For v3, we will try to support:
 In addition, Gopherbot will implement a new default outgoing message format for use by custom extensions, `BasicMarkdown` (see devdocs/BasicMarkdown.md).
 * Slack Variable and Fixed support should be updated to use BlockKit it possible
 
-Status: MOSTLY DONE, but so far just Slack and SSH connectors
+Status: DONE ENOUGH for now - support for Slack, Google Chat and SSH
 
 ### Reduce Dependence on External Tools and Interpreters
 
@@ -96,7 +130,7 @@ Help and discovery mechanisms should be group-aware and provide clear, contextua
 * Stretch direction: help output should be generated from command-linked help metadata (rather than loose text blocks), so help content and executable commands stay naturally aligned
 * Stretch direction: extend the authorizer plugin contract with a `usergroups` command (for example `usergroups david`) that returns a JSON array of groups for that user; help rendering can then filter command visibility to only commands available to that user
 
-Status: IN PROGRESS
+Status: Help System: DONE; Groups update: NOT STARTED
 
 ### Improve Configuration Clarity and Bootstrapping
 
@@ -115,21 +149,32 @@ Environment model note:
 Desired workflow note:
 - Keep an admin-friendly branch-switch workflow for fast development/testing rollback (switch to a test branch, verify behavior, and quickly switch back).
 
+Status: DONE, needs more QA
+
 ### Make Robots Easy to Set Up with New Brains, Connectors, etc.
 
 * Initial setup should end with a robot repo in git deployable with a deployment key encoded in environment, and a robot accessible via local ssh protocol
 * Additional setup-focused plugins should make it simple to add additional connectors, a brain, etc. - need to determine structure for this
 
+Status: STARTED - ";new-robot" works nicely, other stuff still needs work.
+
 ### Improve Robustness and Security by running Multi-Process
 In Gopherbot v3, compiled-in plugins and jobs will continue to run in in-process threads, but extensions loaded from file will run in separate gopherbot child processes. This isolates the main engine from any panics or freezes for most of the work a robot does, and also makes for a cleaner means of implementing privilege separation. It also paves the way for better support of the working directory method(s).
+
+Status: DONE
 
 ### Make Good Use of AI with Included Components
 The current ruby AI implementation should be replaced with a native implementation, making better use of memories. The full-name fallback should be the same; "Floyd, what is the meaning of life?" should go straight to the AI (with the regular, normal system prompt additions). We should update the alias fallback (robot addressed with alias, but no command matched) to be an ai-augmented help - the robot should reply in a thread with something reasonable based on the robot's configuration; for instance "Oops, you typed that in the wrong channel - try that in #devops or #chatops", or "It looks like you're trying to start a remote dev environment, but you didn't supply a valid type ...".
 
 So, AI should be fully integrated if desired, but the AI integration will never actually *do* anything, even with confirmation (at least at this stage) - it'll only ever help the user perform operations. Gopherbot remains a deterministic automation framework - when you ask for a cup of coffee, it just makes the damned coffee the same way every time, without futzing with AI.
 
+Status: COMPLETE - the OpenAI AI add-on works well enough
+TODO: Add other providers
+
 ### Stretch Goal: Enable a persistent AI engine with support for MCPs
 Just imagine: "Astro, the app is really slow - can you see what's going on?" - using RedHat's kubernetes mcp server and maybe Grafana Loki mcp.
+
+Status: ON-HOLD
 
 ## Long-Term Cleanup and Operational Polish
 

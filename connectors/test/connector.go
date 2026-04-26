@@ -77,6 +77,10 @@ loop:
 	}
 }
 
+func (tc *TestConnector) Reload() error {
+	return nil
+}
+
 // Public 'bot methods all call sendMessage to send a message to a user/channel
 func (tc *TestConnector) sendMessage(msg *BotMessage) (ret robot.RetVal) {
 	if msg.Channel == "" && msg.User == "" {

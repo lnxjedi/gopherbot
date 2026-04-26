@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "gopherbot-mcp": {
-      "command": "gopherbot-mcp",
-      "args": []
-    }
-  }
-}

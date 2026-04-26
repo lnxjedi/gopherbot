@@ -84,9 +84,30 @@ Key invariant in current model: dropping/raising privilege for task execution re
   - parent path still applies privilege drop/raise before starting execution.
   - parent starts an internal child runner process (`gopherbot pipeline-child-exec`) with separate process group (`Setpgid: true`).
   - child runner executes exactly one external command, streams stdout/stderr, exits with command status.
-  - parent tracks child pid in `worker.osCmd` for admin `ps`/`kill`.
+  - parent tracks child pid in `worker.osCmd` for admin `ps`/`kill` and timeout watchdog kill handling.
 
 `getDefCfgThread` (plugin configure/default-config path) also drops privilege before external configure calls and now routes external executable configure through `pipeline-child-exec` (`bot/calltask.go`).
+
+## Operator Observability And Kill Scope
+
+- Active pipelines now keep:
+  - `startedAt`
+  - effective warn/kill timeout profile
+  - operator-channel routing target
+  - a bounded live log ring buffer for recent pipeline output
+- The live buffer is engine-owned and exists independently of persisted history retention.
+  - It captures section markers, engine log lines (`Robot.Log(...)` / `worker.Log(...)`), and child stdout/stderr.
+- Admin/operator inspection surface:
+  - `ps` is available only in direct/hidden message contexts because task arguments can contain sensitive operator data.
+  - `ps` is the default low-risk view for active pipelines and intentionally omits OS PID.
+  - `ps` presents the kill/log handle as pipeline `ID`, groups active plugins and jobs into separate sections, and includes a compact age plus a `ps -v` hint.
+  - `ps -v` exposes OS child PID (`OSPID`) plus start time, parent pipeline, and execution-class details for operators who need kill/debug context.
+  - `get-pipeline-log <id>` exposes the current live ring buffer for an active pipeline.
+- Timeout watchdog kill scope is intentionally narrower than alert scope:
+  - external executable child pipelines can be killed by process group
+  - RPC-backed interpreter/child-Go pipelines can be canceled and/or killed through parent-held child state
+  - compiled-in Go plugins/jobs/tasks are not force-killed in v2.9; the engine emits a manual-intervention alert instead
+- Practical implication: timeout monitoring is broad, but hard termination only applies where the parent process actually owns a killable child boundary.
 
 ## Engine-Level Security Controls Around Pipelines
 
@@ -134,6 +155,16 @@ These apply to `bot/handler.go`, `bot/available.go`, `bot/authorize.go`, `bot/el
 - `Task.Users` is a whitelist: an empty list means all users are permitted. Never invert this — empty must never restrict access.
 - An authorizer plugin returning `robot.Normal` (0) is a mechanism failure, not success. Auth plugins must explicitly return `robot.Success` (1). Do not change this behavior.
 
+### Hidden inspection/admin commands
+
+- Hidden-command allow/deny remains engine-owned and still requires connector support plus plugin `AllowedHiddenCommands`.
+- The broadened hidden admin surface does not weaken underlying auth/elevation checks:
+  - `builtin-admin` may expose most admin commands as hidden-capable, but `quit`, `restart`, and `abort` remain excluded.
+  - Legacy `builtin-dmadmin` inspection commands (`dump robot`, `dump plugin`, `dump plugin default`, `list plugins`) now live on `builtin-admin` as globally available hidden-required commands; direct or channel-visible invocation is rejected by the handler before returning configuration data.
+  - `builtin-history` and `builtin-jobcmd` can now expose their allowed hidden commands.
+  - job/history security checks still authorize against the target job/task and preserve normal admin/authorization/elevation ordering.
+- Practical implication: hidden `ps`, `get-pipeline-log`, config inspection, `jobs`, and history lookups are a transport/privacy convenience, not a policy bypass.
+
 ## Message Context and Privacy Invariants
 
 The concern is not command visibility (hard to hide) but message routing confidentiality: the bot accidentally broadcasting sensitive data to a channel, or treating a public channel message as if it were private.
@@ -156,7 +187,7 @@ The concern is not command visibility (hard to hide) but message routing confide
 - This is not yet a strict multi-process sandbox model for all task types.
 - Compiled-in tasks (`taskGo`, `bot/*`) still execute in the engine process.
 - Lua, JavaScript, Gopherbot shell, and external Go interpreter-backed tasks now gain process isolation via parent/child RPC.
-- Cancellation semantics for long-running interpreter tasks are now available through admin `kill`, but fine-grained task-level cancellation (beyond process termination) remains future work.
+- Cancellation semantics for long-running interpreter tasks are now available through admin `kill` and timeout watchdogs, but fine-grained task-level cancellation (beyond process termination) remains future work.
 - Long-lived correctness depends on careful `LockOSThread` usage and goroutine/thread lifecycle.
 
 TODO (verify): if non-Unix builds are targeted in future, document the explicit fallback behavior when `bot/privsep.go` is excluded by build tags.

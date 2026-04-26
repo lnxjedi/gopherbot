@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	godebug "runtime/debug"
 	"strings"
 	"sync"
 
@@ -25,6 +26,18 @@ var nullConn bool
 type getCfgReturn struct {
 	buffptr *[]byte
 	err     error
+}
+
+func logTaskExecutionError(w *worker, prefix string, err error) string {
+	msg := fmt.Sprintf("%s: %v", prefix, err)
+	for _, line := range strings.Split(strings.TrimSpace(msg), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		w.Log(robot.Error, "%s", line)
+	}
+	return msg
 }
 
 // Lua and JavaScript interpreters only need a subset of env
@@ -402,7 +415,15 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 		defer func() {
 			if p := recover(); p != nil {
 				err := fmt.Errorf("recovered from panic in callTask for compiled-in Go %s '%s': %v", task.taskType, task.name, p)
-				Log(robot.Error, err.Error())
+				w.Log(robot.Error, "%s", err.Error())
+				stack := strings.TrimSpace(string(godebug.Stack()))
+				for _, line := range strings.Split(stack, "\n") {
+					line = strings.TrimSpace(line)
+					if line == "" {
+						continue
+					}
+					w.Log(robot.Error, "stack: %s", line)
+				}
 				deregisterWorker(r.tid)
 				rchan <- taskReturn{err.Error(), robot.MechanismFail}
 			}
@@ -519,7 +540,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 			ret, err := runGoPluginViaRPC(taskPath, task.name, env, task.Privileged, w, r, append([]string{command}, args...))
 			if err != nil {
 				emit(ExternalTaskBadInterpreter)
-				rchan <- taskReturn{fmt.Sprintf("Running plugin %s: %v", task.name, err), robot.MechanismFail}
+				rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running plugin %s", task.name), err), robot.MechanismFail}
 				return
 			}
 			deregisterWorker(r.tid)
@@ -531,7 +552,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 				ret, err = runGoJobViaRPC(taskPath, task.name, env, task.Privileged, w, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
-					rchan <- taskReturn{fmt.Sprintf("Running job %s: %v", task.name, err), robot.MechanismFail}
+					rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running job %s", task.name), err), robot.MechanismFail}
 					return
 				}
 				w.Log(robot.Debug, "External Go job '%s' executed with args: %q", task.name, args)
@@ -539,7 +560,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 				ret, err = runGoTaskViaRPC(taskPath, task.name, env, task.Privileged, w, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
-					rchan <- taskReturn{fmt.Sprintf("Running task %s: %v", task.name, err), robot.MechanismFail}
+					rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running task %s", task.name), err), robot.MechanismFail}
 					return
 				}
 				w.Log(robot.Debug, "External Go task '%s' executed with args: %q", task.name, args)
@@ -569,7 +590,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 			ret, err := runLuaExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), w, r, allArgs)
 			if err != nil {
 				emit(ExternalTaskBadInterpreter)
-				rchan <- taskReturn{fmt.Sprintf("Running Lua plugin %s: %v", task.name, err), robot.MechanismFail}
+				rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running Lua plugin %s", task.name), err), robot.MechanismFail}
 				return
 			}
 			deregisterWorker(r.tid)
@@ -582,7 +603,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 				ret, err = runLuaExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), w, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
-					rchan <- taskReturn{fmt.Sprintf("Running Lua job %s: %v", task.name, err), robot.MechanismFail}
+					rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running Lua job %s", task.name), err), robot.MechanismFail}
 					return
 				}
 				w.Log(robot.Debug, "External Lua job '%s' executed with args: %q", task.name, args)
@@ -590,7 +611,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 				ret, err = runLuaExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), w, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
-					rchan <- taskReturn{fmt.Sprintf("Running Lua task %s: %v", task.name, err), robot.MechanismFail}
+					rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running Lua task %s", task.name), err), robot.MechanismFail}
 					return
 				}
 				w.Log(robot.Debug, "External Lua task '%s' executed with args: %q", task.name, args)
@@ -620,7 +641,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 			ret, err := runJSExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), w, r, allArgs)
 			if err != nil {
 				emit(ExternalTaskBadInterpreter)
-				rchan <- taskReturn{fmt.Sprintf("Running JavaScript plugin %s: %v", task.name, err), robot.MechanismFail}
+				rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running JavaScript plugin %s", task.name), err), robot.MechanismFail}
 				return
 			}
 			deregisterWorker(r.tid)
@@ -633,7 +654,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 				ret, err = runJSExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), w, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
-					rchan <- taskReturn{fmt.Sprintf("Running JavaScript job %s: %v", task.name, err), robot.MechanismFail}
+					rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running JavaScript job %s", task.name), err), robot.MechanismFail}
 					return
 				}
 				w.Log(robot.Debug, "External JavaScript job '%s' executed with args: %q", task.name, args)
@@ -641,7 +662,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 				ret, err = runJSExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), w, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
-					rchan <- taskReturn{fmt.Sprintf("Running JavaScript task %s: %v", task.name, err), robot.MechanismFail}
+					rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running JavaScript task %s", task.name), err), robot.MechanismFail}
 					return
 				}
 				w.Log(robot.Debug, "External JavaScript task '%s' executed with args: %q", task.name, args)
@@ -668,7 +689,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 			ret, err := runGSHExtensionViaRPC(taskPath, task.name, env, w, r, allArgs)
 			if err != nil {
 				emit(ExternalTaskBadInterpreter)
-				rchan <- taskReturn{fmt.Sprintf("Running Gopherbot shell plugin %s: %v", task.name, err), robot.MechanismFail}
+				rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running Gopherbot shell plugin %s", task.name), err), robot.MechanismFail}
 				return
 			}
 			deregisterWorker(r.tid)
@@ -683,7 +704,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 			if isJob {
 				label = "job"
 			}
-			rchan <- taskReturn{fmt.Sprintf("Running Gopherbot shell %s %s: %v", label, task.name, err), robot.MechanismFail}
+			rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running Gopherbot shell %s %s", label, task.name), err), robot.MechanismFail}
 			return
 		}
 		if isJob {
@@ -879,7 +900,7 @@ closeLoop:
 			}
 		}
 		if !success {
-			Log(robot.Error, "Waiting on external command '%s': %v", taskPath, err)
+			w.Log(robot.Error, "Waiting on external command '%s': %v", taskPath, err)
 			errString = fmt.Sprintf(failFmt, task.name)
 			emit(ExternalTaskErrExit)
 		}

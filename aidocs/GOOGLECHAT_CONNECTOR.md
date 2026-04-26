@@ -55,6 +55,9 @@ This file captures Google Chat connector behavior relevant to routing, hidden co
 - If a human user is not mapped, the connector leaves canonical username unset and `ValidatedUser=false`.
 - Internal Google Chat user IDs should be discovered through the built-in `validate user <username>` flow rather than passive warning logs.
 - If Google Chat returns the bot's own messages or mention annotations with a numeric bot `users/{id}` rather than `users/app`, administrators can discover and learn that ID with the Google Chat utility command `google validate robot`. The connector stores the learned ID in runtime state for self-message recognition, and robots can persist it in `ProtocolConfig.SelfID`.
+- During normal engine reload, Google Chat `Reload()` refreshes connector-local `ProtocolConfig.UserMap` without recreating API clients or the Pub/Sub receive loop.
+- The reload path normalizes the new map first, then swaps `botUserMap`, the reverse configured-user index, and affected cached canonical-name indexes under the connector lock. Concurrent message normalization and outbound user lookup see a complete old or complete new map.
+- Transport/client settings such as credentials, project, subscription, ambient subscription behavior, and `SelfID` remain startup/restart concerns rather than live reload behavior.
 
 ## Inbound Message Normalization
 

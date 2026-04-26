@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
@@ -45,6 +46,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 	c := &pipeContext{
 		environment: make(map[string]string),
 		parameters:  make(map[string]string),
+		startedAt:   time.Now(),
 	}
 	w.pipeContext = c
 	c.pipeName = task.name
@@ -69,6 +71,12 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		c.ptype = ptype
 	}
 	c.timeZone = w.cfg.timeZone
+	c.operatorChannel = determinePipelineOperatorChannel(w.cfg, task, isJob)
+	if isJob {
+		c.timeOuts = resolveTimeOutThresholds(w.cfg.timeOuts.Job, task.TimeOuts)
+	} else if isPlugin {
+		c.timeOuts = resolveTimeOutThresholds(w.cfg.timeOuts.Plugin, task.TimeOuts)
+	}
 	// redundant but explicit
 	c.stage = primaryTasks
 	// TODO: Replace the waitgroup, pipelinesRunning, defer func(), etc.
@@ -85,6 +93,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		}
 		state.Unlock()
 	}()
+	defer w.stopPipelineWatchdog()
 
 	initChannel := w.Channel
 	// A job or plugin is always the first task in a pipeline; a new
@@ -164,6 +173,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 	c.histName = c.pipeName
 	c.runIndex = idx
 	c.logger = pipeHistory
+	c.liveLogger = pipeHistory
 	var logref string
 	if rememberRuns > 0 {
 		if len(link) > 0 && len(ref) > 0 {
@@ -180,6 +190,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		}
 	}
 	w.Unlock()
+	w.startPipelineWatchdog()
 	if isJob && (!job.Quiet || c.verbose || ptype == jobCommand) {
 		r := w.makeRobot()
 		taskinfo := task.name
@@ -261,6 +272,9 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		if numFailTasks > 0 {
 			w.runPipeline(failTasks, ptype, false)
 		}
+	}
+	if ret != robot.Normal {
+		w.emitPipelineFailureAlert(ret, errString)
 	}
 	if isPlugin && ret != robot.Normal {
 		if !w.automaticTask && errString != "" {
@@ -445,6 +459,11 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 				emit(JobTaskRan)
 			}
 		}
+		if w.stage == primaryTasks && i == 0 {
+			w.Lock()
+			w.executedPrimaryTask = true
+			w.Unlock()
+		}
 		if isJob && i != 0 {
 			child := w.clone()
 			inheritChildJobProtocol(w, child)
@@ -452,7 +471,7 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 		} else {
 			errString, ret = w.executeTask(t, command, args...)
 			if errString != "" {
-				Log(robot.Error, "failed task '%s' in pipeline '%s': %s", task.name, w.pipeName, errString)
+				w.Log(robot.Error, "failed task '%s' in pipeline '%s': %s", task.name, w.pipeName, errString)
 			}
 		}
 		if w.stage == finalTasks && ret != robot.Normal {

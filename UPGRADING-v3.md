@@ -88,6 +88,45 @@ Why this exists:
 - Google Chat can return the bot's own messages and mention annotations with a numeric bot `users/{id}` instead of the alias `users/app`.
 - Separating `SelfID` from `UserMap` lets the connector recognize self messages and bot mentions without forcing the robot to masquerade as a human roster mapping.
 
+## 2026-04-23 Robot Administration Improvements
+
+This release adds pipeline timeout monitoring, richer operator-facing crash visibility, and a broader hidden-command admin surface.
+
+New config surface:
+
+```yaml
+TimeOuts:
+  Plugin:
+    Warn: 7m
+    Kill: 14m
+  Job:
+    Warn: 1h
+    Kill: 2h
+```
+
+Per-plugin/per-job overrides now live in custom task config:
+
+```yaml
+TimeOuts:
+  Warn: 15m
+  Kill: 30m
+```
+
+Upgrade notes:
+
+1. `TimeOuts.Plugin.*` and `TimeOuts.Job.*` are global defaults in `conf/robot.yaml`.
+2. `TimeOuts.Warn` / `TimeOuts.Kill` in `conf/plugins/<name>.yaml` or `conf/jobs/<name>.yaml` override those defaults for that task.
+3. Explicit `0` disables that threshold for the task.
+4. When both are non-zero, `Kill` must be greater than `Warn`.
+5. Timeout kill is only enforced for killable child work (external executable or RPC-backed child pipelines). Compiled-in Go work produces warn/manual-intervention alerts but is not force-killed.
+
+Operator workflow changes:
+
+- `ps` now defaults to WID/PWID/type/start/age/task view and hides PID.
+- `ps -v` includes PID and execution class details.
+- `get-pipeline-log <wid>` shows the live in-memory log buffer for an active pipeline.
+- Crash/timeout alerts now prefer operator/job-channel notifications with recent log excerpts instead of relying only on `<plugin>-fail.log`.
+
 ## 2026-02-18 Provider Config Layout Update (Slice 1)
 
 Provider-specific configuration moved out of `conf/robot.yaml`:
@@ -360,3 +399,9 @@ Hidden command execution now requires both:
 
 Practical migration note:
 - plain hidden `/<command>` is not treated as a robot-addressed hidden command by default.
+
+Built-in hidden-capable surface is also broader now:
+
+- `builtin-admin` may expose most admin commands as hidden-capable, but `quit`, `restart`, and `abort` remain excluded.
+- `builtin-history` and `builtin-jobcmd` can also mark specific commands as hidden-capable through `AllowedHiddenCommands`.
+- Hidden-capable admin/history/job commands still run through the same engine-owned connector support checks and normal admin/authorization/elevation policy.

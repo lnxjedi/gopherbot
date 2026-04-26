@@ -18,6 +18,8 @@ type fakeRuntimeConnector struct {
 	channelCalls       int
 	userChannelCalls   int
 	userCalls          int
+	reloadCount        int
+	reloadErr          error
 	lastChannel        string
 	lastThread         string
 	lastMessage        string
@@ -80,6 +82,13 @@ func (fc *fakeRuntimeConnector) SendProtocolUserMessage(u, msg string, _ robot.M
 	return robot.Ok
 }
 
+func (fc *fakeRuntimeConnector) Reload() error {
+	fc.mu.Lock()
+	defer fc.mu.Unlock()
+	fc.reloadCount++
+	return fc.reloadErr
+}
+
 func (fc *fakeRuntimeConnector) Run(stop <-chan struct{}) {
 	fc.mu.Lock()
 	fc.runCount++
@@ -94,6 +103,12 @@ func (fc *fakeRuntimeConnector) metrics() (runs, stops int) {
 	fc.mu.Lock()
 	defer fc.mu.Unlock()
 	return fc.runCount, fc.stopCount
+}
+
+func (fc *fakeRuntimeConnector) reloads() int {
+	fc.mu.Lock()
+	defer fc.mu.Unlock()
+	return fc.reloadCount
 }
 
 func (fc *fakeRuntimeConnector) sendMetrics() (channelCalls, userChannelCalls, userCalls int, protocol, channel, userID, userName string) {
@@ -238,6 +253,35 @@ func TestRuntimeLifecycleStartStopRestart(t *testing.T) {
 		sm := statusMap()
 		return sm["prime"].state == "stopped" && sm["secondary"].state == "stopped"
 	})
+}
+
+func TestReloadActiveConnectorRuntimesReloadsRunningConnectors(t *testing.T) {
+	h := newRuntimeHarness(t)
+	h.registerFake("prime")
+	h.registerFake("secondary")
+	h.setConfig("prime", "secondary")
+
+	if err := initializeConnectorRuntime(log.New(io.Discard, "", 0)); err != nil {
+		t.Fatalf("initializeConnectorRuntime() error = %v", err)
+	}
+	if err := startConnectorRuntimes(); err != nil {
+		t.Fatalf("startConnectorRuntimes() error = %v", err)
+	}
+
+	waitFor(t, "both protocols running", func() bool {
+		sm := statusMap()
+		return sm["prime"].state == "running" && sm["secondary"].state == "running"
+	})
+
+	if err := reloadActiveConnectorRuntimes(); err != nil {
+		t.Fatalf("reloadActiveConnectorRuntimes() error = %v", err)
+	}
+	if got := h.instances["prime"].reloads(); got != 1 {
+		t.Fatalf("prime reload count = %d, want 1", got)
+	}
+	if got := h.instances["secondary"].reloads(); got != 1 {
+		t.Fatalf("secondary reload count = %d, want 1", got)
+	}
 }
 
 func TestReconcileSecondaryProtocolsStopsRemovedStartsAdded(t *testing.T) {

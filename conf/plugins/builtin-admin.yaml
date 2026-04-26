@@ -3,7 +3,28 @@ AllChannels: true
 AllowDirect: true
 RequireAdmin: true
 AllowedHiddenCommands:
+- reload
+- update
+- branch
+- defaultbranch
+- protocollist
+- protocolstart
+- protocolstop
+- protocolrestart
+- gitinfo
 - validateuser
+- ps
+- getpipelinelog
+- kill
+- pause
+- resume
+- pauselist
+- chanlog
+- stopchanlog
+- listplugins
+- dumpplugdefault
+- dumpplugin
+- dumprobot
 Commands:
 - Command: reload
   # Regex: '(?i:reload)'
@@ -13,13 +34,13 @@ Commands:
   Summary: "have the robot reload configuration files"
 - Command: update
   # Regex: '(?i:update(?:[ -]config(?:uration)?)?)'
-  SimpleMatcher: "update [config|configuration]"
+  SimpleMatcher: "update {config|configuration}"
   Keywords: [ "config", "configuration", "update", "git" ]
   Usage: "update (configuration)"
   Summary: "perform a git pull of custom configuration and reload"
 - Command: branch
   # Regex: '(?i:(?:switch|change)[ -]branch ([^\s]+))'
-  SimpleMatcher: "(switch|change) branch <branch:token>"
+  SimpleMatcher: "/switch|change/ branch <branch:token>"
   Keywords: [ "config", "configuration", "branch", "switch", "git" ]
   Usage: "switch-branch <branch>"
   Summary: "switch branches in configuration repository, pull latest, and reload"
@@ -55,7 +76,7 @@ Commands:
   Summary: "restart a configured secondary protocol"
 - Command: gitinfo
   # Regex: '(?i:(?:git|branch)[ -]info|show[ -]branch)'
-  SimpleMatcher: "((git|branch) info|show branch)"
+  SimpleMatcher: "/git info|branch info|show branch/"
   Keywords: [ "git", "branch", "status", "config" ]
   Usage: "git-info | show-branch"
   Summary: "show current/default/startup branch for the config repository"
@@ -67,7 +88,7 @@ Commands:
   Summary: "issue a short-lived validation code so a user can prove a protocol account and reveal its internal ID"
 - Command: quit
   # Regex: '(?i:quit|exit)'
-  SimpleMatcher: "(quit|exit)"
+  SimpleMatcher: "/quit|exit/"
   Keywords: [ "quit" ]
   Usage: "quit"
   Summary: "request a graceful shutdown, waiting for all plugins to finish"
@@ -84,32 +105,38 @@ Commands:
   Usage: "abort"
   Summary: "request an immediate shutdown without waiting for plugins to finish"
 - Command: ps
-  # Regex: '(?i:ps)'
-  SimpleMatcher: "ps"
+  # Regex: '(?i:ps(?: +(-v|--verbose|verbose))?)'
+  SimpleMatcher: "ps [<mode:token>]"
   Keywords: [ "process", "processes", "ps", "pipeline", "pipelines" ]
-  Usage: "ps"
-  Summary: "list running pipelines"
+  Usage: "ps (-v)"
+  Summary: "list running pipelines in a direct or hidden message, optionally with verbose process details"
+- Command: getpipelinelog
+  # Regex: '(?i:get[- ]pipeline[- ]log ([\\d]+))'
+  SimpleMatcher: "get pipeline log <id:number>"
+  Keywords: [ "pipeline", "log", "logs", "inspect", "debug", "process" ]
+  Usage: "get-pipeline-log <id>"
+  Summary: "show the current buffered log for an active pipeline"
 - Command: "kill"
   # Regex: '(?i:kill(?:[- ](?:job|pipeline|process))? ([\d]+))'
-  SimpleMatcher: "kill [job|pipeline|process] <wid:number>"
+  SimpleMatcher: "kill {job|pipeline|process} <id:number>"
   Keywords: [ "kill", "process", "job" ]
-  Usage: "kill-pipeline <wid>"
-  Summary: "kill the current process for the pipeline identified by <wid>"
+  Usage: "kill-pipeline <id>"
+  Summary: "kill the current process for the pipeline identified by <id>"
 - Command: "pause"
   # Regex: '(?i:pause(?:[- ]job)? ([A-Za-z][\w-]*))'
-  SimpleMatcher: "pause [job] <job:ident>"
+  SimpleMatcher: "pause {job} <job:ident>"
   Keywords: [ "pause", "job", "jobs" ]
   Usage: "pause-job <job>"
   Summary: "pause running of <job> as a scheduled task"
 - Command: "resume"
   # Regex: '(?i:resume(?:[- ]job)? ([A-Za-z][\w-]*))'
-  SimpleMatcher: "resume [job] <job:ident>"
+  SimpleMatcher: "resume {job} <job:ident>"
   Keywords: [ "pause", "resume", "job", "jobs", "unpause", "un-pause" ]
   Usage: "resume-job <job>"
   Summary: "resume running of <job> as a scheduled task"
 - Command: pauselist
   # Regex: '(?i:(list[- ])?paused[- ]jobs)'
-  SimpleMatcher: "[list] paused jobs"
+  SimpleMatcher: "{list} paused jobs"
   Keywords: [ "pause", "resume", "job", "jobs" ]
   Usage: "paused-jobs"
   Summary: "list the paused jobs"
@@ -125,3 +152,35 @@ Commands:
   Keywords: [ "debug", "log", "channel" ]
   Usage: "stop-channel-logging"
   Summary: "stop all channel logging"
+- Command: "listplugins"
+  Regex: '(?i:list(?:[- ](disabled))?[- ]plugins?)'
+  Keywords: [ "list", "plugin", "plugins" ]
+  Usage: "list (disabled) plugins"
+  Summary: "list all known plugins, or list disabled plugins with the reason disabled; hidden command only"
+  Examples:
+  - "(hidden) list plugins"
+  - "(hidden) list disabled plugins"
+- Command: "dumpplugdefault"
+  # Regex: '(?i:dump[- ]plugin[- ]default ([\d\w-.]+))'
+  SimpleMatcher: "dump plugin default <plugin:token>"
+  Keywords: [ "dump", "plugin" ]
+  Usage: "dump plugin (default) <plugname>"
+  Summary: "dump the default configuration for the plugin; hidden command only"
+  Examples:
+  - "(hidden) dump plugin default ping"
+- Command: "dumpplugin"
+  # Regex: '(?i:dump[- ]plugin ([\d\w-.]+))'
+  SimpleMatcher: "dump plugin <plugin:token>"
+  Keywords: [ "dump", "plugin" ]
+  Usage: "dump plugin (default) <plugname>"
+  Summary: "dump the current configuration for the plugin; hidden command only"
+  Examples:
+  - "(hidden) dump plugin ping"
+- Command: "dumprobot"
+  # Regex: "(?i:dump[- ]robot)"
+  SimpleMatcher: "dump robot"
+  Keywords: [ "dump", "robot" ]
+  Usage: "dump robot"
+  Summary: "dump the current configuration for the robot; hidden command only"
+  Examples:
+  - "(hidden) dump robot"

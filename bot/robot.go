@@ -414,7 +414,12 @@ func (w *worker) Log(l robot.LogLevel, msg string, v ...interface{}) (logged boo
 	if len(v) > 0 {
 		msg = fmt.Sprintf(msg, v...)
 	}
-	return Log(l, msg)
+	logged = Log(l, msg)
+	if w.logger != nil {
+		line := "LOG " + logLevelToStr(l) + ": " + msg
+		w.logger.Log(strings.TrimSpace(line))
+	}
+	return
 }
 
 // see robot/robot.go

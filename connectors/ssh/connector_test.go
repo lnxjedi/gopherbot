@@ -53,9 +53,10 @@ func withStubSSHNetListen(t *testing.T, fn func(network, address string) (net.Li
 }
 
 type testHandler struct {
-	mu   sync.Mutex
-	msgs []*robot.ConnectorMessage
-	logs []string
+	mu             sync.Mutex
+	msgs           []*robot.ConnectorMessage
+	logs           []string
+	protocolConfig *sshConfig
 }
 
 func (t *testHandler) IncomingMessage(msg *robot.ConnectorMessage) {
@@ -64,10 +65,15 @@ func (t *testHandler) IncomingMessage(msg *robot.ConnectorMessage) {
 	t.msgs = append(t.msgs, msg)
 }
 
-func (t *testHandler) GetProtocolConfig(_ interface{}) error { return nil }
-func (t *testHandler) GetBrainConfig(_ interface{}) error    { return nil }
-func (t *testHandler) GetEventStrings() *[]string            { return nil }
-func (t *testHandler) GetHistoryConfig(_ interface{}) error  { return nil }
+func (t *testHandler) GetProtocolConfig(v interface{}) error {
+	if t.protocolConfig != nil {
+		*(v.(*sshConfig)) = *t.protocolConfig
+	}
+	return nil
+}
+func (t *testHandler) GetBrainConfig(_ interface{}) error   { return nil }
+func (t *testHandler) GetEventStrings() *[]string           { return nil }
+func (t *testHandler) GetHistoryConfig(_ interface{}) error { return nil }
 func (t *testHandler) GetBotInfo() robot.BotInfo {
 	return robot.BotInfo{UserName: "floyd", FullName: "Floyd Gopherbot"}
 }
@@ -498,6 +504,46 @@ func TestConfigureUsersSupportsMultipleKeysPerUser(t *testing.T) {
 	}
 	if _, ok := sc.userIDs["ssh-ed25519 BBBB2222"]; !ok {
 		t.Fatalf("expected second key in userIDs map")
+	}
+}
+
+func TestReloadAtomicallySwapsConfiguredUserKeys(t *testing.T) {
+	h := &testHandler{
+		protocolConfig: &sshConfig{UserKeys: []userKeysEntry{
+			{
+				UserName:   "bob",
+				PublicKeys: []string{"ssh-ed25519 BBBB2222"},
+			},
+		}},
+	}
+	sc := &sshConnector{handler: h}
+	sc.configureUsers([]userKeysEntry{
+		{
+			UserName:   "alice",
+			PublicKeys: []string{"ssh-ed25519 AAAA1111"},
+		},
+	})
+
+	if err := sc.Reload(); err != nil {
+		t.Fatalf("Reload() error = %v", err)
+	}
+
+	sc.mu.RLock()
+	defer sc.mu.RUnlock()
+	if _, ok := sc.userNames["alice"]; ok {
+		t.Fatalf("expected old user alice to be removed")
+	}
+	if info, ok := sc.userNames["bob"]; !ok || info.userID != "ssh-ed25519 BBBB2222" {
+		t.Fatalf("expected bob to be configured after reload, got %+v (ok=%t)", info, ok)
+	}
+	if _, ok := sc.userKeys["ssh-ed25519 AAAA1111"]; ok {
+		t.Fatalf("expected old key to be removed")
+	}
+	if info, ok := sc.userKeys["ssh-ed25519 BBBB2222"]; !ok || info.userName != "bob" {
+		t.Fatalf("expected new key to be configured after reload, got %+v (ok=%t)", info, ok)
+	}
+	if len(sc.cfg.UserKeys) != 1 || sc.cfg.UserKeys[0].UserName != "bob" {
+		t.Fatalf("expected cfg.UserKeys to be replaced, got %#v", sc.cfg.UserKeys)
 	}
 }
 

@@ -35,6 +35,10 @@ func (nc nullConnector) Run(stop <-chan struct{}) {
 	<-stop
 }
 
+func (nc nullConnector) Reload() error {
+	return nil
+}
+
 func (nc nullConnector) DefaultHelp() []string {
 	return []string{}
 }

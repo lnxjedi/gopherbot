@@ -9,6 +9,11 @@ If any ad-hoc instruction conflicts with this file, this file wins.
 - `AGENTS.md` is the single source of policy and required process.
 - Skills may provide workflows/templates, but must not redefine repository policy.
 
+## Local Tool Availability
+
+- If a task requires a local tool, command, interpreter, or development utility that is not installed or not available on `PATH`, pause and ask the project owner to install it.
+- Do not install missing local tools, vendor replacements, or silently substitute a different workflow unless the project owner explicitly approves that change.
+
 ## Phase 0 — Orientation (Two-Tier Model)
 
 ### Tier A: Default Orientation (required for all tasks)

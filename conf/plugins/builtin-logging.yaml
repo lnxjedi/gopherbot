@@ -4,7 +4,7 @@ RequireAdmin: true
 Commands:
 - Command: "level"
   # Regex: '(?i:set[- ]log ?level(?: to)? (trace|debug|info|warn|error))'
-  SimpleMatcher: "set log level [to] (trace|debug|info|warn|error)"
+  SimpleMatcher: "set log level {to} (trace|debug|info|warn|error)"
   Keywords: [ "log", "logs", "level" ]
   Usage: "set-loglevel to <trace|debug|info|warning|error>"
   Summary: "adjust the logging verbosity"
@@ -12,7 +12,7 @@ Commands:
   - "(alias) set-loglevel debug"
 - Command: "show"
   # Regex: '(?i:show[- ]logs?(?: page (\d+))?)'
-  SimpleMatcher: "show (log|logs) [page <page:number>]"
+  SimpleMatcher: "show /log|logs/ [page <page:number>]"
   Keywords: [ "show", "log", "logs" ]
   Usage: "show-log (page X)"
   Summary: "display the last or Xth previous page of log output"
@@ -21,7 +21,7 @@ Commands:
   - "(alias) show-log page 2"
 - Command: "showlevel"
   # Regex: '(?i:show[- ](?:log[- ]?)?level)'
-  SimpleMatcher: "show [log] level"
+  SimpleMatcher: "show {log} level"
   Keywords: [ "show", "log", "logs", "level" ]
   Usage: "show-loglevel"
   Summary: "show the current logging level"
@@ -29,7 +29,7 @@ Commands:
   - "(alias) show-loglevel"
 - Command: "setlines"
   # Regex: '(?i:set[- ]log[- ]?lines(?: to)? (\d+))'
-  SimpleMatcher: "set log lines [to] <lines:number>"
+  SimpleMatcher: "set log lines {to} <lines:number>"
   Keywords: [ "log", "page", "lines" ]
   Usage: "set-loglines to <number>"
   Summary: "set the number of lines returned by show log"

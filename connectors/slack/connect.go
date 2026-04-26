@@ -175,6 +175,64 @@ func Initialize(r robot.Handler, l *log.Logger) robot.InitializedConnector {
 	}
 }
 
+func cloneStringMap(in map[string]string) map[string]string {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
+}
+
+func (sc *slackConnector) Reload() error {
+	var c config
+	if err := sc.GetProtocolConfig(&c); err != nil {
+		return fmt.Errorf("retrieve Slack protocol configuration: %w", err)
+	}
+	newBotUserMap := normalizeConfiguredUserMap(c.UserMap, sc.Handler)
+
+	conflicts := make([]string, 0)
+	sc.Lock()
+	userMap := cloneStringMap(sc.userMap)
+	if userMap == nil {
+		userMap = make(map[string]string)
+	}
+	userIDMap := cloneStringMap(sc.userIDMap)
+	if userIDMap == nil {
+		userIDMap = make(map[string]string)
+	}
+	for name, id := range sc.botUserMap {
+		if userMap[name] == id {
+			delete(userMap, name)
+		}
+		if userIDMap[id] == name {
+			delete(userIDMap, id)
+		}
+	}
+	for name, id := range newBotUserMap {
+		if existing, ok := userMap[name]; ok && existing != id {
+			conflicts = append(conflicts, fmt.Sprintf("username %q moved from %q to %q", name, existing, id))
+		}
+		if existing, ok := userIDMap[id]; ok && existing != name {
+			conflicts = append(conflicts, fmt.Sprintf("user ID %q moved from %q to %q", id, existing, name))
+		}
+		userMap[name] = id
+		userIDMap[id] = name
+	}
+	sc.botUserMap = newBotUserMap
+	sc.userMap = userMap
+	sc.userIDMap = userIDMap
+	sc.Unlock()
+
+	for _, conflict := range conflicts {
+		sc.Log(robot.Warn, "Slack UserMap reload overrode existing user mapping: %s", conflict)
+	}
+	sc.Log(robot.Info, "Slack connector reloaded %d configured user mapping(s)", len(newBotUserMap))
+	return nil
+}
+
 func (sc *slackConnector) Run(stop <-chan struct{}) {
 	sc.Lock()
 	// This should never happen, just a bit of defensive coding

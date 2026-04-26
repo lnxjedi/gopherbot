@@ -23,7 +23,6 @@ const tooManyChannels = 4
 
 func init() {
 	robot.RegisterPlugin("builtin-fallback", robot.PluginHandler{Handler: fallback})
-	robot.RegisterPlugin("builtin-dmadmin", robot.PluginHandler{Handler: dmadmin})
 	robot.RegisterPlugin("builtin-help", robot.PluginHandler{Handler: help})
 	robot.RegisterPlugin("builtin-admin", robot.PluginHandler{Handler: admin})
 	robot.RegisterPlugin("builtin-logging", robot.PluginHandler{Handler: logging})
@@ -1586,99 +1585,131 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 	return
 }
 
-func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
-	r := m.(Robot)
-	if command == "init" {
-		return // ignore init
+func adminHiddenCommandRequired(r Robot) bool {
+	if r.Incoming != nil && r.Incoming.HiddenMessage {
+		return true
 	}
-	switch command {
-	case "dumprobot":
-		if r.Protocol != robot.Terminal && r.Protocol != robot.Test && r.Protocol != robot.SSH {
-			r.Say("This command is only valid with the 'terminal' or 'ssh' connector")
-			return
-		}
-		confLock.RLock()
-		c, _ := yaml.Marshal(config)
-		confLock.RUnlock()
-		r.Fixed().Say("Here's how I've been configured, irrespective of interactive changes:\n%s", c)
-	case "dumpplugdefault":
-		found := false
-		for _, t := range r.tasks.t[1:] {
-			task, plugin, _ := getTask(t)
-			if args[0] == task.name {
-				if plugin == nil {
-					r.Say("No default configuration available for task type 'job'")
-					return
-				}
-				if plugin.taskType == taskExternal {
-					found = true
-					if cfg, err := getDefCfg(t); err == nil {
-						r.Fixed().Say("Here's the default configuration for \"%s\":\n%s", args[0], *cfg)
-					} else {
-						r.Say("I had a problem looking that up - somebody should check my logs")
-					}
-				}
-			}
-		}
-		if !found {
-			r.Say("Didn't find a plugin named " + args[0])
-		}
-	case "dumpplugin":
-		if r.Protocol != robot.Terminal && r.Protocol != robot.Test && r.Protocol != robot.SSH {
-			r.Say("This command is only valid with the 'terminal' or 'ssh' connector")
-			return
-		}
-		found := false
-		for _, t := range r.tasks.t[1:] {
-			task, plugin, _ := getTask(t)
-			if args[0] == task.name {
-				if plugin == nil {
-					r.Say("Task '%s' is a job, not a plugin", task.name)
-					return
-				}
-				found = true
-				c, _ := yaml.Marshal(plugin)
-				r.Fixed().Say("%s", c)
-			}
-		}
-		if !found {
-			r.Say("Didn't find a plugin named " + args[0])
-		}
-	case "listplugins":
-		joiner := ", "
-		message := "Here are the plugins I have configured:\n%s"
-		wantDisabled := false
-		if len(args[0]) > 0 {
-			wantDisabled = true
-			joiner = "\n"
-			message = "Here's a list of all disabled plugins:\n%s"
-		}
-		plist := make([]string, 0, len(r.tasks.t))
-		for _, t := range r.tasks.t[1:] {
-			task, plugin, _ := getTask(t)
+	r.Say("This command is only available as a hidden command.")
+	return false
+}
+
+func adminDumpRobot(r Robot) {
+	confLock.RLock()
+	c, _ := yaml.Marshal(config)
+	confLock.RUnlock()
+	r.Fixed().Say("Here's how I've been configured, irrespective of interactive changes:\n%s", c)
+}
+
+func adminDumpPluginDefault(r Robot, args []string) {
+	if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
+		r.Say("Usage: dump plugin default <plugin>")
+		return
+	}
+	plugName := strings.TrimSpace(args[0])
+	found := false
+	for _, t := range r.tasks.t[1:] {
+		task, plugin, _ := getTask(t)
+		if plugName == task.name {
 			if plugin == nil {
-				continue
+				r.Say("No default configuration available for task type 'job'")
+				return
 			}
-			ptext := task.name
-			if wantDisabled {
-				if task.Disabled {
-					ptext += "; reason: " + task.reason
-					plist = append(plist, ptext)
+			if plugin.taskType == taskExternal {
+				found = true
+				if cfg, err := getDefCfg(t); err == nil {
+					r.Fixed().Say("Here's the default configuration for \"%s\":\n%s", plugName, *cfg)
+				} else {
+					r.Say("I had a problem looking that up - somebody should check my logs")
 				}
-			} else {
-				if task.Disabled {
-					ptext += " (disabled)"
-				}
+			}
+		}
+	}
+	if !found {
+		r.Say("Didn't find a plugin named " + plugName)
+	}
+}
+
+func adminDumpPlugin(r Robot, args []string) {
+	if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
+		r.Say("Usage: dump plugin <plugin>")
+		return
+	}
+	plugName := strings.TrimSpace(args[0])
+	found := false
+	for _, t := range r.tasks.t[1:] {
+		task, plugin, _ := getTask(t)
+		if plugName == task.name {
+			if plugin == nil {
+				r.Say("Task '%s' is a job, not a plugin", task.name)
+				return
+			}
+			found = true
+			c, _ := yaml.Marshal(plugin)
+			r.Fixed().Say("%s", c)
+		}
+	}
+	if !found {
+		r.Say("Didn't find a plugin named " + plugName)
+	}
+}
+
+func adminListPlugins(r Robot, args []string) {
+	joiner := ", "
+	message := "Here are the plugins I have configured:\n%s"
+	wantDisabled := false
+	if len(args) > 0 && len(args[0]) > 0 {
+		wantDisabled = true
+		joiner = "\n"
+		message = "Here's a list of all disabled plugins:\n%s"
+	}
+	plist := make([]string, 0, len(r.tasks.t))
+	for _, t := range r.tasks.t[1:] {
+		task, plugin, _ := getTask(t)
+		if plugin == nil {
+			continue
+		}
+		ptext := task.name
+		if wantDisabled {
+			if task.Disabled {
+				ptext += "; reason: " + task.reason
 				plist = append(plist, ptext)
 			}
-		}
-		if len(plist) > 0 {
-			r.Say(message, strings.Join(plist, joiner))
-		} else { // note because of builtin plugins, plist is ALWAYS > 0 if disabled wasn't specified
-			r.Say("There are no disabled plugins")
+		} else {
+			if task.Disabled {
+				ptext += " (disabled)"
+			}
+			plist = append(plist, ptext)
 		}
 	}
-	return
+	if len(plist) > 0 {
+		r.Say(message, strings.Join(plist, joiner))
+	} else {
+		r.Say("There are no disabled plugins")
+	}
+}
+
+func handleAdminInspectCommand(r Robot, command string, args []string) bool {
+	switch command {
+	case "dumprobot":
+		if adminHiddenCommandRequired(r) {
+			adminDumpRobot(r)
+		}
+	case "dumpplugdefault":
+		if adminHiddenCommandRequired(r) {
+			adminDumpPluginDefault(r, args)
+		}
+	case "dumpplugin":
+		if adminHiddenCommandRequired(r) {
+			adminDumpPlugin(r, args)
+		}
+	case "listplugins":
+		if adminHiddenCommandRequired(r) {
+			adminListPlugins(r, args)
+		}
+	default:
+		return false
+	}
+	return true
 }
 
 var byebye = []string{
@@ -1724,9 +1755,126 @@ func logging(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 	return
 }
 
-type psList struct {
-	pslines []string
-	wids    []int
+type psEntry struct {
+	id       int
+	pid      string
+	class    string
+	pipeName string
+	taskName string
+	command  string
+	args     string
+	started  string
+	age      string
+	user     string
+	source   string
+	parent   string
+	isJob    bool
+}
+
+type psEntries []psEntry
+
+func psVerboseRequested(args []string) bool {
+	for _, arg := range args {
+		switch strings.ToLower(strings.TrimSpace(arg)) {
+		case "-v", "--verbose", "verbose":
+			return true
+		}
+	}
+	return false
+}
+
+func psAllowedInContext(incoming *robot.ConnectorMessage) bool {
+	return incoming != nil && (incoming.DirectMessage || incoming.HiddenMessage)
+}
+
+func psDisplayValue(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "-"
+	}
+	return value
+}
+
+func psSourceLabel(ptype pipelineType, hasParent bool) string {
+	if hasParent {
+		return "spawn"
+	}
+	switch ptype {
+	case scheduled:
+		return "sched"
+	case initJob:
+		return "init"
+	case jobTrigger:
+		return "trigger"
+	case jobCommand:
+		return "run"
+	case spawnedTask:
+		return "spawn"
+	default:
+		return psDisplayValue(ptype.String())
+	}
+}
+
+func activePipelineByWID(raw string) (*worker, int, error) {
+	widx, err := strconv.ParseInt(strings.TrimSpace(raw), 10, 0)
+	if err != nil {
+		return nil, 0, err
+	}
+	activePipelines.Lock()
+	worker, ok := activePipelines.i[int(widx)]
+	activePipelines.Unlock()
+	if !ok {
+		return nil, int(widx), fmt.Errorf("not found")
+	}
+	return worker, int(widx), nil
+}
+
+func (p psEntries) Len() int {
+	return len(p)
+}
+
+func (p psEntries) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+
+func (p psEntries) Less(i, j int) bool {
+	return p[i].id < p[j].id
+}
+
+func appendPsSection(lines []string, title string, entries psEntries, verbose bool) []string {
+	if len(entries) == 0 {
+		return lines
+	}
+	if len(lines) > 0 {
+		lines = append(lines, "")
+	}
+	lines = append(lines, title)
+	if title == "Plugins" {
+		if verbose {
+			lines = append(lines, "ID     AGE      STARTED         USER           PLUGIN          CMD          TASK            CLASS OSPID FROM   ARGS")
+			for _, e := range entries {
+				lines = append(lines, fmt.Sprintf("%-6d %-8.8s %-15.15s %-14.14s %-15.15s %-12.12s %-15.15s %-5.5s %-5.5s %-6.6s %s", e.id, e.age, e.started, e.user, e.pipeName, e.command, e.taskName, e.class, e.pid, e.parent, e.args))
+			}
+		} else {
+			lines = append(lines, "ID     AGE      USER           PLUGIN          CMD          TASK            ARGS")
+			for _, e := range entries {
+				lines = append(lines, fmt.Sprintf("%-6d %-8.8s %-14.14s %-15.15s %-12.12s %-15.15s %s", e.id, e.age, e.user, e.pipeName, e.command, e.taskName, e.args))
+			}
+		}
+		return lines
+	}
+	if verbose {
+		lines = append(lines, "ID     AGE      STARTED         JOB             TASK            SOURCE   FROM   USER           CLASS OSPID ARGS")
+		for _, e := range entries {
+			lines = append(lines, fmt.Sprintf("%-6d %-8.8s %-15.15s %-15.15s %-15.15s %-8.8s %-6.6s %-14.14s %-5.5s %-5.5s %s", e.id, e.age, e.started, e.pipeName, e.taskName, e.source, e.parent, e.user, e.class, e.pid, e.args))
+		}
+	} else {
+		lines = append(lines, "ID     AGE      JOB             TASK            SOURCE   FROM   USER           ARGS")
+		for _, e := range entries {
+			lines = append(lines, fmt.Sprintf("%-6d %-8.8s %-15.15s %-15.15s %-8.8s %-6.6s %-14.14s %s", e.id, e.age, e.pipeName, e.taskName, e.source, e.parent, e.user, e.args))
+		}
+	}
+	return lines
 }
 
 func formatReloadOutcome(r Robot, reloadErr error) string {
@@ -1776,19 +1924,6 @@ func formatReloadOutcome(r Robot, reloadErr error) string {
 	return status + " Error: " + msg
 }
 
-func (p *psList) Len() int {
-	return len(p.pslines)
-}
-
-func (p *psList) Swap(i, j int) {
-	p.pslines[i], p.pslines[j] = p.pslines[j], p.pslines[i]
-	p.wids[i], p.wids[j] = p.wids[j], p.wids[i]
-}
-
-func (p *psList) Less(i, j int) bool {
-	return p.wids[i] < p.wids[j]
-}
-
 func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
 	if command == "init" {
 		return // ignore init
@@ -1796,6 +1931,9 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 	r := m.(Robot)
 	w := getLockedWorker(r.tid)
 	w.Unlock()
+	if handleAdminInspectCommand(r, command, args) {
+		return
+	}
 	switch command {
 	case "update":
 		if ret := r.AddJob("go-update"); ret != robot.Ok {
@@ -1970,64 +2108,100 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		time.Sleep(2 * time.Second)
 		panic("Abort command issued")
 	case "ps":
-		// wid pwid pid Go|Ext plugin|task|job
-		psl := &psList{
-			pslines: []string{
-				"WID    PWID  PID   G/E TYPE   PIPENAME         TASK             PLUG-COMMAND ARGS",
-			},
-			wids: []int{-1},
+		if !psAllowedInContext(r.Incoming) {
+			r.Say("This command is only available in direct messages or hidden messages.")
+			return
 		}
+		verbose := psVerboseRequested(args)
+		var pluginEntries psEntries
+		var jobEntries psEntries
 		activePipelines.Lock()
-		if len(activePipelines.i) == 1 {
-			activePipelines.Unlock()
+		for widx, worker := range activePipelines.i {
+			worker.Lock()
+			pipename := worker.pipeName
+			command := worker.plugCommand
+			if pipename == "builtin-admin" && command == "ps" {
+				worker.Unlock()
+				continue
+			}
+			parent := "-"
+			hasParent := worker._parent != nil
+			if worker._parent != nil {
+				parent = strconv.Itoa(worker._parent.id)
+			}
+			pid := "-"
+			if worker.osCmd != nil {
+				pid = strconv.Itoa(worker.osCmd.Process.Pid)
+			}
+			entry := psEntry{
+				id:       widx,
+				pid:      pid,
+				class:    psDisplayValue(worker.taskClass),
+				pipeName: psDisplayValue(pipename),
+				taskName: psDisplayValue(worker.taskName),
+				command:  psDisplayValue(command),
+				args:     strings.Join(worker.taskArgs, " "),
+				started:  formatPipelineClock(worker.startedAt, worker.timeZone),
+				age:      formatPipelineAge(time.Since(worker.startedAt)),
+				user:     psDisplayValue(worker.User),
+				source:   psSourceLabel(worker.ptype, hasParent),
+				parent:   parent,
+				isJob:    worker.jobName != "",
+			}
+			worker.Unlock()
+			if entry.isJob {
+				jobEntries = append(jobEntries, entry)
+			} else {
+				pluginEntries = append(pluginEntries, entry)
+			}
+		}
+		activePipelines.Unlock()
+		if len(pluginEntries) == 0 && len(jobEntries) == 0 {
 			r.Say("No pipelines running")
 			return
 		}
-		for widx, worker := range activePipelines.i {
-			pipename := worker.pipeName
-			worker.Lock()
-			wid := strconv.Itoa(widx)
-			pwid := ""
-			if worker._parent != nil {
-				pwid = strconv.Itoa(worker._parent.id)
-			}
-			pid := ""
-			if worker.osCmd != nil {
-				pid = strconv.Itoa(worker.osCmd.Process.Pid)
-				wid = wid + "*"
-			}
-			class := worker.taskClass
-			ttype := worker.taskType
-			tname := worker.taskName
-			command := worker.plugCommand
-			args := strings.Join(worker.taskArgs, " ")
-			worker.Unlock()
-			if pipename == "builtin-admin" && command == "ps" {
-				continue
-			}
-			psline := fmt.Sprintf("%6.6s %5.5s %5.5s %-3.3s %-6.6s %-16.16s %-16.16s %-12.12s %s", wid, pwid, pid, class, ttype, pipename, tname, command, args)
-			psl.pslines = append(psl.pslines, psline)
-			psl.wids = append(psl.wids, widx)
+		sort.Sort(pluginEntries)
+		sort.Sort(jobEntries)
+		lines := []string{}
+		lines = appendPsSection(lines, "Plugins", pluginEntries, verbose)
+		lines = appendPsSection(lines, "Jobs", jobEntries, verbose)
+		if !verbose {
+			lines = append(lines, "", "(use 'ps -v' for more verbose output)")
 		}
-		activePipelines.Unlock()
-		sort.Sort(psl)
-		r.Fixed().Say(strings.Join(psl.pslines, "\n"))
+		r.Fixed().Say(strings.Join(lines, "\n"))
+	case "getpipelinelog":
+		if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
+			r.Say("Usage: get-pipeline-log <id>")
+			return
+		}
+		worker, widx, err := activePipelineByWID(args[0])
+		if err != nil {
+			if strings.Contains(err.Error(), "invalid syntax") {
+				r.Say("Couldn't convert '%s' to an int", args[0])
+				return
+			}
+			r.Say("Pipeline %d not found", widx)
+			return
+		}
+		snapshot := strings.TrimSpace(worker.liveLogSnapshot())
+		if snapshot == "" {
+			r.Say("No live log buffered for pipeline %d", widx)
+			return
+		}
+		r.Fixed().Say("Live log for pipeline %d:\n%s", widx, snapshot)
 	case "kill":
 		if len(args) == 0 {
-			r.Say("Usage: kill <wid>")
+			r.Say("Usage: kill <id>")
 			return
 		}
 		wid := args[0]
-		widx, err := strconv.ParseInt(wid, 10, 0)
+		worker, widx, err := activePipelineByWID(wid)
 		if err != nil {
-			r.Say("Couldn't convert '%s' to an int", wid)
-			return
-		}
-		activePipelines.Lock()
-		worker, ok := activePipelines.i[int(widx)]
-		activePipelines.Unlock()
-		if !ok {
-			r.Say("Pipeline %s not found", wid)
+			if strings.Contains(err.Error(), "invalid syntax") {
+				r.Say("Couldn't convert '%s' to an int", wid)
+				return
+			}
+			r.Say("Pipeline %d not found", widx)
 			return
 		}
 		var pid int
@@ -2055,6 +2229,10 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		}
 		r.Say("Killed pid %d", pid)
 	case "pause":
+		if len(args) == 0 {
+			r.Say("Usage: pause <job>")
+			return
+		}
 		name := args[0]
 		notfound := "I don't have a job configured with that name"
 		t := r.tasks.getTaskByName(name)
@@ -2079,6 +2257,10 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		r.Say("Ok, I'll stop running '%s' as a scheduled task", name)
 		return
 	case "resume":
+		if len(args) == 0 {
+			r.Say("Usage: resume <job>")
+			return
+		}
 		name := args[0]
 		t := r.tasks.getTaskByName(name)
 		_, _, job := getTask(t)

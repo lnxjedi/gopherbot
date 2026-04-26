@@ -56,10 +56,10 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 ## connectors/
 
-- Slack connector registration + init: `connectors/slack/static.go` (calls `robot.RegisterConnector("slack", Initialize)`), `connectors/slack/connect.go` (func `Initialize`; connector-local `ProtocolConfig.UserMap` identity mapping plus slash-command-driven runtime hidden-command capability).
-- Google Chat connector registration + init: `connectors/googlechat/static.go` (calls `robot.RegisterConnector("googlechat", Initialize)`), `connectors/googlechat/connect.go` (func `Initialize`; connector-local `ProtocolConfig.UserMap` identity mapping, shared encrypted Google credential loading, Pub/Sub subscription receive loop, slash-command hidden-command capability, thread-default send behavior, and ambient Workspace Events setup when enabled), with ambient subscription lifecycle + CloudEvent handling in `connectors/googlechat/ambient.go` and `connectors/googlechat/workspaceevents.go`.
+- Slack connector registration + init: `connectors/slack/static.go` (calls `robot.RegisterConnector("slack", Initialize)`), `connectors/slack/connect.go` (func `Initialize`; connector-local `ProtocolConfig.UserMap` identity mapping, reloads that map via `Reload`, plus slash-command-driven runtime hidden-command capability).
+- Google Chat connector registration + init: `connectors/googlechat/static.go` (calls `robot.RegisterConnector("googlechat", Initialize)`), `connectors/googlechat/connect.go` (func `Initialize`; connector-local `ProtocolConfig.UserMap` identity mapping reloadable via `Reload`, shared encrypted Google credential loading, Pub/Sub subscription receive loop, slash-command hidden-command capability, thread-default send behavior, and ambient Workspace Events setup when enabled), with ambient subscription lifecycle + CloudEvent handling in `connectors/googlechat/ambient.go` and `connectors/googlechat/workspaceevents.go`.
 - Test connector registration + runtime: `connectors/test/init.go` (calls `robot.RegisterConnector("test", Initialize)`; connector-local `ProtocolConfig.Users` identity mapping), `connectors/test/connector.go` (method `(*TestConnector).Run`).
-- SSH connector registration + runtime: `connectors/ssh/static.go` (calls `robot.RegisterConnector("ssh", Initialize)`), `connectors/ssh/connector.go` (method `(*sshConnector).Run`; connector-local `ProtocolConfig.UserKeys` list identity mapping plus runtime hidden-command capability).
+- SSH connector registration + runtime: `connectors/ssh/static.go` (calls `robot.RegisterConnector("ssh", Initialize)`), `connectors/ssh/connector.go` (methods `(*sshConnector).Run` and `(*sshConnector).Reload`; connector-local `ProtocolConfig.UserKeys` list identity mapping plus runtime hidden-command capability).
 
 ## gojobs/
 
@@ -131,7 +131,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Brain-provider registrations: `robot/brains.go` (`RegisterSimpleBrain`).
 - History-provider registrations: `robot/history_providers.go` (`RegisterHistoryProvider`).
 - OAuth2 extension API request shape: `robot/oauth2.go`.
-- Connector contracts and connector-side APIs: `robot/connector_defs.go` (`Connector`, `ConnectorAPIProvider`, `Injector`, `MessageSource`, and `Handler.ReadEncryptedFile`).
+- Connector contracts and connector-side APIs: `robot/connector_defs.go` (`Connector` including runtime `Reload`, `ConnectorAPIProvider`, `Injector`, `MessageSource`, and `Handler.ReadEncryptedFile`).
 - Shared pure helpers used by engine and connectors: `robot/util/wrap.go` (`Wrapper`, `NewWrapper`, `Wrap`), `robot/util/id.go` (`ExtractID`), `robot/util/basic_markdown_plain.go` (`RenderBasicMarkdownPlain`).
 
 ## robot.skel/

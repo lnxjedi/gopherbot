@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const simpleMatcherSeparatorRegex = `(?:[ -]+)`
+const simpleMatcherSeparatorRegex = `(?:\s+|-+)`
 
 var simpleMatcherIdentifierRe = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_-]*$`)
 
@@ -45,6 +45,7 @@ type simpleMatcherSequence struct {
 type simpleMatcherTerm interface {
 	compileBare() (string, error)
 	isOptional() bool
+	containsSlot() bool
 }
 
 type simpleMatcherLiteral struct {
@@ -57,8 +58,9 @@ type simpleMatcherSlot struct {
 }
 
 type simpleMatcherGroup struct {
-	expr     simpleMatcherExpr
-	optional bool
+	expr      simpleMatcherExpr
+	optional  bool
+	capturing bool
 }
 
 func compileInputMatcher(matcher *InputMatcher, allowSimple bool) error {
@@ -149,8 +151,7 @@ func (p *simpleMatcherParser) parseExpr(end rune) (simpleMatcherExpr, error) {
 			return simpleMatcherExpr{alternatives: alternatives}, nil
 		}
 		if p.peek() == '|' {
-			p.pos++
-			continue
+			return simpleMatcherExpr{}, fmt.Errorf("unexpected character %q in SimpleMatcher", p.peek())
 		}
 		return simpleMatcherExpr{}, fmt.Errorf("unexpected character %q in SimpleMatcher", p.peek())
 	}
@@ -184,12 +185,36 @@ func (p *simpleMatcherParser) parseTerm() (simpleMatcherTerm, error) {
 		if err != nil {
 			return nil, err
 		}
-		return simpleMatcherGroup{expr: expr, optional: true}, nil
+		hasSlots := expr.containsSlot()
+		return simpleMatcherGroup{expr: expr, optional: true, capturing: !hasSlots}, nil
+	case '{':
+		p.pos++
+		expr, err := p.parseExpr('}')
+		if err != nil {
+			return nil, err
+		}
+		if expr.containsSlot() {
+			return nil, fmt.Errorf("non-capturing SimpleMatcher group cannot contain typed captures")
+		}
+		return simpleMatcherGroup{expr: expr, optional: true, capturing: false}, nil
 	case '(':
 		p.pos++
 		expr, err := p.parseExpr(')')
 		if err != nil {
 			return nil, err
+		}
+		if expr.containsSlot() {
+			return nil, fmt.Errorf("capturing SimpleMatcher choice cannot contain typed captures")
+		}
+		return simpleMatcherGroup{expr: expr, capturing: true}, nil
+	case '/':
+		p.pos++
+		expr, err := p.parseExpr('/')
+		if err != nil {
+			return nil, err
+		}
+		if expr.containsSlot() {
+			return nil, fmt.Errorf("non-capturing SimpleMatcher synonym group cannot contain typed captures")
 		}
 		return simpleMatcherGroup{expr: expr}, nil
 	case '<':
@@ -208,7 +233,7 @@ func (p *simpleMatcherParser) parseTerm() (simpleMatcherTerm, error) {
 		start := p.pos
 		for !p.eof() {
 			ch := p.peek()
-			if strings.ContainsRune("[]()|<>", ch) || isSimpleMatcherSpace(ch) {
+			if strings.ContainsRune("[]{}()/|<>", ch) || isSimpleMatcherSpace(ch) {
 				break
 			}
 			p.pos++
@@ -339,6 +364,10 @@ func (l simpleMatcherLiteral) isOptional() bool {
 	return false
 }
 
+func (l simpleMatcherLiteral) containsSlot() bool {
+	return false
+}
+
 func (s simpleMatcherSlot) compileBare() (string, error) {
 	pattern, ok := simpleMatcherTypePatterns[s.kind]
 	if !ok {
@@ -351,12 +380,45 @@ func (s simpleMatcherSlot) isOptional() bool {
 	return false
 }
 
+func (s simpleMatcherSlot) containsSlot() bool {
+	return true
+}
+
 func (g simpleMatcherGroup) compileBare() (string, error) {
-	return g.expr.compileBare()
+	bare, err := g.expr.compileBare()
+	if err != nil {
+		return "", err
+	}
+	if g.capturing {
+		return "(" + bare + ")", nil
+	}
+	return bare, nil
 }
 
 func (g simpleMatcherGroup) isOptional() bool {
 	return g.optional
+}
+
+func (g simpleMatcherGroup) containsSlot() bool {
+	return g.expr.containsSlot()
+}
+
+func (e simpleMatcherExpr) containsSlot() bool {
+	for _, alt := range e.alternatives {
+		if alt.containsSlot() {
+			return true
+		}
+	}
+	return false
+}
+
+func (s simpleMatcherSequence) containsSlot() bool {
+	for _, term := range s.terms {
+		if term.containsSlot() {
+			return true
+		}
+	}
+	return false
 }
 
 func simpleMatcherLiteralSequences(spec string) ([][]string, error) {

@@ -78,6 +78,10 @@ name-addressed hidden input, hidden-help rendering, and local bot labeling. If
 - Bot user is auto-added, using the server host public key line as `UserID`.
 - Engine outbound user-targeting is username-based; SSH resolves connector-local user IDs internally.
 - Inbound SSH messages are always emitted with `ConnectorMessage.ValidatedUser=true` for authenticated configured users because the connector authenticated the presented public key and matched it to the configured canonical username.
+- During normal engine reload, SSH `Reload()` refreshes `ProtocolConfig.UserKeys` without restarting the listener.
+- The reload path builds the new key/name/ID indexes first, then swaps all three maps plus the stored `UserKeys` config under the connector lock. New authentication attempts use the new complete key map.
+- Existing sessions authenticated with keys no longer present in `UserKeys` are closed after the atomic map swap.
+- Listener settings such as `ListenHost`, `ListenPort`, and `HostKey` remain startup/restart concerns rather than live reload behavior.
 
 ## Message Model
 
@@ -145,7 +149,10 @@ Color output uses ANSI 256 sequences. User input remains uncolored; prompts, bot
 
 Message format behavior:
 
-- `Raw` / `Fixed` / `Variable`: preserved as-is (same connector behavior as before).
+- `Raw` / `Variable`: preserved as-is (same connector behavior as before).
+- `Fixed`: preserved as-is; when a fixed message has multiple lines, SSH displays
+  the header on its own line and starts the fixed body at column zero without
+  normal message wrapping so table columns remain aligned.
 - `BasicMarkdown`: rendered to plain-text-safe output for SSH:
   - when `Color` is enabled, bold and italics use ANSI SGR in live SSH output; otherwise markers are removed
   - when `Color` is enabled, inline code uses the `inlinecode` color and fenced code blocks use the `codeblock` color in live SSH output

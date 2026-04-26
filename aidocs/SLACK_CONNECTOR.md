@@ -90,6 +90,9 @@ This file captures Slack connector behavior relevant to routing, hidden commands
 
 - Slack connector runtime state is connector-instance scoped (not package-global).
 - Outbound queueing and edited-message dedupe tracking are maintained per connector instance.
+- During normal engine reload, Slack `Reload()` refreshes connector-local `ProtocolConfig.UserMap` without reconnecting to Slack.
+- The reload path normalizes the new map first, then swaps the configured identity overlay and related username/ID lookup entries under the connector lock so inbound validation and outbound mention lookup see a complete old or complete new map.
+- Other transport lifecycle settings that require reconnecting remain controlled by protocol restart/startup rather than `Reload()`.
 - This supports in-process lifecycle operations used by multi-protocol runtime management:
   - `protocol-stop slack`
   - `protocol-start slack`

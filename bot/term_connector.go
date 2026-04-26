@@ -491,6 +491,10 @@ loop:
 	tc.reader.Close()
 }
 
+func (tc *termConnector) Reload() error {
+	return nil
+}
+
 func (tc *termConnector) MessageHeard(u, c string) {
 }
 

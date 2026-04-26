@@ -1,6 +1,11 @@
 ---
 AllChannels: true
 AllowDirect: false
+AllowedHiddenCommands:
+- maillog
+- taillog
+- linklog
+- joblogs
 Commands:
 - Command: maillog
   Regex: '(?i:(?:send|mail|email)[- ]?log ([A-Za-z0-9]+)(?: to (?:(?:user (.*))|([^@]+@[^@]+)))?)'
@@ -12,7 +17,7 @@ Commands:
   - "(alias) email-log ab12cd to user alice"
 - Command: taillog
   # Regex: '(?i:(?:tail|view|show)[- ]?log ([A-Za-z0-9]+))'
-  SimpleMatcher: "(tail|view|show) log <ref:token>"
+  SimpleMatcher: "/tail|view|show/ log <ref:token>"
   Keywords: [ "history", "job", "mail", "email", "send", "log", "logs" ]
   Usage: "tail-log <ref>"
   Summary: "view the end of a log given the log ref"
@@ -20,7 +25,7 @@ Commands:
   - "(alias) tail-log ab12cd"
 - Command: linklog
   # Regex: '(?i:(?:link|get)[- ]?log ([A-Za-z0-9]+))'
-  SimpleMatcher: "(link|get) log <ref:token>"
+  SimpleMatcher: "/link|get/ log <ref:token>"
   Keywords: [ "history", "job", "mail", "email", "send", "log", "logs" ]
   Usage: "link-log <ref>"
   Summary: "get a URL for a log"

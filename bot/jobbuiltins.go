@@ -216,10 +216,6 @@ func (w *worker) jobSecurityCheck(t interface{}, command string) bool {
 	if w.automaticTask {
 		return true
 	}
-	if w.Incoming.HiddenMessage {
-		w.Reply("Sorry, job commands cannot be run as hidden commands - use the robot's name or alias")
-		return false
-	}
 	task, _, _ := getTask(w.currentTask)
 	if task.RequireAdmin {
 		if !w.checkAdmin() {

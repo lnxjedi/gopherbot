@@ -46,6 +46,7 @@ Catch-all mode scoping:
     - connector-marked bot message (`Incoming.BotMessage=true`, e.g. Slack slash route), or
     - name-addressed command mode (`cmdMode == "name"`).
 - Practical effect: hidden `/...` payloads that are not bot-addressed by connector or name will not execute hidden commands.
+- Some admin inspection commands are hidden-required even though they are globally available by matcher location. For example, `dump robot`, `dump plugin`, `dump plugin default`, and `list plugins` are implemented by `builtin-admin` but reject non-hidden invocation before returning configuration data.
 - User-facing denial behavior is split cleanly:
   - if the active connector does not support hidden commands, engine returns a single protocol-specific unsupported message
   - if the connector does support hidden commands but the user addressed them incorrectly, engine returns a single engine-authored guidance string built from the connector's concrete hidden-command formatter (for example ``Use `/clu <command>` to address a hidden command.``)
@@ -75,14 +76,20 @@ Catch-all mode scoping:
   - `Regex` — raw Go regex, preserving legacy behavior
   - `SimpleMatcher` — simplified command syntax compiled to regex during config load (`bot/simple_matcher.go`)
 - `CommandMatchers` and top-level `Help` are rejected in v3 plugin config validation.
-- `SimpleMatcher` semantics for directed commands:
+- Intended `SimpleMatcher` semantics for directed commands:
   - case-insensitive by default
   - leading/trailing whitespace tolerated through the normal command compile wrapper
   - runs of whitespace are still collapsed during dispatch retry, preserving existing whitespace-forgiveness
   - spaces in the spec act as command separators and match either spaces or dashes in input
-  - optional segments use `[ ... ]`
-  - literal alternatives use `(a|b|c)`
-  - typed captures use `<name:type>` or `<type>` and still arrive positionally in the task handler
+  - plain literal text is required and non-capturing
+  - `/a|b|c/` is required non-capturing synonym text for choices the plugin does not need to know
+  - `(a|b|c)` is a required capturing choice; the selected value arrives as a positional plugin arg
+  - `[a|b|c]` is an optional capturing choice/phrase; omitted values arrive as `""`
+  - `{a|b|c}` is optional non-capturing noise text
+  - typed captures use `<name:type>` or `<type>` and arrive positionally in the task handler
+  - when a bracketed group contains a typed capture slot, the slot is the semantic capture; the wrapper should not create a second positional arg
+  - bare `foo|bar` is intentionally not part of the grammar; use `/foo|bar/`, `(foo|bar)`, `[foo|bar]`, or `{foo|bar}`
+  - detailed authoring contract: `devdocs/SimpleMatcher.md`
 - Ambient matchers continue to load from `MessageMatchers` and remain regex-only.
 - Reply matchers and job argument matchers remain regex-based.
 
@@ -90,6 +97,9 @@ Catch-all mode scoping:
 
 - Plugin match → `startPipeline(..., plugCommand|plugMessage, ...)`: `bot/dispatch.go:checkPluginMatchersAndRun`, `bot/constants.go` `pipelineType`.
 - Job trigger / command → `startPipeline(..., jobTrigger|jobCommand, ...)`: `bot/jobrun.go:checkJobMatchersAndRun`, `bot/constants.go` `pipelineType`.
+- `startPipeline` now stamps each pipeline with `startedAt`, effective timeout settings, and operator-channel routing metadata before the primary task runs: `bot/run_pipelines.go`, `bot/pipecontext.go`.
+- A bounded live log buffer is attached to every pipeline through `newPipelineLiveLogger(...)`: `bot/history.go`, `bot/pipeline_monitoring.go`.
+  - The live buffer tees normal history logging and keeps recent section markers, `Robot.Log(...)` / `worker.Log(...)`, and child stdout/stderr even when a job/plugin later discards persisted history (`KeepLogs: 0`).
 
 ## Task Execution + Privilege Anchors
 
@@ -99,6 +109,34 @@ Catch-all mode scoping:
 - Adding privileged work to unprivileged pipelines is blocked in pipeline mutation APIs: `bot/robot_pipecmd.go`.
 
 For a full execution/security walkthrough, see `aidocs/EXECUTION_SECURITY_MODEL.md`.
+
+## Pipeline Monitoring And Timeouts
+
+- Default warn/kill thresholds now live in `conf/robot.yaml` under:
+  - `TimeOuts.Plugin.Warn`
+  - `TimeOuts.Plugin.Kill`
+  - `TimeOuts.Job.Warn`
+  - `TimeOuts.Job.Kill`
+- Per-plugin/per-job overrides live in `conf/plugins/<name>.yaml` and `conf/jobs/<name>.yaml` under `TimeOuts.Warn` / `TimeOuts.Kill`.
+- Effective timeout resolution rules:
+  - explicit task-level value overrides the type default
+  - explicit `0` disables that threshold for the task
+  - when both thresholds are non-zero, `Kill` must be greater than `Warn`
+- A watchdog goroutine is started for active pipelines with any effective timeout: `bot/pipeline_monitoring.go`.
+  - Warn threshold posts an operator-facing alert with WID, pipeline/task, start time, age, and a recent live-log excerpt.
+  - Plugin alerts go to `DefaultJobChannel`; job alerts go to the job's configured channel.
+  - Kill threshold appends a timeout marker to the live/history log and then:
+    - cancels RPC-backed child work when available
+    - kills external process groups for executable child work
+    - emits a manual-intervention alert instead of force-killing compiled-in Go work
+- Admin inspection commands for active pipelines:
+  - `ps` is available only in direct/hidden message contexts because task arguments can contain sensitive operator data.
+  - `ps` defaults to sectioned `Plugins` / `Jobs` output with pipeline `ID`, compact `AGE`, `USER`, pipeline name, current task, command/source, args, and an explicit hint for `ps -v`.
+  - `ps -v` includes `STARTED`, execution class, OS child PID (`OSPID`), and parent pipeline (`FROM`) details.
+  - `get-pipeline-log <id>` returns the current live buffer for an active pipeline.
+- Failure diagnostics now favor operator-facing alerts plus live-log excerpts over relying only on `<plugin>-fail.log`.
+  - compiled-in Go panic recovery logs stack traces into the live buffer
+  - interpreter/external stderr and traceback text is preserved in the same live buffer and alert path
 
 ## Pipeline Assembly (tasks/jobs/plugins)
 
