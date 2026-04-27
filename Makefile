@@ -5,11 +5,12 @@
 commit := -X main.Commit=$(shell git rev-parse --short HEAD)
 version := $(shell ./get-version.sh)
 
+GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
-TAR_ARCHIVE = gopherbot-linux-$(GOARCH).tar.gz
-ZIP_ARCHIVE = gopherbot-linux-$(GOARCH).zip
+DIST_GOOS ?= linux
+TAR_ARCHIVE = gopherbot-$(DIST_GOOS)-$(GOARCH).tar.gz
+ZIP_ARCHIVE = gopherbot-$(DIST_GOOS)-$(GOARCH).zip
 
-GOOS ?= linux
 CGO ?= 0
 CTAG ?= latest
 
@@ -53,8 +54,9 @@ debug:
 clean:
 	rm -f gopherbot gopherbot-mcp $(TAR_ARCHIVE) $(ZIP_ARCHIVE)
 
+$(TAR_ARCHIVE): GOOS=$(DIST_GOOS)
 $(TAR_ARCHIVE): static
-	./mkdist.sh
+	GOOS=${DIST_GOOS} GOARCH=${GOARCH} ./mkdist.sh
 
 dist: $(TAR_ARCHIVE)
 
