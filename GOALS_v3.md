@@ -163,6 +163,23 @@ In Gopherbot v3, compiled-in plugins and jobs will continue to run in in-process
 
 Status: DONE
 
+### macOS Privilege Separation Support
+
+Gopherbot should build cleanly on macOS for local development and operator tooling, including `make` and `make mcp` on Apple Silicon Macs.
+
+The current Linux/BSD privilege separation implementation uses thread-pinned `setreuid` transitions inside the Go runtime. That model is intentionally disabled on macOS/Darwin for now. A future implementation should move privilege separation to an explicit process-broker model instead of extending the thread-scoped model to another platform.
+
+Design direction:
+- Keep the parent engine as the policy authority for routing, authorization, elevation, parameter resolution, and secret scoping.
+- Start permanent privileged and unprivileged broker child processes early, before normal workload execution.
+- Have each broker permanently commit to one UID and execute external/interpreted work only for that privilege class.
+- Keep compiled-in Go extensions in-process as trusted engine code.
+- Remove normal task execution dependence on `runtime.LockOSThread()` and per-thread UID switching after the broker model is proven.
+
+Design note: see `aidocs/macos-privsep.md`.
+
+Status: PLANNED - macOS native builds work; macOS privilege separation remains unavailable.
+
 ### Make Good Use of AI with Included Components
 The current ruby AI implementation should be replaced with a native implementation, making better use of memories. The full-name fallback should be the same; "Floyd, what is the meaning of life?" should go straight to the AI (with the regular, normal system prompt additions). We should update the alias fallback (robot addressed with alias, but no command matched) to be an ai-augmented help - the robot should reply in a thread with something reasonable based on the robot's configuration; for instance "Oops, you typed that in the wrong channel - try that in #devops or #chatops", or "It looks like you're trying to start a remote dev environment, but you didn't supply a valid type ...".
 

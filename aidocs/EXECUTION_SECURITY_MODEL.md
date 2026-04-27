@@ -189,5 +189,5 @@ The concern is not command visibility (hard to hide) but message routing confide
 - Lua, JavaScript, Gopherbot shell, and external Go interpreter-backed tasks now gain process isolation via parent/child RPC.
 - Cancellation semantics for long-running interpreter tasks are now available through admin `kill` and timeout watchdogs, but fine-grained task-level cancellation (beyond process termination) remains future work.
 - Long-lived correctness depends on careful `LockOSThread` usage and goroutine/thread lifecycle.
-
-TODO (verify): if non-Unix builds are targeted in future, document the explicit fallback behavior when `bot/privsep.go` is excluded by build tags.
+- The setreuid/thread-pinned privilege separation implementation is compiled only on Linux, DragonFly BSD, FreeBSD, NetBSD, and OpenBSD (`bot/privsep.go`).
+- Other platforms, including macOS/Darwin, use `bot/privsep_unsupported.go`: `privSep` remains false, privilege-switch helpers are no-ops, and startup logs that privilege separation is not available on that platform.
