@@ -167,14 +167,19 @@ Status: DONE
 
 Gopherbot should build cleanly on macOS for local development and operator tooling, including `make` and `make mcp` on Apple Silicon Macs.
 
-The current Linux/BSD privilege separation implementation uses thread-pinned `setreuid` transitions inside the Go runtime. That model is intentionally disabled on macOS/Darwin for now. A future implementation should move privilege separation to an explicit process-broker model instead of extending the thread-scoped model to another platform.
+The current Linux/BSD privilege separation implementation uses thread-pinned `setreuid` transitions inside the Go runtime. That model is intentionally disabled on macOS/Darwin for now. A future implementation should move privilege separation to an explicit one-shot child process model instead of extending the thread-scoped model to another platform.
 
 Design direction:
 - Keep the parent engine as the policy authority for routing, authorization, elevation, parameter resolution, and secret scoping.
-- Start permanent privileged and unprivileged broker child processes early, before normal workload execution.
-- Have each broker permanently commit to one UID and execute external/interpreted work only for that privilege class.
+- For every file-backed extension invocation, fork/exec a child process and permanently commit it to either the invoking robot user or the unprivileged account before extension code starts.
+- Run built-in interpreters for Yaegi/Go, JavaScript, Lua, and Gopherbot shell only after the child has committed to its selected privilege class.
+- Exec external Ruby, Python, Bash, and similar interpreters/scripts only after the child has committed to its selected privilege class.
 - Keep compiled-in Go extensions in-process as trusted engine code.
-- Remove normal task execution dependence on `runtime.LockOSThread()` and per-thread UID switching after the broker model is proven.
+- Do not support running compiled-in Go extensions as unprivileged code.
+- Remove normal task execution dependence on `runtime.LockOSThread()` and per-thread UID switching after the child process model is proven.
+- Treat supplementary group handling as a release-blocking security detail: default startup should fail closed unless retained groups are explicitly allowed through `PrivsepAllowAllSupplementaryGroups` or `PrivsepAllowedSupplementaryGroups`.
+- Document that privileged host access should be granted directly to the invoking robot user, not through broad groups that unprivileged children may retain.
+- On Linux EC2 deployments, document UID-scoped firewall hardening for instance metadata endpoints so unprivileged children cannot fetch instance role credentials.
 
 Design note: see `aidocs/macos-privsep.md`.
 
