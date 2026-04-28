@@ -75,44 +75,45 @@ var regexes struct {
 // configuration struct holds all the internal data relevant to the Bot. Most of it is digested
 // and populated by loadConfig.
 type configuration struct {
-	adminUsers           []string            // List of users with access to administrative commands
-	alias                rune                // single-char alias for addressing the bot
-	botinfo              UserInfo            // robot's name, ID, email, etc.
-	adminContact         string              // who to contact for problems with the bot
-	mailConf             botMailer           // configuration to use when sending email
-	ignoreUsers          []string            // list of users to never listen to, like other bots
-	joinChannels         []string            // list of channels to join
-	defaultAllowDirect   bool                // whether plugins are available in DM by default
-	ignoreUnlistedUsers  bool                // ignore users not listed in the UserRoster
-	secureParamRetrieve  bool                // don't publish parameters as environment variables
-	httpDebug            bool                // whether http API debug logging is enabled
-	defaultMessageFormat robot.MessageFormat // BasicMarkdown unless set to another supported format
-	plugChannels         []string            // list of channels where plugins are available by default
-	protocol             string              // Name of the primary protocol, e.g. "slack"
-	defaultProtocol      string              // Protocol used for outbound messages without an inbound protocol context
-	secondaryProtocols   []string            // Additional protocols configured for future multi-protocol runtime
-	brainProvider        string              // Type of Brain provider to use
-	encryptionKey        string              // Key for encrypting data (unlocks "real" key in brain)
-	historyProvider      string              // Name of the history provider to use
-	workSpace            string              // Read/Write directory where the robot does work
-	defaultElevator      string              // Plugin name for performing elevation
-	defaultAuthorizer    string              // Plugin name for performing authorization
-	identityProviders    map[string]IdentityProviderConfig
-	externalPlugins      []TaskSettings  // List of external plugins to load
-	externalJobs         []TaskSettings  // List of external jobs to load
-	externalTasks        []TaskSettings  // List of external tasks to load
-	goPlugins            []TaskSettings  // Settings for goPlugins: Name(match), Description, NameSpace, Parameters, Disabled
-	goJobs               []TaskSettings  // Settings for goJobs: Name(match), Description, NameSpace, Parameters, Disabled
-	goTasks              []TaskSettings  // Settings for goTasks: Name(match), Description, NameSpace, Parameters, Disabled
-	nsList               []TaskSettings  // loaded NameSpaces for shared parameters
-	psList               []TaskSettings  // loaded ParameterSets for shared parameter sets
-	ScheduledJobs        []ScheduledTask // List of scheduled tasks
-	port                 string          // Configured localhost port to listen on, or 0 for first open
-	timeZone             *time.Location  // for forcing the TimeZone, Unix only
-	logLevel             robot.LogLevel  // one of warn, audit, info, debug, trace, error
-	logDest              string          // log to stdout, stderr, or <filename>
-	defaultJobChannel    string          // where job statuses will post if not otherwise specified
-	timeOuts             runtimeTimeOutsConfig
+	adminUsers                 []string  // List of users with access to administrative commands
+	alias                      rune      // single-char alias for addressing the bot
+	botinfo                    UserInfo  // robot's name, ID, email, etc.
+	adminContact               string    // who to contact for problems with the bot
+	mailConf                   botMailer // configuration to use when sending email
+	ignoreUsers                []string  // list of users to never listen to, like other bots
+	joinChannels               []string  // list of channels to join
+	defaultAllowDirect         bool      // whether plugins are available in DM by default
+	ignoreUnlistedUsers        bool      // ignore users not listed in the UserRoster
+	secureParamRetrieve        bool      // don't publish parameters as environment variables
+	privsepSupplementaryGroups privsepSupplementaryGroupPolicy
+	httpDebug                  bool                // whether http API debug logging is enabled
+	defaultMessageFormat       robot.MessageFormat // BasicMarkdown unless set to another supported format
+	plugChannels               []string            // list of channels where plugins are available by default
+	protocol                   string              // Name of the primary protocol, e.g. "slack"
+	defaultProtocol            string              // Protocol used for outbound messages without an inbound protocol context
+	secondaryProtocols         []string            // Additional protocols configured for future multi-protocol runtime
+	brainProvider              string              // Type of Brain provider to use
+	encryptionKey              string              // Key for encrypting data (unlocks "real" key in brain)
+	historyProvider            string              // Name of the history provider to use
+	workSpace                  string              // Read/Write directory where the robot does work
+	defaultElevator            string              // Plugin name for performing elevation
+	defaultAuthorizer          string              // Plugin name for performing authorization
+	identityProviders          map[string]IdentityProviderConfig
+	externalPlugins            []TaskSettings  // List of external plugins to load
+	externalJobs               []TaskSettings  // List of external jobs to load
+	externalTasks              []TaskSettings  // List of external tasks to load
+	goPlugins                  []TaskSettings  // Settings for goPlugins: Name(match), Description, NameSpace, Parameters, Disabled
+	goJobs                     []TaskSettings  // Settings for goJobs: Name(match), Description, NameSpace, Parameters, Disabled
+	goTasks                    []TaskSettings  // Settings for goTasks: Name(match), Description, NameSpace, Parameters, Disabled
+	nsList                     []TaskSettings  // loaded NameSpaces for shared parameters
+	psList                     []TaskSettings  // loaded ParameterSets for shared parameter sets
+	ScheduledJobs              []ScheduledTask // List of scheduled tasks
+	port                       string          // Configured localhost port to listen on, or 0 for first open
+	timeZone                   *time.Location  // for forcing the TimeZone, Unix only
+	logLevel                   robot.LogLevel  // one of warn, audit, info, debug, trace, error
+	logDest                    string          // log to stdout, stderr, or <filename>
+	defaultJobChannel          string          // where job statuses will post if not otherwise specified
+	timeOuts                   runtimeTimeOutsConfig
 }
 
 // The current configuration and task list
@@ -193,6 +194,9 @@ func initBot() {
 	// aren't initialized.
 	if err := loadConfig(true); err != nil {
 		Log(robot.Fatal, "Loading initial configuration: %v", err)
+	}
+	if err := validatePrivsepStartupPolicy(currentCfg.privsepSupplementaryGroups); err != nil {
+		Log(robot.Fatal, "Privilege separation startup validation failed: %v", err)
 	}
 
 	if cliOp {

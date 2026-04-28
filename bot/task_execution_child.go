@@ -62,7 +62,7 @@ func validatePipelineChildExecRequest(req pipelineChildExecRequest) error {
 	return nil
 }
 
-func newPipelineChildExecCommand(req pipelineChildExecRequest) (*exec.Cmd, error) {
+func newPipelineChildExecCommand(req pipelineChildExecRequest, role privsepChildRole) (*exec.Cmd, error) {
 	if err := validatePipelineChildExecRequest(req); err != nil {
 		return nil, err
 	}
@@ -70,7 +70,8 @@ func newPipelineChildExecCommand(req pipelineChildExecRequest) (*exec.Cmd, error
 	if err != nil {
 		return nil, err
 	}
-	childEnv := sanitizedChildEnvironment(pipelineChildExecRequestEnv + "=" + reqEncoded)
+	extraEnv := appendPrivsepRoleEnv([]string{pipelineChildExecRequestEnv + "=" + reqEncoded}, role)
+	childEnv := sanitizedChildEnvironment(extraEnv...)
 	cmd := exec.Command(execPath(), pipelineChildExecCommand)
 	cmd.Env = childEnv
 	return cmd, nil

@@ -26,12 +26,18 @@ type pipelineRPCErr struct {
 }
 
 func newPipelineChildRPCCommand() *exec.Cmd {
+	return newPipelineChildRPCCommandForRole(privsepRoleNone)
+}
+
+func newPipelineChildRPCCommandForRole(role privsepChildRole) *exec.Cmd {
 	cmd := exec.Command(execPath(), pipelineChildRPCCommand)
-	cmd.Env = sanitizedChildEnvironment(
-		"GOPHER_HOME="+homePath,
-		"GOPHER_INSTALLDIR="+installPath,
-		"GOPHER_CONFIGDIR="+configFull,
-	)
+	extraEnv := []string{
+		"GOPHER_HOME=" + homePath,
+		"GOPHER_INSTALLDIR=" + installPath,
+		"GOPHER_CONFIGDIR=" + configFull,
+	}
+	extraEnv = appendPrivsepRoleEnv(extraEnv, role)
+	cmd.Env = sanitizedChildEnvironment(extraEnv...)
 	return cmd
 }
 

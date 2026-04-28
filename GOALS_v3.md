@@ -167,7 +167,7 @@ Status: DONE
 
 Gopherbot should build cleanly on macOS for local development and operator tooling, including `make` and `make mcp` on Apple Silicon Macs.
 
-The current Linux/BSD privilege separation implementation uses thread-pinned `setreuid` transitions inside the Go runtime. That model is intentionally disabled on macOS/Darwin for now. A future implementation should move privilege separation to an explicit one-shot child process model instead of extending the thread-scoped model to another platform.
+The legacy Linux/BSD privilege separation implementation used thread-pinned `setreuid` transitions inside the Go runtime. The v3 direction is an explicit one-shot child process model for file-backed extensions instead of extending normal task execution through thread-scoped credential changes.
 
 Design direction:
 - Keep the parent engine as the policy authority for routing, authorization, elevation, parameter resolution, and secret scoping.
@@ -176,14 +176,14 @@ Design direction:
 - Exec external Ruby, Python, Bash, and similar interpreters/scripts only after the child has committed to its selected privilege class.
 - Keep compiled-in Go extensions in-process as trusted engine code.
 - Do not support running compiled-in Go extensions as unprivileged code.
-- Remove normal task execution dependence on `runtime.LockOSThread()` and per-thread UID switching after the child process model is proven.
+- Keep `runtime.LockOSThread()` only in low-level privilege setup/commit helpers; normal file-backed task execution should use committed child processes.
 - Treat supplementary group handling as a release-blocking security detail: default startup should fail closed unless retained groups are explicitly allowed through `PrivsepAllowAllSupplementaryGroups` or `PrivsepAllowedSupplementaryGroups`.
 - Document that privileged host access should be granted directly to the invoking robot user, not through broad groups that unprivileged children may retain.
 - On Linux EC2 deployments, document UID-scoped firewall hardening for instance metadata endpoints so unprivileged children cannot fetch instance role credentials.
 
 Design note: see `aidocs/macos-privsep.md`.
 
-Status: PLANNED - macOS native builds work; macOS privilege separation remains unavailable.
+Status: IMPLEMENTATION STARTED - one-shot child role commitment exists for Linux/BSD and macOS; manual setuid validation is still required before calling macOS privilege separation production-ready.
 
 ### Make Good Use of AI with Included Components
 The current ruby AI implementation should be replaced with a native implementation, making better use of memories. The full-name fallback should be the same; "Floyd, what is the meaning of life?" should go straight to the AI (with the regular, normal system prompt additions). We should update the alias fallback (robot addressed with alias, but no command matched) to be an ai-augmented help - the robot should reply in a thread with something reasonable based on the robot's configuration; for instance "Oops, you typed that in the wrong channel - try that in #devops or #chatops", or "It looks like you're trying to start a remote dev environment, but you didn't supply a valid type ...".

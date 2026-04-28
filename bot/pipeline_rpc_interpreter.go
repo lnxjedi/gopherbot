@@ -58,7 +58,7 @@ type pipelineRPCLuaGetConfigResponse struct {
 	Error  string `json:"error,omitempty"`
 }
 
-func runLuaExtensionViaRPC(taskPath, taskName string, pkgPath []string, bot map[string]string, w *worker, r robot.Robot, args []string) (robot.TaskRetVal, error) {
+func runLuaExtensionViaRPC(taskPath, taskName string, pkgPath []string, bot map[string]string, privileged bool, w *worker, r robot.Robot, args []string) (robot.TaskRetVal, error) {
 	params := pipelineRPCLuaRunRequest{
 		ExecPath: execPath(),
 		TaskPath: taskPath,
@@ -67,7 +67,7 @@ func runLuaExtensionViaRPC(taskPath, taskName string, pkgPath []string, bot map[
 		Bot:      bot,
 		Args:     args,
 	}
-	resRaw, err := runPipelineRPCRequest("lua_run", params, w, r)
+	resRaw, err := runPipelineRPCRequestForRole("lua_run", params, w, r, privsepRoleForExecution(privileged))
 	if err != nil {
 		return robot.MechanismFail, err
 	}
@@ -85,7 +85,7 @@ func runLuaExtensionViaRPC(taskPath, taskName string, pkgPath []string, bot map[
 	return robot.TaskRetVal(res.RetVal), nil
 }
 
-func runLuaGetConfigViaRPC(taskPath, taskName string, pkgPath []string, bot map[string]string) (*[]byte, error) {
+func runLuaGetConfigViaRPC(taskPath, taskName string, pkgPath []string, bot map[string]string, privileged bool) (*[]byte, error) {
 	params := pipelineRPCLuaGetConfigRequest{
 		ExecPath: execPath(),
 		TaskPath: taskPath,
@@ -93,7 +93,7 @@ func runLuaGetConfigViaRPC(taskPath, taskName string, pkgPath []string, bot map[
 		PkgPath:  pkgPath,
 		Bot:      bot,
 	}
-	resRaw, err := runPipelineRPCRequest("lua_get_config", params, nil, nil)
+	resRaw, err := runPipelineRPCRequestForRole("lua_get_config", params, nil, nil, privsepRoleForExecution(privileged))
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +227,11 @@ func waitForPipelineRPCChildExit(cmd *exec.Cmd) error {
 }
 
 func runPipelineRPCRequest(method string, params interface{}, w *worker, r robot.Robot) (json.RawMessage, error) {
-	cmd := newPipelineChildRPCCommand()
+	return runPipelineRPCRequestForRole(method, params, w, r, privsepRoleNone)
+}
+
+func runPipelineRPCRequestForRole(method string, params interface{}, w *worker, r robot.Robot, role privsepChildRole) (json.RawMessage, error) {
+	cmd := newPipelineChildRPCCommandForRole(role)
 	cmd.SysProcAttr = &unix.SysProcAttr{Setpgid: true}
 	return runPipelineRPCRequestWithCmd(method, params, w, r, cmd)
 }

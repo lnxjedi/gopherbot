@@ -62,41 +62,41 @@ func ensurePipelineRPCGoInitialized() error {
 	return pipelineRPCGoInitErr
 }
 
-func runGoPluginViaRPC(taskPath, taskName string, env []string, privileged bool, w *worker, r robot.Robot, args []string) (robot.TaskRetVal, error) {
+func runGoPluginViaRPC(taskPath, taskName string, env []string, interpreterPrivileged, processPrivileged bool, w *worker, r robot.Robot, args []string) (robot.TaskRetVal, error) {
 	params := pipelineRPCGoRunRequest{
 		TaskPath:   taskPath,
 		TaskName:   taskName,
 		Env:        env,
-		Privileged: privileged,
+		Privileged: interpreterPrivileged,
 		Args:       args,
 	}
-	return runGoViaRPCMethod("go_plugin_run", params, w, r)
+	return runGoViaRPCMethod("go_plugin_run", params, processPrivileged, w, r)
 }
 
-func runGoJobViaRPC(taskPath, taskName string, env []string, privileged bool, w *worker, r robot.Robot, args []string) (robot.TaskRetVal, error) {
+func runGoJobViaRPC(taskPath, taskName string, env []string, interpreterPrivileged, processPrivileged bool, w *worker, r robot.Robot, args []string) (robot.TaskRetVal, error) {
 	params := pipelineRPCGoRunRequest{
 		TaskPath:   taskPath,
 		TaskName:   taskName,
 		Env:        env,
-		Privileged: privileged,
+		Privileged: interpreterPrivileged,
 		Args:       args,
 	}
-	return runGoViaRPCMethod("go_job_run", params, w, r)
+	return runGoViaRPCMethod("go_job_run", params, processPrivileged, w, r)
 }
 
-func runGoTaskViaRPC(taskPath, taskName string, env []string, privileged bool, w *worker, r robot.Robot, args []string) (robot.TaskRetVal, error) {
+func runGoTaskViaRPC(taskPath, taskName string, env []string, interpreterPrivileged, processPrivileged bool, w *worker, r robot.Robot, args []string) (robot.TaskRetVal, error) {
 	params := pipelineRPCGoRunRequest{
 		TaskPath:   taskPath,
 		TaskName:   taskName,
 		Env:        env,
-		Privileged: privileged,
+		Privileged: interpreterPrivileged,
 		Args:       args,
 	}
-	return runGoViaRPCMethod("go_task_run", params, w, r)
+	return runGoViaRPCMethod("go_task_run", params, processPrivileged, w, r)
 }
 
-func runGoViaRPCMethod(method string, params pipelineRPCGoRunRequest, w *worker, r robot.Robot) (robot.TaskRetVal, error) {
-	resRaw, err := runPipelineRPCRequest(method, params, w, r)
+func runGoViaRPCMethod(method string, params pipelineRPCGoRunRequest, processPrivileged bool, w *worker, r robot.Robot) (robot.TaskRetVal, error) {
+	resRaw, err := runPipelineRPCRequestForRole(method, params, w, r, privsepRoleForExecution(processPrivileged))
 	if err != nil {
 		return robot.MechanismFail, err
 	}
@@ -120,7 +120,7 @@ func runGoGetConfigViaRPC(taskPath, taskName string, privileged bool) (*[]byte, 
 		TaskName:   taskName,
 		Privileged: privileged,
 	}
-	resRaw, err := runPipelineRPCRequest("go_get_config", params, nil, nil)
+	resRaw, err := runPipelineRPCRequestForRole("go_get_config", params, nil, nil, privsepRoleForExecution(privileged))
 	if err != nil {
 		return nil, err
 	}

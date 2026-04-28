@@ -97,9 +97,20 @@ func Start(v VersionInfo) {
 		var code int
 		switch remainingArgs[0] {
 		case pipelineChildExecCommand:
+			if code = commitPrivsepChildFromEnv(true); code != 0 {
+				os.Exit(code)
+			}
 			code = runPipelineChildExec()
 		case pipelineChildRPCCommand:
+			if code = commitPrivsepChildFromEnv(true); code != 0 {
+				os.Exit(code)
+			}
 			code = runPipelineChildRPC()
+		case privsepSelfCheckCommand:
+			if code = commitPrivsepChildFromEnv(true); code != 0 {
+				os.Exit(code)
+			}
+			code = runPrivsepSelfCheck()
 		default:
 			code = -1
 		}

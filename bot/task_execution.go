@@ -35,8 +35,9 @@ func (w *worker) selectTaskExecutionRunner(t interface{}) taskExecutionRunner {
 	if task.taskType == taskGo {
 		return inProcessTaskRunner{}
 	}
-	// Interpreter-backed tasks remain in-process for now; external executables
-	// run in a child process.
+	// Interpreter-backed tasks enter callTask first, then callTask starts the
+	// RPC child for the concrete interpreter. External executables use the
+	// child exec runner immediately.
 	if task.taskType == taskExternal && !isExternalInterpreterTask(task) {
 		return externalProcessTaskRunner{}
 	}

@@ -108,6 +108,12 @@ TimeOuts:
     Warn: 1h
     Kill: 2h
 
+## Privilege separation defaults fail closed: unprivileged children may not
+## retain supplementary groups unless custom robot config explicitly allows
+## them.
+PrivsepAllowAllSupplementaryGroups: false
+PrivsepAllowedSupplementaryGroups: []
+
 BotInfo:
   UserName: {{ $botname }}
   FullName: {{ $botfullname }}

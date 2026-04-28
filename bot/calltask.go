@@ -146,10 +146,6 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 		}
 	}
 
-	// drop privileges when running external task; this thread will terminate
-	// when this goroutine finishes; see runtime.LockOSThread()
-	dropThreadPriv(fmt.Sprintf("task %s default configuration", task.name))
-
 	isExternalGoTask := strings.HasSuffix(task.Path, ".go")
 	isExternalLuaTask := strings.HasSuffix(task.Path, ".lua")
 	isExternalJSTask := strings.HasSuffix(task.Path, ".js")
@@ -188,7 +184,7 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 			}
 		} else if isExternalLuaTask {
 			Log(robot.Info, "getting default configuration for external Lua plugin '"+task.name+"'")
-			if defConfig, err := runLuaGetConfigViaRPC(taskPath, task.name, libPaths(), emptyBot()); err != nil {
+			if defConfig, err := runLuaGetConfigViaRPC(taskPath, task.name, libPaths(), emptyBot(), task.Privileged); err != nil {
 				Log(robot.Warn, "unable to retrieve plugin default configuration for '%s': %s", task.name, err.Error())
 				// This error shouldn't disable an external Lua plugin
 				cchan <- getCfgReturn{&cfg, nil}
@@ -200,7 +196,7 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 		} else if isExternalJSTask {
 			// Assuming you have a similar function for JavaScript
 			Log(robot.Info, "getting default configuration for external JavaScript plugin '"+task.name+"'")
-			if defConfig, err := runJSGetConfigViaRPC(taskPath, task.name, libPaths(), emptyBot()); err != nil {
+			if defConfig, err := runJSGetConfigViaRPC(taskPath, task.name, libPaths(), emptyBot(), task.Privileged); err != nil {
 				Log(robot.Warn, "unable to retrieve plugin default configuration for '%s': %s", task.name, err.Error())
 				// This error shouldn't disable an external JS plugin
 				cchan <- getCfgReturn{&cfg, nil}
@@ -211,7 +207,7 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 			}
 		} else if isExternalGSHTask {
 			Log(robot.Info, "getting default configuration for external Gopherbot shell plugin '"+task.name+"'")
-			if defConfig, err := runGSHGetConfigViaRPC(taskPath, task.name, configureEnv); err != nil {
+			if defConfig, err := runGSHGetConfigViaRPC(taskPath, task.name, configureEnv, task.Privileged); err != nil {
 				Log(robot.Warn, "unable to retrieve plugin default configuration for '%s': %s", task.name, err.Error())
 				cchan <- getCfgReturn{&cfg, nil}
 				return
@@ -248,7 +244,7 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 		Env:      configureEnv,
 		NullConn: true,
 	}
-	cmd, cmdErr := newPipelineChildExecCommand(req)
+	cmd, cmdErr := newPipelineChildExecCommand(req, privsepRoleForExecution(task.Privileged))
 	if cmdErr != nil {
 		cchan <- getCfgReturn{nil, fmt.Errorf("creating external plugin configure child command for '%s': %v", taskPath, cmdErr)}
 		return
@@ -276,6 +272,13 @@ type taskReturn struct {
 type taskCallOptions struct {
 	externalExecutableProcess bool
 	suppressEmit              bool
+}
+
+func externalCommandRunsPrivileged(pipelinePrivileged bool, plugin *Plugin) bool {
+	if !pipelinePrivileged {
+		return false
+	}
+	return plugin == nil || plugin.Privileged
 }
 
 // Maps populated by callTaskThread, so external tasks can get their Robot
@@ -428,13 +431,9 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 				rchan <- taskReturn{err.Error(), robot.MechanismFail}
 			}
 		}()
-		if privSep {
-			if privileged {
-				raiseThreadPriv(fmt.Sprintf("privileged compiled-in Go task \"%s\"", task.name))
-			} else {
-				dropThreadPriv(fmt.Sprintf("unprivileged compiled-in Go task \"%s\"", task.name))
-			}
-		}
+		// Compiled-in Go extensions are trusted engine code and remain in the
+		// parent process. Process-oriented privsep applies only to file-backed
+		// extensions that cross a child process boundary.
 		if isPlugin {
 			if command != "init" && !opts.suppressEmit {
 				emit(GoPluginRan)
@@ -526,18 +525,11 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 	}
 
 	if isExternalGoTask {
-		if privSep {
-			if privileged {
-				raiseThreadPrivExternal(fmt.Sprintf("privileged external Go task \"%s\"", task.name))
-			} else {
-				dropThreadPriv(fmt.Sprintf("unprivileged external Go task \"%s\"", task.name))
-			}
-		}
 		if isPlugin {
 			if command != "init" && !opts.suppressEmit {
 				emit(GoPluginRan)
 			}
-			ret, err := runGoPluginViaRPC(taskPath, task.name, env, task.Privileged, w, r, append([]string{command}, args...))
+			ret, err := runGoPluginViaRPC(taskPath, task.name, env, task.Privileged, privileged, w, r, append([]string{command}, args...))
 			if err != nil {
 				emit(ExternalTaskBadInterpreter)
 				rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running plugin %s", task.name), err), robot.MechanismFail}
@@ -549,7 +541,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 		} else {
 			var ret robot.TaskRetVal
 			if isJob {
-				ret, err = runGoJobViaRPC(taskPath, task.name, env, task.Privileged, w, r, args)
+				ret, err = runGoJobViaRPC(taskPath, task.name, env, task.Privileged, privileged, w, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running job %s", task.name), err), robot.MechanismFail}
@@ -557,7 +549,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 				}
 				w.Log(robot.Debug, "External Go job '%s' executed with args: %q", task.name, args)
 			} else {
-				ret, err = runGoTaskViaRPC(taskPath, task.name, env, task.Privileged, w, r, args)
+				ret, err = runGoTaskViaRPC(taskPath, task.name, env, task.Privileged, privileged, w, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running task %s", task.name), err), robot.MechanismFail}
@@ -572,13 +564,6 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 	}
 
 	if isExternalLuaTask {
-		if privSep {
-			if privileged {
-				raiseThreadPrivExternal(fmt.Sprintf("privileged external Lua task \"%s\"", task.name))
-			} else {
-				dropThreadPriv(fmt.Sprintf("unprivileged external Lua task \"%s\"", task.name))
-			}
-		}
 		if isPlugin {
 			// "init" usually doesn't count as an actual plugin invocation for stats
 			if command != "init" && !opts.suppressEmit {
@@ -587,7 +572,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 			// Prepend the command to args, so Lua sees args[1] == <command>
 			allArgs := append([]string{command}, args...)
 
-			ret, err := runLuaExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), w, r, allArgs)
+			ret, err := runLuaExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), privileged, w, r, allArgs)
 			if err != nil {
 				emit(ExternalTaskBadInterpreter)
 				rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running Lua plugin %s", task.name), err), robot.MechanismFail}
@@ -600,7 +585,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 			var ret robot.TaskRetVal
 			// For jobs/tasks, pass args directly; no "command" prepended.
 			if isJob {
-				ret, err = runLuaExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), w, r, args)
+				ret, err = runLuaExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), privileged, w, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running Lua job %s", task.name), err), robot.MechanismFail}
@@ -608,7 +593,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 				}
 				w.Log(robot.Debug, "External Lua job '%s' executed with args: %q", task.name, args)
 			} else {
-				ret, err = runLuaExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), w, r, args)
+				ret, err = runLuaExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), privileged, w, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running Lua task %s", task.name), err), robot.MechanismFail}
@@ -623,13 +608,6 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 	}
 
 	if isExternalJSTask {
-		if privSep {
-			if privileged {
-				raiseThreadPrivExternal(fmt.Sprintf("privileged external JavaScript task \"%s\"", task.name))
-			} else {
-				dropThreadPriv(fmt.Sprintf("unprivileged external JavaScript task \"%s\"", task.name))
-			}
-		}
 		if isPlugin {
 			// "init" usually doesn't count as an actual plugin invocation for stats
 			if command != "init" && !opts.suppressEmit {
@@ -638,7 +616,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 			// Prepend the command to args, so JavaScript sees args[1] == <command>
 			allArgs := append([]string{command}, args...)
 
-			ret, err := runJSExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), w, r, allArgs)
+			ret, err := runJSExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), privileged, w, r, allArgs)
 			if err != nil {
 				emit(ExternalTaskBadInterpreter)
 				rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running JavaScript plugin %s", task.name), err), robot.MechanismFail}
@@ -651,7 +629,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 			var ret robot.TaskRetVal
 			// For jobs/tasks, pass args directly; no "command" prepended.
 			if isJob {
-				ret, err = runJSExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), w, r, args)
+				ret, err = runJSExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), privileged, w, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running JavaScript job %s", task.name), err), robot.MechanismFail}
@@ -659,7 +637,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 				}
 				w.Log(robot.Debug, "External JavaScript job '%s' executed with args: %q", task.name, args)
 			} else {
-				ret, err = runJSExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), w, r, args)
+				ret, err = runJSExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), privileged, w, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running JavaScript task %s", task.name), err), robot.MechanismFail}
@@ -674,19 +652,12 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 	}
 
 	if isExternalGSHTask {
-		if privSep {
-			if privileged {
-				raiseThreadPrivExternal(fmt.Sprintf("privileged external Gopherbot shell task \"%s\"", task.name))
-			} else {
-				dropThreadPriv(fmt.Sprintf("unprivileged external Gopherbot shell task \"%s\"", task.name))
-			}
-		}
 		if isPlugin {
 			if command != "init" && !opts.suppressEmit {
 				emit(ExternalTaskRan)
 			}
 			allArgs := append([]string{command}, args...)
-			ret, err := runGSHExtensionViaRPC(taskPath, task.name, env, w, r, allArgs)
+			ret, err := runGSHExtensionViaRPC(taskPath, task.name, env, privileged, w, r, allArgs)
 			if err != nil {
 				emit(ExternalTaskBadInterpreter)
 				rchan <- taskReturn{logTaskExecutionError(w, fmt.Sprintf("Running Gopherbot shell plugin %s", task.name), err), robot.MechanismFail}
@@ -697,7 +668,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 			return
 		}
 
-		ret, err := runGSHExtensionViaRPC(taskPath, task.name, env, w, r, args)
+		ret, err := runGSHExtensionViaRPC(taskPath, task.name, env, privileged, w, r, args)
 		if err != nil {
 			emit(ExternalTaskBadInterpreter)
 			label := "task"
@@ -733,6 +704,9 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 
 func (w *worker) runExternalExecutableTask(task *Task, plugin *Plugin, command, taskPath, taskDir string, externalArgs, env, keys []string, logger robot.HistoryLogger, privileged bool, opts taskCallOptions, eid string) (string, robot.TaskRetVal) {
 	const failFmt = "Pipeline failed in external task '%s', writing fail log in GOPHER_HOME"
+	if privSep {
+		opts.externalExecutableProcess = true
+	}
 	if opts.externalExecutableProcess {
 		childTaskDir := taskDir
 		if !filepath.IsAbs(childTaskDir) {
@@ -751,7 +725,7 @@ func (w *worker) runExternalExecutableTask(task *Task, plugin *Plugin, command, 
 			EID:      eid,
 			NullConn: nullConn,
 		}
-		cmd, err := newPipelineChildExecCommand(req)
+		cmd, err := newPipelineChildExecCommand(req, privsepRoleForExecution(externalCommandRunsPrivileged(privileged, plugin)))
 		if err != nil {
 			Log(robot.Error, "Creating child runner command for task '%s': %v", task.name, err)
 			return fmt.Sprintf(failFmt, task.name), robot.MechanismFail
@@ -790,16 +764,6 @@ func (w *worker) runExternalCommand(cmd *exec.Cmd, stdinPipe io.WriteCloser, eid
 	errString := ""
 	retval := robot.Normal
 	var err error
-	if privileged {
-		if plugin != nil && !plugin.Privileged {
-			dropThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
-		} else {
-			raiseThreadPrivExternal(fmt.Sprintf("task %s / %s", task.name, command))
-		}
-	} else {
-		dropThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
-	}
-
 	var stderr, stdout io.ReadCloser
 	stderr, err = cmd.StderrPipe()
 	if err != nil {

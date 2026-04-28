@@ -9,6 +9,14 @@ IgnoreUnlistedUsers: true
 ## and tasks must use GetParameter(secret_name) instead of environment variables.
 SecureParameters: true
 
+## Privsep supplementary groups default to fail-closed in installed engine
+## defaults. Prefer granting host privileges directly to the robot user, not
+## through groups retained by unprivileged children. Uncomment exactly one
+## style only after reviewing the host's group IDs.
+# PrivsepAllowAllSupplementaryGroups: true
+# PrivsepAllowedSupplementaryGroups:
+# - 12345
+
 {{ $environment := env "GOPHER_ENVIRONMENT" | default "production" }}
 ## Environment-specific runtime defaults (protocol/brain/log destination).
 {{ printf "environments/%s.yaml" $environment | .Include }}

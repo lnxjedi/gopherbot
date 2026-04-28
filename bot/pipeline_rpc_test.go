@@ -38,6 +38,11 @@ func TestNewPipelineChildRPCCommand(t *testing.T) {
 	if !envContains(cmd.Env, "GOPHER_HOME="+homePath) {
 		t.Fatalf("child rpc env missing GOPHER_HOME=%s: %#v", homePath, cmd.Env)
 	}
+
+	roleCmd := newPipelineChildRPCCommandForRole(privsepRolePrivileged)
+	if !envContains(roleCmd.Env, privsepChildRoleEnv+"="+string(privsepRolePrivileged)) {
+		t.Fatalf("child rpc env missing %s=%s: %#v", privsepChildRoleEnv, privsepRolePrivileged, roleCmd.Env)
+	}
 }
 
 func TestRunPipelineChildRPCWithIOHandshakeAndShutdown(t *testing.T) {

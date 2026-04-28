@@ -104,9 +104,14 @@ Catch-all mode scoping:
 ## Task Execution + Privilege Anchors
 
 - Each task invocation uses `executeTask` -> `callTask` -> `go callTaskThread(...)` + return channel wait: `bot/task_execution.go`, `bot/calltask.go`.
-- Privilege separation primitives are in `bot/privsep.go` (`dropThreadPriv`, `raiseThreadPriv`, `raiseThreadPrivExternal`) and rely on thread pinning (`runtime.LockOSThread`).
+- Compiled-in Go tasks/plugins remain trusted in-process engine code.
+- File-backed extensions run through child process boundaries:
+  - external executables use `pipeline-child-exec`
+  - Lua, JavaScript, Gopherbot shell, and interpreted Go use `pipeline-child-rpc`
+- When privilege separation is active, the parent sets `GOPHER_PRIVSEP_CHILD_ROLE`; the child commits to that role before interpreter or external script code starts.
 - `startPipeline` sets pipeline privilege context (`pipeContext.privileged`) from the starter task: `bot/run_pipelines.go`.
 - Adding privileged work to unprivileged pipelines is blocked in pipeline mutation APIs: `bot/robot_pipecmd.go`.
+- Privsep supplementary-group policy is checked during startup before workload execution; see `aidocs/EXECUTION_SECURITY_MODEL.md`.
 
 For a full execution/security walkthrough, see `aidocs/EXECUTION_SECURITY_MODEL.md`.
 

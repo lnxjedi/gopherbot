@@ -6,7 +6,7 @@ This document describes how pipeline execution and privilege separation currentl
 
 - Message/job-triggered pipeline execution model.
 - Per-task execution threading model.
-- Current privilege-separation behavior (`setreuid` + thread pinning).
+- Current privilege-separation behavior (setuid-nobody startup plus one-shot child role commitment for file-backed extensions).
 
 ## High-Level Flow
 
@@ -23,10 +23,10 @@ This document describes how pipeline execution and privilege separation currentl
 - Tasks within a single pipeline are sequenced by `runPipeline` (exclusive queueing can defer some tasks), but each task body executes in a dedicated task goroutine via `callTask`.
 - Global counters/waiting for shutdown are tracked with `state.pipelinesRunning` + `state.WaitGroup` (`bot/run_pipelines.go`, `bot/bot_process.go`).
 
-## Execution Boundary (Slice 8 State)
+## Execution Boundary
 
 - `runPipeline` delegates task invocation through `worker.executeTask(...)` (`bot/task_execution.go`).
-- Explicit invariant for the multiprocess epic: `taskGo` tasks (compiled-in handlers implemented in `bot/*`) remain in-process.
+- Explicit invariant: `taskGo` tasks (compiled-in handlers implemented in `bot/*`) remain trusted in-process engine code.
 - Current routing by task class:
   - `taskGo` -> in-process `callTask`.
   - interpreter-backed external:
@@ -41,52 +41,63 @@ This document describes how pipeline execution and privilege separation currentl
   - external Gopherbot shell plugin default-config -> child RPC process via `gsh_get_config`.
   - external Go plugin default-config -> child RPC process via `go_get_config`.
 
+When privilege separation is active, the parent supplies `GOPHER_PRIVSEP_CHILD_ROLE` to `pipeline-child-exec` and `pipeline-child-rpc`. `Start(...)` commits the child to that role before any interpreter or external executable code runs.
+
 ## Privilege Separation Bootstrap
 
-On supported Unix platforms (`bot/privsep.go` build tag: linux/bsd), privilege separation is initialized in `init()`:
+On supported Unix platforms (`bot/privsep.go` for Linux/BSD and `bot/privsep_darwin.go` for macOS), privilege separation is initialized in `init()`:
 
 - If `uid != euid`, engine treats:
   - `privUID = uid` (invoking user)
   - `unprivUID = euid` (setuid account, commonly `nobody`)
-- Startup calls `syscall.Setreuid(unprivUID, privUID)` to initialize startup threads.
+- It also records `privGID` and `unprivGID`.
+- Startup swaps the parent engine back to the invoking effective UID/GID while preserving the setuid/setgid unprivileged saved IDs for later child commits.
 - `privSep` is enabled only when this initialization succeeds.
 
 Runtime visibility is logged through `checkprivsep()` in startup (`bot/start.go`).
 
-## Thread-Scoped Privilege Switching
+After pre-connect config load, startup validates the unprivileged child role with `privsep-self-check`:
 
-Privilege changes are intentionally scoped to the current OS thread:
+- the self-check child commits to the unprivileged role
+- the child reports UID/GID/supplementary groups as JSON
+- startup fails closed if UID/GID are wrong or retained supplementary groups are outside `PrivsepAllowAllSupplementaryGroups` / `PrivsepAllowedSupplementaryGroups`
 
-- `dropThreadPriv(reason)`:
-  - `runtime.LockOSThread()`
-  - `setReuid(unprivUID, unprivUID)`
-- `raiseThreadPriv(reason)`:
-  - ensure effective uid is `privUID` for current thread.
-- `raiseThreadPrivExternal(reason)`:
-  - `runtime.LockOSThread()`
-  - `setReuid(privUID, privUID)` permanently for that locked thread.
+Installed `conf/robot.yaml` defaults to `PrivsepAllowAllSupplementaryGroups: false` and `PrivsepAllowedSupplementaryGroups: []`.
 
-Key invariant in current model: dropping/raising privilege for task execution relies on locked thread lifetime, not process isolation.
+## Child Role Commitment
+
+File-backed extension children have one role:
+
+- `privileged`: permanently commits to the invoking robot user UID/GID
+- `unprivileged`: permanently commits to the setuid/setgid unprivileged UID/GID
+
+The parent chooses the role from engine policy. The child must not decide whether privileged execution is allowed.
+
+Platform mechanics differ:
+
+- Linux/BSD use the saved setuid/setgid state to commit the child directly to the selected real/effective IDs.
+- macOS uses the Darwin-compatible two-step for the unprivileged role (`seteuid`/`setegid`, then `setreuid`/`setregid`) before extension code starts.
+
+Legacy thread-scoped helpers (`raiseThreadPriv`, `raiseThreadPrivExternal`, `dropThreadPriv`) remain for parent-owned privileged operations and migration compatibility, but normal file-backed extension execution is process-oriented.
 
 ## Task-Type Execution Behavior
 
-`callTaskThread` (`bot/calltask.go`) applies privilege operations before task execution:
-
 - Compiled-in Go tasks/plugins:
-  - `raiseThreadPriv` if pipeline/task is privileged, else `dropThreadPriv`.
-  - Handler runs in-process.
+  - handler runs in-process as trusted engine code
+  - compiled-in extensions are not treated as unprivileged sandboxed code
 - External interpreted tasks (`.go` via yaegi, `.lua`, `.js`, `.gsh`) now execute in child RPC processes.
+  - The child commits to the parent-selected privsep role before the RPC loop starts.
   - Parent keeps policy/routing/identity authority and services Robot API calls over RPC.
   - For `.gsh`, shell utilities such as `ls`, `grep`, `jq`, `mktemp`, and `tar` stay inside the child process; only Robot operations cross back to the parent engine over RPC.
   - Parent tracks active RPC child process in `worker.osCmd` and request-cancel hook in `worker.rpcCancel`.
   - RPC request lifecycle now uses bounded handshake/request/shutdown/child-exit waits with explicit error classes.
 - External executable tasks:
-  - parent path still applies privilege drop/raise before starting execution.
   - parent starts an internal child runner process (`gopherbot pipeline-child-exec`) with separate process group (`Setpgid: true`).
+  - The child commits to the parent-selected privsep role before execing the target script/interpreter.
   - child runner executes exactly one external command, streams stdout/stderr, exits with command status.
   - parent tracks child pid in `worker.osCmd` for admin `ps`/`kill` and timeout watchdog kill handling.
 
-`getDefCfgThread` (plugin configure/default-config path) also drops privilege before external configure calls and now routes external executable configure through `pipeline-child-exec` (`bot/calltask.go`).
+`getDefCfgThread` (plugin configure/default-config path) routes file-backed configure calls through the same child process boundary.
 
 ## Operator Observability And Kill Scope
 
@@ -186,8 +197,9 @@ The concern is not command visibility (hard to hide) but message routing confide
 
 - This is not yet a strict multi-process sandbox model for all task types.
 - Compiled-in tasks (`taskGo`, `bot/*`) still execute in the engine process.
-- Lua, JavaScript, Gopherbot shell, and external Go interpreter-backed tasks now gain process isolation via parent/child RPC.
+- Lua, JavaScript, Gopherbot shell, external Go interpreter-backed tasks, and external executable tasks gain process isolation via parent/child execution.
 - Cancellation semantics for long-running interpreter tasks are now available through admin `kill` and timeout watchdogs, but fine-grained task-level cancellation (beyond process termination) remains future work.
-- Long-lived correctness depends on careful `LockOSThread` usage and goroutine/thread lifecycle.
-- The setreuid/thread-pinned privilege separation implementation is compiled only on Linux, DragonFly BSD, FreeBSD, NetBSD, and OpenBSD (`bot/privsep.go`).
-- Other platforms, including macOS/Darwin, use `bot/privsep_unsupported.go`: `privSep` remains false, privilege-switch helpers are no-ops, and startup logs that privilege separation is not available on that platform.
+- Privsep does not drop supplementary groups on platforms that cannot do so without root; startup fails closed unless retained groups are explicitly allowed.
+- Compiled-in Go extensions are trusted engine code and are not supported as unprivileged sandboxed extensions.
+- Privilege separation is implemented on Linux/BSD (`bot/privsep.go`) and macOS/Darwin (`bot/privsep_darwin.go`).
+- Other platforms use `bot/privsep_unsupported.go`: `privSep` remains false, privilege-switch helpers are no-ops, and startup logs that privilege separation is not available on that platform.

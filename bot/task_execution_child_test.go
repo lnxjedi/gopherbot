@@ -79,7 +79,7 @@ func TestNewPipelineChildExecCommand(t *testing.T) {
 		EID:      "abc123",
 		NullConn: false,
 	}
-	cmd, err := newPipelineChildExecCommand(req)
+	cmd, err := newPipelineChildExecCommand(req, privsepRoleNone)
 	if err != nil {
 		t.Fatalf("newPipelineChildExecCommand() error = %v", err)
 	}
@@ -103,4 +103,25 @@ func TestNewPipelineChildExecCommand(t *testing.T) {
 	if decoded.TaskPath != req.TaskPath || decoded.Dir != req.Dir || decoded.EID != req.EID || decoded.NullConn != req.NullConn {
 		t.Fatalf("decoded request mismatch: got %#v want %#v", decoded, req)
 	}
+}
+
+func TestNewPipelineChildExecCommandIncludesPrivsepRole(t *testing.T) {
+	req := pipelineChildExecRequest{
+		TaskPath: "/tmp/task.sh",
+		Dir:      "/tmp",
+		Args:     []string{"run"},
+		Env:      []string{"A=B"},
+		EID:      "abc123",
+	}
+	cmd, err := newPipelineChildExecCommand(req, privsepRoleUnprivileged)
+	if err != nil {
+		t.Fatalf("newPipelineChildExecCommand() error = %v", err)
+	}
+	want := privsepChildRoleEnv + "=" + string(privsepRoleUnprivileged)
+	for _, envVar := range cmd.Env {
+		if envVar == want {
+			return
+		}
+	}
+	t.Fatalf("child command env does not include %s", want)
 }

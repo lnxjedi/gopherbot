@@ -32,14 +32,14 @@ type pipelineRPCGSHGetConfigResponse struct {
 	Error  string `json:"error,omitempty"`
 }
 
-func runGSHExtensionViaRPC(taskPath, taskName string, env []string, w *worker, r robot.Robot, args []string) (robot.TaskRetVal, error) {
+func runGSHExtensionViaRPC(taskPath, taskName string, env []string, privileged bool, w *worker, r robot.Robot, args []string) (robot.TaskRetVal, error) {
 	params := pipelineRPCGSHRunRequest{
 		TaskPath: taskPath,
 		TaskName: taskName,
 		Env:      env,
 		Args:     args,
 	}
-	resRaw, err := runPipelineRPCRequest("gsh_run", params, w, r)
+	resRaw, err := runPipelineRPCRequestForRole("gsh_run", params, w, r, privsepRoleForExecution(privileged))
 	if err != nil {
 		return robot.MechanismFail, err
 	}
@@ -57,13 +57,13 @@ func runGSHExtensionViaRPC(taskPath, taskName string, env []string, w *worker, r
 	return robot.TaskRetVal(res.RetVal), nil
 }
 
-func runGSHGetConfigViaRPC(taskPath, taskName string, env []string) (*[]byte, error) {
+func runGSHGetConfigViaRPC(taskPath, taskName string, env []string, privileged bool) (*[]byte, error) {
 	params := pipelineRPCGSHGetConfigRequest{
 		TaskPath: taskPath,
 		TaskName: taskName,
 		Env:      env,
 	}
-	resRaw, err := runPipelineRPCRequest("gsh_get_config", params, nil, nil)
+	resRaw, err := runPipelineRPCRequestForRole("gsh_get_config", params, nil, nil, privsepRoleForExecution(privileged))
 	if err != nil {
 		return nil, err
 	}

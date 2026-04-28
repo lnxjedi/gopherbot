@@ -112,6 +112,7 @@ Notes:
 
 - `go test ./bot ./modules/yaegi-dynamic-go`
 - This focused set currently covers:
+  - privsep supplementary-group policy parsing and fail-closed decisions in `bot/privsep_process_test.go`
   - catch-all mode routing and selection in `bot/help_metadata_api_test.go`
   - engine-side help metadata filtering, ranking inputs, and deterministic fallback advice in `bot/help_metadata_api_test.go`
   - Yaegi symbol/runtime coverage for active Robot API methods in `modules/yaegi-dynamic-go/yaegi_dynamic_test.go`

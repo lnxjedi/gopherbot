@@ -18,6 +18,26 @@ Compatibility scope for this guide:
 8. Confirm your preferred `DefaultMessageFormat` (v3 default is now `BasicMarkdown`; set `Raw` explicitly to preserve legacy protocol-native output).
 9. Reload and verify runtime with `protocol-list` (or `protocol list`).
 
+## 2026-04-28 Privsep Child Process And Supplementary Groups
+
+Privilege separation for file-backed extensions now uses one-shot child processes. The parent engine selects a child role, and `pipeline-child-exec` / `pipeline-child-rpc` commit to that role before running external scripts or built-in interpreters.
+
+New root `robot.yaml` config surface:
+
+```yaml
+PrivsepAllowAllSupplementaryGroups: false
+PrivsepAllowedSupplementaryGroups: []
+```
+
+Installed `conf/robot.yaml` defaults to fail-closed supplementary-group policy. Existing setuid privsep deployments must verify their setuid/setgid install and retained groups before upgrading.
+
+Upgrade actions:
+
+1. Install the binary with both setuid and setgid bits for the unprivileged account, normally `nobody:nobody`.
+2. Prefer granting privileged host access directly to the invoking robot user, not through broad groups such as `%wheel` or `%admin`.
+3. If the platform retains supplementary groups for unprivileged children, either list the numeric group IDs in `PrivsepAllowedSupplementaryGroups` or explicitly set `PrivsepAllowAllSupplementaryGroups: true` after accepting the weaker boundary.
+4. On Linux EC2 deployments, consider UID-scoped firewall rules blocking the unprivileged UID from instance metadata endpoints (`169.254.169.254` and `[fd00:ec2::254]` when IPv6 IMDS is enabled).
+
 ## 2026-02-20 BasicMarkdown Default Format Update
 
 `DefaultMessageFormat` now defaults to `BasicMarkdown` for v3.

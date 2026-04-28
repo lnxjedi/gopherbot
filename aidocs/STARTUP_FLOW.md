@@ -22,6 +22,7 @@ Startup proceeds through the following phases **in order**:
 Internal exception:
 - `pipeline-child-exec` is an internal command used by multiprocess task execution; it exits after one child-task run and bypasses normal robot startup phases.
 - `pipeline-child-rpc` is an internal command used by multiprocess RPC execution; it runs a versioned stdio RPC loop (including Lua/JavaScript/Go execution and configure methods) and bypasses normal robot startup phases.
+- `privsep-self-check` is an internal command used during startup validation when privilege separation is active; it commits to the unprivileged child role, reports UID/GID/group state as JSON, and bypasses normal robot startup phases.
 
 ## Entry Points
 
@@ -42,7 +43,8 @@ Internal child-runner note:
 
 - `gopherbot pipeline-child-exec` is parsed immediately after flag parsing in `Start(...)`.
 - `gopherbot pipeline-child-rpc` is parsed in the same early dispatch block in `Start(...)`.
-- When either command is detected, startup calls the internal child path and returns without loading config, brain, connectors, or HTTP listeners.
+- `gopherbot privsep-self-check` is parsed in the same internal child-command block.
+- When any internal child command is detected, startup applies the requested `GOPHER_PRIVSEP_CHILD_ROLE` when privilege separation is active, calls the internal child path, and returns without loading config, brain, connectors, or HTTP listeners.
 
 ## Mode Detection
 
@@ -274,6 +276,23 @@ Identity provider definitions are loaded from the root `robot.yaml` key `Identit
 - Each provider declares a high-level `Type`; currently the engine supports `oauth2`.
 - Providers reference a `CredentialParameterSet` for refresh-time client credentials; the provider registry should not embed secrets directly.
 - The registry is configuration-only at startup; linked identity state lives in the brain at runtime.
+
+### Privilege-Separation Supplementary Group Policy
+
+Root `robot.yaml` accepts:
+
+- `PrivsepAllowAllSupplementaryGroups` (bool, default `false` in installed `conf/robot.yaml`)
+- `PrivsepAllowedSupplementaryGroups` (list of numeric group IDs, default `[]` in installed `conf/robot.yaml`)
+
+During startup, after pre-connect configuration load and before brain/connectors/workloads, `initBot()` validates active privilege separation with an internal `privsep-self-check` child. The child commits to the unprivileged role and reports real/effective UID, primary GID, and supplementary groups.
+
+Startup fails closed when:
+
+- the unprivileged child does not report the expected UID/GID
+- any retained supplementary group is not explicitly allowed
+- `PrivsepAllowedSupplementaryGroups` contains a negative group ID
+
+`PrivsepAllowAllSupplementaryGroups: true` allows startup to continue with retained groups, but logs an audit warning because that weakens the unprivileged boundary.
 
 ### Config Merge Semantics (Installed Defaults + Custom Overrides)
 
@@ -529,7 +548,7 @@ This keeps shutdown deterministic even when interactive prompts are using long t
 
 * `bot/start.go` – Entry point, CLI parsing, log setup
 * `bot/bot_process.go` – `initBot()`, `run()`, encryption initialization
-* `bot/privsep.go` – privilege-separation bootstrap + thread-scoped uid transitions
+* `bot/privsep.go`, `bot/privsep_darwin.go`, `bot/privsep_process.go` – privilege-separation bootstrap, child role commitment, and supplementary-group startup validation
 * `bot/aidev.go` – AI-dev startup state (`--aidev`) and `.aiport` write helper
 * `bot/aidev_http.go` – authenticated AI-dev message endpoints and connector capability routing
 * `bot/config_load.go` – `detectStartupMode()`, config-file merge/template expansion

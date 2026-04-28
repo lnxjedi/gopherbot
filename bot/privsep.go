@@ -3,6 +3,7 @@
 package bot
 
 import (
+	"fmt"
 	"os"
 	"os/user"
 	"runtime"
@@ -18,6 +19,7 @@ import (
 var privSep bool
 
 var privUID, unprivUID int
+var privGID, unprivGID int
 
 /* NOTE on privsep and setuid gopherbot:
 Gopherbot "flips" the traditional sense of setuid; gopherbot is normally run
@@ -25,19 +27,14 @@ by the desired user, and installed setuid to a non-privileged account like
 "nobody". This makes it possible to run several instances of gopherbot with
 different UIDs on a single host with a single install.
 
-Privilege separation is achieved by performing syscall.Setreuid(...) in an init
-func to initialize all the startup threads, then setReuid syscalls on individual
-OS threads to confine privilege changes to specific threads. This ensures that
-privilege escalation or demotion does not inadvertently affect other threads
-within the process.
+The parent engine swaps its effective UID/GID back to the invoking user while
+preserving the setuid/setgid nobody saved IDs. File-backed extensions then run
+in one-shot child processes that permanently commit to either the invoking user
+or the unprivileged account before extension code starts.
 
-The key to solving the privsep problem correctly is:
-* call syscall.Setreuid(unpriv, priv) in a func init() to initialize ALL the
-  original threads to privileged.
-* Always use runtime.LockOSThread() before calling
-  syscall.Syscall(SETREUID,unpriv,unpriv) (which only affects the *current* thread,
-  not all of them), and NEVER calling UnlockOSThread to ensure that the unpriv
-  thread never gets reused, and is destroyed when the goroutine finishes.
+Some legacy thread-scoped helpers remain for parent-owned privileged operations
+and for migration compatibility. Calls that permanently drop or raise a thread
+must still use runtime.LockOSThread() and never unlock that thread.
 
 See: https://pkg.go.dev/runtime#LockOSThread
 
@@ -56,21 +53,40 @@ func setReuid(ruid, euid int) error {
 	return nil
 }
 
-func nobodyAccountUID() (int, error) {
-	nobody, err := user.Lookup("nobody")
-	if err != nil {
-		return -1, err
+func setRegid(rgid, egid int) error {
+	_, _, errno := syscall.Syscall(syscall.SYS_SETREGID, uintptr(rgid), uintptr(egid), 0)
+	if errno != 0 {
+		return errno
 	}
-	return strconv.Atoi(nobody.Uid)
+	return nil
 }
 
-func panicIfSetuidBinaryTampered(unprivUID int) {
-	nobodyUID, err := nobodyAccountUID()
+func nobodyAccountIDs() (int, int, error) {
+	nobody, err := user.Lookup("nobody")
 	if err != nil {
-		panic("binary could be tampered! unable to resolve nobody uid")
+		return -1, -1, err
+	}
+	uid, err := strconv.Atoi(nobody.Uid)
+	if err != nil {
+		return -1, -1, err
+	}
+	gid, err := strconv.Atoi(nobody.Gid)
+	if err != nil {
+		return -1, -1, err
+	}
+	return uid, gid, nil
+}
+
+func panicIfSetuidBinaryTampered(unprivUID, unprivGID int) {
+	nobodyUID, nobodyGID, err := nobodyAccountIDs()
+	if err != nil {
+		panic("binary could be tampered! unable to resolve nobody uid/gid")
 	}
 	if unprivUID != nobodyUID {
 		return
+	}
+	if unprivGID != nobodyGID {
+		panic("binary could be tampered! expected setgid nobody executable for privsep")
 	}
 	execPath, err := os.Executable()
 	if err != nil {
@@ -89,6 +105,9 @@ func panicIfSetuidBinaryTampered(unprivUID int) {
 	if info.Mode()&os.ModeSetuid == 0 {
 		panic("binary could be tampered! expected setuid bit on executable")
 	}
+	if info.Mode()&os.ModeSetgid == 0 {
+		panic("binary could be tampered! expected setgid bit on executable")
+	}
 	if info.Mode().Perm()&0o022 != 0 {
 		panic("binary could be tampered! setuid executable is group/world writable")
 	}
@@ -99,21 +118,31 @@ func panicIfSetuidBinaryTampered(unprivUID int) {
 	if int(st.Uid) != nobodyUID {
 		panic("binary could be tampered! setuid executable owner mismatch")
 	}
+	if int(st.Gid) != nobodyGID {
+		panic("binary could be tampered! setgid executable group mismatch")
+	}
 }
 
 func init() {
 	uid := unix.Getuid()
 	euid := unix.Geteuid()
+	gid := unix.Getgid()
+	egid := unix.Getegid()
 	if uid != euid {
 		privUID = uid
 		unprivUID = euid
-		panicIfSetuidBinaryTampered(unprivUID)
+		privGID = gid
+		unprivGID = egid
+		panicIfSetuidBinaryTampered(unprivUID, unprivGID)
 		unix.Umask(0022)
 
-		// Attempt to set real and effective UIDs using the raw syscall on ALL the startup
-		// threads.
-		err := syscall.Setreuid(unprivUID, privUID)
-		if err != nil {
+		// Keep the parent engine on the invoking identity while preserving the
+		// setuid/setgid nobody saved IDs for child process role commits.
+		if err := syscall.Setregid(-1, privGID); err != nil {
+			botStdOutLogger.Printf("PRIVSEP - error setting regid in init: %v", err)
+			return
+		}
+		if err := syscall.Setreuid(-1, privUID); err != nil {
 			botStdOutLogger.Printf("PRIVSEP - error setting reuid in init: %v", err)
 			return
 		}
@@ -175,9 +204,12 @@ func raiseThreadPrivExternal(reason string) {
 		euid := unix.Geteuid()
 		tid := unix.Gettid()
 		runtime.LockOSThread()
-		err := setReuid(privUID, privUID)
-		if err != nil {
-			Log(robot.Error, "PRIVSEP - error calling setReuid(%d, %d) from thread %d, r/euid: %d/%d in raiseThreadPrivExternal for %s: %v", tid, ruid, euid, privUID, privUID, reason, err)
+		if err := setRegid(privGID, privGID); err != nil {
+			Log(robot.Error, "PRIVSEP - error calling setRegid(%d, %d) from thread %d in raiseThreadPrivExternal for %s: %v", privGID, privGID, tid, reason, err)
+			return
+		}
+		if err := setReuid(privUID, privUID); err != nil {
+			Log(robot.Error, "PRIVSEP - error calling setReuid(%d, %d) from thread %d, r/euid: %d/%d in raiseThreadPrivExternal for %s: %v", privUID, privUID, tid, ruid, euid, reason, err)
 			return
 		}
 		Log(robot.Debug, "PRIVSEP - successfully raised privilege permanently for '%s' thread %d; new r/euid: %d/%d", reason, tid, privUID, privUID)
@@ -190,13 +222,53 @@ func dropThreadPriv(reason string) {
 	if privSep {
 		runtime.LockOSThread()
 		tid := unix.Gettid()
-		err := setReuid(unprivUID, unprivUID)
-		if err != nil {
+		if err := setRegid(unprivGID, unprivGID); err != nil {
+			botStdOutLogger.Printf("PRIVSEP - error calling setRegid(%d, %d) in dropThreadPriv: %v", unprivGID, unprivGID, err)
+			return
+		}
+		if err := setReuid(unprivUID, unprivUID); err != nil {
 			botStdOutLogger.Printf("PRIVSEP - error calling setReuid(%d, %d) in dropThreadPriv: %v", unprivUID, unprivUID, err)
 			return
 		}
 		Log(robot.Debug, "PRIVSEP - successfully dropped privileges for '%s' in thread %d; new r/euid: %d/%d", reason, tid, unprivUID, unprivUID)
 	}
+}
+
+func commitPrivsepChildRole(role privsepChildRole) error {
+	runtime.LockOSThread()
+	switch role {
+	case privsepRolePrivileged:
+		if err := setRegid(privGID, privGID); err != nil {
+			return fmt.Errorf("setregid privileged: %w", err)
+		}
+		if err := setReuid(privUID, privUID); err != nil {
+			return fmt.Errorf("setreuid privileged: %w", err)
+		}
+	case privsepRoleUnprivileged:
+		if err := setRegid(unprivGID, unprivGID); err != nil {
+			return fmt.Errorf("setregid unprivileged: %w", err)
+		}
+		if err := setReuid(unprivUID, unprivUID); err != nil {
+			return fmt.Errorf("setreuid unprivileged: %w", err)
+		}
+	default:
+		return fmt.Errorf("unsupported role %q", role)
+	}
+	return nil
+}
+
+func currentPrivsepIdentityReport() (privsepIdentityReport, error) {
+	groups, err := syscall.Getgroups()
+	if err != nil {
+		return privsepIdentityReport{}, err
+	}
+	return privsepIdentityReport{
+		UID:    unix.Getuid(),
+		EUID:   unix.Geteuid(),
+		GID:    unix.Getgid(),
+		EGID:   unix.Getegid(),
+		Groups: groups,
+	}, nil
 }
 
 // checkprivsep logs the current state of privilege separation.
@@ -207,7 +279,7 @@ func checkprivsep() {
 		ruid := unix.Getuid()
 		euid := unix.Geteuid()
 		tid := unix.Gettid()
-		Log(robot.Info, "PRIVSEP - privilege separation initialized; daemon UID %d, unprivileged UID %d; thread %d r/euid: %d/%d", privUID, unprivUID, tid, ruid, euid)
+		Log(robot.Info, "PRIVSEP - privilege separation initialized; daemon UID/GID %d/%d, unprivileged UID/GID %d/%d; thread %d r/euid: %d/%d", privUID, privGID, unprivUID, unprivGID, tid, ruid, euid)
 	} else {
 		Log(robot.Info, "PRIVSEP - Privilege separation not in use")
 	}

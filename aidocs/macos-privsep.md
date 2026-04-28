@@ -1,10 +1,10 @@
 # macOS Privilege Separation Plan
 
-Status: planned design. macOS native builds are supported, but macOS privilege separation is not currently available.
+Status: implementation started. macOS native builds are supported, and a Darwin child-role implementation exists, but manual setuid validation is still required before macOS privilege separation is considered production-ready.
 
 ## Problem
 
-The current privilege-separation implementation in `bot/privsep.go` is compiled only on Linux and BSD platforms. It uses `setreuid` plus `runtime.LockOSThread()` to make UID changes affect one locked OS thread at a time.
+The legacy privilege-separation implementation in `bot/privsep.go` was compiled only on Linux and BSD platforms. It used `setreuid` plus `runtime.LockOSThread()` to make UID changes affect one locked OS thread at a time.
 
 That model is intentionally delicate:
 
@@ -135,9 +135,9 @@ Implementation must resolve this before claiming acceptable unprivileged isolati
 
 Until this is implemented, the macOS proof of concept should be treated as proof that process-oriented UID commitment can work, not proof that the full unprivileged execution boundary is complete.
 
-## Planned Configuration
+## Configuration
 
-Add root `robot.yaml` privilege-separation controls:
+Root `robot.yaml` privilege-separation controls:
 
 ```yaml
 PrivsepAllowAllSupplementaryGroups: false
@@ -154,7 +154,7 @@ Semantics:
 - If `PrivsepAllowAllSupplementaryGroups: false`, startup may continue only when every retained supplementary group is either platform-required for the unprivileged identity or listed in `PrivsepAllowedSupplementaryGroups`.
 - Config parsing should reject negative group IDs in `PrivsepAllowedSupplementaryGroups`; use the unsigned/integer value reported by the platform probe for groups such as macOS `nobody`.
 
-The default stance is intentionally strict. A robot administrator should have to opt in before unprivileged extensions retain any group-derived authority.
+Installed `conf/robot.yaml` sets the strict defaults above. `robot.skel/conf/robot.yaml` includes commented examples for allowing all retained groups or listing specific numeric group IDs. A robot administrator should have to opt in before unprivileged extensions retain any group-derived authority.
 
 ## Operator Privilege Guidance
 
@@ -213,7 +213,7 @@ macOS-specific validation still required:
 
 ### Linux/BSD
 
-Linux/BSD can keep the existing thread-scoped implementation during migration.
+Linux/BSD now use the same one-shot child role contract for file-backed extension execution. Limited thread-scoped helpers remain only for parent-owned operations and migration compatibility.
 
 The target process contract should still be the same:
 
@@ -239,14 +239,14 @@ The low-level Linux/BSD credential sequence may differ from macOS and should be 
 
 ## Migration Plan
 
-1. Add a small shared child credential preamble that can commit a just-execed child to either invoking-user or unprivileged role.
-2. Keep the current Linux/BSD thread-scoped path as fallback while the child model is introduced.
-3. Route external executable execution through the credential preamble before `pipeline-child-exec` runs the target command.
-4. Route interpreter-backed RPC execution through the credential preamble before `pipeline-child-rpc` starts Yaegi/Go, JavaScript, Lua, or Gopherbot shell runtime work.
-5. Route external plugin default-config retrieval through the same child boundary.
-6. Remove normal task execution calls to `dropThreadPriv`, `raiseThreadPriv`, and `raiseThreadPrivExternal` after all file-backed execution paths use committed child processes.
+1. Add a small shared child credential preamble that can commit a just-execed child to either invoking-user or unprivileged role. (Implemented)
+2. Keep limited thread-scoped helpers only for parent-owned operations and migration compatibility. (Implemented)
+3. Route external executable execution through the credential preamble before `pipeline-child-exec` runs the target command. (Implemented)
+4. Route interpreter-backed RPC execution through the credential preamble before `pipeline-child-rpc` starts Yaegi/Go, JavaScript, Lua, or Gopherbot shell runtime work. (Implemented)
+5. Route external plugin default-config retrieval through the same child boundary. (Implemented)
+6. Remove normal task execution calls to `dropThreadPriv`, `raiseThreadPriv`, and `raiseThreadPrivExternal` after all file-backed execution paths use committed child processes. (Implemented for file-backed extension execution)
 7. Retain only minimal startup/child-creation privilege setup code.
-8. Add `robot.yaml` supplementary-group policy parsing and startup self-check failure behavior.
+8. Add `robot.yaml` supplementary-group policy parsing and startup self-check failure behavior. (Implemented)
 9. Enable macOS only after manual validation covers UID, primary GID, supplementary groups, process-group cleanup, and setuid binary lifecycle.
 
 ## Validation Plan
