@@ -32,6 +32,10 @@ Internal exception:
 Test harness note:
 
 - `StartTest()` in `bot/start_t.go` follows the same `initBot()` → `run()` path, then waits for the current async plugin-init batch to reach quiescence before returning to the integration harness. This test-only barrier does not change production startup behavior.
+- `gopherbot-integration run-suite <SuiteName>` enters through normal
+  `bot.Start()`, then its scripted connector runner waits for the startup
+  readiness signal from `bot/startup_ready.go` plus plugin-init quiescence
+  before feeding user messages to the test connector.
 
 CLI note:
 

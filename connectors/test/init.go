@@ -4,7 +4,6 @@ import (
 	"log"
 	"strings"
 	"sync"
-	"testing"
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
@@ -24,9 +23,14 @@ func rebuildUserIndexes(users []testUser) {
 	userMap = nextUserMap
 }
 
-// ExportTest lets bot_integration_test safely supply the *testing.T
+type Reporter interface {
+	Errorf(string, ...interface{})
+	Logf(string, ...interface{})
+}
+
+// ExportTest lets bot_integration_test safely supply a test reporter.
 var ExportTest = struct {
-	Test *testing.T
+	Test Reporter
 	sync.Mutex
 }{}
 
@@ -83,6 +87,7 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.InitializedConnector
 	tc.Handler = handler
 	tc.SetBotID(tc.botID)
 	tc.Log(robot.Info, "Set bot ID to", tc.botID)
+	publishCurrentConnector(tc)
 
 	return robot.InitializedConnector{
 		Connector:    robot.Connector(tc),

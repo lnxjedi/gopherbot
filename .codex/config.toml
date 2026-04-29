@@ -34,3 +34,12 @@ approval_mode = "approve"
 
 [mcp_servers.gopherbot-mcp.tools.read_robot_log]
 approval_mode = "approve"
+
+[mcp_servers.gopherbot-mcp.tools.list_integration_suites]
+approval_mode = "approve"
+
+[mcp_servers.gopherbot-mcp.tools.run_integration_suite]
+approval_mode = "approve"
+
+[mcp_servers.gopherbot-mcp.tools.read_integration_result]
+approval_mode = "approve"

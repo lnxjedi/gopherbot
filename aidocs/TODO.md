@@ -4,6 +4,15 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
 
 ## Open TODOs
 
+- [ ] Replace the `go test ./test` integration harness with a process-backed
+  `gopherbot-integration` workflow:
+  - Use `aidocs/INTEGRATION_HARNESS_PLAN.md` as the design source.
+  - Keep suite definitions in Go so existing tests can be ported mechanically.
+  - Preserve the old `StartTest` path until coverage parity is proven.
+  - [x] Add MCP support so integration suites run through file-backed logs/results
+    instead of streaming full output into model context.
+  - Add privsep-only suites that require a real setuid/setgid integration
+    binary.
 - Make thread subscription expiration configurable instead of fixed constant:
   Current behavior uses `threadMemoryDuration = 7 * 24h` in `bot/brain.go`, and thread subscriptions are expired by `expireSubscriptions` in `bot/subscribe_thread.go`.
   This affects long-running AI thread continuity after inactivity when using subscription-based routing.

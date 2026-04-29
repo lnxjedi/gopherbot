@@ -1,6 +1,6 @@
 # Makefile - just builds the binary, for dev mainly
 
-.PHONY: clean test fulltest unit integration integration-full generate testbot static dist containers debug mcp docs-check
+.PHONY: clean test fulltest unit integration integration-build integration-run integration-legacy integration-full generate testbot static dist containers debug mcp docs-check
 
 commit := -X main.Commit=$(shell git rev-parse --short HEAD)
 version := $(shell ./get-version.sh)
@@ -48,11 +48,14 @@ mcp: gopherbot-mcp
 gopherbot-mcp: cmd/gopherbot-mcp/*.go
 	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=${GOARCH} go build -mod readonly -ldflags "-s -w $(commit) $(version)" -tags "netgo osusergo static_build" -o gopherbot-mcp ./cmd/gopherbot-mcp
 
+gopherbot-integration: cmd/gopherbot-integration/*.go integration/suites/*.go bot/* brains/*/* connectors/*/* gojobs/*/* goplugins/*/* history/*/* robot/* gotasks/*/* modules/*/*
+	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=${GOARCH} go build -mod readonly -ldflags "-s -w $(commit) $(version)" -tags "test integration netgo osusergo static_build" -o gopherbot-integration ./cmd/gopherbot-integration
+
 debug:
 	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=${GOARCH} go build -mod readonly -ldflags "$(commit) $(version)" -tags "netgo osusergo static_build" -o gopherbot
 
 clean:
-	rm -f gopherbot gopherbot-mcp $(TAR_ARCHIVE) $(ZIP_ARCHIVE)
+	rm -f gopherbot gopherbot-mcp gopherbot-integration $(TAR_ARCHIVE) $(ZIP_ARCHIVE)
 
 $(TAR_ARCHIVE): GOOS=$(DIST_GOOS)
 $(TAR_ARCHIVE): static
@@ -66,11 +69,22 @@ dist: $(TAR_ARCHIVE)
 unit:
 	go test -mod readonly ./...
 
-integration: gopherbot
+integration: integration-build
+	@echo "Built ./gopherbot-integration"
+	@echo "List suites: ./gopherbot-integration list-suites"
+	@echo "Run a suite: ./gopherbot-integration run-suite TestBotName"
+	@echo "Legacy go test harness: make integration-legacy"
+
+integration-build: gopherbot-integration
+
+integration-run: gopherbot-integration
+	./gopherbot-integration run-suite $(if $(TEST),$(TEST),all)
+
+integration-legacy: gopherbot
 	${TESTENV} go test ${TESTARGS} -v --tags 'test integration netgo osusergo static_build' -mod readonly -race ./test
 
 integration-full:
-	RUN_FULL=all $(MAKE) integration
+	RUN_FULL=all $(MAKE) integration-legacy
 
 test: unit integration
 

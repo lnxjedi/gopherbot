@@ -2,7 +2,10 @@ package test
 
 import (
 	"errors"
+	"fmt"
 	"time"
+
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 /* testMethods.go - methods specific to the test connector */
@@ -19,11 +22,11 @@ func (tc *TestConnector) SendBotMessage(msg *TestMessage) {
 			}
 		}
 		if !exists {
-			tc.test.Errorf("Invalid channel: %s", msg.Channel)
+			tc.reportError("Invalid channel: %s", msg.Channel)
 		}
 	}
 	if msg.User == "" {
-		tc.test.Errorf("Invalid 0-length user")
+		tc.reportError("Invalid 0-length user")
 	} else {
 		exists := false
 		for _, u := range tc.users {
@@ -32,15 +35,15 @@ func (tc *TestConnector) SendBotMessage(msg *TestMessage) {
 			}
 		}
 		if !exists {
-			tc.test.Errorf("Invalid user: %s", msg.User)
+			tc.reportError("Invalid user: %s", msg.User)
 		}
 	}
 	tc.RUnlock()
 	select {
 	case tc.listener <- msg:
-		tc.test.Logf("Message sent to robot: %#v", msg)
+		tc.reportLog("Message sent to robot: %#v", msg)
 	case <-time.After(200 * time.Millisecond):
-		tc.test.Errorf("Timed out sending; user: \"%s\", channel: \"%s\", message: \"%s\"", msg.User, msg.Channel, msg.Message)
+		tc.reportError("Timed out sending; user: %q, channel: %q, message: %q", msg.User, msg.Channel, msg.Message)
 	}
 }
 
@@ -52,10 +55,48 @@ func (tc *TestConnector) GetBotMessage() (*TestMessage, error) {
 		if len(incoming.Message) > 16 {
 			message = incoming.Message[0:16] + " ..."
 		}
-		tc.test.Logf("Reply received from robot: u:%s, c:%s, m:%s, t:%t", incoming.User, incoming.Channel, message, incoming.Threaded)
+		tc.reportLog("Reply received from robot: u:%s, c:%s, m:%s, t:%t", incoming.User, incoming.Channel, message, incoming.Threaded)
 		time.Sleep(100 * time.Millisecond)
 		return incoming, nil
 	case <-time.After(4 * time.Second):
 		return nil, errors.New("timeout waiting for reply from robot")
+	}
+}
+
+func (tc *TestConnector) DrainBotMessages() []*TestMessage {
+	messages := make([]*TestMessage, 0)
+	for {
+		select {
+		case msg := <-tc.speaking:
+			messages = append(messages, msg)
+		default:
+			return messages
+		}
+	}
+}
+
+func (tc *TestConnector) reportError(format string, args ...interface{}) {
+	tc.RLock()
+	reporter := tc.test
+	tc.RUnlock()
+	if reporter != nil {
+		reporter.Errorf(format, args...)
+		return
+	}
+	if tc.Handler != nil {
+		tc.Log(robot.Error, fmt.Sprintf(format, args...))
+	}
+}
+
+func (tc *TestConnector) reportLog(format string, args ...interface{}) {
+	tc.RLock()
+	reporter := tc.test
+	tc.RUnlock()
+	if reporter != nil {
+		reporter.Logf(format, args...)
+		return
+	}
+	if tc.Handler != nil {
+		tc.Log(robot.Debug, fmt.Sprintf(format, args...))
 	}
 }

@@ -160,6 +160,7 @@ func initBot() {
 
 	state.shuttingDown = false
 	resetPromptShutdownSignal()
+	resetRobotInitializedSignal()
 
 	if cliOp {
 		setLogLevel(robot.Warn)
@@ -460,6 +461,7 @@ func run() {
 	}
 	initializeRuntimeGitState()
 	Log(robot.Info, "Robot is initialized and running")
+	signalRobotInitialized()
 	if hint := startupSSHHint(startMode, currentCfg.protocol, currentCfg.adminUsers); hint != "" {
 		Log(robot.Info, "%s", hint)
 	}

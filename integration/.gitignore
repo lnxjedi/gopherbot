@@ -1,0 +1,12 @@
+# Integration harness outputs.
+/runs/
+/tmp/
+/logs/
+/results/
+*.log
+*.json
+*.jsonl
+*.out
+
+# Locally built integration binaries.
+/gopherbot-integration

@@ -1,0 +1,137 @@
+package suites
+
+import "github.com/lnxjedi/gopherbot/v2/bot"
+
+func init() {
+	Register(Suite{
+		Name:      "TestGoFull",
+		ConfigDir: "test/gofull",
+		LogName:   "bottest.log",
+		FullGate:  "go",
+		Cases: legacyCases([]testItem{
+			{aliceID, general, ";say everything", false, []TestMessage{
+				{null, general, "Regular Say", false},
+				{null, general, "SayThread, yeah", true},
+				{alice, general, "Regular Reply", false},
+				{alice, general, "Reply in thread, yo", true},
+				{null, general, "Sending to the channel: general", false},
+				{alice, null, "Sending this message to user: alice", false},
+				{alice, general, "Sending to user 'alice' in channel: general", false},
+				{null, general, "Sending to channel 'general' in thread: 0xDEADBEEF", true},
+				{alice, general, "Sending to user 'alice' in channel 'general' in thread: 0xDEADBEEF", true}},
+				[]bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 0},
+			{aliceID, general, "/bender say everything", false, []TestMessage{
+				{null, general, "(Regular Say)", false},
+				{null, general, "(SayThread, yeah)", true},
+				{alice, general, "(Regular Reply)", false},
+				{alice, general, "(Reply in thread, yo)", true},
+				{null, general, "(Sending to the channel: general)", false},
+				{alice, null, "(Sending this message to user: alice)", false},
+				{alice, general, "(Sending to user 'alice' in channel: general)", false},
+				{null, general, "(Sending to channel 'general' in thread: 0xDEADBEEF)", true},
+				{alice, general, "(Sending to user 'alice' in channel 'general' in thread: 0xDEADBEEF)", true}},
+				[]bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 0},
+			{aliceID, general, ";go-config", false, []TestMessage{{null, general, "Not completely random.*", false}}, []bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 0},
+			{aliceID, general, ";go-subscribe", false, []TestMessage{{null, general, "SUBSCRIBE FLOW: true/true", false}}, []bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 0},
+			{aliceID, general, ";go-prompts", false, []TestMessage{{alice, general, "Codename check: pick a mission codename\\.", false}}, []bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 150},
+			{aliceID, general, "Nova Sparrow", false, []TestMessage{{alice, general, "Thread check: pick a favorite snack for launch\\.", true}}, []bot.Event{}, 150},
+			{aliceID, general, "spicy popcorn", true, []TestMessage{{alice, null, "DM check: name a secret moon base\\.", false}}, []bot.Event{}, 150},
+			{aliceID, null, "io station nine", false, []TestMessage{{alice, general, "Channel check: describe launch weather in two words\\.", false}}, []bot.Event{bot.BotDirectMessage}, 150},
+			{aliceID, general, "aurora clear", false, []TestMessage{{alice, general, "Thread rally: choose a backup call sign\\.", true}}, []bot.Event{}, 150},
+			{aliceID, general, "ember fox", true, []TestMessage{{null, general, "PROMPT FLOW OK: Nova Sparrow \\| spicy popcorn \\| io station nine \\| aurora clear \\| ember fox", false}}, []bot.Event{}, 0},
+			{aliceID, general, ";go-memory-seed", false, []TestMessage{{null, general, "MEMORY SEED: done", false}}, []bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 0},
+			{aliceID, general, ";go-memory-check", false, []TestMessage{{null, general, "MEMORY CHECK: local=saffron noodles shared=solar soup ctx=orbital-7 thread=<empty> threadctx=<empty>", false}}, []bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 0},
+			{bobID, general, ";go-memory-check", false, []TestMessage{{null, general, "MEMORY CHECK: local=<empty> shared=solar soup ctx=<empty> thread=<empty> threadctx=<empty>", false}}, []bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 0},
+			{aliceID, general, ";go-memory-thread-check", true, []TestMessage{{null, general, "MEMORY THREAD CHECK: local=<empty> shared=<empty> ctx=<empty> thread=delta thread threadctx=aurora mission", true}}, []bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 0},
+			{aliceID, general, ";go-memory-delete", false, []TestMessage{{null, general, "MEMORY DELETE: done", false}}, []bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 0},
+			{aliceID, general, ";go-memory-check", false, []TestMessage{{null, general, "MEMORY CHECK: local=<empty> shared=<empty> ctx=<empty> thread=<empty> threadctx=<empty>", false}}, []bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 0},
+			{bobID, general, ";go-memory-check", false, []TestMessage{{null, general, "MEMORY CHECK: local=<empty> shared=<empty> ctx=<empty> thread=<empty> threadctx=<empty>", false}}, []bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 0},
+			{aliceID, general, ";go-memory-thread-delete", true, []TestMessage{{null, general, "MEMORY THREAD DELETE: done", true}}, []bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 0},
+			{aliceID, general, ";go-memory-thread-check", true, []TestMessage{{null, general, "MEMORY THREAD CHECK: local=<empty> shared=<empty> ctx=<empty> thread=<empty> threadctx=<empty>", true}}, []bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 0},
+			{aliceID, general, ";go-memory-datum-seed", false, []TestMessage{{null, general, "MEMORY DATUM SEED: update=Ok", false}}, []bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 0},
+			{aliceID, general, ";go-memory-datum-check", false, []TestMessage{{null, general, "MEMORY DATUM CHECK: mission=opal-orbit vehicle=heron-7 status=go", false}}, []bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 0},
+			{aliceID, general, ";go-memory-datum-checkin", false, []TestMessage{{null, general, "MEMORY DATUM CHECKIN: exists=true token=true ret=Ok", false}}, []bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 0},
+			{aliceID, general, ";go-memory-datum-delete", false, []TestMessage{{null, general, "MEMORY DATUM DELETE: ret=Ok", false}}, []bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 0},
+			{aliceID, general, ";go-memory-datum-check", false, []TestMessage{{null, general, "MEMORY DATUM CHECK: mission=<empty> vehicle=<empty> status=<empty>", false}}, []bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 0},
+			{aliceID, general, ";go-identity", false, []TestMessage{{null, general, "IDENTITY CHECK: bot=bender/Ok sender=Alice/Ok bob=Robert/Ok set=true param=<empty>", false}}, []bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 0},
+			{aliceID, general, ";go-parameter-addtask", false, []TestMessage{
+				{null, general, "SETPARAM ADDTASK: queued", false},
+				{null, general, "PARAM-SHOW: PIPELINE_SENTINEL=nebula-42", false}},
+				[]bot.Event{bot.CommandTaskRan, bot.GoPluginRan, bot.ExternalTaskRan}, 0},
+			{aliceID, general, ";go-oauth2-cycle", false, []TestMessage{{null, general, "IDENTITY FLOW: link=Ok token=go-token get=Ok unlink=Ok", false}}, []bot.Event{bot.CommandTaskRan, bot.GoPluginRan}, 0},
+		}),
+	})
+	Register(Suite{
+		Name:      "TestGoFullPipelineAdmin",
+		ConfigDir: "test/gofull",
+		LogName:   "bottest.log",
+		FullGate:  "go",
+		Cases: legacyRepliesOnlyCases([]testItem{
+			{aliceID, general, ";go-admin-check", false, []TestMessage{{null, general, "ADMIN CHECK: true", false}}, nil, 0},
+			{bobID, general, ";go-admin-check", false, []TestMessage{{null, general, "ADMIN CHECK: false", false}}, nil, 0},
+			{aliceID, general, ";go-elevate-check", false, []TestMessage{{alice, general, "This command requires immediate elevation.*TOTP code.*", false}}, nil, 150},
+			{aliceID, general, "123456", false, []TestMessage{
+				{null, general, "There were technical issues validating your code.*", false},
+				{null, general, "Sorry, elevation failed due to a problem with the elevation service", false},
+				{null, general, "ELEVATE CHECK: false", false}}, nil, 0},
+			{aliceID, general, ";go-pipeline-ok", false, []TestMessage{
+				{null, general, "PIPELINE OK: queued", false},
+				{null, general, "PIPE NOTE: add-task", false},
+				{null, general, "Starting job 'pipe-job job-step', run [0-9]+", false},
+				{null, general, "PIPE NOTE: job-step", false},
+				{null, general, "Finished job 'pipe-job', run [0-9]+, final task 'pipe-job', status: normal", false},
+				{null, general, "PIPE ADD COMMAND: ran", false},
+				{null, general, "PIPE FINAL COMMAND: ran", false},
+				{null, general, "PIPE NOTE: final-task", false}}, nil, 0},
+			{aliceID, general, ";go-pipeline-fail", false, []TestMessage{
+				{null, general, "PIPELINE FAIL: armed", false},
+				{null, general, "PIPE NOTE: fail-task", false},
+				{null, general, "PIPE FAIL COMMAND: ran", false}}, nil, 0},
+			{aliceID, general, ";go-spawn-job", false, []TestMessage{
+				{null, general, "Starting job 'pipe-spawn-job spawn-step', run [0-9]+ - spawned by pipeline .*", false},
+				{null, general, "PIPE NOTE: spawn-step", false},
+				{null, general, "Finished job 'pipe-spawn-job', run [0-9]+, final task 'pipe-spawn-job', status: normal", false}}, nil, 0},
+		}),
+	})
+	Register(Suite{
+		Name:      "TestGoFullSecurity",
+		ConfigDir: "test/gofull",
+		LogName:   "bottest.log",
+		FullGate:  "go",
+		Cases: legacyRepliesOnlyCases([]testItem{
+			{aliceID, general, ";go-sec-open", false, []TestMessage{{null, general, "SECURITY CHECK: secopen", false}}, nil, 0},
+			{bobID, general, ";go-sec-open", false, []TestMessage{{null, general, "SECURITY CHECK: secopen", false}}, nil, 0},
+			{aliceID, general, ";go-sec-admincmd", false, []TestMessage{{null, general, "SECURITY CHECK: secadmincmd", false}}, nil, 0},
+			{bobID, general, ";go-sec-admincmd", false, []TestMessage{{null, general, "Sorry, 'gosec/secadmincmd' is only available to bot administrators", false}}, nil, 0},
+			{bobID, general, ";go-sec-authz", false, []TestMessage{{null, general, "SECURITY CHECK: secauthz", false}}, nil, 0},
+			{davidID, general, ";go-sec-authz", false, []TestMessage{{null, general, "Sorry, you're not authorized for that command", false}}, nil, 0},
+			{bobID, general, ";go-sec-authall", false, []TestMessage{{null, general, "SECURITY CHECK: secauthall", false}}, nil, 0},
+			{davidID, general, ";go-sec-authall", false, []TestMessage{{null, general, "Sorry, you're not authorized for that command", false}}, nil, 0},
+			{aliceID, general, ";go-sec-elevated", false, []TestMessage{{alice, general, "This command requires.*elevation.*TOTP code.*", false}}, nil, 150},
+			{aliceID, general, "123456", false, []TestMessage{
+				{null, general, "There were technical issues validating your code.*", false},
+				{null, general, "Sorry, elevation failed due to a problem with the elevation service", false}}, nil, 0},
+			{aliceID, general, ";go-sec-immediate", false, []TestMessage{{alice, general, "This command requires immediate elevation.*TOTP code.*", false}}, nil, 150},
+			{aliceID, general, "123456", false, []TestMessage{
+				{null, general, "There were technical issues validating your code.*", false},
+				{null, general, "Sorry, elevation failed due to a problem with the elevation service", false}}, nil, 0},
+			{aliceID, general, "/bender go-sec-hidden-ok", false, []TestMessage{{null, general, "\\(SECURITY CHECK: sechiddenok\\)", false}}, nil, 0},
+			{aliceID, general, "/bender go-sec-hidden-denied", false, []TestMessage{{alice, general, "\\(?Sorry, 'gosec/sechiddendenied' cannot be run as a hidden command - use the robot's name or alias\\)?", false}}, nil, 0},
+			{aliceID, general, ";go-sec-oauth2-denied", false, []TestMessage{{null, general, "IDENTITY FLOW: link=IdentityConfigError token= get=IdentityConfigError unlink=IdentityConfigError", false}}, nil, 0},
+			{aliceID, general, ";go-sec-adminonly", false, []TestMessage{{null, general, "SECURITY CHECK: secadminonly", false}}, nil, 0},
+			{bobID, general, ";go-sec-adminonly", false, []TestMessage{{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*)`, true}}, nil, 0},
+			{aliceID, general, ";go-sec-usersonly", false, []TestMessage{{null, general, "SECURITY CHECK: secusersonly", false}}, nil, 0},
+			{bobID, general, ";go-sec-usersonly", false, []TestMessage{{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*)`, true}}, nil, 0},
+		}),
+	})
+	Register(Suite{
+		Name:      "TestGoFullEncryptSecret",
+		ConfigDir: "test/gofull",
+		LogName:   "bottest.log",
+		FullGate:  "go",
+		Cases: legacyRepliesOnlyCases([]testItem{
+			{aliceID, general, ";go-encrypt-secret", false, []TestMessage{{null, general, "ENCRYPT SECRET: ok", false}}, nil, 0},
+			{aliceID, general, ";go-encrypt-secret-unpriv", false, []TestMessage{{null, general, "ENCRYPT SECRET: failed", false}}, nil, 0},
+		}),
+	})
+}

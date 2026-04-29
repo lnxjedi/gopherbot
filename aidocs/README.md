@@ -26,6 +26,7 @@ Use these first for current behavior:
 - `aidocs/SLACK_CONNECTOR.md`
 - `aidocs/SSH_CONNECTOR.md`
 - `aidocs/TESTING_CURRENT.md`
+- `aidocs/INTEGRATION_HARNESS_PLAN.md`
 - `aidocs/V3_COMPATIBILITY_CONTRACT.md`
 
 Project roadmap source of truth:

@@ -15,6 +15,7 @@ import (
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/help"
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/ping"
 	_ "github.com/lnxjedi/gopherbot/v2/history/file"
+	"github.com/lnxjedi/gopherbot/v2/integration/suites"
 
 	// Anything referred to robot.yaml has to be compiled in
 	_ "github.com/lnxjedi/gopherbot/v2/gojobs/go-bootstrap"
@@ -23,33 +24,10 @@ import (
 )
 
 func TestBotName(t *testing.T) {
-	done, conn := setup("test/membrain", "/tmp/bottest.log", t)
+	suite := suites.MustGet("TestBotName")
+	done, conn := setup(suite.ConfigDir, "/tmp/"+suite.LogName, t)
 
-	tests := []testItem{
-		{aliceID, null, "ping, bender", false, []TestMessage{{alice, null, "PONG", false}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, null, ";ping", false, []TestMessage{{alice, null, "PONG", false}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, null, "/ping", false, []TestMessage{{alice, null, "\\(Use /bender <command> to address a hidden command\\.\\)", false}}, []Event{BotDirectMessage}, 0},
-		{aliceID, null, "bender ping", false, []TestMessage{{alice, null, "PONG", false}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, null, "ping", false, []TestMessage{{alice, null, "PONG", false}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, "ping, bender", false, []TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, ";ping", false, []TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, "bender ping", false, []TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		// This was matching too often when a user was talking about (instead of to) the robot
-		//{aliceID, general, "ping bender", false, []TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, "bender, ping", false, []TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, "@bender ping", false, []TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, "ping, @bender", false, []TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, "ping;", false, []TestMessage{}, []Event{}, 0},
-		{bobID, general, "bender: echo hello world", false, []TestMessage{{null, general, "Sure thing: hello world", true}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
-		// Hidden echo command
-		{bobID, general, "/bender: echo hello world", false, []TestMessage{{null, general, "(Sure thing: hello world)", true}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
-		// When you forget to address the robot, you can say it's name
-		{aliceID, general, "ping", false, []TestMessage{}, []Event{}, 300},
-		{aliceID, general, "bender", false, []TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, "ping", false, []TestMessage{}, []Event{}, 300},
-		{aliceID, general, ";", false, []TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-	}
-	testcases(t, conn, tests)
+	runRegisteredSuite(t, conn, suite)
 
 	teardown(t, done, conn)
 }

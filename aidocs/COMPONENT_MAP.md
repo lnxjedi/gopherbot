@@ -15,6 +15,8 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Interpreter notes: `aidocs/INTERPRETERS.md`.
 - Extension surface map: `aidocs/EXTENSION_SURFACES.md`.
 - Test harness overview: `aidocs/TESTING_CURRENT.md`.
+- Process-backed integration harness migration plan:
+  `aidocs/INTEGRATION_HARNESS_PLAN.md`.
 - OAuth2 refresh registry, brain schema, and token lifecycle: `aidocs/OAUTH2_TOKEN_MANAGEMENT.md`.
 - Incoming message pipeline flow: `aidocs/PIPELINE_LIFECYCLE.md`.
 - Scheduled job pipeline flow: `aidocs/SCHEDULER_FLOW.md`.
@@ -24,7 +26,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 ## bot/
 
-- Engine entrypoints: `bot/start.go` (func `Start`), `bot/bot_process.go` (funcs `initBot`, `run`, `stop`).
+- Engine entrypoints: `bot/start.go` (func `Start`), `bot/bot_process.go` (funcs `initBot`, `run`, `stop`), `bot/startup_ready.go` (startup readiness signal for integration harnesses).
 - Runtime connector orchestration: `bot/connector_runtime.go` (runtime manager, protocol routing, lifecycle controls).
 - Bot-side connector capability/registration consumption: `bot/connector_capabilities.go` (shared registration lookup, runtime capability lookup, and test overrides).
 - Connector/brain/history handler implementation: `bot/handler.go` (implements shared `robot.Handler`, including `GetBotInfo()` for connector init).
@@ -44,7 +46,9 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 ## cmd/
 
-- MCP lifecycle helper binary: `cmd/gopherbot-mcp/main.go` (stdio MCP server with robot lifecycle/status/inventory/readiness/log tools (`start_robot`, `stop_robot`, `restart_robot`, `robot_status`, `wait_robot_ready`, `list_robots`, `cleanup_stale_state`, `tail_robot_log`, `read_robot_log`) plus AI-dev interaction tools (`send_message`, `get_messages`, `send_as_robot`)).
+- MCP lifecycle helper binary: `cmd/gopherbot-mcp/main.go` (stdio MCP server with robot lifecycle/status/inventory/readiness/log tools (`start_robot`, `stop_robot`, `restart_robot`, `robot_status`, `wait_robot_ready`, `list_robots`, `cleanup_stale_state`, `tail_robot_log`, `read_robot_log`), AI-dev interaction tools (`send_message`, `get_messages`, `send_as_robot`), and integration runner tools (`list_integration_suites`, `run_integration_suite`, `read_integration_result`)).
+- Process-backed integration suite runner:
+  `cmd/gopherbot-integration/main.go`.
 
 ## conf/
 
@@ -147,3 +151,8 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 ## test/
 
 - Integration test docs/configs: `test/README.md`, `test/bot_integration_test.go`, `test/jsfull/conf/robot.yaml`, `test/sh_full_test.go`, `test/shfull/conf/robot.yaml`.
+
+## integration/
+
+- Process-backed integration harness artifacts and suite registry:
+  `integration/.gitignore`, `integration/suites/`.

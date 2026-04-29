@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	crand "crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -243,6 +244,103 @@ func (s *mcpServer) tools() []mcpTool {
 						"description": "When true, report stale files without removing them.",
 					},
 				},
+			},
+		},
+		{
+			Name:        "list_integration_suites",
+			Description: "List suites registered in gopherbot-integration.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"gopherbot_integration_binary": map[string]interface{}{
+						"type":        "string",
+						"description": "Path to gopherbot-integration. Defaults to <mcp cwd>/gopherbot-integration.",
+					},
+					"build": map[string]interface{}{
+						"type":        "boolean",
+						"description": "Build gopherbot-integration with make integration-build before listing (default false).",
+					},
+					"output_root": map[string]interface{}{
+						"type":        "string",
+						"description": "Directory for optional build artifacts when build=true (default integration/runs).",
+					},
+					"command_timeout_ms": map[string]interface{}{
+						"type":        "integer",
+						"description": "Maximum time to wait for list/build commands in milliseconds (default 60000).",
+					},
+				},
+			},
+		},
+		{
+			Name:        "run_integration_suite",
+			Description: "Build and run a gopherbot-integration suite, storing full output in artifact files and returning a compact summary.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"suite": map[string]interface{}{
+						"type":        "string",
+						"description": "Suite name to run, or all.",
+					},
+					"gopherbot_integration_binary": map[string]interface{}{
+						"type":        "string",
+						"description": "Path to gopherbot-integration. Defaults to <mcp cwd>/gopherbot-integration.",
+					},
+					"output_root": map[string]interface{}{
+						"type":        "string",
+						"description": "Directory for integration run artifacts (default integration/runs).",
+					},
+					"timeout_ms": map[string]interface{}{
+						"type":        "integer",
+						"description": "Per-suite timeout passed to gopherbot-integration in milliseconds (default 120000).",
+					},
+					"command_timeout_ms": map[string]interface{}{
+						"type":        "integer",
+						"description": "Maximum time to wait for the command in milliseconds (default 600000).",
+					},
+					"build": map[string]interface{}{
+						"type":        "boolean",
+						"description": "Build gopherbot-integration with make integration-build before running (default true).",
+					},
+					"live": map[string]interface{}{
+						"type":        "boolean",
+						"description": "Ask gopherbot-integration to write live interaction output to runner.log (default false).",
+					},
+					"include_output_tail": map[string]interface{}{
+						"type":        "boolean",
+						"description": "Include a short runner.log tail in the tool result (default false; enabled automatically if no result.json is found).",
+					},
+					"tail_lines": map[string]interface{}{
+						"type":        "integer",
+						"description": "Number of runner/log tail lines to include when requested (default 80).",
+					},
+				},
+				"required": []string{"suite"},
+			},
+		},
+		{
+			Name:        "read_integration_result",
+			Description: "Read saved gopherbot-integration result.json files from an artifact directory or result file.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"artifact_path": map[string]interface{}{
+						"type":        "string",
+						"description": "Path to a result.json file or directory containing integration artifacts.",
+					},
+					"include_log_tail": map[string]interface{}{
+						"type":        "boolean",
+						"description": "Include robot.log tails for each result when available (default false).",
+					},
+					"tail_lines": map[string]interface{}{
+						"type":        "integer",
+						"description": "Number of robot.log lines to include when include_log_tail=true (default 80).",
+					},
+					"max_bytes": map[string]interface{}{
+						"type":        "integer",
+						"description": "Maximum bytes to read from each tailed log (default 262144).",
+					},
+				},
+				"required": []string{"artifact_path"},
 			},
 		},
 		{
@@ -563,6 +661,12 @@ func (s *mcpServer) callTool(params toolsCallParams) map[string]interface{} {
 		result, err = s.toolListRobots(args)
 	case "cleanup_stale_state":
 		result, err = s.toolCleanupStaleState(args)
+	case "list_integration_suites":
+		result, err = s.toolListIntegrationSuites(args)
+	case "run_integration_suite":
+		result, err = s.toolRunIntegrationSuite(args)
+	case "read_integration_result":
+		result, err = s.toolReadIntegrationResult(args)
 	case "wait_robot_ready":
 		result, err = s.toolWaitRobotReady(args)
 	case "restart_robot":
@@ -1366,6 +1470,562 @@ func (s *mcpServer) toolSendAsRobot(args map[string]interface{}) (map[string]int
 		return nil, err
 	}
 	return res, nil
+}
+
+type integrationResult struct {
+	Suite      string               `json:"suite"`
+	Status     string               `json:"status"`
+	StartedAt  string               `json:"started_at"`
+	FinishedAt string               `json:"finished_at"`
+	OutputDir  string               `json:"output_dir"`
+	RobotDir   string               `json:"robot_dir"`
+	RobotLog   string               `json:"robot_log"`
+	ResultPath string               `json:"result_path"`
+	Failures   []integrationFailure `json:"failures"`
+}
+
+type integrationFailure struct {
+	Suite string `json:"suite"`
+	Case  string `json:"case"`
+	Step  string `json:"step"`
+	Error string `json:"error"`
+}
+
+func (s *mcpServer) toolListIntegrationSuites(args map[string]interface{}) (map[string]interface{}, error) {
+	build, err := optionalBoolArg(args, "build", false)
+	if err != nil {
+		return nil, err
+	}
+	commandTimeoutMS, err := optionalIntArg(args, "command_timeout_ms", 60000)
+	if err != nil {
+		return nil, err
+	}
+	if commandTimeoutMS <= 0 {
+		return nil, newToolError("INVALID_ARGUMENT", "argument command_timeout_ms must be > 0", map[string]interface{}{"argument": "command_timeout_ms"})
+	}
+	outputRoot, err := optionalOutputRoot(s.rootDir, args)
+	if err != nil {
+		return nil, err
+	}
+	bin, err := optionalIntegrationBinaryPath(s.rootDir, args)
+	if err != nil {
+		return nil, err
+	}
+
+	var buildResult map[string]interface{}
+	if build {
+		runRoot := filepath.Join(outputRoot, "mcp", time.Now().UTC().Format("20060102T150405Z")+"-list-suites")
+		if err := os.MkdirAll(runRoot, 0755); err != nil {
+			return nil, fmt.Errorf("creating integration list artifact dir '%s': %w", runRoot, err)
+		}
+		buildResult, err = s.buildIntegrationBinary(filepath.Join(runRoot, "build.log"), time.Duration(commandTimeoutMS)*time.Millisecond)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if err := verifyExecutableFile(bin); err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(commandTimeoutMS)*time.Millisecond)
+	defer cancel()
+	var stdout, stderr bytes.Buffer
+	cmd := exec.CommandContext(ctx, bin, "list-suites")
+	cmd.Dir = s.rootDir
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		return nil, newToolError("INTEGRATION_LIST_TIMEOUT", "listing integration suites timed out", map[string]interface{}{
+			"gopherbot_integration_binary": bin,
+			"command_timeout_ms":           commandTimeoutMS,
+			"stderr":                       stderr.String(),
+		})
+	}
+	if err != nil {
+		return nil, newToolError("INTEGRATION_LIST_FAILED", err.Error(), map[string]interface{}{
+			"gopherbot_integration_binary": bin,
+			"stdout":                       stdout.String(),
+			"stderr":                       stderr.String(),
+		})
+	}
+
+	suites := parseIntegrationSuiteList(stdout.String())
+	result := map[string]interface{}{
+		"gopherbot_integration_binary": bin,
+		"count":                        len(suites),
+		"suites":                       suites,
+	}
+	if buildResult != nil {
+		result["build"] = buildResult
+	}
+	return result, nil
+}
+
+func (s *mcpServer) toolRunIntegrationSuite(args map[string]interface{}) (map[string]interface{}, error) {
+	suite, err := requiredStringArg(args, "suite")
+	if err != nil {
+		return nil, err
+	}
+	build, err := optionalBoolArg(args, "build", true)
+	if err != nil {
+		return nil, err
+	}
+	live, err := optionalBoolArg(args, "live", false)
+	if err != nil {
+		return nil, err
+	}
+	includeOutputTail, err := optionalBoolArg(args, "include_output_tail", false)
+	if err != nil {
+		return nil, err
+	}
+	timeoutMS, err := optionalIntArg(args, "timeout_ms", 120000)
+	if err != nil {
+		return nil, err
+	}
+	if timeoutMS <= 0 {
+		return nil, newToolError("INVALID_ARGUMENT", "argument timeout_ms must be > 0", map[string]interface{}{"argument": "timeout_ms"})
+	}
+	commandTimeoutMS, err := optionalIntArg(args, "command_timeout_ms", 600000)
+	if err != nil {
+		return nil, err
+	}
+	if commandTimeoutMS <= 0 {
+		return nil, newToolError("INVALID_ARGUMENT", "argument command_timeout_ms must be > 0", map[string]interface{}{"argument": "command_timeout_ms"})
+	}
+	tailLines, err := optionalIntArg(args, "tail_lines", 80)
+	if err != nil {
+		return nil, err
+	}
+	if tailLines <= 0 {
+		return nil, newToolError("INVALID_ARGUMENT", "argument tail_lines must be > 0", map[string]interface{}{"argument": "tail_lines"})
+	}
+	outputRoot, err := optionalOutputRoot(s.rootDir, args)
+	if err != nil {
+		return nil, err
+	}
+	bin, err := optionalIntegrationBinaryPath(s.rootDir, args)
+	if err != nil {
+		return nil, err
+	}
+
+	started := time.Now().UTC()
+	runRoot := filepath.Join(outputRoot, "mcp", started.Format("20060102T150405Z")+"-"+safePathName(suite))
+	if err := os.MkdirAll(runRoot, 0755); err != nil {
+		return nil, fmt.Errorf("creating integration artifact dir '%s': %w", runRoot, err)
+	}
+
+	var buildResult map[string]interface{}
+	if build {
+		buildResult, err = s.buildIntegrationBinary(filepath.Join(runRoot, "build.log"), time.Duration(commandTimeoutMS)*time.Millisecond)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if err := verifyExecutableFile(bin); err != nil {
+		return nil, err
+	}
+
+	suiteOutputRoot := filepath.Join(runRoot, "suites")
+	runnerLog := filepath.Join(runRoot, "runner.log")
+	logFile, err := os.OpenFile(runnerLog, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("opening integration runner log '%s': %w", runnerLog, err)
+	}
+	defer logFile.Close()
+
+	suiteTimeout := time.Duration(timeoutMS) * time.Millisecond
+	cmdArgs := []string{
+		"run-suite",
+		"-output-root", suiteOutputRoot,
+		"-timeout", suiteTimeout.String(),
+	}
+	if !live {
+		cmdArgs = append(cmdArgs, "-live=false")
+	}
+	cmdArgs = append(cmdArgs, suite)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(commandTimeoutMS)*time.Millisecond)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, bin, cmdArgs...)
+	cmd.Dir = s.rootDir
+	cmd.Stdout = logFile
+	cmd.Stderr = logFile
+	runErr := cmd.Run()
+	finished := time.Now().UTC()
+	timedOut := errors.Is(ctx.Err(), context.DeadlineExceeded)
+	exitCode := commandExitCode(runErr)
+
+	resultPaths, discoverErr := discoverIntegrationResultFiles(suiteOutputRoot)
+	warnings := make([]map[string]interface{}, 0)
+	if discoverErr != nil {
+		warnings = append(warnings, map[string]interface{}{
+			"path":  suiteOutputRoot,
+			"error": discoverErr.Error(),
+		})
+	}
+	results, readWarnings := readIntegrationResultSummaries(resultPaths, false, tailLines, 262144)
+	warnings = append(warnings, readWarnings...)
+
+	status := "failed"
+	if timedOut {
+		status = "timed_out"
+	} else if exitCode == 0 && allIntegrationResultsPassed(results) {
+		status = "passed"
+	} else if len(results) == 0 && runErr == nil {
+		status = "no_results"
+	}
+
+	payload := map[string]interface{}{
+		"suite":                        suite,
+		"status":                       status,
+		"passed":                       status == "passed",
+		"exit_code":                    exitCode,
+		"timed_out":                    timedOut,
+		"started_at":                   started.Format(time.RFC3339),
+		"finished_at":                  finished.Format(time.RFC3339),
+		"duration_ms":                  finished.Sub(started).Milliseconds(),
+		"gopherbot_integration_binary": bin,
+		"run_root":                     runRoot,
+		"suite_output_root":            suiteOutputRoot,
+		"runner_log":                   runnerLog,
+		"command_args":                 append([]string{bin}, cmdArgs...),
+		"result_count":                 len(results),
+		"results":                      results,
+		"warnings":                     warnings,
+	}
+	if buildResult != nil {
+		payload["build"] = buildResult
+	}
+	if runErr != nil {
+		payload["command_error"] = runErr.Error()
+	}
+	if includeOutputTail || len(results) == 0 || timedOut {
+		if tail, tailErr := integrationLogTail(runnerLog, tailLines, 262144); tailErr == nil {
+			payload["runner_log_tail"] = tail
+		} else {
+			warnings = append(warnings, map[string]interface{}{
+				"path":  runnerLog,
+				"error": tailErr.Error(),
+			})
+			payload["warnings"] = warnings
+		}
+	}
+	if len(results) == 0 {
+		logPaths, logDiscoverErr := discoverIntegrationFiles(suiteOutputRoot, "robot.log")
+		if logDiscoverErr != nil {
+			warnings = append(warnings, map[string]interface{}{
+				"path":  suiteOutputRoot,
+				"error": logDiscoverErr.Error(),
+			})
+			payload["warnings"] = warnings
+		}
+		logTails := make([]map[string]interface{}, 0, len(logPaths))
+		for _, logPath := range logPaths {
+			tail, tailErr := integrationLogTail(logPath, tailLines, 262144)
+			if tailErr != nil {
+				warnings = append(warnings, map[string]interface{}{
+					"path":  logPath,
+					"error": tailErr.Error(),
+				})
+				payload["warnings"] = warnings
+				continue
+			}
+			logTails = append(logTails, tail)
+		}
+		if len(logTails) > 0 {
+			payload["robot_log_tails"] = logTails
+		}
+	}
+
+	if timedOut && len(results) == 0 {
+		return nil, newToolError("INTEGRATION_RUN_TIMEOUT", "integration suite command timed out before writing result.json", payload)
+	}
+	if runErr != nil && len(results) == 0 {
+		return nil, newToolError("INTEGRATION_RUN_FAILED", runErr.Error(), payload)
+	}
+	return payload, nil
+}
+
+func (s *mcpServer) toolReadIntegrationResult(args map[string]interface{}) (map[string]interface{}, error) {
+	artifactPath, err := requiredStringArg(args, "artifact_path")
+	if err != nil {
+		return nil, err
+	}
+	includeLogTail, err := optionalBoolArg(args, "include_log_tail", false)
+	if err != nil {
+		return nil, err
+	}
+	tailLines, err := optionalIntArg(args, "tail_lines", 80)
+	if err != nil {
+		return nil, err
+	}
+	if tailLines <= 0 {
+		return nil, newToolError("INVALID_ARGUMENT", "argument tail_lines must be > 0", map[string]interface{}{"argument": "tail_lines"})
+	}
+	maxBytes, err := optionalIntArg(args, "max_bytes", 262144)
+	if err != nil {
+		return nil, err
+	}
+	if maxBytes <= 0 {
+		return nil, newToolError("INVALID_ARGUMENT", "argument max_bytes must be > 0", map[string]interface{}{"argument": "max_bytes"})
+	}
+
+	resolved := resolvePath(s.rootDir, artifactPath)
+	resultPaths, err := discoverIntegrationResultFiles(resolved)
+	if err != nil {
+		return nil, err
+	}
+	if len(resultPaths) == 0 {
+		return nil, newToolError("INTEGRATION_RESULT_NOT_FOUND", fmt.Sprintf("no result.json files found under %s", resolved), map[string]interface{}{
+			"artifact_path": resolved,
+		})
+	}
+	results, warnings := readIntegrationResultSummaries(resultPaths, includeLogTail, tailLines, maxBytes)
+	return map[string]interface{}{
+		"artifact_path": resolved,
+		"result_count":  len(results),
+		"results":       results,
+		"warnings":      warnings,
+	}, nil
+}
+
+func (s *mcpServer) buildIntegrationBinary(logPath string, timeout time.Duration) (map[string]interface{}, error) {
+	if err := os.MkdirAll(filepath.Dir(logPath), 0755); err != nil {
+		return nil, fmt.Errorf("creating integration build log dir: %w", err)
+	}
+	logFile, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("opening integration build log '%s': %w", logPath, err)
+	}
+	defer logFile.Close()
+
+	started := time.Now().UTC()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "make", "integration-build")
+	cmd.Dir = s.rootDir
+	cmd.Stdout = logFile
+	cmd.Stderr = logFile
+	err = cmd.Run()
+	finished := time.Now().UTC()
+	exitCode := commandExitCode(err)
+
+	result := map[string]interface{}{
+		"status":      "passed",
+		"exit_code":   exitCode,
+		"log_path":    logPath,
+		"started_at":  started.Format(time.RFC3339),
+		"finished_at": finished.Format(time.RFC3339),
+		"duration_ms": finished.Sub(started).Milliseconds(),
+		"command":     []string{"make", "integration-build"},
+	}
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		result["status"] = "timed_out"
+		if tail, tailErr := integrationLogTail(logPath, 80, 262144); tailErr == nil {
+			result["log_tail"] = tail
+		}
+		return result, newToolError("INTEGRATION_BUILD_TIMEOUT", "make integration-build timed out", result)
+	}
+	if err != nil {
+		result["status"] = "failed"
+		result["error"] = err.Error()
+		if tail, tailErr := integrationLogTail(logPath, 80, 262144); tailErr == nil {
+			result["log_tail"] = tail
+		}
+		return result, newToolError("INTEGRATION_BUILD_FAILED", err.Error(), result)
+	}
+	return result, nil
+}
+
+func optionalIntegrationBinaryPath(base string, args map[string]interface{}) (string, error) {
+	bin, err := optionalStringArg(args, "gopherbot_integration_binary")
+	if err != nil {
+		return "", err
+	}
+	if bin == "" {
+		bin = filepath.Join(base, "gopherbot-integration")
+	}
+	return resolvePath(base, bin), nil
+}
+
+func optionalOutputRoot(base string, args map[string]interface{}) (string, error) {
+	outputRoot, err := optionalStringArg(args, "output_root")
+	if err != nil {
+		return "", err
+	}
+	if outputRoot == "" {
+		outputRoot = filepath.Join("integration", "runs")
+	}
+	return resolvePath(base, outputRoot), nil
+}
+
+func parseIntegrationSuiteList(output string) []map[string]interface{} {
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	suites := make([]map[string]interface{}, 0, len(lines))
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		parts := strings.SplitN(line, "\t", 2)
+		if len(parts) != 2 {
+			fields := strings.Fields(line)
+			if len(fields) >= 2 {
+				parts = []string{fields[0], fields[1]}
+			}
+		}
+		entry := map[string]interface{}{"raw": line}
+		if len(parts) == 2 {
+			entry = map[string]interface{}{
+				"name":       strings.TrimSpace(parts[0]),
+				"config_dir": strings.TrimSpace(parts[1]),
+			}
+		}
+		suites = append(suites, entry)
+	}
+	return suites
+}
+
+func discoverIntegrationResultFiles(path string) ([]string, error) {
+	return discoverIntegrationFiles(path, "result.json")
+}
+
+func discoverIntegrationFiles(path, filename string) ([]string, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("checking integration artifact path '%s': %w", path, err)
+	}
+	if !info.IsDir() {
+		return []string{path}, nil
+	}
+	results := make([]string, 0)
+	if err := filepath.WalkDir(path, func(p string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if d.Name() == filename {
+			results = append(results, p)
+		}
+		return nil
+	}); err != nil {
+		return nil, fmt.Errorf("walking integration artifact path '%s': %w", path, err)
+	}
+	sort.Strings(results)
+	return results, nil
+}
+
+func readIntegrationResultSummaries(paths []string, includeLogTail bool, tailLines, maxBytes int) ([]map[string]interface{}, []map[string]interface{}) {
+	results := make([]map[string]interface{}, 0, len(paths))
+	warnings := make([]map[string]interface{}, 0)
+	for _, path := range paths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			warnings = append(warnings, map[string]interface{}{
+				"path":  path,
+				"error": err.Error(),
+			})
+			continue
+		}
+		var result integrationResult
+		if err := json.Unmarshal(data, &result); err != nil {
+			warnings = append(warnings, map[string]interface{}{
+				"path":  path,
+				"error": err.Error(),
+			})
+			continue
+		}
+		if result.ResultPath == "" {
+			result.ResultPath = path
+		}
+		summary := map[string]interface{}{
+			"suite":         result.Suite,
+			"status":        result.Status,
+			"passed":        strings.EqualFold(result.Status, "passed"),
+			"started_at":    result.StartedAt,
+			"finished_at":   result.FinishedAt,
+			"output_dir":    result.OutputDir,
+			"robot_dir":     result.RobotDir,
+			"robot_log":     result.RobotLog,
+			"result_path":   result.ResultPath,
+			"failure_count": len(result.Failures),
+			"failures":      result.Failures,
+		}
+		if includeLogTail && strings.TrimSpace(result.RobotLog) != "" {
+			logPath := result.RobotLog
+			if !filepath.IsAbs(logPath) {
+				logPath = filepath.Join(filepath.Dir(path), logPath)
+			}
+			tail, err := integrationLogTail(logPath, tailLines, maxBytes)
+			if err != nil {
+				warnings = append(warnings, map[string]interface{}{
+					"path":  logPath,
+					"error": err.Error(),
+				})
+			} else {
+				summary["robot_log_tail"] = tail
+			}
+		}
+		results = append(results, summary)
+	}
+	return results, warnings
+}
+
+func allIntegrationResultsPassed(results []map[string]interface{}) bool {
+	if len(results) == 0 {
+		return false
+	}
+	for _, result := range results {
+		passed, _ := result["passed"].(bool)
+		if !passed {
+			return false
+		}
+	}
+	return true
+}
+
+func integrationLogTail(path string, lines, maxBytes int) (map[string]interface{}, error) {
+	chunk, fileSize, readStart, err := readTailBytes(path, int64(maxBytes))
+	if err != nil {
+		return nil, err
+	}
+	text, lineCount := tailLinesFromChunk(chunk, lines)
+	return map[string]interface{}{
+		"path":                   path,
+		"text":                   text,
+		"line_count":             lineCount,
+		"requested_lines":        lines,
+		"max_bytes":              maxBytes,
+		"file_size":              fileSize,
+		"read_start_offset":      readStart,
+		"truncated_by_max_bytes": readStart > 0,
+	}, nil
+}
+
+func commandExitCode(err error) int {
+	if err == nil {
+		return 0
+	}
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		return exitErr.ExitCode()
+	}
+	return -1
+}
+
+func safePathName(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "integration"
+	}
+	replacer := strings.NewReplacer("/", "_", "\\", "_", " ", "_", "\t", "_", ":", "_")
+	return replacer.Replace(name)
 }
 
 func requiredStringArg(args map[string]interface{}, key string) (string, error) {

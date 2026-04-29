@@ -5,7 +5,6 @@ package test
 import (
 	"strings"
 	"sync"
-	"testing"
 	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
@@ -27,7 +26,7 @@ type TestConnector struct {
 	channels      []string          // the channels the robot is in
 	listener      chan *TestMessage // input channel for test functions to send messages from a user
 	speaking      chan *TestMessage // output channel for test functions to get messages from the bot
-	test          *testing.T        // for the connector to log
+	test          Reporter          // optional test reporter
 	robot.Handler                   // bot API for connectors
 	sync.RWMutex                    // shared mutex for locking connector data structures
 }
@@ -43,7 +42,7 @@ loop:
 		select {
 		case <-stop:
 			tc.Log(robot.Debug, "Received stop in connector")
-			tc.test.Log("Received stop in connector")
+			tc.reportLog("Received stop in connector")
 			break loop
 		case msg := <-tc.listener:
 			var userName, channelID string
@@ -84,7 +83,7 @@ func (tc *TestConnector) Reload() error {
 // Public 'bot methods all call sendMessage to send a message to a user/channel
 func (tc *TestConnector) sendMessage(msg *BotMessage) (ret robot.RetVal) {
 	if msg.Channel == "" && msg.User == "" {
-		tc.test.Errorf("Invalid empty user and channel")
+		tc.reportError("Invalid empty user and channel")
 		return robot.ChannelNotFound
 	}
 	tc.RLock()
@@ -103,7 +102,7 @@ func (tc *TestConnector) sendMessage(msg *BotMessage) (ret robot.RetVal) {
 		}
 		tc.RUnlock()
 		if !found {
-			tc.test.Errorf("Channel not found: %s", msg.Channel)
+			tc.reportError("Channel not found: %s", msg.Channel)
 			return robot.ChannelNotFound
 		}
 	}
@@ -118,7 +117,7 @@ func (tc *TestConnector) sendMessage(msg *BotMessage) (ret robot.RetVal) {
 		}
 		tc.RUnlock()
 		if !found {
-			tc.test.Errorf("User not found: %s", msg.User)
+			tc.reportError("User not found: %s", msg.User)
 			return robot.UserNotFound
 		}
 	}

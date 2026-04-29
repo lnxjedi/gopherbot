@@ -2,14 +2,36 @@
 
 Focus: integration test harness under `test/` and how tests are executed.
 
+Forward plan:
+
+- The current `go test ./test` harness is being replaced by a process-backed
+  `gopherbot-integration` command. See
+  `aidocs/INTEGRATION_HARNESS_PLAN.md`.
+- During migration, the existing `StartTest()` path remains the compatibility
+  harness until suite coverage reaches parity in the new runner.
+- `make integration` now builds `gopherbot-integration` and prints suite-runner
+  instructions. Use `make integration-legacy` for the old Go test harness.
+
 ## How tests are discovered and run
 
 - Integration tests are gated by build tags like `//go:build integration` in files such as `test/common_test.go` and `test/bot_integration_test.go`.
-- `make test` runs `go test ... ./test` with tags `test integration netgo osusergo static_build` and optional `TEST` filter (see `Makefile` target `test`).
+- `make integration-legacy` runs `go test ... ./test` with tags `test integration netgo osusergo static_build` and optional `TEST` filter.
+- `make test` runs unit tests, then builds `gopherbot-integration` through the
+  `integration` target.
 - The test harness depends on test-only event emission: `bot/emit_testing.go` is built with `//go:build test`, while `bot/emit_noop.go` is used when the `test` tag is not set.
 
 ## Harness entrypoints
 
+- `gopherbot-integration run-suite <SuiteName>` is the new process-backed
+  suite-runner entrypoint. It creates an isolated directory under
+  `integration/runs/`, starts a real robot process in that directory using the
+  scripted test connector, prints live interaction, and writes `result.json`
+  plus `robot.log`.
+- `gopherbot-mcp` exposes integration runner tools for AI automation:
+  `list_integration_suites`, `run_integration_suite`, and
+  `read_integration_result`. `run_integration_suite` builds
+  `gopherbot-integration` by default, runs the selected suite with output
+  redirected to artifact files, and returns a compact summary plus paths.
 - `setup()` in `test/common_test.go` starts the bot via `StartTest()` and relies on the test configs to choose the `test` protocol.
 - `setupWithOptions()` in `test/common_test.go` is the per-suite harness entrypoint when a test block needs connector capability overrides (for example simulating a protocol without hidden-command support while still using the `test` connector).
 - `StartTest()` is defined in `bot/start_t.go` (only built with `test` tag). It locates the repo root by walking up until `conf/robot.yaml` is found, `chdir`s there so startup mode resolves to `test-dev`, initializes connector runtime via `initializeConnectorRuntime`, runs `run()`, then waits for the current async plugin-init batch to drain before clearing startup events and returning control to the harness (see also `bot/bot_process.go`, `bot/tasks.go`, and `bot/connector_runtime.go`).
