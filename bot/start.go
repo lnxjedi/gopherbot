@@ -55,8 +55,7 @@ func Start(v VersionInfo) {
 	if err != nil {
 		panic(err)
 	}
-	// See initBot for homePath
-	installPath, err = filepath.Abs(filepath.Dir(ex))
+	installPath, err = resolveInstallPath(ex)
 	if err != nil {
 		panic(err)
 	}
@@ -351,4 +350,12 @@ func Start(v VersionInfo) {
 			}
 		}()
 	}
+}
+
+func resolveInstallPath(executable string) (string, error) {
+	resolved := executable
+	if real, err := filepath.EvalSymlinks(executable); err == nil {
+		resolved = real
+	}
+	return filepath.Abs(filepath.Dir(resolved))
 }
