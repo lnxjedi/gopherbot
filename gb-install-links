@@ -24,7 +24,7 @@ fi
 
 EXECUTABLE_DIR=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
 
-for EXECUTABLE in gopherbot bot-ssh gopherbot-mcp
+for EXECUTABLE in gopherbot bot-ssh gopherbot-mcp gopherbot-integration
 do
     ln -snf "$EXECUTABLE_DIR/$EXECUTABLE" "$DEST"
 done
