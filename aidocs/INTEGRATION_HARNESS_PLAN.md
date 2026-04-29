@@ -260,10 +260,12 @@ The target has three layers:
 `cmd/gopherbot-integration`.
 
 It should share production engine code and the same startup path used by
-`gopherbot`. For normal robot arguments, it should behave like a robot binary:
+`gopherbot`. The integration binary owns its top-level CLI, so no-argument
+invocation and `--help` show integration-runner help. For high-fidelity robot
+debugging, robot mode is explicit:
 
 ```text
-gopherbot-integration --aidev <token> run
+gopherbot-integration run -aidev <token>
 ```
 
 It should also expose integration-runner commands before delegating to
@@ -277,7 +279,7 @@ gopherbot-integration run-suite JSFull
 
 The exact CLI can evolve, but the boundary should remain stable:
 
-- robot mode starts the engine;
+- explicit robot mode starts the engine;
 - runner mode starts a scripted test-connector transport and asserts results;
 - production `gopherbot` does not include runner code.
 
@@ -449,12 +451,22 @@ Suggested outputs:
 - `result.json`: machine-readable suite/case/step status, timings, failure
   details, log paths, robot dir, binary path, PID, and privsep mode.
 - `robot.log`: raw robot log.
+- `transcript.txt`: scripted user/bot interaction transcript using the same
+  `->` / `<-` lines shown by live output.
 - `runner.log`: runner-level diagnostics.
 - optional `messages.jsonl`: observed message stream.
 - optional `events.jsonl`: observed event stream.
 
 The CLI and MCP should return compact summaries plus file paths. They should
 not stream full logs into model context by default.
+
+For multi-suite invocations, the runner should allocate one timestamped
+artifact directory for the whole invocation and place per-suite directories
+under it. The final CLI summary should report that single directory as
+`Results recorded in: <path>`, and MCP summaries should expose the same common
+directory as `results_root`. Suite selection should support exact suite names,
+`all`, simple glob patterns such as `TestShFull*`, and comma-separated selector
+lists for MCP calls.
 
 ### Parallel Execution
 

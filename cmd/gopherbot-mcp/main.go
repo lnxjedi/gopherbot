@@ -279,7 +279,7 @@ func (s *mcpServer) tools() []mcpTool {
 				"properties": map[string]interface{}{
 					"suite": map[string]interface{}{
 						"type":        "string",
-						"description": "Suite name to run, or all.",
+						"description": "Suite name, glob pattern, comma-separated selector list, or all.",
 					},
 					"gopherbot_integration_binary": map[string]interface{}{
 						"type":        "string",
@@ -1480,6 +1480,7 @@ type integrationResult struct {
 	OutputDir  string               `json:"output_dir"`
 	RobotDir   string               `json:"robot_dir"`
 	RobotLog   string               `json:"robot_log"`
+	Transcript string               `json:"transcript"`
 	ResultPath string               `json:"result_path"`
 	Failures   []integrationFailure `json:"failures"`
 }
@@ -1610,7 +1611,8 @@ func (s *mcpServer) toolRunIntegrationSuite(args map[string]interface{}) (map[st
 	}
 
 	started := time.Now().UTC()
-	runRoot := filepath.Join(outputRoot, "mcp", started.Format("20060102T150405Z")+"-"+safePathName(suite))
+	runID := started.Format("20060102T150405Z")
+	runRoot := filepath.Join(outputRoot, "mcp", runID+"-"+safePathName(suite))
 	if err := os.MkdirAll(runRoot, 0755); err != nil {
 		return nil, fmt.Errorf("creating integration artifact dir '%s': %w", runRoot, err)
 	}
@@ -1635,9 +1637,11 @@ func (s *mcpServer) toolRunIntegrationSuite(args map[string]interface{}) (map[st
 	defer logFile.Close()
 
 	suiteTimeout := time.Duration(timeoutMS) * time.Millisecond
+	resultsRoot := filepath.Join(suiteOutputRoot, runID)
 	cmdArgs := []string{
 		"run-suite",
 		"-output-root", suiteOutputRoot,
+		"-run-id", runID,
 		"-timeout", suiteTimeout.String(),
 	}
 	if !live {
@@ -1656,11 +1660,11 @@ func (s *mcpServer) toolRunIntegrationSuite(args map[string]interface{}) (map[st
 	timedOut := errors.Is(ctx.Err(), context.DeadlineExceeded)
 	exitCode := commandExitCode(runErr)
 
-	resultPaths, discoverErr := discoverIntegrationResultFiles(suiteOutputRoot)
+	resultPaths, discoverErr := discoverIntegrationResultFiles(resultsRoot)
 	warnings := make([]map[string]interface{}, 0)
 	if discoverErr != nil {
 		warnings = append(warnings, map[string]interface{}{
-			"path":  suiteOutputRoot,
+			"path":  resultsRoot,
 			"error": discoverErr.Error(),
 		})
 	}
@@ -1690,6 +1694,7 @@ func (s *mcpServer) toolRunIntegrationSuite(args map[string]interface{}) (map[st
 		"suite_output_root":            suiteOutputRoot,
 		"runner_log":                   runnerLog,
 		"command_args":                 append([]string{bin}, cmdArgs...),
+		"results_root":                 resultsRoot,
 		"result_count":                 len(results),
 		"results":                      results,
 		"warnings":                     warnings,
@@ -1712,10 +1717,10 @@ func (s *mcpServer) toolRunIntegrationSuite(args map[string]interface{}) (map[st
 		}
 	}
 	if len(results) == 0 {
-		logPaths, logDiscoverErr := discoverIntegrationFiles(suiteOutputRoot, "robot.log")
+		logPaths, logDiscoverErr := discoverIntegrationFiles(resultsRoot, "robot.log")
 		if logDiscoverErr != nil {
 			warnings = append(warnings, map[string]interface{}{
-				"path":  suiteOutputRoot,
+				"path":  resultsRoot,
 				"error": logDiscoverErr.Error(),
 			})
 			payload["warnings"] = warnings
@@ -1953,6 +1958,7 @@ func readIntegrationResultSummaries(paths []string, includeLogTail bool, tailLin
 			"output_dir":    result.OutputDir,
 			"robot_dir":     result.RobotDir,
 			"robot_log":     result.RobotLog,
+			"transcript":    result.Transcript,
 			"result_path":   result.ResultPath,
 			"failure_count": len(result.Failures),
 			"failures":      result.Failures,
@@ -1990,6 +1996,45 @@ func allIntegrationResultsPassed(results []map[string]interface{}) bool {
 	return true
 }
 
+func commonIntegrationResultsRoot(results []map[string]interface{}) string {
+	if len(results) == 0 {
+		return ""
+	}
+	paths := make([]string, 0, len(results))
+	for _, result := range results {
+		outputDir, _ := result["output_dir"].(string)
+		if strings.TrimSpace(outputDir) == "" {
+			continue
+		}
+		paths = append(paths, filepath.Clean(outputDir))
+	}
+	if len(paths) == 0 {
+		return ""
+	}
+	if len(paths) == 1 {
+		return paths[0]
+	}
+	root := filepath.Dir(paths[0])
+	for _, path := range paths[1:] {
+		for root != "." && root != string(filepath.Separator) && !isPathWithin(root, path) {
+			next := filepath.Dir(root)
+			if next == root {
+				break
+			}
+			root = next
+		}
+	}
+	return root
+}
+
+func isPathWithin(root, path string) bool {
+	rel, err := filepath.Rel(root, path)
+	if err != nil {
+		return false
+	}
+	return rel == "." || (!strings.HasPrefix(rel, ".."+string(filepath.Separator)) && rel != "..")
+}
+
 func integrationLogTail(path string, lines, maxBytes int) (map[string]interface{}, error) {
 	chunk, fileSize, readStart, err := readTailBytes(path, int64(maxBytes))
 	if err != nil {
@@ -2024,7 +2069,17 @@ func safePathName(name string) string {
 	if name == "" {
 		return "integration"
 	}
-	replacer := strings.NewReplacer("/", "_", "\\", "_", " ", "_", "\t", "_", ":", "_")
+	replacer := strings.NewReplacer(
+		"/", "_",
+		"\\", "_",
+		" ", "_",
+		"\t", "_",
+		":", "_",
+		"*", "_",
+		"?", "_",
+		"[", "_",
+		"]", "_",
+	)
 	return replacer.Replace(name)
 }
 
