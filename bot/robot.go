@@ -88,6 +88,7 @@ func (w *worker) makeRobot() Robot {
 			taskName:       w.taskName,
 			currentTask:    w.currentTask,
 			exclusive:      w.exclusive,
+			exclusiveTag:   w.exclusiveTag,
 		}
 	}
 	return r

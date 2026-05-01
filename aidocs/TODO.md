@@ -4,6 +4,13 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
 
 ## Open TODOs
 
+- [ ] Deprecate `Exclusive` in v3 and add a replacement `TaskLock(tag, queue bool) RetVal` API:
+  - Keep the existing `Exclusive(tag, queueTask bool) bool` behavior for v3 compatibility, but document it as deprecated once `TaskLock` exists.
+  - Add exactly one new `RetVal` value, `Busy`; use existing `Ok` and `Failed` for the other states.
+  - `Ok` means the lock was acquired and the caller should proceed.
+  - `Busy` means the lock was not acquired and the caller should exit cleanly. When `queue` is `true`, `Busy` must mean the retry was successfully queued; if queuing was requested but could not be guaranteed, return `Failed` instead.
+  - `Failed` means API misuse or an internal error; the engine must emit an Error-level log with enough detail for the robot owner to diagnose the issue.
+  - Treat contention as normal cooperative behavior, not an error. Reserve operator-visible failure handling for `Failed`.
 - [ ] Replace the `go test ./test` integration harness with a process-backed
   `gopherbot-integration` workflow:
   - Use `aidocs/INTEGRATION_HARNESS_PLAN.md` as the design source.

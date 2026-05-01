@@ -16,21 +16,33 @@ var runQueues = struct {
 
 // see robot/robot.go
 func (r Robot) Exclusive(tag string, queueTask bool) (success bool) {
+	if r.pipeContext == nil || r.currentTask == nil {
+		Log(robot.Error, "Exclusive called with no current task")
+		return false
+	}
+	task, plugin, job := getTask(r.currentTask)
 	if r.exclusive {
-		// TODO: make sure tag matches, or error! Note that it's legit and normal
-		// to call Exclusive twice with the same tag name.
+		lockTag := exclusiveLockTag(r.exclusiveNameSpace(task, plugin), tag)
+		if r.exclusiveTag != lockTag {
+			Log(robot.Error, "Exclusive called with tag '%s' while holding exclusive lock '%s'", lockTag, r.exclusiveTag)
+			return false
+		}
 		return true
 	}
-	_, plugin, job := getTask(r.currentTask)
 	isPlugin := plugin != nil
 	isJob := job != nil
 	w := getLockedWorker(r.tid)
+	if w == nil {
+		Log(robot.Error, "Exclusive called without an active worker")
+		return false
+	}
 	ns := r.nameSpace
 	// The intent here is that simple tasks can only call exclusive in the
 	// context of a job pipeline, which is the only case where r.nameSpace
 	// is set.
 	if !isPlugin && !isJob && queueTask && len(r.nameSpace) == 0 {
 		w.Log(robot.Error, "Exclusive called by job or task with queueing outside of job pipeline")
+		w.Unlock()
 		return false
 	}
 	if len(ns) == 0 {
@@ -39,10 +51,7 @@ func (r Robot) Exclusive(tag string, queueTask bool) (success bool) {
 		w.Lock()
 	}
 	defer w.Unlock()
-	if len(tag) > 0 {
-		tag = ":" + tag
-	}
-	tag = ns + tag
+	tag = exclusiveLockTag(ns, tag)
 	w.exclusiveTag = tag
 	runQueues.Lock()
 	_, exists := runQueues.m[tag]
@@ -68,4 +77,21 @@ func (r Robot) Exclusive(tag string, queueTask bool) (success bool) {
 		}
 	}
 	return
+}
+
+func exclusiveLockTag(ns, tag string) string {
+	if len(tag) > 0 {
+		tag = ":" + tag
+	}
+	return ns + tag
+}
+
+func (r Robot) exclusiveNameSpace(task *Task, plugin *Plugin) string {
+	if len(task.NameSpace) > 0 {
+		return task.NameSpace
+	}
+	if plugin != nil {
+		return task.name
+	}
+	return r.nameSpace
 }
