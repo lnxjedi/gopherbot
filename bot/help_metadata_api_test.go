@@ -466,7 +466,7 @@ func TestCollectFallbackAdviceSuppressesBareIdentifierGuessForPhraseCommand(t *t
 				},
 				Commands: []InputMatcher{{
 					Command:       "knock",
-					SimpleMatcher: "tell me a [another] [knock-knock] joke",
+					SimpleMatcher: "tell me a [:another] [:knock-knock] joke",
 					Usage:         "tell me a knock-knock joke",
 					Summary:       "Starts an interactive knock-knock joke.",
 					Keywords:      []string{"knock", "joke"},

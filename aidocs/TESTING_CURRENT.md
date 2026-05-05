@@ -7,15 +7,16 @@ Forward plan:
 - The current `go test ./test` harness is being replaced by a process-backed
   `gopherbot-integration` command. See
   `aidocs/INTEGRATION_HARNESS_PLAN.md`.
-- During migration, the existing `StartTest()` path remains the compatibility
-  harness until suite coverage reaches parity in the new runner.
+- During migration, the existing `StartTest()` path remains a compatibility
+  harness for legacy-only debugging, but AI automation should use the
+  MCP-integrated process-backed runner by default.
 - `make integration` now builds `gopherbot-integration` and prints suite-runner
   instructions. Use `make integration-legacy` for the old Go test harness.
 
 ## How tests are discovered and run
 
 - Integration tests are gated by build tags like `//go:build integration` in files such as `test/common_test.go` and `test/bot_integration_test.go`.
-- `make integration-legacy` runs `go test ... ./test` with tags `test integration netgo osusergo static_build` and optional `TEST` filter.
+- `make integration-legacy` runs `go test ... ./test` with tags `test integration netgo osusergo static_build` and optional `TEST` filter. This is the old compatibility harness; do not use it for normal AI validation unless explicitly requested.
 - `make test` runs unit tests, then builds `gopherbot-integration` through the
   `integration` target.
 - The test harness depends on test-only event emission: `bot/emit_testing.go` is built with `//go:build test`, while `bot/emit_noop.go` is used when the `test` tag is not set.
@@ -32,6 +33,13 @@ Forward plan:
   `read_integration_result`. `run_integration_suite` builds
   `gopherbot-integration` by default, runs the selected suite with output
   redirected to artifact files, and returns a compact summary plus paths.
+- `make integration-mcp TEST=<SuiteName>` wraps `gopherbot-mcp`
+  `run_integration_suite` for local/AI use. Prefer this wrapper when running
+  from Codex so the already-approved `make` path is used instead of repeatedly
+  requesting approval for direct integration commands.
+- For AI-driven verification, prefer `gopherbot-mcp` `run_integration_suite`
+  over direct `go test ./test`. This avoids streaming noisy logs into context
+  and keeps integration artifacts under `integration/runs/`.
 - `setup()` in `test/common_test.go` starts the bot via `StartTest()` and relies on the test configs to choose the `test` protocol.
 - `setupWithOptions()` in `test/common_test.go` is the per-suite harness entrypoint when a test block needs connector capability overrides (for example simulating a protocol without hidden-command support while still using the `test` connector).
 - `StartTest()` is defined in `bot/start_t.go` (only built with `test` tag). It locates the repo root by walking up until `conf/robot.yaml` is found, `chdir`s there so startup mode resolves to `test-dev`, initializes connector runtime via `initializeConnectorRuntime`, runs `run()`, then waits for the current async plugin-init batch to drain before clearing startup events and returning control to the harness (see also `bot/bot_process.go`, `bot/tasks.go`, and `bot/connector_runtime.go`).
@@ -54,15 +62,12 @@ Forward plan:
 
 ## Integration Failure Triage
 
-When `make test` fails in the `integration` target, check these first:
+When an MCP-driven integration suite fails, check these first:
 
-1. The failing test name and first fatal line in `go test -v` output.
-2. The bot runtime log file used by the harness:
-   - usually `/tmp/bottest.log`
-   - builtins suite uses `/tmp/bottest-builtins.log`
-3. The config path printed by `StartTest()` (for example `test/membrain`, `test/jsfull`, `test/luafull`, `test/shfull`, `test/gofull`).
-
-Log file paths are passed explicitly by integration tests through `setup(..., logfile, ...)` in `test/common_test.go`.
+1. The compact `run_integration_suite` summary.
+2. The saved `result.json` artifact.
+3. The suite `runner.log` and robot `robot.log` under the artifact directory.
+4. The suite config dir reported in the result.
 
 Required triage rule:
 
@@ -146,7 +151,7 @@ Notes:
   - `go test ./bot`
   - includes timeout parsing/precedence tests, live log buffer tests, admin `ps` / `get-pipeline-log` rendering tests, compiled Go panic stack logging, and manual-intervention timeout alert behavior
 - Targeted integration slice:
-  - `go test -v --tags 'test integration' ./test -run 'TestBotNameHiddenCommandsUnsupportedConnector|TestHiddenPSAndGetPipelineLog|TestPipelineTimeoutWarnAndKillAlerts|TestPipelineFailureAlertIncludesTracebackExcerpt'`
+  - use `gopherbot-mcp` `run_integration_suite` for each relevant process-backed suite, for example `TestHiddenPSAndGetPipelineLog`, `TestPipelineTimeoutWarnAndKillAlerts`, and `TestPipelineFailureAlertIncludesTracebackExcerpt`
   - covers hidden-command connector support/denial, live pipeline inspection, external timeout warn/kill alerts, and traceback-rich failure alerts
 
 ## Targeted Yaegi runtime repros

@@ -123,6 +123,7 @@ type InputMatcher struct {
 	ChannelOnly   bool           `yaml:"ChannelOnly"`   // Whether this matcher only applies in the main channel (not a thread)
 	Contexts      []string       `yaml:"Contexts"`      // Labels for capture groups, for supporting "it" & optional args
 	re            *regexp.Regexp `yaml:"-"`             // The compiled regular expression, logged if compilation fails
+	simple        *simpleMatcher `yaml:"-"`             // Parsed SimpleMatcher metadata for exact matches and syntax diagnostics
 }
 
 // JobTrigger specifies a user and message to trigger a job

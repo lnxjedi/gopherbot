@@ -1,6 +1,6 @@
 # SimpleMatcher Diagnostics
 
-This document describes the target engine design for `SimpleMatcher` command diagnostics. It is an implementation handoff for the v3 UX goal in root `GOALS_v3.md`: when a user supplies the right command shape but a captured field is invalid, the engine should explain that specific field instead of falling through to generic help.
+This document describes the engine design for `SimpleMatcher` command diagnostics. It supports the v3 UX goal in root `GOALS_v3.md`: when a user supplies the right command shape but a captured field is invalid, the engine explains that specific field instead of falling through to generic help.
 
 ## Scope
 
@@ -24,17 +24,17 @@ Out of scope:
 
 ## First-Class Matcher Object
 
-`SimpleMatcher` should be represented as a compiled object, not only as a compiled regex string.
+`SimpleMatcher` is represented as a compiled object, not only as a compiled regex string.
 
-At load time, the object should:
-- parse the SimpleMatcher spec into an AST
-- compile exact matching regex data for current behavior
-- retain capture metadata: labels, types, choice values, and positional argument order
-- retain enough command-skeleton metadata to distinguish `NoMatch` from `SyntaxMatch`
+At load time, the object:
+- parses the SimpleMatcher spec into an AST
+- compiles exact matching regex data for current behavior
+- retains capture metadata: labels, types, choice values, and positional argument order
+- retains enough command-skeleton metadata to distinguish `NoMatch` from `SyntaxMatch`
 
-Regex-backed commands may keep the existing regex behavior. They only need `NoMatch` and `ExactMatch`.
+Regex-backed commands keep the existing regex behavior. They only need `NoMatch` and `ExactMatch`.
 
-The runtime contract should be shaped like:
+The runtime contract is shaped like:
 
 ```go
 type MatchKind int
@@ -101,7 +101,7 @@ The second input should flow to normal help/fallback because the command skeleto
 
 ## Labelled Choices
 
-Capturing choices should require a label prefix:
+Capturing choices require a label prefix:
 
 ```text
 (label:a|b|c)
@@ -116,7 +116,7 @@ The label may be empty:
 
 The first top-level colon separates the label from the values. In the empty-label example, the valid values are `foo:bar`, `baz`, and `frotz`.
 
-Unlabelled capturing choices such as `(trace|debug)` and `[disabled]` should be migrated to `(:trace|debug)` / `[:disabled]` or to a labelled form such as `(level:trace|debug)`.
+Unlabelled capturing choices such as `(trace|debug)` and `[disabled]` must be migrated to `(:trace|debug)` / `[:disabled]` or to a labelled form such as `(level:trace|debug)`.
 
 This is a v3 config syntax migration. It does not change plugin argument order.
 
@@ -128,7 +128,7 @@ Typed captures already support labels:
 <siding:ident>
 ```
 
-The matcher object should retain the label and type. If the skeleton matches and the user supplies an invalid value, the diagnostic should name the label and explain the type:
+The matcher object retains the label and type. If the skeleton matches and the user supplies an invalid value, the diagnostic names the label and explains the type:
 
 ```text
 Invalid value '9round' for 'siding'; expected an identifier starting with a letter, followed by letters, numbers, '_' or '-'.

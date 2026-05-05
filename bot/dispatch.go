@@ -36,6 +36,7 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 	var runTask interface{}
 	var matchedMatcher InputMatcher
 	var cmdArgs []string
+	var syntaxDiagnostics []string
 	// Note: skip the first task, dummy used for namespaces
 	for _, t := range w.tasks.t[1:] {
 		task, plugin, _ := getTask(t)
@@ -82,17 +83,15 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 				continue
 			}
 			Log(robot.Trace, "Checking '%s' against '%s'", cmsg, matcher.Regex)
-			matches := matcher.re.FindStringSubmatch(matchMsg)
-			if matches != nil {
-				cmsg = w.msg
-			} else {
-				matches = matcher.re.FindStringSubmatch(cmsg)
+			result := matcher.matchInput(matchMsg)
+			if result.kind == inputNoMatch {
+				result = matcher.matchInput(cmsg)
 			}
 			matched := false
-			if matches != nil {
+			if result.kind == inputExactMatch {
 				matched = true
 				Log(robot.Trace, "Message '%s' matches command '%s'", cmsg, matcher.Command)
-				cmdArgs = matches[1:]
+				cmdArgs = result.args
 				if len(matcher.Contexts) > 0 {
 					// Resolve & store "it" with ephemeral memories
 					ts := time.Now()
@@ -147,6 +146,8 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 					}
 					ephemeralMemories.Unlock()
 				}
+			} else if result.kind == inputSyntaxMatch && pipelineType == plugCommand && w.commandVisibleToUser(task, plugin, matcher.Command) {
+				syntaxDiagnostics = appendUniquePreserveOrder(syntaxDiagnostics, result.diagnostic)
 			}
 			if matched {
 				if messageMatched {
@@ -163,6 +164,15 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 			}
 		} // end of matcher checking
 	} // end of plugin checking
+	if !messageMatched && len(syntaxDiagnostics) == 1 {
+		r := w.makeRobot()
+		if w.Incoming.DirectMessage {
+			r.Say(syntaxDiagnostics[0])
+		} else {
+			r.SayThread(syntaxDiagnostics[0])
+		}
+		return true
+	}
 	if messageMatched {
 		task, _, _ := getTask(runTask)
 		w.messageHeard()

@@ -129,7 +129,7 @@ func TestCompileSimpleMatcherRejectsBareAlternation(t *testing.T) {
 }
 
 func TestCompileSimpleMatcherRequiredCapturingChoice(t *testing.T) {
-	re := mustCompileSimpleMatcherRegexp(t, "set log level {to} (trace|debug|info|warn|error)")
+	re := mustCompileSimpleMatcherRegexp(t, "set log level {to} (level:trace|debug|info|warn|error)")
 
 	matches := re.FindStringSubmatch("set log-level to debug")
 	if len(matches) != 2 {
@@ -145,6 +145,46 @@ func TestCompileSimpleMatcherRequiredCapturingChoice(t *testing.T) {
 	}
 	if matches[1] != "warn" {
 		t.Fatalf("captures = %#v, want warn", matches[1:])
+	}
+
+	matches = re.FindStringSubmatch("set log level trace")
+	if len(matches) != 2 {
+		t.Fatalf("len(matches) = %d, want 2 (%v)", len(matches), matches)
+	}
+	if matches[1] != "trace" {
+		t.Fatalf("captures = %#v, want trace", matches[1:])
+	}
+}
+
+func TestCompileSimpleMatcherEmptyLabelChoiceAllowsColonValues(t *testing.T) {
+	re := mustCompileSimpleMatcherRegexp(t, "set target (:foo:bar|baz|frotz)")
+
+	for _, tc := range []struct {
+		input string
+		want  string
+	}{
+		{"set target foo:bar", "foo:bar"},
+		{"set target baz", "baz"},
+		{"set target frotz", "frotz"},
+	} {
+		matches := re.FindStringSubmatch(tc.input)
+		if len(matches) != 2 {
+			t.Fatalf("len(matches) = %d for %q, want 2 (%v)", len(matches), tc.input, matches)
+		}
+		if matches[1] != tc.want {
+			t.Fatalf("captures for %q = %#v, want %q", tc.input, matches[1:], tc.want)
+		}
+	}
+}
+
+func TestCompileSimpleMatcherRejectsUnlabelledCapturingChoices(t *testing.T) {
+	for _, spec := range []string{
+		"set log level {to} (trace|debug|info)",
+		"set feature <name:ident> [disabled]",
+	} {
+		if _, err := compileSimpleMatcher(spec); err == nil {
+			t.Fatalf("compileSimpleMatcher(%q) succeeded, want labelled choice error", spec)
+		}
 	}
 }
 
@@ -206,7 +246,7 @@ func TestCompileSimpleMatcherShippedConfigArgPositions(t *testing.T) {
 	}{
 		{
 			name:    "logging level captures selected level only",
-			spec:    "set log level {to} (trace|debug|info|warn|error)",
+			spec:    "set log level {to} (level:trace|debug|info|warn|error)",
 			input:   "set log-level to debug",
 			capture: []string{"debug"},
 		},
@@ -286,7 +326,7 @@ func TestCompileSimpleMatcherShippedConfigArgPositions(t *testing.T) {
 }
 
 func TestCapturingOptional(t *testing.T) {
-	re := mustCompileSimpleMatcherRegexp(t, "set log-level <level:ident> [disabled]")
+	re := mustCompileSimpleMatcherRegexp(t, "set log-level <level:ident> [:disabled]")
 
 	matches := re.FindStringSubmatch("set log-level debug disabled")
 	if len(matches) != 3 {
@@ -335,7 +375,7 @@ func TestNoiseWordsGroupDoesNotCapture(t *testing.T) {
 }
 
 func TestMixedGroupsGroupCount(t *testing.T) {
-	re := mustCompileSimpleMatcherRegexp(t, "[verbose] show {me} <name:ident>")
+	re := mustCompileSimpleMatcherRegexp(t, "[:verbose] show {me} <name:ident>")
 
 	matches := re.FindStringSubmatch("verbose show me foo")
 	if len(matches) != 3 {
@@ -392,4 +432,81 @@ func TestCompileInputMatcherRules(t *testing.T) {
 	if err := compileInputMatcher(&InputMatcher{SimpleMatcher: "ping"}, false); err == nil {
 		t.Fatal("expected SimpleMatcher rejection outside Commands")
 	}
+}
+
+func mustCompileSimpleInputMatcher(t *testing.T, spec string) InputMatcher {
+	t.Helper()
+	matcher := InputMatcher{Command: "test", SimpleMatcher: spec}
+	if err := compileInputMatcher(&matcher, true); err != nil {
+		t.Fatalf("compileInputMatcher(%q): %v", spec, err)
+	}
+	return matcher
+}
+
+func assertInputMatchResult(t *testing.T, result inputMatchResult, wantKind inputMatchKind, wantArgs []string, wantDiagnostic string) {
+	t.Helper()
+	if result.kind != wantKind {
+		t.Fatalf("kind = %v, want %v (result: %#v)", result.kind, wantKind, result)
+	}
+	if len(result.args) != len(wantArgs) {
+		t.Fatalf("args = %#v, want %#v", result.args, wantArgs)
+	}
+	for i, want := range wantArgs {
+		if result.args[i] != want {
+			t.Fatalf("args = %#v, want %#v", result.args, wantArgs)
+		}
+	}
+	if result.diagnostic != wantDiagnostic {
+		t.Fatalf("diagnostic = %q, want %q", result.diagnostic, wantDiagnostic)
+	}
+}
+
+func TestSimpleMatcherInputMatchExactLabelledChoice(t *testing.T) {
+	matcher := mustCompileSimpleInputMatcher(t, "set loglevel {to} (level:trace|debug|info|warn|error)")
+
+	result := matcher.matchInput("set-loglevel to debug")
+
+	assertInputMatchResult(t, result, inputExactMatch, []string{"debug"}, "")
+}
+
+func TestSimpleMatcherInputMatchSyntaxDiagnosticForLabelledChoice(t *testing.T) {
+	matcher := mustCompileSimpleInputMatcher(t, "set loglevel {to} (level:trace|debug|info|warn|error)")
+
+	result := matcher.matchInput("set loglevel to fine")
+
+	assertInputMatchResult(t, result, inputSyntaxMatch, nil, "Invalid value 'fine' for 'level'; valid values: trace, debug, info, warn, error.")
+}
+
+func TestSimpleMatcherInputMatchSkeletonMismatchIsNoMatch(t *testing.T) {
+	matcher := mustCompileSimpleInputMatcher(t, "set loglevel {to} (level:trace|debug|info|warn|error)")
+
+	for _, input := range []string{
+		"set logging to fine",
+		"set loglevel to fine now",
+		"loglevel to fine",
+	} {
+		result := matcher.matchInput(input)
+		assertInputMatchResult(t, result, inputNoMatch, nil, "")
+	}
+}
+
+func TestSimpleMatcherInputMatchSyntaxDiagnosticForTypedCapture(t *testing.T) {
+	matcher := mustCompileSimpleInputMatcher(t, "deploy siding <siding:ident>")
+
+	result := matcher.matchInput("deploy siding 9round")
+
+	assertInputMatchResult(t, result, inputSyntaxMatch, nil, "Invalid value '9round' for 'siding'; expected an identifier starting with a letter, followed by letters, numbers, '_' or '-'.")
+}
+
+func TestSimpleMatcherInputMatchOptionalTypedCaptureDiagnostics(t *testing.T) {
+	matcher := mustCompileSimpleInputMatcher(t, "show /log|logs/ [page <page:number>]")
+
+	result := matcher.matchInput("show logs page two")
+	assertInputMatchResult(t, result, inputSyntaxMatch, nil, "Invalid value 'two' for 'page'; expected an integer.")
+
+	result = matcher.matchInput("show logs two")
+	assertInputMatchResult(t, result, inputNoMatch, nil, "")
+
+	result = matcher.matchInput("show logs")
+	assertInputMatchResult(t, result, inputExactMatch, []string{""}, "")
 }

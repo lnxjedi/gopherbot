@@ -29,9 +29,47 @@ var simpleMatcherTypePatterns = map[string]string{
 	"url":      `[A-Za-z][A-Za-z0-9+.-]*://[^\s]+`,
 }
 
+var simpleMatcherTypeDescriptions = map[string]string{
+	"base64":   "base64 text.",
+	"bool":     "a boolean value: true, false, yes, no, on, off, 1, or 0.",
+	"cidr":     "a CIDR block like 10.0.0.0/24.",
+	"decimal":  "a decimal number.",
+	"dnsname":  "a DNS hostname.",
+	"duration": "a Go-style duration like 5m30s.",
+	"email":    "an email address.",
+	"ident":    "an identifier starting with a letter, followed by letters, numbers, '_' or '-'.",
+	"ip":       "an IP address.",
+	"ipv4":     "an IPv4 address.",
+	"ipv6":     "an IPv6 address.",
+	"number":   "an integer.",
+	"slug":     "a slug-like identifier.",
+	"token":    "a non-whitespace token.",
+	"url":      "a full URL.",
+}
+
 type simpleMatcherParser struct {
 	spec string
 	pos  int
+}
+
+type inputMatchKind int
+
+const (
+	inputNoMatch inputMatchKind = iota
+	inputSyntaxMatch
+	inputExactMatch
+)
+
+type inputMatchResult struct {
+	kind       inputMatchKind
+	args       []string
+	diagnostic string
+}
+
+type simpleMatcher struct {
+	spec  string
+	expr  simpleMatcherExpr
+	regex string
 }
 
 type simpleMatcherExpr struct {
@@ -46,6 +84,7 @@ type simpleMatcherTerm interface {
 	compileBare() (string, error)
 	isOptional() bool
 	containsSlot() bool
+	matchTokens([]simpleMatcherToken, simpleMatcherMatchState) []simpleMatcherMatchState
 }
 
 type simpleMatcherLiteral struct {
@@ -59,6 +98,7 @@ type simpleMatcherSlot struct {
 
 type simpleMatcherGroup struct {
 	expr      simpleMatcherExpr
+	label     string
 	optional  bool
 	capturing bool
 }
@@ -80,11 +120,12 @@ func compileInputMatcher(matcher *InputMatcher, allowSimple bool) error {
 	}
 
 	if simple != "" {
-		compiled, err := compileSimpleMatcher(simple)
+		compiled, err := compileSimpleMatcherObject(simple)
 		if err != nil {
 			return err
 		}
-		regex = compiled
+		matcher.simple = compiled
+		regex = compiled.regex
 	}
 
 	wrapped := `^(?s:\s*` + regex + `\s*)$`
@@ -98,27 +139,39 @@ func compileInputMatcher(matcher *InputMatcher, allowSimple bool) error {
 }
 
 func compileSimpleMatcher(spec string) (string, error) {
+	compiled, err := compileSimpleMatcherObject(spec)
+	if err != nil {
+		return "", err
+	}
+	return compiled.regex, nil
+}
+
+func compileSimpleMatcherObject(spec string) (*simpleMatcher, error) {
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
-		return "", fmt.Errorf("SimpleMatcher cannot be empty")
+		return nil, fmt.Errorf("SimpleMatcher cannot be empty")
 	}
 	parser := simpleMatcherParser{spec: spec}
 	expr, err := parser.parseExpr(0)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	parser.skipSpaces()
 	if !parser.eof() {
-		return "", fmt.Errorf("unexpected trailing character %q in SimpleMatcher", parser.peek())
+		return nil, fmt.Errorf("unexpected trailing character %q in SimpleMatcher", parser.peek())
 	}
 	regex, err := expr.compileBare()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if regex == "" {
-		return "", fmt.Errorf("SimpleMatcher cannot compile to an empty pattern")
+		return nil, fmt.Errorf("SimpleMatcher cannot compile to an empty pattern")
 	}
-	return `(?i:` + regex + `)`, nil
+	return &simpleMatcher{
+		spec:  spec,
+		expr:  expr,
+		regex: `(?i:` + regex + `)`,
+	}, nil
 }
 
 func (p *simpleMatcherParser) parseExpr(end rune) (simpleMatcherExpr, error) {
@@ -181,12 +234,16 @@ func (p *simpleMatcherParser) parseTerm() (simpleMatcherTerm, error) {
 	switch p.peek() {
 	case '[':
 		p.pos++
-		expr, err := p.parseExpr(']')
+		body, err := p.readDelimitedBody(']')
+		if err != nil {
+			return nil, err
+		}
+		expr, label, err := parseSimpleMatcherBracketBody(body, true)
 		if err != nil {
 			return nil, err
 		}
 		hasSlots := expr.containsSlot()
-		return simpleMatcherGroup{expr: expr, optional: true, capturing: !hasSlots}, nil
+		return simpleMatcherGroup{expr: expr, label: label, optional: true, capturing: !hasSlots}, nil
 	case '{':
 		p.pos++
 		expr, err := p.parseExpr('}')
@@ -199,14 +256,18 @@ func (p *simpleMatcherParser) parseTerm() (simpleMatcherTerm, error) {
 		return simpleMatcherGroup{expr: expr, optional: true, capturing: false}, nil
 	case '(':
 		p.pos++
-		expr, err := p.parseExpr(')')
+		body, err := p.readDelimitedBody(')')
+		if err != nil {
+			return nil, err
+		}
+		expr, label, err := parseSimpleMatcherBracketBody(body, false)
 		if err != nil {
 			return nil, err
 		}
 		if expr.containsSlot() {
 			return nil, fmt.Errorf("capturing SimpleMatcher choice cannot contain typed captures")
 		}
-		return simpleMatcherGroup{expr: expr, capturing: true}, nil
+		return simpleMatcherGroup{expr: expr, label: label, capturing: true}, nil
 	case '/':
 		p.pos++
 		expr, err := p.parseExpr('/')
@@ -244,6 +305,73 @@ func (p *simpleMatcherParser) parseTerm() (simpleMatcherTerm, error) {
 		}
 		return simpleMatcherLiteral{value: literal}, nil
 	}
+}
+
+func parseSimpleMatcherBracketBody(body string, optional bool) (simpleMatcherExpr, string, error) {
+	body = strings.TrimSpace(body)
+	if body == "" {
+		return simpleMatcherExpr{}, "", fmt.Errorf("capturing SimpleMatcher choice cannot be empty")
+	}
+	if strings.Contains(body, "<") {
+		expr, err := parseSimpleMatcherInnerExpr(body)
+		if err != nil {
+			return simpleMatcherExpr{}, "", err
+		}
+		if !optional {
+			return simpleMatcherExpr{}, "", fmt.Errorf("capturing SimpleMatcher choice cannot contain typed captures")
+		}
+		return expr, "", nil
+	}
+	colon := strings.IndexRune(body, ':')
+	if colon < 0 {
+		return simpleMatcherExpr{}, "", fmt.Errorf("capturing SimpleMatcher choice must include a label prefix")
+	}
+	label := strings.TrimSpace(body[:colon])
+	if label != "" && !simpleMatcherIdentifierRe.MatchString(label) {
+		return simpleMatcherExpr{}, "", fmt.Errorf("invalid SimpleMatcher choice label %q", label)
+	}
+	choices := strings.TrimSpace(body[colon+1:])
+	if choices == "" {
+		return simpleMatcherExpr{}, "", fmt.Errorf("capturing SimpleMatcher choice must include at least one value")
+	}
+	expr, err := parseSimpleMatcherInnerExpr(choices)
+	if err != nil {
+		return simpleMatcherExpr{}, "", err
+	}
+	return expr, label, nil
+}
+
+func parseSimpleMatcherInnerExpr(spec string) (simpleMatcherExpr, error) {
+	parser := simpleMatcherParser{spec: spec}
+	alternatives := make([]simpleMatcherSequence, 0, 1)
+	for {
+		seq, err := parser.parseSequence(0)
+		if err != nil {
+			return simpleMatcherExpr{}, err
+		}
+		alternatives = append(alternatives, seq)
+		parser.skipSpaces()
+		if parser.eof() {
+			return simpleMatcherExpr{alternatives: alternatives}, nil
+		}
+		if parser.peek() != '|' {
+			return simpleMatcherExpr{}, fmt.Errorf("unexpected character %q in SimpleMatcher choice", parser.peek())
+		}
+		parser.pos++
+	}
+}
+
+func (p *simpleMatcherParser) readDelimitedBody(end rune) (string, error) {
+	start := p.pos
+	for !p.eof() && p.peek() != end {
+		p.pos++
+	}
+	if p.eof() {
+		return "", fmt.Errorf("unterminated SimpleMatcher group, missing %q", string(end))
+	}
+	body := p.spec[start:p.pos]
+	p.pos++
+	return body, nil
 }
 
 func parseSimpleMatcherSlot(raw string) (simpleMatcherTerm, error) {
@@ -479,6 +607,264 @@ func (g simpleMatcherGroup) literalSequences() [][]string {
 		return options
 	}
 	return append([][]string{{}}, options...)
+}
+
+func (m InputMatcher) matchInput(input string) inputMatchResult {
+	tryExact := func(candidate string) inputMatchResult {
+		if m.re == nil {
+			return inputMatchResult{kind: inputNoMatch}
+		}
+		matches := m.re.FindStringSubmatch(candidate)
+		if matches == nil {
+			return inputMatchResult{kind: inputNoMatch}
+		}
+		return inputMatchResult{kind: inputExactMatch, args: matches[1:]}
+	}
+
+	if exact := tryExact(input); exact.kind == inputExactMatch {
+		return exact
+	}
+	collapsed := spaceRe.ReplaceAllString(input, " ")
+	if collapsed != input {
+		if exact := tryExact(collapsed); exact.kind == inputExactMatch {
+			return exact
+		}
+	}
+
+	if m.simple == nil {
+		return inputMatchResult{kind: inputNoMatch}
+	}
+	return m.simple.syntaxMatch(input)
+}
+
+type simpleMatcherToken struct {
+	value string
+}
+
+type simpleMatcherMatchState struct {
+	pos        int
+	args       []string
+	diagnostic string
+}
+
+func (s *simpleMatcher) syntaxMatch(input string) inputMatchResult {
+	tokens := simpleMatcherTokenize(input)
+	if len(tokens) == 0 {
+		return inputMatchResult{kind: inputNoMatch}
+	}
+	states := s.expr.matchTokens(tokens, simpleMatcherMatchState{})
+	var diagnostics []string
+	for _, state := range states {
+		if state.pos != len(tokens) {
+			continue
+		}
+		if state.diagnostic == "" {
+			return inputMatchResult{kind: inputExactMatch, args: state.args}
+		}
+		diagnostics = appendUniquePreserveOrder(diagnostics, state.diagnostic)
+	}
+	if len(diagnostics) == 1 {
+		return inputMatchResult{kind: inputSyntaxMatch, diagnostic: diagnostics[0]}
+	}
+	return inputMatchResult{kind: inputNoMatch}
+}
+
+func simpleMatcherTokenize(input string) []simpleMatcherToken {
+	parts := strings.FieldsFunc(strings.TrimSpace(input), func(ch rune) bool {
+		return isSimpleMatcherSpace(ch) || ch == '-'
+	})
+	tokens := make([]simpleMatcherToken, 0, len(parts))
+	for _, part := range parts {
+		if part == "" {
+			continue
+		}
+		tokens = append(tokens, simpleMatcherToken{value: part})
+	}
+	return tokens
+}
+
+func (e simpleMatcherExpr) matchTokens(tokens []simpleMatcherToken, state simpleMatcherMatchState) []simpleMatcherMatchState {
+	var out []simpleMatcherMatchState
+	for _, alt := range e.alternatives {
+		out = append(out, alt.matchTokens(tokens, state)...)
+	}
+	return out
+}
+
+func (s simpleMatcherSequence) matchTokens(tokens []simpleMatcherToken, initial simpleMatcherMatchState) []simpleMatcherMatchState {
+	states := []simpleMatcherMatchState{initial}
+	for _, term := range s.terms {
+		var next []simpleMatcherMatchState
+		for _, state := range states {
+			next = append(next, term.matchTokens(tokens, state)...)
+		}
+		states = next
+		if len(states) == 0 {
+			break
+		}
+	}
+	return states
+}
+
+func (l simpleMatcherLiteral) matchTokens(tokens []simpleMatcherToken, state simpleMatcherMatchState) []simpleMatcherMatchState {
+	parts := simpleMatcherLiteralParts(l.value)
+	if len(parts) == 0 || state.pos+len(parts) > len(tokens) {
+		return nil
+	}
+	for i, part := range parts {
+		if !strings.EqualFold(tokens[state.pos+i].value, part) {
+			return nil
+		}
+	}
+	state.pos += len(parts)
+	return []simpleMatcherMatchState{state}
+}
+
+func (s simpleMatcherSlot) matchTokens(tokens []simpleMatcherToken, state simpleMatcherMatchState) []simpleMatcherMatchState {
+	if state.pos >= len(tokens) {
+		return nil
+	}
+	value := tokens[state.pos].value
+	if s.kind == "rest" {
+		value = joinSimpleMatcherTokens(tokens[state.pos:])
+		state.pos = len(tokens)
+		state.args = append(state.args, value)
+		return []simpleMatcherMatchState{state}
+	}
+	if simpleMatcherTypeMatches(s.kind, value) {
+		state.pos++
+		state.args = append(state.args, value)
+		return []simpleMatcherMatchState{state}
+	}
+	if state.diagnostic != "" {
+		return nil
+	}
+	state.pos++
+	state.diagnostic = invalidSimpleMatcherTypeDiagnostic(s.name, s.kind, value)
+	return []simpleMatcherMatchState{state}
+}
+
+func (g simpleMatcherGroup) matchTokens(tokens []simpleMatcherToken, state simpleMatcherMatchState) []simpleMatcherMatchState {
+	var out []simpleMatcherMatchState
+	if g.optional {
+		out = append(out, state)
+	}
+	if g.capturing && !g.containsSlot() {
+		out = append(out, g.matchChoiceTokens(tokens, state)...)
+		return out
+	}
+	return append(out, g.expr.matchTokens(tokens, state)...)
+}
+
+func (g simpleMatcherGroup) matchChoiceTokens(tokens []simpleMatcherToken, state simpleMatcherMatchState) []simpleMatcherMatchState {
+	var out []simpleMatcherMatchState
+	for _, alt := range g.expr.alternatives {
+		if value, ok := alt.literalValueAt(tokens, state.pos); ok {
+			matched := state
+			matched.pos += len(simpleMatcherSequenceLiteralParts(alt))
+			matched.args = append(matched.args, value)
+			out = append(out, matched)
+		}
+	}
+	if len(out) > 0 || state.pos >= len(tokens) || state.diagnostic != "" {
+		return out
+	}
+	invalid := state
+	invalid.pos++
+	invalid.diagnostic = invalidSimpleMatcherChoiceDiagnostic(g.label, tokens[state.pos].value, g.choiceValues())
+	return append(out, invalid)
+}
+
+func (s simpleMatcherSequence) literalValueAt(tokens []simpleMatcherToken, pos int) (string, bool) {
+	parts := simpleMatcherSequenceLiteralParts(s)
+	if len(parts) == 0 || pos+len(parts) > len(tokens) {
+		return "", false
+	}
+	for i, part := range parts {
+		if !strings.EqualFold(tokens[pos+i].value, part) {
+			return "", false
+		}
+	}
+	values := make([]simpleMatcherToken, len(parts))
+	copy(values, tokens[pos:pos+len(parts)])
+	return joinSimpleMatcherTokens(values), true
+}
+
+func simpleMatcherSequenceLiteralParts(s simpleMatcherSequence) []string {
+	var parts []string
+	for _, term := range s.terms {
+		lit, ok := term.(simpleMatcherLiteral)
+		if !ok {
+			return nil
+		}
+		parts = append(parts, simpleMatcherLiteralParts(lit.value)...)
+	}
+	return parts
+}
+
+func (g simpleMatcherGroup) choiceValues() []string {
+	values := make([]string, 0, len(g.expr.alternatives))
+	for _, alt := range g.expr.alternatives {
+		parts := simpleMatcherSequenceLiteralParts(alt)
+		if len(parts) == 0 {
+			continue
+		}
+		values = append(values, strings.Join(parts, " "))
+	}
+	return values
+}
+
+func simpleMatcherLiteralParts(value string) []string {
+	raw := strings.FieldsFunc(value, func(ch rune) bool {
+		return isSimpleMatcherSpace(ch) || ch == '-'
+	})
+	parts := make([]string, 0, len(raw))
+	for _, part := range raw {
+		if part == "" {
+			continue
+		}
+		parts = append(parts, part)
+	}
+	return parts
+}
+
+func joinSimpleMatcherTokens(tokens []simpleMatcherToken) string {
+	values := make([]string, 0, len(tokens))
+	for _, token := range tokens {
+		values = append(values, token.value)
+	}
+	return strings.Join(values, " ")
+}
+
+func simpleMatcherTypeMatches(kind, value string) bool {
+	pattern, ok := simpleMatcherTypePatterns[kind]
+	if !ok {
+		return false
+	}
+	re, err := regexp.Compile(`(?i:^(?:` + pattern + `)$)`)
+	if err != nil {
+		return false
+	}
+	return re.MatchString(value)
+}
+
+func invalidSimpleMatcherTypeDiagnostic(label, kind, value string) string {
+	name := strings.TrimSpace(label)
+	if name == "" {
+		name = kind
+	}
+	description := simpleMatcherTypeDescriptions[kind]
+	if description == "" {
+		description = "a valid " + kind + " value."
+	}
+	return fmt.Sprintf("Invalid value '%s' for '%s'; expected %s", value, name, description)
+}
+
+func invalidSimpleMatcherChoiceDiagnostic(label, value string, choices []string) string {
+	if strings.TrimSpace(label) == "" {
+		return fmt.Sprintf("Invalid value '%s'; valid values: %s.", value, strings.Join(choices, ", "))
+	}
+	return fmt.Sprintf("Invalid value '%s' for '%s'; valid values: %s.", value, label, strings.Join(choices, ", "))
 }
 
 func (p *simpleMatcherParser) skipSpaces() {

@@ -4,7 +4,7 @@ RequireAdmin: true
 Commands:
 - Command: "level"
   # Regex: '(?i:set[- ]log ?level(?: to)? (trace|debug|info|warn|error))'
-  SimpleMatcher: "set log level {to} (trace|debug|info|warn|error)"
+  SimpleMatcher: "set log level {to} (level:trace|debug|info|warn|error)"
   Keywords: [ "log", "logs", "level" ]
   Usage: "set-loglevel to <trace|debug|info|warning|error>"
   Summary: "adjust the logging verbosity"

@@ -208,13 +208,11 @@ After implementation:
 6. if the change touched core engine code or connector runtime behavior, rebuild the binary with `make` before closing out work
 
 For any task where integration tests are applicable:
-7. run the applicable integration suite before closing out work — always redirect output to file, never stream to context:
-   ```
-   go test -run TestFoo -v --tags 'test integration netgo osusergo static_build' -mod readonly -race ./test \
-     > /tmp/gopherbot-test.txt 2>&1; echo "EXIT:$?"
-   ```
-   Then read summary only: `grep -E "^(--- (PASS|FAIL)|FAIL\t|ok\t)" /tmp/gopherbot-test.txt`
-   On failure, extract the failing test only: `awk '/=== RUN   TestFoo$/,/--- FAIL: TestFoo/' /tmp/gopherbot-test.txt`
+7. run the applicable process-backed integration suite through the MCP-integrated runner, not the legacy `go test ./test` harness:
+   - build the MCP helper and integration runner with `make mcp integration-build` when needed
+   - call `gopherbot-mcp` tool `run_integration_suite` for the specific suite name, with `live_output=false`
+   - use the compact MCP result summary and artifact paths; read `result.json`, `runner.log`, or `robot.log` only as needed
+   - do not use `make integration-legacy` or direct `go test ./test` unless the project owner explicitly asks for the legacy harness
 8. classify every integration failure as either:
    - a real regression / newly introduced bug
    - an intentional behavior change with outdated test expectations

@@ -147,6 +147,8 @@ func TestBuiltins(t *testing.T) {
 
 	tests := []testItem{
 		{aliceID, general, ";help log", false, []TestMessage{{null, general, `(?s:Command matches for keyword: log.*Availability: direct message only)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, null, ";set log level fine", false, []TestMessage{{alice, null, "Invalid value 'fine' for 'level'; valid values: trace, debug, info, warn, error\\.", false}}, []Event{BotDirectMessage}, 0},
+		{aliceID, null, ";set log lines to two", false, []TestMessage{{alice, null, "Invalid value 'two' for 'lines'; expected an integer\\.", false}}, []Event{BotDirectMessage}, 0},
 		{aliceID, null, ";set log lines to 0", false, []TestMessage{{alice, null, "Lines per page of log output set to: 1", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, ";set log lines to 3", false, []TestMessage{{alice, null, "Lines per page of log output set to: 3", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";help info", false, []TestMessage{{null, general, `(?s:Command matches for keyword: info.*Summary: .*admins.*)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
@@ -161,8 +163,8 @@ func TestBuiltins(t *testing.T) {
 		{aliceID, general, "/bender: dump plugin junk", false, []TestMessage{{null, general, "Didn't find .* junk", false}}, []Event{AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "/bender: list plugins", false, []TestMessage{{null, general, `(?s:Here are the plugins I have configured:.*builtin-admin)`, false}}, []Event{AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "/bender: list disabled plugins", false, []TestMessage{{null, general, `(?s:(Here's a list of all disabled plugins:|There are no disabled plugins))`, false}}, []Event{AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, ";list jobs", false, []TestMessage{{null, general, `(?s:(Here's a list of jobs for this channel:|I don't see any jobs configured for this channel))`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, ";list all jobs", false, []TestMessage{{null, general, `(?s:(Here's a list of all the jobs I know about:|I dont' have any jobs configured))`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";list jobs", false, []TestMessage{{null, general, `(?s:(Here's a list of jobs for this channel:|I don't see any jobs configured for this channel))`, false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";list all jobs", false, []TestMessage{{null, general, `(?s:(Here's a list of all the jobs I know about:|I dont' have any jobs configured))`, false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, ";show log", false, []TestMessage{{alice, null, ".*", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, ";show log page 1", false, []TestMessage{{alice, null, ".*", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 	}

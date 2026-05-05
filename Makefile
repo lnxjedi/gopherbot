@@ -1,6 +1,6 @@
 # Makefile - just builds the binary, for dev mainly
 
-.PHONY: clean test fulltest unit integration integration-build integration-run integration-legacy integration-full generate testbot static dist containers debug mcp docs-check
+.PHONY: clean test fulltest unit integration integration-build integration-run integration-mcp integration-legacy integration-full generate testbot static dist containers debug mcp docs-check
 
 commit := -X main.Commit=$(shell git rev-parse --short HEAD)
 version := $(shell ./get-version.sh)
@@ -79,6 +79,9 @@ integration-build: gopherbot-integration
 
 integration-run: gopherbot-integration
 	./gopherbot-integration run-suite $(if $(TEST),$(TEST),all)
+
+integration-mcp: gopherbot-mcp gopherbot-integration
+	printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"run_integration_suite","arguments":{"suite":"$(if $(TEST),$(TEST),all)","build":false,"live":false,"include_output_tail":true,"tail_lines":80}}}' | ./gopherbot-mcp
 
 integration-legacy: gopherbot
 	${TESTENV} go test ${TESTARGS} -v --tags 'test integration netgo osusergo static_build' -mod readonly -race ./test
