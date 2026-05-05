@@ -26,13 +26,28 @@ Forward plan:
 - `gopherbot-integration run-suite <SuiteName>` is the new process-backed
   suite-runner entrypoint. It creates an isolated directory under
   `integration/runs/`, starts a real robot process in that directory using the
-  scripted test connector, prints live interaction, and writes `result.json`
-  plus `robot.log`.
+  scripted test connector, prints live interaction when requested, and writes
+  `result.json`, `robot.log`, and `transcript.txt`. The transcript contains the
+  same `->` / `<-` interaction lines that live output prints.
+- `gopherbot-integration` owns its top-level CLI. Running it with no arguments
+  or `--help` prints integration-runner help rather than starting a robot.
+  Explicit `gopherbot-integration run [gopherbot flags]` is the high-fidelity
+  robot-start path for debugging.
+- `gopherbot-integration run-suite all` creates one timestamped artifact
+  directory for the invocation, then writes each suite under its own
+  subdirectory inside that run directory. The runner prints the single
+  "Results recorded in" path at the end.
+- `gopherbot-integration run-suite` also accepts exact suite names, glob
+  patterns such as `TestLuaFull*`, multiple selectors as separate CLI
+  arguments, and comma-separated selector lists for MCP calls. Any selector
+  invocation that resolves to multiple suites uses one timestamped artifact
+  directory for the whole invocation.
 - `gopherbot-mcp` exposes integration runner tools for AI automation:
   `list_integration_suites`, `run_integration_suite`, and
   `read_integration_result`. `run_integration_suite` builds
   `gopherbot-integration` by default, runs the selected suite with output
-  redirected to artifact files, and returns a compact summary plus paths.
+  redirected to artifact files, and returns a compact summary plus paths,
+  including `results_root` for the common output directory.
 - `make integration-mcp TEST=<SuiteName>` wraps `gopherbot-mcp`
   `run_integration_suite` for local/AI use. Prefer this wrapper when running
   from Codex so the already-approved `make` path is used instead of repeatedly

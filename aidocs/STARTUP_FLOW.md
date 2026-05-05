@@ -29,6 +29,13 @@ Internal exception:
 * `main.go` → `bot.Start()` in `bot/start.go`
 * `bot.Start()` → `initBot()` → `run()` in `bot/bot_process.go`
 
+Install path note:
+
+- `bot.Start()` resolves the executable path through symlinks before deriving
+  `installPath`. This supports developer/operator installs such as
+  `~/.local/bin/gopherbot -> /path/to/gopherbot/gopherbot` while still loading
+  installed defaults from the real repository/distribution directory.
+
 Test harness note:
 
 - `StartTest()` in `bot/start_t.go` follows the same `initBot()` → `run()` path, then waits for the current async plugin-init batch to reach quiescence before returning to the integration harness. This test-only barrier does not change production startup behavior.

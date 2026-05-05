@@ -8,6 +8,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -36,6 +37,7 @@ type suiteResult struct {
 	OutputDir  string           `json:"output_dir"`
 	RobotDir   string           `json:"robot_dir"`
 	RobotLog   string           `json:"robot_log"`
+	Transcript string           `json:"transcript"`
 	ResultPath string           `json:"result_path"`
 	Failures   []suites.Failure `json:"failures"`
 }
@@ -46,16 +48,31 @@ type runOutcome struct {
 }
 
 func main() {
-	if len(os.Args) > 1 {
-		switch os.Args[1] {
-		case "list-suites":
-			os.Exit(listSuites())
-		case "run-suite":
-			os.Exit(runSuiteCommand(os.Args[2:]))
-		}
+	if len(os.Args) == 1 {
+		printIntegrationUsage(os.Stdout)
+		return
 	}
+	switch os.Args[1] {
+	case "-h", "--help", "help":
+		printIntegrationUsage(os.Stdout)
+		return
+	case "list-suites":
+		os.Exit(listSuitesCommand(os.Args[2:]))
+	case "run-suite":
+		os.Exit(runSuiteCommand(os.Args[2:]))
+	case "run":
+		runRobot(os.Args[2:])
+		return
+	default:
+		fmt.Fprintf(os.Stderr, "unknown gopherbot-integration command %q\n\n", os.Args[1])
+		printIntegrationUsage(os.Stderr)
+		os.Exit(2)
+	}
+}
 
+func runRobot(args []string) {
 	bot.ProcessRegistrations()
+	os.Args = append([]string{os.Args[0]}, append(args, "run")...)
 	bot.Start(versionInfo())
 }
 
@@ -66,7 +83,70 @@ func versionInfo() bot.VersionInfo {
 	}
 }
 
-func listSuites() int {
+func isHelpArg(arg string) bool {
+	return arg == "-h" || arg == "--help" || arg == "help"
+}
+
+func printIntegrationUsage(out io.Writer) {
+	fmt.Fprintf(out, `gopherbot-integration runs process-backed Gopherbot integration suites.
+
+Usage:
+  gopherbot-integration <command> [arguments]
+
+Commands:
+  list-suites              List registered suite names and config directories.
+  run-suite [flags] SELECT Run one or more suites by exact name, glob, comma list, or all.
+  run [gopherbot flags]    Start a real robot using this integration binary.
+  help                     Show this help.
+
+Examples:
+  gopherbot-integration list-suites
+  gopherbot-integration run-suite TestBotName
+  gopherbot-integration run-suite 'TestShFull*'
+  gopherbot-integration run-suite TestLuaFullEncryptSecret,TestShFullEncryptSecret
+  gopherbot-integration run -log robot.log
+
+The suite runner uses the real engine and scripted test connector. The explicit
+"run" command is available for fidelity/debugging, but no-argument invocation is
+reserved for this integration CLI help.
+`)
+}
+
+func printListSuitesUsage(out io.Writer) {
+	fmt.Fprintf(out, `Usage:
+  gopherbot-integration list-suites
+
+Lists registered integration suite names and their config directories.
+`)
+}
+
+func printRunSuiteUsage(out io.Writer) {
+	fmt.Fprintf(out, `Usage:
+  gopherbot-integration run-suite [flags] <suite-name|glob|all> [suite-name|glob...]
+
+Selectors:
+  TestBotName                         Exact suite name.
+  'TestShFull*'                       Shell-style glob matched against suite names.
+  TestLuaFull*,TestShFullEncrypt*     Comma-separated selector list.
+  all                                 All registered suites.
+
+Flags:
+  -output-root DIR   Directory for integration artifacts (default integration/runs).
+  -run-id ID         Shared run identifier for grouped suite artifacts.
+  -timeout DURATION  Per-suite timeout (default 2m).
+  -live              Print scripted interaction while running (default true).
+`)
+}
+
+func listSuitesCommand(args []string) int {
+	if len(args) > 0 {
+		if len(args) == 1 && isHelpArg(args[0]) {
+			printListSuitesUsage(os.Stdout)
+			return 0
+		}
+		fmt.Fprintln(os.Stderr, "usage: gopherbot-integration list-suites")
+		return 2
+	}
 	for _, suite := range suites.List() {
 		fmt.Printf("%s\t%s\n", suite.Name, suite.ConfigDir)
 	}
@@ -75,14 +155,19 @@ func listSuites() int {
 
 func runSuiteCommand(args []string) int {
 	fs := flag.NewFlagSet("run-suite", flag.ContinueOnError)
+	fs.Usage = func() { printRunSuiteUsage(fs.Output()) }
 	outputRoot := fs.String("output-root", filepath.Join("integration", "runs"), "directory for integration run artifacts")
 	live := fs.Bool("live", true, "print live scripted interaction")
 	timeout := fs.Duration("timeout", 2*time.Minute, "per-suite timeout")
+	runID := fs.String("run-id", "", "shared run identifier for grouped suite artifacts")
 	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
 		return 2
 	}
-	if fs.NArg() != 1 {
-		fmt.Fprintln(os.Stderr, "usage: gopherbot-integration run-suite [flags] <suite-name|all>")
+	if fs.NArg() < 1 {
+		printRunSuiteUsage(os.Stderr)
 		return 2
 	}
 
@@ -96,17 +181,16 @@ func runSuiteCommand(args []string) int {
 		absOutputRoot = filepath.Join(root, absOutputRoot)
 	}
 
-	selector := fs.Arg(0)
-	if strings.EqualFold(selector, "all") {
-		return runAllSuites(absOutputRoot, *live, *timeout)
-	}
-
-	suite, ok := suites.Get(selector)
-	if !ok {
-		fmt.Fprintf(os.Stderr, "unknown suite %q\n", selector)
+	selected, err := resolveSuiteSelectors(fs.Args())
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	outcome := runOneSuite(root, absOutputRoot, suite, *live, *timeout)
+	if len(selected) > 1 {
+		return runSuites(absOutputRoot, selected, *live, *timeout, *runID)
+	}
+	suite := selected[0]
+	outcome := runOneSuite(root, absOutputRoot, suite, *live, *timeout, *runID)
 	if outcome.err != nil {
 		fmt.Fprintf(os.Stderr, "suite %s failed to run: %v\n", suite.Name, outcome.err)
 		return 1
@@ -118,12 +202,68 @@ func runSuiteCommand(args []string) int {
 	return 0
 }
 
-func runAllSuites(outputRoot string, live bool, timeout time.Duration) int {
+func resolveSuiteSelectors(selectors []string) ([]suites.Suite, error) {
+	expanded := make([]string, 0, len(selectors))
+	for _, selector := range selectors {
+		for _, part := range strings.Split(selector, ",") {
+			part = strings.TrimSpace(part)
+			if part != "" {
+				expanded = append(expanded, part)
+			}
+		}
+	}
+	if len(expanded) == 0 {
+		return nil, errors.New("no suite selectors provided")
+	}
+	all := suites.List()
+	selected := make([]suites.Suite, 0, len(all))
+	seen := make(map[string]bool)
+	for _, selector := range expanded {
+		if strings.EqualFold(selector, "all") {
+			selector = "*"
+		}
+		matchedAny := false
+		if suite, ok := suites.Get(selector); ok {
+			matchedAny = true
+			if !seen[suite.Name] {
+				seen[suite.Name] = true
+				selected = append(selected, suite)
+			}
+			continue
+		}
+		for _, suite := range all {
+			matched, err := filepath.Match(selector, suite.Name)
+			if err != nil {
+				return nil, fmt.Errorf("invalid suite glob %q: %w", selector, err)
+			}
+			if !matched {
+				continue
+			}
+			matchedAny = true
+			if seen[suite.Name] {
+				continue
+			}
+			seen[suite.Name] = true
+			selected = append(selected, suite)
+		}
+		if !matchedAny {
+			return nil, fmt.Errorf("suite selector %q did not match any registered suites", selector)
+		}
+	}
+	return selected, nil
+}
+
+func runSuites(outputRoot string, selected []suites.Suite, live bool, timeout time.Duration, runID string) int {
+	if strings.TrimSpace(runID) == "" {
+		runID = time.Now().UTC().Format("20060102T150405Z")
+	}
+	runRoot := filepath.Join(outputRoot, runID)
 	code := 0
-	for _, suite := range suites.List() {
+	for _, suite := range selected {
 		cmdArgs := []string{
 			"run-suite",
 			"-output-root", outputRoot,
+			"-run-id", runID,
 			"-timeout", timeout.String(),
 		}
 		if !live {
@@ -137,24 +277,29 @@ func runAllSuites(outputRoot string, live bool, timeout time.Duration) int {
 			code = 1
 		}
 	}
+	fmt.Printf("Results recorded in: %s\n", runRoot)
 	return code
 }
 
-func runOneSuite(root, outputRoot string, suite suites.Suite, live bool, timeout time.Duration) runOutcome {
+func runOneSuite(root, outputRoot string, suite suites.Suite, live bool, timeout time.Duration, runID string) runOutcome {
 	started := time.Now().UTC()
-	runID := started.Format("20060102T150405Z")
+	if strings.TrimSpace(runID) == "" {
+		runID = started.Format("20060102T150405Z")
+	}
 	outputDir := filepath.Join(outputRoot, runID, safeName(suite.Name))
 	robotDir := filepath.Join(outputDir, "robot")
 	robotLog := filepath.Join(outputDir, "robot.log")
+	transcriptPath := filepath.Join(outputDir, "transcript.txt")
 	resultPath := filepath.Join(outputDir, "result.json")
 
 	result := suiteResult{
-		Suite:     suite.Name,
-		Status:    "failed",
-		StartedAt: started.Format(time.RFC3339),
-		OutputDir: outputDir,
-		RobotDir:  robotDir,
-		RobotLog:  robotLog,
+		Suite:      suite.Name,
+		Status:     "failed",
+		StartedAt:  started.Format(time.RFC3339),
+		OutputDir:  outputDir,
+		RobotDir:   robotDir,
+		RobotLog:   robotLog,
+		Transcript: transcriptPath,
 	}
 	if err := prepareRobotDir(root, suite, robotDir); err != nil {
 		result.FinishedAt = time.Now().UTC().Format(time.RFC3339)
@@ -187,7 +332,7 @@ func runOneSuite(root, outputRoot string, suite suites.Suite, live bool, timeout
 	liveOut := os.Stdout
 	resultCh := make(chan runOutcome, 1)
 	go func() {
-		resultCh <- runSuiteAgainstConnector(ctx, suite, outputDir, robotDir, robotLog, resultPath, live, liveOut)
+		resultCh <- runSuiteAgainstConnector(ctx, suite, outputDir, robotDir, robotLog, transcriptPath, resultPath, live, liveOut)
 	}()
 
 	if err := os.Chdir(robotDir); err != nil {
@@ -218,7 +363,7 @@ func runOneSuite(root, outputRoot string, suite suites.Suite, live bool, timeout
 	}
 }
 
-func runSuiteAgainstConnector(ctx context.Context, suite suites.Suite, outputDir, robotDir, robotLog, resultPath string, live bool, liveOut *os.File) runOutcome {
+func runSuiteAgainstConnector(ctx context.Context, suite suites.Suite, outputDir, robotDir, robotLog, transcriptPath, resultPath string, live bool, liveOut *os.File) runOutcome {
 	conn, err := testc.WaitForConnector(ctx)
 	result := suiteResult{
 		Suite:      suite.Name,
@@ -227,6 +372,7 @@ func runSuiteAgainstConnector(ctx context.Context, suite suites.Suite, outputDir
 		OutputDir:  outputDir,
 		RobotDir:   robotDir,
 		RobotLog:   robotLog,
+		Transcript: transcriptPath,
 		ResultPath: resultPath,
 	}
 	if err != nil {
@@ -243,10 +389,19 @@ func runSuiteAgainstConnector(ctx context.Context, suite suites.Suite, outputDir
 	_ = conn.DrainBotMessages()
 	_ = bot.GetEvents()
 
+	transcript, err := os.OpenFile(transcriptPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		result.FinishedAt = time.Now().UTC().Format(time.RFC3339)
+		_ = writeResult(resultPath, result)
+		return runOutcome{result: result, err: err}
+	}
+	defer transcript.Close()
+
 	driver := &scriptedConnectorDriver{
-		conn:    conn,
-		live:    live,
-		liveOut: liveOut,
+		conn:       conn,
+		live:       live,
+		liveOut:    liveOut,
+		transcript: transcript,
 	}
 	failures := suites.RunSuite(ctx, driver, suite)
 	result.Failures = failures
@@ -263,9 +418,10 @@ func runSuiteAgainstConnector(ctx context.Context, suite suites.Suite, outputDir
 }
 
 type scriptedConnectorDriver struct {
-	conn    *testc.TestConnector
-	live    bool
-	liveOut *os.File
+	conn       *testc.TestConnector
+	live       bool
+	liveOut    *os.File
+	transcript *os.File
 }
 
 func (d *scriptedConnectorDriver) WaitForIdle(ctx context.Context) error {
@@ -298,17 +454,15 @@ func (d *scriptedConnectorDriver) Send(ctx context.Context, msg suites.Message) 
 		return ctx.Err()
 	default:
 	}
-	if d.live {
-		target := msg.Channel
-		if target == "" {
-			target = "(dm)"
-		}
-		prefix := ""
-		if msg.Hidden {
-			prefix = "/"
-		}
-		fmt.Fprintf(d.output(), "-> %s/%s: %s%s\n", msg.User, target, prefix, msg.Text)
+	target := msg.Channel
+	if target == "" {
+		target = "(dm)"
 	}
+	prefix := ""
+	if msg.Hidden {
+		prefix = "/"
+	}
+	d.writeTranscriptLine("-> %s/%s: %s%s\n", msg.User, target, prefix, msg.Text)
 	d.conn.SendBotMessage(&testc.TestMessage{
 		User:     msg.User,
 		Channel:  msg.Channel,
@@ -346,22 +500,27 @@ func (d *scriptedConnectorDriver) Receive(ctx context.Context, want suites.Expec
 			Threaded: res.msg.Threaded,
 			Hidden:   res.msg.Hidden,
 		}
-		if d.live {
-			target := msg.Channel
-			if target == "" {
-				target = "(dm)"
-			}
-			fmt.Fprintf(d.output(), "<- %s/%s: %s\n", msg.User, target, msg.Text)
+		target := msg.Channel
+		if target == "" {
+			target = "(dm)"
 		}
+		d.writeTranscriptLine("<- %s/%s: %s\n", msg.User, target, msg.Text)
 		return msg, nil
 	}
 }
 
-func (d *scriptedConnectorDriver) output() *os.File {
-	if d.liveOut != nil {
-		return d.liveOut
+func (d *scriptedConnectorDriver) writeTranscriptLine(format string, args ...interface{}) {
+	line := fmt.Sprintf(format, args...)
+	if d.transcript != nil {
+		_, _ = d.transcript.WriteString(line)
 	}
-	return os.Stdout
+	if d.live {
+		out := d.liveOut
+		if out == nil {
+			out = os.Stdout
+		}
+		_, _ = out.WriteString(line)
+	}
 }
 
 func prepareRobotDir(root string, suite suites.Suite, robotDir string) error {
