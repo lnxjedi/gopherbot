@@ -132,6 +132,12 @@ Help and discovery mechanisms should be group-aware and provide clear, contextua
 
 Status: Help System: DONE; Groups update: NOT STARTED
 
+#### Integrate new SimpleMatcher with Help System
+
+Allow `foo:`-type labels for required and optional capturing choices, use special matching algorithm to provide better user feedback on errors, e.g. user says `set loglevel to fine`, with a SimpleMatcher of `set-loglevel {to} (level:trace|debug|info|warn|error)` should recognize the command matches but the loglevel doesn't match a value, and produce a helpful error like "Invalid value 'fine' for 'level'; valid values: trace, debug, info, warn, error".
+
+Status: not started
+
 ### Improve Configuration Clarity and Bootstrapping
 
 The relationship between default configuration and user customization should be clearly defined and documented.
@@ -150,6 +156,25 @@ Desired workflow note:
 - Keep an admin-friendly branch-switch workflow for fast development/testing rollback (switch to a test branch, verify behavior, and quickly switch back).
 
 Status: DONE, needs more QA
+
+#### Simple structure for environment common and specific variables and secrets
+
+This feature makes it cleaner and easier to keep secrets for one environment separate from another, for robot development with dedicated secrets for the development environment.
+
+*Before* reading custom robot.yaml, read custom `conf/variables/common.yaml`, and `conf/variables/<environment>.yaml`, where values from the enviroment file override values from the common file, similar to how custom overrides defaults.
+
+Namespace secrets and ParameterSets must live in variables files, plus add new named `Secrets` and `Variables` sections, e.g.:
+```yaml
+Secrets:
+  SLACK_TOKEN: {{ decrypt "<ciphertext>" }}
+  WEATHER_API_KEY: {{ decrypt "<ciphertext>" }}
+Variables:
+  OUTPUT_CHANNEL: test-jobs
+```
+
+Add new template functions `secret` and `variable` for use in other locations, e.g. `SlackToken: {{ secret "SLACK_TOKEN }}`, `WeatherToken: {{ secret "WEATHER_TOKEN" }}`. `JobChannel: {{ variable "OUTPUT_CHANNEL" }}`.888888
+
+Together these features enable a robot developer to cleanly separate secrets from configuration to simplify developing robot extensions with distinct credentials.
 
 ### Make Robots Easy to Set Up with New Brains, Connectors, etc.
 
@@ -184,6 +209,8 @@ Design direction:
 Design note: see `aidocs/macos-privsep.md`.
 
 Status: IMPLEMENTATION STARTED - one-shot child role commitment exists for Linux/BSD and macOS; manual setuid validation is still required before calling macOS privilege separation production-ready.
+
+Status: done
 
 ### Make Good Use of AI with Included Components
 The current ruby AI implementation should be replaced with a native implementation, making better use of memories. The full-name fallback should be the same; "Floyd, what is the meaning of life?" should go straight to the AI (with the regular, normal system prompt additions). We should update the alias fallback (robot addressed with alias, but no command matched) to be an ai-augmented help - the robot should reply in a thread with something reasonable based on the robot's configuration; for instance "Oops, you typed that in the wrong channel - try that in #devops or #chatops", or "It looks like you're trying to start a remote dev environment, but you didn't supply a valid type ...".
