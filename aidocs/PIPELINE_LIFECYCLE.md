@@ -74,7 +74,7 @@ Catch-all mode scoping:
 - Directed command matcher key: `Commands`.
 - Directed `Commands` may now specify exactly one of:
   - `Regex` — raw Go regex, preserving legacy behavior
-  - `SimpleMatcher` — simplified command syntax compiled to regex during config load (`bot/simple_matcher.go`)
+  - `SimpleMatcher` — simplified command syntax parsed into a first-class matcher object and compiled to exact-match regex data during config load (`bot/simple_matcher.go`)
 - `CommandMatchers` and top-level `Help` are rejected in v3 plugin config validation.
 - Intended `SimpleMatcher` semantics for directed commands:
   - case-insensitive by default
@@ -83,15 +83,28 @@ Catch-all mode scoping:
   - spaces in the spec act as command separators and match either spaces or dashes in input
   - plain literal text is required and non-capturing
   - `/a|b|c/` is required non-capturing synonym text for choices the plugin does not need to know
-  - `(a|b|c)` is a required capturing choice; the selected value arrives as a positional plugin arg
-  - `[a|b|c]` is an optional capturing choice/phrase; omitted values arrive as `""`
+  - `(label:a|b|c)` is a required labelled capturing choice; the selected value arrives as a positional plugin arg
+  - `(:a|b|c)` is a required capturing choice with no diagnostic label
+  - `[label:a|b|c]` is an optional labelled capturing choice/phrase; omitted values arrive as `""`
+  - `[:a|b|c]` is an optional capturing choice with no diagnostic label
   - `{a|b|c}` is optional non-capturing noise text
   - typed captures use `<name:type>` or `<type>` and arrive positionally in the task handler
   - when a bracketed group contains a typed capture slot, the slot is the semantic capture; the wrapper should not create a second positional arg
-  - bare `foo|bar` is intentionally not part of the grammar; use `/foo|bar/`, `(foo|bar)`, `[foo|bar]`, or `{foo|bar}`
+  - bare `foo|bar` is intentionally not part of the grammar; use `/foo|bar/`, `(:foo|bar)`, `[:foo|bar]`, or `{foo|bar}`
+  - a `SimpleMatcher` exact match starts the normal pipeline path; a unique syntax match may produce targeted feedback when the command skeleton matches exactly but one captured value is invalid
   - detailed authoring contract: `devdocs/SimpleMatcher.md`
+  - diagnostic design: `aidocs/SIMPLE_MATCHER_DIAGNOSTICS.md`
 - Ambient matchers continue to load from `MessageMatchers` and remain regex-only.
 - Reply matchers and job argument matchers remain regex-based.
+
+## Directed Command Syntax Diagnostics
+
+- `SimpleMatcher` diagnostics are engine-owned command routing behavior, not connector behavior.
+- Exact matches always win and preserve existing multiple-match safety behavior.
+- A syntax diagnostic is eligible only when the command skeleton matches exactly and a single labelled choice or typed capture explains the failure.
+- If the skeleton does not match exactly, dispatch continues to the normal unmatched-command path so help/fallback can suggest the best command.
+- If multiple visible syntax diagnostics are possible, dispatch should avoid guessing and continue to normal unmatched-command handling.
+- Syntax diagnostics must be considered only for commands visible to the current username and location; if command-level visibility is indeterminate, suppress the diagnostic.
 
 ## Pipeline Start (what gets called)
 

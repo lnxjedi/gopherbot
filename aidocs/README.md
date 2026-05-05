@@ -18,6 +18,7 @@ Use these first for current behavior:
 - `aidocs/CONNECTOR_CONTRACT.md`
 - `aidocs/STARTUP_FLOW.md`
 - `aidocs/PIPELINE_LIFECYCLE.md`
+- `aidocs/SIMPLE_MATCHER_DIAGNOSTICS.md`
 - `aidocs/SCHEDULER_FLOW.md`
 - `aidocs/EXECUTION_SECURITY_MODEL.md`
 - `aidocs/macos-privsep.md`

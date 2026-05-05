@@ -19,6 +19,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
   `aidocs/INTEGRATION_HARNESS_PLAN.md`.
 - OAuth2 refresh registry, brain schema, and token lifecycle: `aidocs/OAUTH2_TOKEN_MANAGEMENT.md`.
 - Incoming message pipeline flow: `aidocs/PIPELINE_LIFECYCLE.md`.
+- SimpleMatcher diagnostic routing design: `aidocs/SIMPLE_MATCHER_DIAGNOSTICS.md`.
 - Scheduled job pipeline flow: `aidocs/SCHEDULER_FLOW.md`.
 - AI-maintained backlog: `aidocs/TODO.md`.
 - Active workstream indexes: `aidocs/multi-protocol/README.md`, `aidocs/multiprocess/README.md`.

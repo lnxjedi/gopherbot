@@ -75,7 +75,7 @@ callTask()
 
 Config key note: in v3 plugin config, directed command matchers must be under `Commands`. Legacy `CommandMatchers` and top-level `Help` are no longer accepted.
 Directed `Commands` may use either `Regex` (raw Go regex) or `SimpleMatcher` (the simpler command DSL compiled to regex by the engine). `MessageMatchers` remain regex-only.
-SimpleMatcher captures arrive positionally: typed slots (`<name:type>`), required capturing choices (`(...)`), and optional capturing groups (`[...]`) become args; plain text, required synonyms (`/.../`), and optional noise (`{...}`) do not. The detailed contract lives in `devdocs/SimpleMatcher.md`.
+SimpleMatcher captures arrive positionally: typed slots (`<name:type>`), required labelled capturing choices (`(label:...)` or `(:...)`), and optional labelled capturing groups (`[label:...]` or `[:...]`) become args; plain text, required synonyms (`/.../`), and optional noise (`{...}`) do not. The detailed contract lives in `devdocs/SimpleMatcher.md`; the engine diagnostic design lives in `aidocs/SIMPLE_MATCHER_DIAGNOSTICS.md`.
 
 ### Lua Plugins
 

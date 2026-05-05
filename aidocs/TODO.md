@@ -32,7 +32,7 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
 - [ ] Update connectors to take a Reload method that, at the very least, updates the list of Validated Users.
 - [ ] Make external interpreter failures ALSO send error output to jobs channel for default connector, like built-in interpreters
 - [x] Align shipped SimpleMatcher configs with the v3 DSL contract:
-  - `devdocs/SimpleMatcher.md` defines the intended semantics: `(...)` required capturing, `[...]` optional capturing, `{...}` optional non-capturing noise, and `/.../` required non-capturing synonyms.
+  - `devdocs/SimpleMatcher.md` defines the intended semantics: `(label:...)` / `(:...)` required capturing choices, `[label:...]` / `[:...]` optional capturing choices, `{...}` optional non-capturing noise, and `/.../` required non-capturing synonyms.
   - Audited `SimpleMatcher:` entries under `conf/plugins/` and test configs so plugin handler argument indexes match the documented contract.
   - Added representative shipped-pattern argument-position coverage in `bot/simple_matcher_test.go`.
 
