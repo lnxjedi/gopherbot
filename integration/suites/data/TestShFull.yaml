@@ -1,0 +1,281 @@
+name: TestShFull
+config_dir: test/shfull
+log_name: bottest.log
+full_gate: sh
+cases:
+  - input:
+      user: alice
+      channel: general
+      text: ;say everything
+    replies:
+      - channel: general
+        text_pattern: Regular Say
+      - channel: general
+        text_pattern: SayThread, yeah
+        threaded: true
+      - user: alice
+        channel: general
+        text_pattern: Regular Reply
+      - user: alice
+        channel: general
+        text_pattern: Reply in thread, yo
+        threaded: true
+      - channel: general
+        text_pattern: 'Sending to the channel: general'
+      - user: alice
+        text_pattern: 'Sending this message to user: alice'
+      - user: alice
+        channel: general
+        text_pattern: 'Sending to user ''alice'' in channel: general'
+      - channel: general
+        text_pattern: 'Sending to channel ''general'' in thread: 0xDEADBEEF'
+        threaded: true
+      - user: alice
+        channel: general
+        text_pattern: 'Sending to user ''alice'' in channel ''general'' in thread: 0xDEADBEEF'
+        threaded: true
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: /bender say everything
+    replies:
+      - channel: general
+        text_pattern: \(Regular Say\)
+      - channel: general
+        text_pattern: \(SayThread, yeah\)
+        threaded: true
+      - user: alice
+        channel: general
+        text_pattern: \(Regular Reply\)
+      - user: alice
+        channel: general
+        text_pattern: \(Reply in thread, yo\)
+        threaded: true
+      - channel: general
+        text_pattern: '\(Sending to the channel: general\)'
+      - user: alice
+        text_pattern: '\(Sending this message to user: alice\)'
+      - user: alice
+        channel: general
+        text_pattern: '\(Sending to user ''alice'' in channel: general\)'
+      - channel: general
+        text_pattern: '\(Sending to channel ''general'' in thread: 0xDEADBEEF\)'
+        threaded: true
+      - user: alice
+        channel: general
+        text_pattern: '\(Sending to user ''alice'' in channel ''general'' in thread: 0xDEADBEEF\)'
+        threaded: true
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;sh-config
+    replies:
+      - channel: general
+        text_pattern: Not completely random.*
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;sh-subscribe
+    replies:
+      - channel: general
+        text_pattern: 'SUBSCRIBE FLOW: true/true'
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;sh-prompts
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: 'Codename check: pick a mission codename\.'
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+    pause: 150ms
+  - input:
+      user: alice
+      channel: general
+      text: Nova Sparrow
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: 'Thread check: pick a favorite snack for launch\.'
+        threaded: true
+    pause: 150ms
+  - input:
+      user: alice
+      channel: general
+      text: spicy popcorn
+      threaded: true
+    replies:
+      - user: alice
+        text_pattern: 'DM check: name a secret moon base\.'
+    pause: 150ms
+  - input:
+      user: alice
+      text: io station nine
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: 'Channel check: describe launch weather in two words\.'
+    events:
+      - BotDirectMessage
+    pause: 150ms
+  - input:
+      user: alice
+      channel: general
+      text: aurora clear
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: 'Thread rally: choose a backup call sign\.'
+        threaded: true
+    pause: 150ms
+  - input:
+      user: alice
+      channel: general
+      text: ember fox
+      threaded: true
+    replies:
+      - channel: general
+        text_pattern: 'PROMPT FLOW OK: Nova Sparrow \| spicy popcorn \| io station nine \| aurora clear \| ember fox'
+  - input:
+      user: alice
+      channel: general
+      text: ;sh-memory-seed
+    replies:
+      - channel: general
+        text_pattern: 'MEMORY SEED: done'
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;sh-memory-check
+    replies:
+      - channel: general
+        text_pattern: 'MEMORY CHECK: local=saffron noodles shared=solar soup ctx=orbital-7 thread=<empty> threadctx=<empty>'
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: bob
+      channel: general
+      text: ;sh-memory-check
+    replies:
+      - channel: general
+        text_pattern: 'MEMORY CHECK: local=<empty> shared=solar soup ctx=<empty> thread=<empty> threadctx=<empty>'
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;sh-memory-thread-check
+      threaded: true
+    replies:
+      - channel: general
+        text_pattern: 'MEMORY THREAD CHECK: local=<empty> shared=<empty> ctx=<empty> thread=delta thread threadctx=aurora mission'
+        threaded: true
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;sh-memory-delete
+    replies:
+      - channel: general
+        text_pattern: 'MEMORY DELETE: done'
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;sh-memory-check
+    replies:
+      - channel: general
+        text_pattern: 'MEMORY CHECK: local=<empty> shared=<empty> ctx=<empty> thread=<empty> threadctx=<empty>'
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: bob
+      channel: general
+      text: ;sh-memory-check
+    replies:
+      - channel: general
+        text_pattern: 'MEMORY CHECK: local=<empty> shared=<empty> ctx=<empty> thread=<empty> threadctx=<empty>'
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;sh-memory-thread-delete
+      threaded: true
+    replies:
+      - channel: general
+        text_pattern: 'MEMORY THREAD DELETE: done'
+        threaded: true
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;sh-memory-thread-check
+      threaded: true
+    replies:
+      - channel: general
+        text_pattern: 'MEMORY THREAD CHECK: local=<empty> shared=<empty> ctx=<empty> thread=<empty> threadctx=<empty>'
+        threaded: true
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;sh-identity
+    replies:
+      - channel: general
+        text_pattern: 'IDENTITY CHECK: bot=bender/Ok sender=Alice/Ok bob=Robert/Ok set=true param=<empty>'
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;sh-parameter-addtask
+    replies:
+      - channel: general
+        text_pattern: 'SETPARAM ADDTASK: queued'
+      - channel: general
+        text_pattern: 'PARAM-SHOW: PIPELINE_SENTINEL=nebula-42'
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;sh-utils
+    replies:
+      - channel: general
+        text_pattern: '(?s:UTILS OK: HEAD=BETA TAIL=BETA LINES=3 UNIQ=ALPHA,BETA, DECODE=SHIP JQ=GO RECOVERED=BETA.*BASE=MOVED.TXT DIR=A FIND=4 WHICH=YES PWD=A SEQ=2,3,4, YES=HI,HI, ENV=YES)'
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan

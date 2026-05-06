@@ -1,0 +1,118 @@
+name: TestMessageMatch
+config_dir: test/membrain
+log_name: bottest.log
+cases:
+  - input:
+      user: alice
+      channel: general
+      text: hello robot
+    replies:
+      - channel: general
+        text_pattern: Hello, World!
+    events:
+      - AmbientTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;hello robot
+    replies:
+      - channel: general
+        text_pattern: Hello, World!
+    events:
+      - AmbientTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;hello world
+    replies:
+      - channel: general
+        text_pattern: Hello, World!
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;HELLO   WORLD
+    replies:
+      - channel: general
+        text_pattern: Hello, World!
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;hello-world
+    replies:
+      - channel: general
+        text_pattern: Hello, World!
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      text: hello robot
+    replies:
+      - user: alice
+        text_pattern: Hello, World!
+    events:
+      - BotDirectMessage
+      - AmbientTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      text: bender, hello robot
+    replies:
+      - user: alice
+        text_pattern: Hello, World!
+    events:
+      - BotDirectMessage
+      - AmbientTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ping
+    pause: 100ms
+  - input:
+      user: alice
+      channel: general
+      text: ;hello robot
+    replies:
+      - channel: general
+        text_pattern: Hello, World!
+    events:
+      - AmbientTaskRan
+      - ExternalTaskRan
+    pause: 100ms
+  - input:
+      user: alice
+      channel: general
+      text: bender
+    replies:
+      - channel: general
+        text_pattern: Yes\?
+  - input:
+      user: alice
+      channel: random
+      text: hello robot
+    replies:
+      - channel: random
+        text_pattern: Hello, World!
+    events:
+      - AmbientTaskRan
+      - ExternalTaskRan
+    pause: 100ms
+  - input:
+      user: alice
+      channel: random
+      text: ;hello robot
+    replies:
+      - channel: random
+        text_pattern: I'm here
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan

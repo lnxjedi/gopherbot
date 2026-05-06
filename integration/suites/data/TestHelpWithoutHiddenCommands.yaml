@@ -1,0 +1,31 @@
+name: TestHelpWithoutHiddenCommands
+config_dir: test/membrain
+log_name: bottest.log
+capabilities:
+  test:
+    hidden_commands: false
+cases:
+  - input:
+      user: alice
+      channel: general
+      text: ;tell me a jok
+    replies:
+      - channel: general
+        text_pattern: '(?s:;tell me a jok looks close to knock/knock.*Try: ;tell me a knock-knock joke.*More help: ;help knock/knock)'
+        threaded: true
+    events:
+      - CatchAllsRan
+      - CatchAllTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: deadzone
+      text: ;knok
+    replies:
+      - channel: deadzone
+        text_pattern: '(?s:I couldn''t match ;knok in channel #deadzone.*#general or #random.*;help knock/knock)'
+        threaded: true
+    events:
+      - CatchAllsRan
+      - CatchAllTaskRan
+      - GoPluginRan

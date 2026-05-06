@@ -1,0 +1,130 @@
+name: TestBotNoAlias
+config_dir: test/membrain-noalias
+log_name: bottest.log
+cases:
+  - input:
+      user: alice
+      text: ping, bender
+    replies:
+      - user: alice
+        text_pattern: PONG
+    events:
+      - BotDirectMessage
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      text: bender ping
+    replies:
+      - user: alice
+        text_pattern: PONG
+    events:
+      - BotDirectMessage
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      text: ping
+    replies:
+      - user: alice
+        text_pattern: PONG
+    events:
+      - BotDirectMessage
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: ping, bender
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: PONG
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: bender ping
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: PONG
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: bender, ping
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: PONG
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: '@bender ping'
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: PONG
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: ping, @bender
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: PONG
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: bob
+      channel: general
+      text: 'bender: echo hello world'
+    replies:
+      - channel: general
+        text_pattern: hello world
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ping
+    pause: 200ms
+  - input:
+      user: alice
+      channel: general
+      text: bender
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: PONG
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: ping
+    pause: 100ms
+  - input:
+      user: alice
+      channel: general
+      text: hello robot
+    replies:
+      - channel: general
+        text_pattern: Hello, World!
+    events:
+      - AmbientTaskRan
+      - ExternalTaskRan

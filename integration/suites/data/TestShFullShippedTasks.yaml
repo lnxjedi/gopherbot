@@ -1,0 +1,27 @@
+name: TestShFullShippedTasks
+config_dir: test/shfull
+log_name: bottest.log
+full_gate: sh
+cases:
+  - input:
+      user: alice
+      channel: general
+      text: ;sh-default-tasks
+    replies:
+      - channel: general
+        text_pattern: 'SHIPPED TASKS: queued'
+      - channel: general
+        text_pattern: STATUS TASK OK
+      - channel: general
+        text_pattern: SAY TASK OK
+      - user: alice
+        channel: general
+        text_pattern: REPLY TASK OK
+      - user: alice
+        channel: general
+        text_pattern: NOTIFY TASK OK
+      - user: alice
+        text_pattern: DMNOTIFY TASK OK
+      - channel: general
+        text_pattern: EXEC TASK OK
+    replies_only: true

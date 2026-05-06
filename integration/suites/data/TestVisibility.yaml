@@ -1,0 +1,63 @@
+name: TestVisibility
+config_dir: test/membrain
+log_name: bottest.log
+cases:
+  - input:
+      user: alice
+      channel: general
+      text: help ruby, bender
+    replies:
+      - channel: general
+        text_pattern: '(?s:Command matches for keyword: ruby.*Availability: channels: random)'
+        threaded: true
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: ruby me, bender
+    replies:
+      - channel: general
+        text_pattern: 'rubydemo/ruby not available in #general, try #random'
+        threaded: true
+  - input:
+      user: alice
+      channel: deadzone
+      text: 'bender: echo hello world'
+    replies:
+      - channel: deadzone
+        text_pattern: 'echo/echo not available in #deadzone, try one of: #general, #random'
+        threaded: true
+  - input:
+      user: alice
+      text: hear me out
+    replies:
+      - user: alice
+        text_pattern: bashdemo/hear not available in direct messages, try it in any regular channel
+    events:
+      - BotDirectMessage
+  - input:
+      user: bob
+      channel: general
+      text: ;ping
+    replies:
+      - channel: general
+        text_pattern: '(?s:I couldn''t match .*More help: .*help builtin-help/help.*Try .*commands.*help <keyword>.*)'
+        threaded: true
+    events:
+      - CatchAllsRan
+      - CatchAllTaskRan
+      - GoPluginRan
+  - input:
+      user: bob
+      channel: general
+      text: ;reload
+    replies:
+      - channel: general
+        text_pattern: (?s:I couldn't match .*Try .*commands.*help <keyword>.*)
+        threaded: true
+    events:
+      - CatchAllsRan
+      - CatchAllTaskRan
+      - GoPluginRan

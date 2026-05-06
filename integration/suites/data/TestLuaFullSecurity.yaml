@@ -1,0 +1,160 @@
+name: TestLuaFullSecurity
+config_dir: test/luafull
+log_name: bottest.log
+full_gate: lua
+cases:
+  - input:
+      user: alice
+      channel: general
+      text: ;lua-sec-open
+    replies:
+      - channel: general
+        text_pattern: 'SECURITY CHECK: secopen'
+    replies_only: true
+  - input:
+      user: bob
+      channel: general
+      text: ;lua-sec-open
+    replies:
+      - channel: general
+        text_pattern: 'SECURITY CHECK: secopen'
+    replies_only: true
+  - input:
+      user: alice
+      channel: general
+      text: ;lua-sec-admincmd
+    replies:
+      - channel: general
+        text_pattern: 'SECURITY CHECK: secadmincmd'
+    replies_only: true
+  - input:
+      user: bob
+      channel: general
+      text: ;lua-sec-admincmd
+    replies:
+      - channel: general
+        text_pattern: Sorry, 'luasec/secadmincmd' is only available to bot administrators
+    replies_only: true
+  - input:
+      user: bob
+      channel: general
+      text: ;lua-sec-authz
+    replies:
+      - channel: general
+        text_pattern: 'SECURITY CHECK: secauthz'
+    replies_only: true
+  - input:
+      user: david
+      channel: general
+      text: ;lua-sec-authz
+    replies:
+      - channel: general
+        text_pattern: Sorry, you're not authorized for that command
+    replies_only: true
+  - input:
+      user: bob
+      channel: general
+      text: ;lua-sec-authall
+    replies:
+      - channel: general
+        text_pattern: 'SECURITY CHECK: secauthall'
+    replies_only: true
+  - input:
+      user: david
+      channel: general
+      text: ;lua-sec-authall
+    replies:
+      - channel: general
+        text_pattern: Sorry, you're not authorized for that command
+    replies_only: true
+  - input:
+      user: alice
+      channel: general
+      text: ;lua-sec-elevated
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: This command requires.*elevation.*TOTP code.*
+    replies_only: true
+    pause: 150ms
+  - input:
+      user: alice
+      channel: general
+      text: "123456"
+    replies:
+      - channel: general
+        text_pattern: There were technical issues validating your code.*
+      - channel: general
+        text_pattern: Sorry, elevation failed due to a problem with the elevation service
+    replies_only: true
+  - input:
+      user: alice
+      channel: general
+      text: ;lua-sec-immediate
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: This command requires immediate elevation.*TOTP code.*
+    replies_only: true
+    pause: 150ms
+  - input:
+      user: alice
+      channel: general
+      text: "123456"
+    replies:
+      - channel: general
+        text_pattern: There were technical issues validating your code.*
+      - channel: general
+        text_pattern: Sorry, elevation failed due to a problem with the elevation service
+    replies_only: true
+  - input:
+      user: alice
+      channel: general
+      text: /bender lua-sec-hidden-ok
+    replies:
+      - channel: general
+        text_pattern: '\(SECURITY CHECK: sechiddenok\)'
+    replies_only: true
+  - input:
+      user: alice
+      channel: general
+      text: /bender lua-sec-hidden-denied
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: \(?Sorry, 'luasec/sechiddendenied' cannot be run as a hidden command - use the robot's name or alias\)?
+    replies_only: true
+  - input:
+      user: alice
+      channel: general
+      text: ;lua-sec-adminonly
+    replies:
+      - channel: general
+        text_pattern: 'SECURITY CHECK: secadminonly'
+    replies_only: true
+  - input:
+      user: bob
+      channel: general
+      text: ;lua-sec-adminonly
+    replies:
+      - channel: general
+        text_pattern: (?s:I couldn't match .*Try .*commands.*help <keyword>.*)
+        threaded: true
+    replies_only: true
+  - input:
+      user: alice
+      channel: general
+      text: ;lua-sec-usersonly
+    replies:
+      - channel: general
+        text_pattern: 'SECURITY CHECK: secusersonly'
+    replies_only: true
+  - input:
+      user: bob
+      channel: general
+      text: ;lua-sec-usersonly
+    replies:
+      - channel: general
+        text_pattern: (?s:I couldn't match .*Try .*commands.*help <keyword>.*)
+        threaded: true
+    replies_only: true

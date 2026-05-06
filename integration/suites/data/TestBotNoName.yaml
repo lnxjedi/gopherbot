@@ -1,0 +1,81 @@
+name: TestBotNoName
+config_dir: test/membrain
+log_name: bottest.log
+cases:
+  - input:
+      user: alice
+      text: ;ping
+    replies:
+      - user: alice
+        text_pattern: PONG
+    events:
+      - BotDirectMessage
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      text: ping
+    replies:
+      - user: alice
+        text_pattern: PONG
+    events:
+      - BotDirectMessage
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: ;ping
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: PONG
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: ping;
+  - input:
+      user: bob
+      channel: general
+      text: 'bender: echo hello world'
+    replies:
+      - channel: general
+        text_pattern: hello world
+        threaded: true
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ping
+    pause: 500ms
+  - input:
+      user: alice
+      channel: general
+      text: ;
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: PONG
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: ping
+    pause: 100ms
+  - input:
+      user: alice
+      channel: general
+      text: hello robot
+    replies:
+      - channel: general
+        text_pattern: Hello, World!
+    events:
+      - AmbientTaskRan
+      - ExternalTaskRan

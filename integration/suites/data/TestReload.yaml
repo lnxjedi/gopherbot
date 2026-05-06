@@ -1,0 +1,16 @@
+name: TestReload
+config_dir: test/membrain
+log_name: bottest.log
+cases:
+  - input:
+      user: alice
+      channel: general
+      text: reload, bender
+    replies:
+      - channel: general
+        text_pattern: Starting init job 'go-bootstrap'.*
+    events:
+      - AdminCheckPassed
+      - CommandTaskRan
+      - GoPluginRan
+      - ScheduledTaskRan

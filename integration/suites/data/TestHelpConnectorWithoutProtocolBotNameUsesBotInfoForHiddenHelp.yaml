@@ -1,0 +1,16 @@
+name: TestHelpConnectorWithoutProtocolBotNameUsesBotInfoForHiddenHelp
+config_dir: test/membrain-nameless
+log_name: bottest.log
+cases:
+  - input:
+      user: alice
+      channel: general
+      text: ;tell me a jok
+    replies:
+      - channel: general
+        text_pattern: '(?s:;tell me a jok looks close to knock/knock.*Try: ;tell me a knock-knock joke.*More help: /bender help knock/knock)'
+        threaded: true
+    events:
+      - CatchAllsRan
+      - CatchAllTaskRan
+      - GoPluginRan

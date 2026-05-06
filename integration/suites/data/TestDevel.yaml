@@ -1,0 +1,34 @@
+name: TestDevel
+config_dir: test/membrain
+log_name: bottest.log
+cases:
+  - input:
+      user: alice
+      channel: general
+      text: ;create a new grocery list
+    replies:
+      - channel: general
+        text_pattern: '(?s:I couldn''t match .*create a new grocery list.*More help: /bender help lists/add.*Try /bender commands or /bender help <keyword>\.)'
+        threaded: true
+    events:
+      - CatchAllsRan
+      - CatchAllTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: ;add bananas to the grocery list
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: I don't have a 'grocery' list, do you want to create it?
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: "yes"
+    replies:
+      - channel: general
+        text_pattern: Ok, I created a new grocery list and added bananas to it

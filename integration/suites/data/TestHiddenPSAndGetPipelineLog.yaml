@@ -1,0 +1,50 @@
+name: TestHiddenPSAndGetPipelineLog
+config_dir: test/membrain
+log_name: bottest-admin-watchdog.log
+flow:
+  - name: setup
+    wait_for_idle: true
+    drain_events: true
+  - name: admin-inspect
+    send:
+      user: alice
+      channel: general
+      text: 'bender: admin inspect'
+  - name: settle
+    sleep: 200ms
+  - name: ps
+    send:
+      user: alice
+      channel: general
+      text: 'bender: ps'
+      hidden: true
+    receive:
+      channel: general
+      text_pattern: '(?s:.*)'
+      contains_upper:
+        - PLUGINS
+        - ID
+        - ADMININSPECT
+      capture_pipeline_wid:
+        name: wid
+        pipeline: admininspect
+        command: inspect
+  - name: get-pipeline-log
+    send:
+      user: alice
+      channel: general
+      text: 'bender: get pipeline log ${wid}'
+      hidden: true
+    receive:
+      channel: general
+      text_pattern: '(?s:.*)'
+      contains_upper:
+        - LIVE LOG FOR PIPELINE ${wid}
+        - INSPECT STDOUT READY
+        - INSPECT STDERR READY
+  - name: admin-inspect-done
+    receive:
+      channel: general
+      text_pattern: '(?is:.*inspect done.*)'
+      contains_upper:
+        - INSPECT DONE

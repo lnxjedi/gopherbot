@@ -1,0 +1,31 @@
+name: TestHelpNoAliasWithoutHiddenCommands
+config_dir: test/membrain-noalias
+log_name: bottest.log
+capabilities:
+  test:
+    hidden_commands: false
+cases:
+  - input:
+      user: alice
+      channel: general
+      text: bender, tell me a jok
+    replies:
+      - channel: general
+        text_pattern: '(?s:bender, tell me a jok looks close to knock/knock.*Try: bender, tell me a knock-knock joke.*More help: bender, help knock/knock)'
+        threaded: true
+    events:
+      - CatchAllsRan
+      - CatchAllTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: deadzone
+      text: bender, knok
+    replies:
+      - channel: deadzone
+        text_pattern: '(?s:I couldn''t match bender, knok in channel #deadzone.*#general or #random.*bender, help knock/knock)'
+        threaded: true
+    events:
+      - CatchAllsRan
+      - CatchAllTaskRan
+      - GoPluginRan

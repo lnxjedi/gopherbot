@@ -1,0 +1,34 @@
+name: TestHelpGroupFiltering
+config_dir: test/membrain
+log_name: bottest.log
+flow:
+  - name: alice-help
+    wait_for_idle: true
+    drain_events: true
+    send:
+      user: alice
+      channel: general
+      text: ;help lists
+    receive:
+      channel: general
+      text_pattern: '(?s:.*)'
+      threaded: true
+      contains:
+        - lists/add
+      contains_none:
+        - lists/send
+  - name: drain-alice-help-events
+    drain_events: true
+  - name: bob-help
+    wait_for_idle: true
+    drain_events: true
+    send:
+      user: bob
+      channel: general
+      text: ;help lists
+    receive:
+      channel: general
+      text_pattern: '(?s:.*)'
+      threaded: true
+      contains:
+        - lists/send

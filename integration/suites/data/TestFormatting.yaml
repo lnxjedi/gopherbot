@@ -1,0 +1,34 @@
+name: TestFormatting
+config_dir: test/membrain
+log_name: bottest.log
+cases:
+  - input:
+      user: alice
+      channel: general
+      text: ;format fixed
+    replies:
+      - channel: general
+        text_pattern: _ITALICS_ <ONE> \*BOLD\* `CODE` @PARSLEY
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;format variable
+    replies:
+      - channel: general
+        text_pattern: _italics_ <one> \*bold\* `code` @parsley
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;format raw
+    replies:
+      - channel: general
+        text_pattern: _Italics_ <One> \*Bold\* `Code` @parsley
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan

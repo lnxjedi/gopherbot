@@ -1,0 +1,88 @@
+name: TestHiddenAdminInspectCommands
+config_dir: test/membrain
+log_name: bottest-admin-hidden.log
+flow:
+  - name: dump-robot-dm
+    case:
+      input:
+        user: alice
+        text: dump robot
+      replies:
+        - user: alice
+          text_pattern: This command is only available as a hidden command.
+      events:
+        - BotDirectMessage
+        - AdminCheckPassed
+        - CommandTaskRan
+        - GoPluginRan
+  - name: dump-robot-hidden
+    case:
+      input:
+        user: alice
+        channel: general
+        text: '/bender: dump robot'
+      replies:
+        - channel: general
+          text_pattern: HERE'S HOW I'VE BEEN CONFIGURED.*
+      events:
+        - AdminCheckPassed
+        - CommandTaskRan
+        - GoPluginRan
+  - name: dump-plugin-echo
+    case:
+      input:
+        user: alice
+        channel: general
+        text: '/bender: dump plugin echo'
+      replies:
+        - channel: general
+          text_pattern: ALLCHANNELS.*
+      events:
+        - AdminCheckPassed
+        - CommandTaskRan
+        - GoPluginRan
+  - name: dump-plugin-default-echo
+    case:
+      input:
+        user: alice
+        channel: general
+        text: '/bender: dump plugin default echo'
+      replies:
+        - channel: general
+          text_pattern: HERE'S.*
+      events:
+        - AdminCheckPassed
+        - CommandTaskRan
+        - GoPluginRan
+  - name: dump-plugin-junk
+    case:
+      input:
+        user: alice
+        channel: general
+        text: '/bender: dump plugin junk'
+      replies:
+        - channel: general
+          text_pattern: Didn't find .* junk
+      events:
+        - AdminCheckPassed
+        - CommandTaskRan
+        - GoPluginRan
+  - name: list-plugins
+    wait_for_idle: true
+    drain_events: true
+    send:
+      user: alice
+      channel: general
+      text: 'bender: list plugins'
+      hidden: true
+    receive:
+      channel: general
+      text_pattern: '(?s:.*)'
+      contains:
+        - builtin-admin
+      contains_none:
+        - builtin-dmadmin
+    expect_events:
+      - AdminCheckPassed
+      - CommandTaskRan
+      - GoPluginRan

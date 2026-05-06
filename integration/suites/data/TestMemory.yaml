@@ -1,0 +1,207 @@
+name: TestMemory
+config_dir: test/membrain
+log_name: bottest.log
+cases:
+  - input:
+      user: carol
+      channel: random
+      text: ;remember slowly The Alamo
+    replies:
+      - channel: random
+        text_pattern: Ok, .*
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: random
+      text: ;remember Ferris Bueller
+    replies:
+      - channel: random
+        text_pattern: Ok, .*
+      - channel: random
+        text_pattern: committed to memory
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: bob
+      channel: random
+      text: recall 1, Bender
+    replies:
+      - channel: random
+        text_pattern: Ferris Bueller
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: carol
+      channel: random
+      text: ;remember Ferris Bueller
+    replies:
+      - channel: random
+        text_pattern: That's already one of my fondest memories
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: david
+      channel: random
+      text: forget 1, Bender
+    replies:
+      - channel: random
+        text_pattern: Ok, .*
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: david
+      channel: general
+      text: Bender, what is Ferris Bueller?
+    replies:
+      - user: david
+        channel: general
+        text_pattern: Gosh, I have no idea .*
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: david
+      channel: general
+      text: ;store Ferris Bueller is a Righteous Dude
+    replies:
+      - channel: general
+        text_pattern: I'll remember .*
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: david
+      channel: general
+      text: Bender, what is Ferris Bueller?
+    replies:
+      - channel: general
+        text_pattern: Ferris Bueller is a Righteous Dude
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: carol
+      channel: general
+      text: Bender, what is Ferris Bueller?
+    replies:
+      - user: carol
+        channel: general
+        text_pattern: Gosh, I have no idea .*
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: david
+      channel: random
+      text: Bender, what is Ferris Bueller?
+    replies:
+      - user: david
+        channel: random
+        text_pattern: Gosh, I have no idea .*
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: bob
+      channel: general
+      text: Bender, link news for nerds to https://slashdot.org
+    replies:
+      - channel: general
+        text_pattern: Link added
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: bob
+      channel: general
+      text: ;save https://slashdot.org
+    replies:
+      - channel: general
+        text_pattern: I already have that link
+      - user: bob
+        channel: general
+        text_pattern: Do you want .*
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: bob
+      channel: general
+      text: "yes"
+    replies:
+      - channel: general
+        text_pattern: Ok, I'll replace the old one
+      - user: bob
+        channel: general
+        text_pattern: What keywords or phrase .*
+  - input:
+      user: bob
+      channel: general
+      text: News for Nerds, Stuff that Matters!
+    replies:
+      - channel: general
+        text_pattern: Link added
+  - input:
+      user: carol
+      channel: general
+      text: Bender, look up nerds
+    replies:
+      - channel: general
+        text_pattern: (?s:Here's what I have .*Nerds.*)
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: ;link tuna casserole to https://www.allrecipes.com/recipe/17219/best-tuna-casserole/
+    replies:
+      - channel: general
+        text_pattern: Link added
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: ;add it to the dinner meals list
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: I don't have a .*
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: "yes"
+    replies:
+      - channel: general
+        text_pattern: Ok, .*
+  - input:
+      user: alice
+      channel: general
+      text: Bender, look it up
+    replies:
+      - channel: general
+        text_pattern: (?s:Here's what I have .*best.*)
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: add hamburgers to the list, bender
+    replies:
+      - channel: general
+        text_pattern: Ok, I added hamburgers to the dinner meals list
+    events:
+      - CommandTaskRan
+      - GoPluginRan

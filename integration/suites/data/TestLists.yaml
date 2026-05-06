@@ -1,0 +1,146 @@
+name: TestLists
+config_dir: test/membrain
+log_name: bottest.log
+cases:
+  - input:
+      user: alice
+      channel: general
+      text: ;list lists
+    replies:
+      - channel: general
+        text_pattern: I don't have any lists
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: ;add burgers to the meals list
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: I don't have a .*
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: bob
+      channel: random
+      text: ;add burgers to the meals list
+    replies:
+      - user: bob
+        channel: random
+        text_pattern: I don't have a .*
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: bob
+      channel: random
+      text: "yes"
+    replies:
+      - channel: random
+        text_pattern: Ok, I created a new meals list and added burgers to it
+  - input:
+      user: alice
+      channel: general
+      text: "yes"
+    replies:
+      - channel: general
+        text_pattern: Somebody already created the meals list and added burgers to it
+  - input:
+      user: alice
+      channel: general
+      text: ;add eggs to the Breakfast list
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: I don't have .*
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: bob
+      channel: random
+      text: ;add bacon to the breakfast list
+    replies:
+      - user: bob
+        channel: random
+        text_pattern: I don't have a .*
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: bob
+      channel: random
+      text: "yes"
+    replies:
+      - channel: random
+        text_pattern: Ok, I created a new breakfast list and added bacon to it
+  - input:
+      user: alice
+      channel: general
+      text: "yes"
+    replies:
+      - channel: general
+        text_pattern: Ok, I added eggs to the new Breakfast list
+  - input:
+      user: alice
+      channel: general
+      text: ;show the meals list
+    replies:
+      - channel: general
+        text_pattern: (?m:Here's what I have.*\nburgers$)
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: carol
+      channel: general
+      text: ;remove BURGERS from the meals list
+    replies:
+      - channel: general
+        text_pattern: Ok, I removed BURGERS from the meals list
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: carol
+      channel: general
+      text: ;show the list
+    replies:
+      - channel: general
+        text_pattern: The meals list is empty
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: carol
+      channel: general
+      text: ;delete the breakFAST list
+    replies:
+      - channel: general
+        text_pattern: Deleted
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: ;list lists
+    replies:
+      - channel: general
+        text_pattern: (?m:Here are the lists I know about:\nmeals)
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: ;show the MEALS list
+    replies:
+      - channel: general
+        text_pattern: The MEALS list is empty
+    events:
+      - CommandTaskRan
+      - GoPluginRan

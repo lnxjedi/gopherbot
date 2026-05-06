@@ -1,0 +1,26 @@
+name: TestPipelineTimeoutWarnAndKillAlerts
+config_dir: test/membrain
+log_name: bottest-admin-timeout.log
+flow:
+  - name: setup
+    wait_for_idle: true
+    drain_events: true
+  - name: admin-slow
+    send:
+      user: alice
+      channel: general
+      text: 'bender: admin slow'
+  - name: warning
+    receive:
+      channel: general
+      text_pattern: '(?s:Pipeline timeout warning.*slow stdout before sleep.*)'
+      contains:
+        - Pipeline timeout warning
+        - slow stdout before sleep
+  - name: kill
+    receive:
+      channel: general
+      text_pattern: '(?s:Pipeline timeout kill threshold reached.*slow stderr before sleep.*)'
+      contains:
+        - Pipeline timeout kill threshold reached
+        - slow stderr before sleep

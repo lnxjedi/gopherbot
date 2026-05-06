@@ -1,0 +1,29 @@
+name: TestValidateUser
+config_dir: test/membrain
+log_name: bottest-validate-user.log
+flow:
+  - name: validation-code
+    wait_for_idle: true
+    drain_events: true
+    send:
+      user: alice
+      text: validate user bob
+    receive:
+      user: alice
+      text_pattern: "Validation code for 'bob': ([0-9]{7})"
+      capture_regex:
+        validation_code: "Validation code for 'bob': ([0-9]{7})"
+  - name: drain-validation-code-events
+    drain_events: true
+  - name: validation-notify
+    wait_for_idle: true
+    drain_events: true
+    send:
+      user: bob
+      text: '${validation_code}'
+    receive:
+      user: alice
+      text_pattern: "User validation received: test user 'bob' has internal ID 'u0002'"
+      exact_text: "User validation received: test user 'bob' has internal ID 'u0002'"
+  - name: drain-validation-notify-events
+    drain_events: true

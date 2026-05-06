@@ -1,0 +1,76 @@
+name: TestPrompting
+config_dir: test/membrain
+log_name: bottest.log
+cases:
+  - input:
+      user: carol
+      channel: general
+      text: Bender, listen to me
+    replies:
+      - user: carol
+        text_pattern: Ok, .*
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: carol
+      text: You're pretty cool
+    replies:
+      - user: carol
+        text_pattern: I hear .*cool"
+    events:
+      - BotDirectMessage
+  - input:
+      user: bob
+      channel: general
+      text: hear me out, Bender
+    replies:
+      - user: bob
+        channel: general
+        text_pattern: Well ok then.*
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: bob
+      channel: general
+      text: I like kittens
+    replies:
+      - user: bob
+        channel: general
+        text_pattern: Ok, I hear you saying "I like kittens".*
+  - input:
+      user: david
+      channel: general
+      text: ;waitask
+    pause: 200ms
+  - input:
+      user: david
+      channel: general
+      text: ;asknow
+    replies:
+      - user: david
+        channel: general
+        text_pattern: Do you like puppies\?
+      - channel: general
+        text_pattern: ok - answer puppies
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: david
+      channel: general
+      text: "yes"
+    replies:
+      - user: david
+        channel: general
+        text_pattern: Do you like kittens\?
+      - channel: general
+        text_pattern: I like puppies too!
+  - input:
+      user: david
+      channel: general
+      text: "yes"
+    replies:
+      - channel: general
+        text_pattern: I like kittens too!

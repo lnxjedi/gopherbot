@@ -1,6 +1,7 @@
 # Testing (Current)
 
-Focus: integration test harness under `test/` and how tests are executed.
+Focus: process-backed integration suites under `integration/suites/data/`,
+the legacy compatibility harness under `test/`, and how both are executed.
 
 Forward plan:
 
@@ -12,6 +13,10 @@ Forward plan:
   MCP-integrated process-backed runner by default.
 - `make integration` now builds `gopherbot-integration` and prints suite-runner
   instructions. Use `make integration-legacy` for the old Go test harness.
+- Process-backed suite definitions are data-driven YAML files in
+  `integration/suites/data/`. Each file names one suite, its config directory,
+  scripted input messages, expected replies, expected event sequence, and any
+  suite-local hooks such as `before_start: test_http_server`.
 
 ## How tests are discovered and run
 
@@ -55,6 +60,12 @@ Forward plan:
 - For AI-driven verification, prefer `gopherbot-mcp` `run_integration_suite`
   over direct `go test ./test`. This avoids streaming noisy logs into context
   and keeps integration artifacts under `integration/runs/`.
+- `gopherbot-integration list-suites` lists the YAML-loaded suite registry. The
+  readable source of those suites is `integration/suites/data/*.yaml`; incoming
+  message users may use names like `alice` and `bob`, which the YAML loader maps
+  to the test connector's configured transport IDs (`u0001`, `u0002`, etc.).
+  Reply expectations use canonical usernames because replies are observed after
+  connector identity normalization.
 - `setup()` in `test/common_test.go` starts the bot via `StartTest()` and relies on the test configs to choose the `test` protocol.
 - `setupWithOptions()` in `test/common_test.go` is the per-suite harness entrypoint when a test block needs connector capability overrides (for example simulating a protocol without hidden-command support while still using the `test` connector).
 - `StartTest()` is defined in `bot/start_t.go` (only built with `test` tag). It locates the repo root by walking up until `conf/robot.yaml` is found, `chdir`s there so startup mode resolves to `test-dev`, initializes connector runtime via `initializeConnectorRuntime`, runs `run()`, then waits for the current async plugin-init batch to drain before clearing startup events and returning control to the harness (see also `bot/bot_process.go`, `bot/tasks.go`, and `bot/connector_runtime.go`).
@@ -117,6 +128,16 @@ Notes:
 
 ## Test case structure
 
+- Process-backed cases are YAML objects under `integration/suites/data/`:
+  - `input` contains sender, channel, text, and optional `threaded` / `hidden`.
+  - `replies` contains regex-based expected bot messages plus strict
+    user/channel/thread fields.
+  - `events` is the ordered list of expected `bot.Event` names.
+  - `replies_only: true` skips event comparison for intentionally noisy
+    pipeline/admin flows.
+  - `pause` accepts Go duration strings such as `150ms`.
+- YAML `flow` suites cover multi-step interactions that need captures or
+  interleaving, such as validation codes and admin pipeline log inspection.
 - `testItem` in `test/common_test.go` defines a case as:
   - `user`, `channel`, `message`, `threaded` (input fields).
   - `replies []TestMessage` where `TestMessage.Message` is a regex to match output (type `TestMessage` in `test/common_test.go`).
@@ -138,14 +159,14 @@ Notes:
 
 ## Representative test suites
 
-- Core bot behavior and message matching: `test/bot_integration_test.go` (e.g., `TestBotName`, `TestMessageMatch`).
-- Memory tests: `test/memory_integration_test.go`.
-- Lists plugin behavior: `test/lists_integration_test.go`.
-- External Python/Ruby EncryptSecret coverage: `test/external_encrypt_integration_test.go`.
-- External yaegi Go full coverage: `test/go_full_test.go`.
-- Gopherbot shell full coverage: `test/sh_full_test.go` plus `plugins/test/shfull.gsh`.
-- JavaScript full coverage: `test/js_full_test.go` plus `plugins/test/jsfull.js`, including the OAuth2 link/get/unlink engine API cycle.
-- Admin/watchdog coverage: `test/admin_watchdog_integration_test.go`, using `test/membrain/plugins/admininspect.sh` and `test/membrain/plugins/admintimeout.sh` to exercise:
+- Core bot behavior and message matching: `integration/suites/data/TestBotName.yaml` and `integration/suites/data/TestMessageMatch.yaml`.
+- Memory tests: `integration/suites/data/TestMemory.yaml`.
+- Lists plugin behavior: `integration/suites/data/TestLists.yaml`.
+- External Python/Ruby EncryptSecret coverage: `integration/suites/data/TestExternalEncryptSecret.yaml`.
+- External yaegi Go full coverage: `integration/suites/data/TestGoFull.yaml`.
+- Gopherbot shell full coverage: `integration/suites/data/TestShFull.yaml` plus `plugins/test/shfull.gsh`.
+- JavaScript full coverage: `integration/suites/data/TestJSFull.yaml` plus `plugins/test/jsfull.js`, including the OAuth2 link/get/unlink engine API cycle.
+- Admin/watchdog coverage: YAML files such as `integration/suites/data/TestHiddenPSAndGetPipelineLog.yaml`, using `test/membrain/plugins/admininspect.sh` and `test/membrain/plugins/admintimeout.sh` to exercise:
   - hidden `ps` and `get-pipeline-log`
   - timeout warn/kill operator alerts for external pipelines
   - operator-facing failure alerts with stderr/traceback excerpts
@@ -177,7 +198,11 @@ Notes:
 
 ## Test Harness Scope
 
-All test files (`*_test.go`) within the `test/` directory are gated by the `integration` build tag and leverage the single test harness defined in `test/common_test.go`. No other test harnesses have been identified in the codebase.
+Process-backed suites are loaded from `integration/suites/data/*.yaml` by
+`integration/suites/yaml_loader.go` and executed by
+`cmd/gopherbot-integration/main.go`. Legacy test files (`*_test.go`) within the
+`test/` directory are gated by the `integration` build tag and leverage the
+single compatibility harness defined in `test/common_test.go`.
 
 ## Full Test Gating (JS/Lua/Sh/Go)
 
@@ -193,7 +218,6 @@ Large language-specific suites are gated by `RUN_FULL` so they do not run in the
 
 ## Local HTTP test server
 
-- `test/http_test_server_test.go` starts a local `httptest` server for JS/Lua HTTP coverage.
-- `TestJSFull` sets `GBOT_TEST_HTTP_BASEURL` so test plugins can call the local server via config.
+- `integration/suites/http_server.go` starts a local `httptest` server for JS/Lua HTTP coverage when a YAML suite sets `before_start: test_http_server`.
+- `TestJSFull` and `TestLuaFull` set `GBOT_TEST_HTTP_BASEURL` through that hook so test plugins can call the local server via config.
 - The server provides JSON endpoints for GET/POST/PUT plus error and timeout cases.
-- The file must use the `_test.go` suffix because the `test/` directory mixes `tbot` and `tbot_test` packages; non-test files must all share one package name to compile.

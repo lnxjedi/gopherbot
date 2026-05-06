@@ -1,0 +1,94 @@
+name: TestHelp
+config_dir: test/membrain
+log_name: bottest.log
+cases:
+  - input:
+      user: alice
+      channel: deadzone
+      text: ;help
+    replies:
+      - channel: deadzone
+        text_pattern: '(?s:Quick help.*- /bender help <keyword> - get help for the provided <keyword>.*- /bender help <keyword> brief - compact help for a likely command.*- /bender commands - browse plugins and command groups available in this channel.*- /bender help-all - help for all commands available in this channel, including global commands.*Plugin help: /bender help <plugin>.*Exact command help: /bender help <plugin>/<command>.*Browse this channel: /bender commands)'
+        threaded: true
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: deadzone
+      text: ;commands
+    replies:
+      - channel: deadzone
+        text_pattern: '(?s:Plugins and command groups available in this channel.*builtin-help.*Commands: builtin-help/commands.*Help: /bender help builtin-help or /bender help builtin-help/<command>.*Exact help: /bender help <plugin>/<command>.*Search by keyword: /bender help <plugin\|command\|keyword>)'
+        threaded: true
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: deadzone
+      text: ;help-all
+    replies:
+      - channel: deadzone
+        text_pattern: '(?s:Commands available in this channel \(including global\).*Command: builtin-help/help.*Usage: help <keyword>.*Exact help: /bender help builtin-help/help)'
+        threaded: true
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: deadzone
+      text: ;help help
+    replies:
+      - channel: deadzone
+        text_pattern: '(?s:Help for keyword: help.*Plugin help: help.*Commands:.*- help/help.*Example: ;help with robot.*More detail: /bender help help/help.*Other command matches:.*Command: builtin-help/help.*Exact help: /bender help builtin-help/help)'
+        threaded: true
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: deadzone
+      text: ;help knock
+    replies:
+      - channel: deadzone
+        text_pattern: '(?s:Help for keyword: knock.*Plugin help: knock.*Commands:.*- knock/knock - Starts an interactive knock-knock joke\..*Example: ;tell me a knock-knock joke.*More detail: /bender help knock/knock)'
+        threaded: true
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: deadzone
+      text: ;help knock/knock
+    replies:
+      - channel: deadzone
+        text_pattern: '(?s:Command help: knock/knock.*Usage: tell me a knock-knock joke.*Availability:)'
+        threaded: true
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: ;tell me a jok
+    replies:
+      - channel: general
+        text_pattern: '(?s:;tell me a jok looks close to knock/knock.*Try: ;tell me a knock-knock joke.*More help: /bender help knock/knock)'
+        threaded: true
+    events:
+      - CatchAllsRan
+      - CatchAllTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: deadzone
+      text: ;knok
+    replies:
+      - channel: deadzone
+        text_pattern: '(?s:I couldn''t match ;knok in channel #deadzone.*#general or #random.*/bender help knock/knock)'
+        threaded: true
+    events:
+      - CatchAllsRan
+      - CatchAllTaskRan
+      - GoPluginRan

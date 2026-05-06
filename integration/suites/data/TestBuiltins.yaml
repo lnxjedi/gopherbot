@@ -1,0 +1,215 @@
+name: TestBuiltins
+config_dir: test/membrain
+log_name: bottest-builtins.log
+cases:
+  - input:
+      user: alice
+      channel: general
+      text: ;help log
+    replies:
+      - channel: general
+        text_pattern: '(?s:Command matches for keyword: log.*Availability: direct message only)'
+        threaded: true
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      text: ;set log level fine
+    replies:
+      - user: alice
+        text_pattern: 'Invalid value ''fine'' for ''level''; valid values: trace, debug, info, warn, error\.'
+    events:
+      - BotDirectMessage
+  - input:
+      user: alice
+      text: ;set log lines to two
+    replies:
+      - user: alice
+        text_pattern: Invalid value 'two' for 'lines'; expected an integer\.
+    events:
+      - BotDirectMessage
+  - input:
+      user: alice
+      text: ;set log lines to 0
+    replies:
+      - user: alice
+        text_pattern: 'Lines per page of log output set to: 1'
+    events:
+      - BotDirectMessage
+      - AdminCheckPassed
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      text: ;set log lines to 3
+    replies:
+      - user: alice
+        text_pattern: 'Lines per page of log output set to: 3'
+    events:
+      - BotDirectMessage
+      - AdminCheckPassed
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: ;help info
+    replies:
+      - channel: general
+        text_pattern: '(?s:Command matches for keyword: info.*Summary: .*admins.*)'
+        threaded: true
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: random
+      text: ;help ruby
+    replies:
+      - channel: random
+        text_pattern: '(?s:Command matches for keyword: ruby.*Availability: channels: random)'
+        threaded: true
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: help
+    replies:
+      - channel: general
+        text_pattern: (?s:Help.*Hi, I'm Bender, a staff robot\. I see you've asked for help\..*I've been programmed to perform a variety of tasks for your team.*Getting command help.*bender, help ping.*Useful discovery commands.*;help.*;commands.*;help <keyword>.*;help-all.*When I ask a follow-up question.*= uses the default value.*- cancels.*;info.*parsley@linuxjedi\.org.*)
+        threaded: true
+    events:
+      - AmbientTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: ;whoami
+    replies:
+      - channel: general
+        text_pattern: 'you are ''test'' user ''alice/u0001'', speaking in channel ''general/#general'', email address: alice@example.com'
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      text: dump robot
+    replies:
+      - user: alice
+        text_pattern: This command is only available as a hidden command.
+    events:
+      - BotDirectMessage
+      - AdminCheckPassed
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: '/bender: dump robot'
+    replies:
+      - channel: general
+        text_pattern: HERE'S HOW I'VE BEEN CONFIGURED.*
+    events:
+      - AdminCheckPassed
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: '/bender: dump plugin echo'
+    replies:
+      - channel: general
+        text_pattern: ALLCHANNELS.*
+    events:
+      - AdminCheckPassed
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: '/bender: dump plugin default echo'
+    replies:
+      - channel: general
+        text_pattern: HERE'S.*
+    events:
+      - AdminCheckPassed
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: '/bender: dump plugin junk'
+    replies:
+      - channel: general
+        text_pattern: Didn't find .* junk
+    events:
+      - AdminCheckPassed
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: '/bender: list plugins'
+    replies:
+      - channel: general
+        text_pattern: (?s:Here are the plugins I have configured:.*builtin-admin)
+    events:
+      - AdminCheckPassed
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: '/bender: list disabled plugins'
+    replies:
+      - channel: general
+        text_pattern: (?s:(Here's a list of all disabled plugins:|There are no disabled plugins))
+    events:
+      - AdminCheckPassed
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: ;list jobs
+    replies:
+      - channel: general
+        text_pattern: (?s:(Here's a list of jobs for this channel:|I don't see any jobs configured for this channel))
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: ;list all jobs
+    replies:
+      - channel: general
+        text_pattern: (?s:(Here's a list of all the jobs I know about:|I dont' have any jobs configured))
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      text: ;show log
+    replies:
+      - user: alice
+        text_pattern: .*
+    events:
+      - BotDirectMessage
+      - AdminCheckPassed
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      text: ;show log page 1
+    replies:
+      - user: alice
+        text_pattern: .*
+    events:
+      - BotDirectMessage
+      - AdminCheckPassed
+      - CommandTaskRan
+      - GoPluginRan

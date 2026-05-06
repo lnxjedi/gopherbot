@@ -1,0 +1,24 @@
+name: TestPipelineFailureAlertIncludesTracebackExcerpt
+config_dir: test/membrain
+log_name: bottest-admin-failure.log
+flow:
+  - name: setup
+    wait_for_idle: true
+    drain_events: true
+  - name: admin-fail
+    send:
+      user: alice
+      channel: general
+      text: 'bender: admin fail'
+  - name: alert
+    receive:
+      channel: general
+      text_pattern: '(?s:Pipeline failure: exit code.*RuntimeError: boom.*)'
+      contains:
+        - 'Pipeline failure: exit code'
+        - 'RuntimeError: boom'
+  - name: user-reply
+    receive:
+      user: alice
+      channel: general
+      text_pattern: "(?s:Pipeline failed in external task 'admintimeout'.*)"

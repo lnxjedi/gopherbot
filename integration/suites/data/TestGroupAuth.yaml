@@ -1,0 +1,136 @@
+name: TestGroupAuth
+config_dir: test/membrain
+log_name: bottest.log
+cases:
+  - input:
+      user: alice
+      channel: general
+      text: ;list groups
+    replies:
+      - channel: general
+        text_pattern: Here are the groups.*
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+      - AdminCheckPassed
+  - input:
+      user: alice
+      channel: general
+      text: ;show the foo group
+    replies:
+      - channel: general
+        text_pattern: I don't have a .*
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: ;show the Helpdesk group
+    replies:
+      - channel: general
+        text_pattern: |-
+          (?m:The Helpdesk group has the following members:
+          carol
+          bob$)
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+      - AdminCheckPassed
+  - input:
+      user: alice
+      channel: general
+      text: ;remember The Alamo
+    replies:
+      - channel: general
+        text_pattern: Sorry, you're not authorized for .*
+    events:
+      - GoPluginRan
+      - AdminCheckPassed
+      - AuthRanFail
+  - input:
+      user: carol
+      channel: general
+      text: ;list groups
+    replies:
+      - channel: general
+        text_pattern: |-
+          (?m:Here are the groups you're an administrator for:
+          .*
+          .*$)
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+      - AdminCheckFailed
+  - input:
+      user: bob
+      channel: general
+      text: ;remember Lieutenant Dan
+    replies:
+      - channel: general
+        text_pattern: Ok, .*
+    events:
+      - GoPluginRan
+      - AdminCheckFailed
+      - AuthRanSuccess
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: david
+      channel: general
+      text: ;remember Forest Gump
+    replies:
+      - channel: general
+        text_pattern: Sorry, you're not authorized for .*
+    events:
+      - GoPluginRan
+      - AdminCheckFailed
+      - AuthRanFail
+  - input:
+      user: carol
+      channel: general
+      text: ;remember Forest Gump
+    replies:
+      - channel: general
+        text_pattern: Ok, I'll remember .*
+    events:
+      - GoPluginRan
+      - AdminCheckFailed
+      - AuthRanSuccess
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: carol
+      channel: general
+      text: ;add david to the Helpdesk group
+    replies:
+      - channel: general
+        text_pattern: Ok, I added david to the Helpdesk group
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+      - AdminCheckFailed
+  - input:
+      user: david
+      channel: general
+      text: ;remember Jenny
+    replies:
+      - channel: general
+        text_pattern: Ok, I'll remember .*
+    events:
+      - GoPluginRan
+      - AdminCheckFailed
+      - AuthRanSuccess
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;remove bob from the Helpdesk group
+    replies:
+      - channel: general
+        text_pattern: bob isn't a dynamic member of the Helpdesk group
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+      - AdminCheckPassed
