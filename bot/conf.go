@@ -382,6 +382,12 @@ func loadConfig(preConnect bool) error {
 	configload := make(map[string]json.RawMessage)
 	processed := &configuration{}
 
+	variables, err := loadConfigVariables()
+	if err != nil {
+		return fmt.Errorf("loading custom variables: %v", err)
+	}
+	setActiveConfigVariables(variables)
+
 	if err := getConfigFile(robotConfigFileName, true, configload); err != nil {
 		return fmt.Errorf("loading configuration file: %v", err)
 	}

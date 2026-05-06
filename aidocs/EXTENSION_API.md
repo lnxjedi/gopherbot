@@ -97,7 +97,7 @@ Secret-access rule:
 ### Secret helpers
 - `EncryptSecret(plaintext string) (string, RetVal)`
 
-`EncryptSecret` returns a base64 ciphertext suitable for `{{ decrypt "..." }}` in robot config templates.
+`EncryptSecret` returns a base64 ciphertext suitable for a custom `conf/variables/*.yaml` `Secrets` entry referenced from config templates with `{{ secret "NAME" }}`.
 
 Important semantics:
 - It is only available in privileged pipelines.

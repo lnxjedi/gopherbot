@@ -35,7 +35,8 @@ This document records the intended SSH connector behavior, control flow, and int
   - The first available port in that 8-port window is used; if all are in use, connector startup fails.
   - When probing skips in-use ports, startup logs the skip count.
   - `.ssh-connect` always records the actual selected port.
-- `HostKey` (encrypted private key, optional)
+- `HostKey` (private key string, optional; custom robots normally load it from
+  `conf/variables/*.yaml` with `{{ secret "SSH_HOST_KEY" }}`)
 - `HearSelf` (default recommended: `true` for SSH)  
   - when true, connector-injected bot-authored events (such as join announcements)
     are forwarded back through `IncomingMessage` as `SelfMessage=true`

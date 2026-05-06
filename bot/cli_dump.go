@@ -23,6 +23,16 @@ func cliDump(which, file string) {
 		fmt.Printf("Reading '%s': %v\n", cfgfile, err)
 		os.Exit(1)
 	}
+	if custom {
+		variables, err := loadConfigVariables()
+		if err != nil {
+			fmt.Printf("Loading custom variables: %v\n", err)
+			os.Exit(1)
+		}
+		setActiveConfigVariables(variables)
+	} else {
+		setActiveConfigVariables(newConfigVariableSet())
+	}
 	dir := filepath.Dir(filepath.Join("conf", file))
 	expanded, err := expand(dir, custom, raw)
 	if err != nil {

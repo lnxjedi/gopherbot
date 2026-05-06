@@ -17,6 +17,9 @@ This document defines compatibility priorities for v3 work.
 - Configuration schema backward compatibility is not guaranteed for v3.
 - Configuration migration is expected as architecture evolves.
 - Failing fast on invalid/removed config keys is preferred over silently ignoring legacy keys.
+- Removed config-template functions such as `decrypt` should fail fast with a
+  migration hint instead of returning empty values or silently preserving legacy
+  behavior.
 
 ## Configuration Layering Contract for Shipped Extensions
 

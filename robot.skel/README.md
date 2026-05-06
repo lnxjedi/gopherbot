@@ -6,6 +6,9 @@ v3 layout notes:
 
 - `conf/robot.yaml` is the main robot config and includes one environment file:
   `conf/environments/<environment>.yaml` (default `production` via `GOPHER_ENVIRONMENT`).
+- Environment-scoped secrets and deployment values live in
+  `conf/variables/common.yaml` and `conf/variables/<environment>.yaml`; these
+  files are custom robot data and are not layered from installed defaults.
 - Protocol-specific config lives in `conf/protocols/*.yaml`.
 - This scaffold is intentionally minimal. Optional connector, plugin, and job
   templates live in the installed `conf/` tree as `*.yaml.sample` files.

@@ -1164,6 +1164,7 @@ func applyScaffold(r robot.Robot, s setupSession) error {
 
 	for _, rel := range []string{
 		"conf/robot.yaml",
+		"conf/variables/common.yaml",
 		"conf/protocols/ssh.yaml",
 		"conf/protocols/terminal.yaml",
 	} {

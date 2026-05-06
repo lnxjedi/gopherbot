@@ -2,6 +2,7 @@ package bot
 
 import (
 	"bytes"
+	crand "crypto/rand"
 	"encoding/base64"
 	"flag"
 	"fmt"
@@ -94,6 +95,27 @@ func cliCommands() []cliCommandSpec {
 				"Generates a TOTP secret for the named user, prints the secret plus an",
 				"encrypted config snippet, and writes <username>.png for QR enrollment.",
 			},
+		},
+		{
+			Name:         "genkey",
+			SummaryUsage: "genkey [options]",
+			Summary:      "generate an encrypted binary key for an environment",
+			HelpLines: []string{
+				"Usage: gopherbot genkey [options]",
+				"",
+				"Generates a fresh robot data key encrypted by GOPHER_ENCRYPTION_KEY.",
+				"By default the encrypted key is printed to stdout.",
+				"",
+				"Options:",
+				"  -e, -environment <name>  environment name; defaults to GOPHER_ENVIRONMENT or production",
+				"  -w, -write               write binary-encrypted-key[.<environment>] under the custom config dir",
+				"  -force                   allow -write to replace an existing key file",
+				"",
+				"Notes:",
+				"  For non-production environments, -write targets binary-encrypted-key.<environment>.",
+				"  Replacing an existing key makes secrets encrypted by the old data key unreadable.",
+			},
+			RunsBeforeInit: true,
 		},
 		{
 			Name:         "delete",
@@ -307,6 +329,9 @@ func processCLI(command string, args []string) int {
 	var fileName string
 	var encodeBinary bool
 	var encodeBase64 bool
+	var genkeyEnvironment string
+	var genkeyWrite bool
+	var genkeyForce bool
 
 	encFlags := newCLIFlagSet("encrypt")
 	encFlags.StringVar(&fileName, "file", "", "file to encrypt (or - for stdin)")
@@ -321,6 +346,13 @@ func processCLI(command string, args []string) int {
 	decFlags.BoolVar(&encodeBinary, "b", false, "")
 
 	totpFlags := newCLIFlagSet("gentotp")
+
+	genkeyFlags := newCLIFlagSet("genkey")
+	genkeyFlags.StringVar(&genkeyEnvironment, "environment", "", "environment name")
+	genkeyFlags.StringVar(&genkeyEnvironment, "e", "", "")
+	genkeyFlags.BoolVar(&genkeyWrite, "write", false, "write encrypted key file")
+	genkeyFlags.BoolVar(&genkeyWrite, "w", false, "")
+	genkeyFlags.BoolVar(&genkeyForce, "force", false, "replace existing encrypted key file")
 
 	fetchFlags := newCLIFlagSet("fetch")
 	fetchFlags.BoolVar(&encodeBase64, "base64", false, "encode memory as base64")
@@ -413,6 +445,26 @@ func processCLI(command string, args []string) int {
 			return 2
 		}
 		cliTOTPgen(totpFlags.Arg(0))
+	case "genkey":
+		if err := genkeyFlags.Parse(args); err != nil {
+			if err == flag.ErrHelp {
+				printCLICommandHelp(command)
+				return 0
+			}
+			fmt.Printf("Error: %v\n\n", err)
+			printCLICommandHelp(command)
+			return 2
+		}
+		if len(genkeyFlags.Args()) > 0 {
+			fmt.Println("Error: genkey does not take positional arguments")
+			fmt.Println()
+			printCLICommandHelp(command)
+			return 2
+		}
+		if err := cliGenKey(genkeyEnvironment, genkeyWrite, genkeyForce); err != nil {
+			fmt.Printf("Error: %v\n", err)
+			return 1
+		}
 	case "fetch":
 		if err := fetchFlags.Parse(args); err != nil {
 			if err == flag.ErrHelp {
@@ -563,7 +615,9 @@ func cliTOTPgen(user string) {
 		fmt.Printf("Error encrypting: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("Encrypted secret for config: \"%s\": \"{{ decrypt \"%s\" }}\"\n", user, base64.StdEncoding.EncodeToString(ct))
+	fmt.Printf("Encrypted secret for custom/conf/variables/<environment>.yaml:\n")
+	fmt.Printf("Secrets:\n  TOTP_%s: \"%s\"\n", strings.ToUpper(user), base64.StdEncoding.EncodeToString(ct))
+	fmt.Printf("Reference it from configuration with: {{ secret \"TOTP_%s\" }}\n", strings.ToUpper(user))
 	var buf bytes.Buffer
 	img, imgerr := key.Image(400, 400)
 	if imgerr != nil {
@@ -577,6 +631,77 @@ func cliTOTPgen(user string) {
 		os.Exit(1)
 	}
 	fmt.Printf("Wrote '%s.png'\n", user)
+}
+
+func cliGenKey(environment string, writeFile, force bool) error {
+	wrappingKey, ok := lookupEnv(keyEnv)
+	if !ok || len(wrappingKey) < 32 {
+		return fmt.Errorf("%s must be set and at least 32 bytes long", keyEnv)
+	}
+	env := strings.TrimSpace(environment)
+	if env == "" {
+		env = currentConfigTemplateEnvironment()
+	}
+	if err := validateConfigTemplateEnvironment(env); err != nil {
+		return err
+	}
+	dataKey := make([]byte, 32)
+	if _, err := crand.Read(dataKey); err != nil {
+		return fmt.Errorf("generating random data key: %w", err)
+	}
+	encrypted, err := encrypt(dataKey, []byte(wrappingKey)[:32])
+	if err != nil {
+		return fmt.Errorf("encrypting generated data key: %w", err)
+	}
+	encoded := base64.StdEncoding.EncodeToString(encrypted)
+	if !writeFile {
+		fmt.Println(encoded)
+		return nil
+	}
+	target := filepath.Join(configPath, encryptedKeyFile)
+	if env != "production" {
+		target = filepath.Join(configPath, encryptedKeyFile+"."+env)
+	}
+	if _, err := os.Stat(target); err == nil && !force {
+		return fmt.Errorf("%s already exists; rerun with -force to replace it", target)
+	} else if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("checking existing key file %q: %w", target, err)
+	}
+	if err := os.MkdirAll(filepath.Dir(target), 0700); err != nil {
+		return fmt.Errorf("creating key directory: %w", err)
+	}
+	tmp, err := os.CreateTemp(filepath.Dir(target), filepath.Base(target)+".tmp-*")
+	if err != nil {
+		return fmt.Errorf("creating temporary key file: %w", err)
+	}
+	tmpName := tmp.Name()
+	cleanup := true
+	defer func() {
+		if cleanup {
+			os.Remove(tmpName)
+		}
+	}()
+	if _, err := tmp.WriteString(encoded); err != nil {
+		tmp.Close()
+		return fmt.Errorf("writing temporary key file: %w", err)
+	}
+	if err := tmp.Chmod(encryptedKeyFileMode); err != nil {
+		tmp.Close()
+		return fmt.Errorf("setting temporary key file permissions: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("closing temporary key file: %w", err)
+	}
+	raiseThreadPriv("writing generated encrypted key")
+	if err := os.Rename(tmpName, target); err != nil {
+		return fmt.Errorf("installing generated key file: %w", err)
+	}
+	cleanup = false
+	if err := enforceEncryptedKeyFilePermissions(target); err != nil {
+		return fmt.Errorf("securing generated key file: %w", err)
+	}
+	fmt.Printf("Wrote %s\n", target)
+	return nil
 }
 
 func cliEncrypt(item, file string, binary bool) {

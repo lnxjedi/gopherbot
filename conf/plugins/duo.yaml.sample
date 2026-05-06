@@ -7,7 +7,7 @@ Disabled: false
 Config:
   TimeoutSeconds: 7200
   TimeoutType: idle # or absolute
-  DuoIKey: {{ decrypt "<duo_ikey>" }}
-  DuoSKey: {{ decrypt "<duo_skey>" }}
+  DuoIKey: {{ secret "DUO_IKEY" | printf "%q" }}
+  DuoSKey: {{ secret "DUO_SKEY" | printf "%q" }}
   DuoHost: "your-org.duosecurity.com"
   DuoUserString: emailUser

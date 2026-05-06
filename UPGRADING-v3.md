@@ -18,6 +18,69 @@ Compatibility scope for this guide:
 8. Confirm your preferred `DefaultMessageFormat` (v3 default is now `BasicMarkdown`; set `Raw` explicitly to preserve legacy protocol-native output).
 9. Reload and verify runtime with `protocol-list` (or `protocol list`).
 
+## 2026-05-06 Environment-Scoped Secrets And Variables
+
+Inline config-template decryption was removed for v3.
+
+Breaking config change:
+
+- `{{ decrypt "..." }}` is no longer valid in any config template.
+- Remaining uses fail startup or `gopherbot validate` with a migration hint.
+- Encrypted values now belong under custom robot `conf/variables/*.yaml`
+  `Secrets` and are referenced with `{{ secret "NAME" }}`.
+
+Variables files are custom-only:
+
+```yaml
+# conf/variables/common.yaml
+Secrets:
+  WEATHER_API_KEY: "<ciphertext from gopherbot encrypt>"
+Variables:
+  OUTPUT_CHANNEL: "jobs"
+```
+
+```yaml
+# conf/variables/development.yaml
+Secrets:
+  WEATHER_API_KEY: "<development ciphertext>"
+Variables:
+  OUTPUT_CHANNEL: "dev-jobs"
+```
+
+Use them from config:
+
+```yaml
+ParameterSets:
+  weather:
+    Parameters:
+    - Name: WEATHER_API_KEY
+      Value: {{ secret "WEATHER_API_KEY" | printf "%q" }}
+
+DefaultJobChannel: {{ variable "OUTPUT_CHANNEL" | printf "%q" }}
+```
+
+Upgrade actions:
+
+1. Search custom config for `{{ decrypt`.
+2. Move each ciphertext into `conf/variables/common.yaml` or the appropriate
+   `conf/variables/<GOPHER_ENVIRONMENT>.yaml` under `Secrets`.
+3. Replace inline decrypt calls with `{{ secret "NAME" }}`.
+4. Put plaintext deployment values that vary by environment under `Variables`
+   and reference them with `{{ variable "NAME" }}`.
+5. For separate environment key domains, generate or install
+   `binary-encrypted-key.<environment>` and encrypt that environment's secrets
+   with the matching active data key.
+
+New helper:
+
+```bash
+gopherbot genkey -environment development -write
+```
+
+`genkey` creates a fresh encrypted binary key using the current
+`GOPHER_ENCRYPTION_KEY`. It writes `binary-encrypted-key` for production and
+`binary-encrypted-key.<environment>` for non-production environments.
+
 ## 2026-04-28 Privsep Child Process And Supplementary Groups
 
 Privilege separation for file-backed extensions now uses one-shot child processes. The parent engine selects a child role, and `pipeline-child-exec` / `pipeline-child-rpc` commit to that role before running external scripts or built-in interpreters.

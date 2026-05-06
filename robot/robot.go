@@ -305,8 +305,8 @@ type Robot interface {
 	// argument should match a CommandMatcher for the given plugin.
 	FailCommand(string, string) RetVal
 	// EncryptSecret encrypts a plaintext string using the robot's configured
-	// encryption key and returns a base64-encoded ciphertext suitable for use
-	// with {{ decrypt "<ciphertext>" }} in robot configuration templates.
+	// encryption key and returns a base64-encoded ciphertext suitable for a
+	// custom conf/variables Secrets entry referenced with {{ secret "NAME" }}.
 	// Only available in privileged pipelines; returns Failed with a log entry
 	// on any encryption error.
 	EncryptSecret(plaintext string) (string, RetVal)

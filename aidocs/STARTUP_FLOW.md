@@ -117,6 +117,7 @@ CLI handling is intentionally split so help and obvious usage failures do not fo
    - unknown commands / invalid explicit `run` arguments
 3. `dump` and `validate` still run before `initBot()`, but after private environment loading so template/env expansion stays accurate.
 4. Other CLI commands (`encrypt`, `decrypt`, `gentotp`, `fetch`, `store`, `list`, `delete`) still follow the normal CLI startup path through `initBot()` so encryption, config, and brain state are available.
+5. `genkey` is a no-init CLI command after private environment loading; it uses `GOPHER_ENCRYPTION_KEY` directly to generate an encrypted `binary-encrypted-key[.<environment>]` payload without starting brain, connectors, or plugins.
 
 Operational note:
 
@@ -332,6 +333,40 @@ For extensions shipped with Gopherbot (compiled or default external extensions):
 
 This keeps upgrade behavior predictable and prevents stale custom copies from disabling or diverging shipped extension behavior.
 
+### Environment-Scoped Secrets And Variables
+
+Custom robot repositories may define deployment variables under:
+
+- `conf/variables/common.yaml`
+- `conf/variables/<GOPHER_ENVIRONMENT>.yaml`
+
+There is no installed/default `conf/variables/` layer. Variables are robot-owned
+deployment data and are read only from the custom robot repository.
+
+Variables files are loaded after encryption initialization and before config
+template expansion. `common.yaml` loads first, then the environment-specific file
+overrides it. Missing files are allowed, but missing referenced keys fail config
+load.
+
+Expected shape:
+
+```yaml
+Secrets:
+  SLACK_TOKEN: "<base64 ciphertext>"
+Variables:
+  OUTPUT_CHANNEL: "jobs"
+```
+
+Template functions:
+
+- `{{ secret "SLACK_TOKEN" }}` decrypts a named `Secrets` entry.
+- `{{ variable "OUTPUT_CHANNEL" }}` reads a named plaintext `Variables` entry.
+
+`decrypt` is intentionally not a valid v3 config-template function. Any remaining
+`{{ decrypt "..." }}` use fails with a migration error directing the operator to
+move the ciphertext into custom `conf/variables/*.yaml` under `Secrets` and
+reference it with `secret`.
+
 ### Identity Mapping Key Compatibility
 
 Identity policy is username-authoritative in engine flows.
@@ -393,9 +428,12 @@ Test harness note:
 | `GetStartupMode`     | Returns current mode string    | `{{- $mode := GetStartupMode }}`    |
 | `env "VAR"`          | Read environment variable      | `{{ env "GOPHER_PROTOCOL" }}`       |
 | `default "val"`      | Provide default if empty       | `{{ env "X" \| default "y" }}`      |
-| `decrypt "..."`      | Decrypt an encrypted value     | `{{ decrypt "base64..." }}`         |
+| `secret "NAME"`      | Decrypt a custom variables secret | `{{ secret "SLACK_TOKEN" }}`     |
+| `variable "NAME"`    | Read a custom variables value  | `{{ variable "OUTPUT_CHANNEL" }}`   |
 | `.Include "file"`    | Include another YAML file      | `{{ .Include "slack.yaml" }}`       |
 | `SetEnv "VAR" "val"` | Override env for custom config | `{{ SetEnv "GOPHER_BRAIN" "mem" }}` |
+
+`decrypt` is intentionally not a valid v3 config-template function. Any remaining `{{ decrypt "..." }}` template use fails with a migration error directing the operator to move the ciphertext into custom `conf/variables/*.yaml` under `Secrets` and reference it with `secret`.
 
 ## Encryption Initialization
 

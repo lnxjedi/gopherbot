@@ -14,6 +14,8 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Setup UX/style conventions for guided onboarding flows: `aidocs/setup-style-guide.md`
 - Interpreter notes: `aidocs/INTERPRETERS.md`.
 - Extension surface map: `aidocs/EXTENSION_SURFACES.md`.
+- Environment-scoped secrets/variables behavior and design:
+  `aidocs/SECRETS_VARIABLES_ENVIRONMENT_DESIGN.md`.
 - Test harness overview: `aidocs/TESTING_CURRENT.md`.
 - Process-backed integration harness migration plan:
   `aidocs/INTEGRATION_HARNESS_PLAN.md`.

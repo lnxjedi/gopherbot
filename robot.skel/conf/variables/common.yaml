@@ -1,0 +1,3 @@
+Secrets:
+  SSH_HOST_KEY: "<sshhostkeyencrypted>"
+Variables: {}

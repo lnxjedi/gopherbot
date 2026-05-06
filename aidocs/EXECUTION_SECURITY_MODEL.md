@@ -133,6 +133,9 @@ Gopherbot treats extension secret access as explicit and scope-based.
 - An extension may receive secrets when the robot administrator explicitly assigns them to that extension through task/plugin configuration, `ParameterSets`, or task config retrieved through `GetTaskConfig()`.
 - An extension may also access secrets it previously stored inside brain/memory state owned by its own namespace.
 - Unprivileged robot methods must not expose shared/global secret-bearing configuration, nor provide discovery of secrets assigned to other extensions.
+- The `conf/variables/*.yaml` `Secrets` registry is a configuration-template
+  input only. It is resolved during config load through `{{ secret "NAME" }}`;
+  there is no runtime Robot API for listing or reading global variables/secrets.
 
 Practical rule for engine APIs:
 

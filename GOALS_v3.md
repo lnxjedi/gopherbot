@@ -157,24 +157,25 @@ Desired workflow note:
 
 Status: DONE, needs more QA
 
-#### Simple structure for environment common and specific variables and secrets
+#### Consolidation of Secrets and Variables
 
 This feature makes it cleaner and easier to keep secrets for one environment separate from another, for robot development with dedicated secrets for the development environment.
 
 *Before* reading custom robot.yaml, read custom `conf/variables/common.yaml`, and `conf/variables/<environment>.yaml`, where values from the enviroment file override values from the common file, similar to how custom overrides defaults.
 
-Namespace secrets and ParameterSets must live in variables files, plus add new named `Secrets` and `Variables` sections, e.g.:
+Plaintext variables and encrypted secrets live in variables files; for example:
 ```yaml
 Secrets:
-  SLACK_TOKEN: {{ decrypt "<ciphertext>" }}
-  WEATHER_API_KEY: {{ decrypt "<ciphertext>" }}
+  SLACK_TOKEN: "<ciphertext>"
+  WEATHER_API_KEY: "<ciphertext>"
 Variables:
   OUTPUT_CHANNEL: test-jobs
+  ROBOT_NAME: Clu
 ```
 
-Add new template functions `secret` and `variable` for use in other locations, e.g. `SlackToken: {{ secret "SLACK_TOKEN }}`, `WeatherToken: {{ secret "WEATHER_TOKEN" }}`. `JobChannel: {{ variable "OUTPUT_CHANNEL" }}`.888888
+Add new template functions `secret` and `variable` for use in other locations, e.g. `SlackToken: {{ secret "SLACK_TOKEN }}`, `WeatherToken: {{ secret "WEATHER_TOKEN" }}`. `JobChannel: {{ variable "OUTPUT_CHANNEL" }}`. The old `{{ decrypt "<ciphertext>" }}` should be removed in favor of secret references, forcing all encrypted secrets to be declared in `variables/common.yaml` or an environment-specific value in e.g. `variables/development.yaml`.
 
-Together these features enable a robot developer to cleanly separate secrets from configuration to simplify developing robot extensions with distinct credentials.
+Together these features enable a robot developer to cleanly separate secrets from configuration to simplify developing robot extensions with distinct credentials encrypted by a separate `binary-encrypted-key.environment` (already supported). To further simplify this, the gopherbot CLI should support a new "genkey" function that generates a new `binary-encrypted-key` string encrypted by the current `GOPHER_ENCRYPTION_KEY`.
 
 ### Make Robots Easy to Set Up with New Brains, Connectors, etc.
 

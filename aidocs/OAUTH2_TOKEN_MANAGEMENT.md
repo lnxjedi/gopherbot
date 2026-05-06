@@ -45,7 +45,7 @@ ParameterSets:
     - Name: CLIENT_ID
       Value: "Iv1..."
     - Name: CLIENT_SECRET
-      Value: {{ decrypt "<encrypted github client secret>" }}
+      Value: {{ secret "GITHUB_CLIENT_SECRET" | printf "%q" }}
 
 IdentityProviders:
   github:
@@ -68,7 +68,7 @@ ExternalPlugins:
 Notes:
 - Provider keys are normalized to lowercase during config load.
 - `CredentialParameterSet` points to a standard parameter set containing `CLIENT_ID` and `CLIENT_SECRET`.
-- Secrets should be stored encrypted with `gopherbot encrypt <secret>` and loaded with `{{ decrypt "..." }}`.
+- Secrets should be stored encrypted with `gopherbot encrypt <secret>` under custom `conf/variables/*.yaml` `Secrets`, then loaded with `{{ secret "NAME" }}`.
 - `TokenEndpointAuthMethod` supports `client_secret_post`, `client_secret_basic`, `client_id_only`, and `none`.
 - Any extension that calls `GetIdentityCredential`, `LinkOAuth2Identity`, or `UnlinkIdentity` must have that same parameter set attached through its own `ParameterSets` config.
 - Shipped credentialed extensions are opt-in for custom robots; they should not be assumed active in the default robot.

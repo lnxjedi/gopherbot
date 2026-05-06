@@ -5,7 +5,8 @@
 #    with the connector credentials
 # 2. Create memes.yaml in custom/conf/plugins, supplying the Username, and
 #    get the robot to encrypt the password with a direct message
-#    'encrypt xxx', then use decrypt in the template for the Password
+#    'encrypt xxx', store the ciphertext in custom/conf/variables/<environment>.yaml
+#    Secrets, then use {{ secret "MEMES_PASSWORD" }} for the Password.
 #
 # To add your own memes, create conf/plugins/memes.yaml in the custom
 # configuration repository, with new entries in "Commands:" including

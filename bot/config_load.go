@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"text/template"
 
 	"github.com/lnxjedi/gopherbot/robot"
@@ -92,28 +93,158 @@ func setEnvVar(k, v string) (err error) {
 	return
 }
 
-// decryptTpl takes an base64 encoded string, decodes and decrypts, and returns
-// the value.
-func decryptTpl(encval string) string {
+type configVariableSet struct {
+	Secrets   map[string]string
+	Variables map[string]string
+}
+
+type configVariablesFile struct {
+	Secrets   map[string]*string `yaml:"Secrets"`
+	Variables map[string]*string `yaml:"Variables"`
+}
+
+var activeConfigVariables = struct {
+	sync.RWMutex
+	values *configVariableSet
+}{
+	values: &configVariableSet{
+		Secrets:   map[string]string{},
+		Variables: map[string]string{},
+	},
+}
+
+func newConfigVariableSet() *configVariableSet {
+	return &configVariableSet{
+		Secrets:   make(map[string]string),
+		Variables: make(map[string]string),
+	}
+}
+
+func currentConfigTemplateEnvironment() string {
+	env := strings.TrimSpace(currentDeployEnvironment())
+	if env == "" {
+		env = "production"
+	}
+	return env
+}
+
+func validateConfigTemplateEnvironment(env string) error {
+	if env == "" || env == "." || env == ".." {
+		return fmt.Errorf("invalid GOPHER_ENVIRONMENT %q", env)
+	}
+	if strings.ContainsAny(env, `/\`) {
+		return fmt.Errorf("invalid GOPHER_ENVIRONMENT %q: environment must be a single path segment", env)
+	}
+	if filepath.Clean(env) != env || filepath.Base(env) != env {
+		return fmt.Errorf("invalid GOPHER_ENVIRONMENT %q: environment must be a single path segment", env)
+	}
+	return nil
+}
+
+func setActiveConfigVariables(values *configVariableSet) {
+	if values == nil {
+		values = newConfigVariableSet()
+	}
+	activeConfigVariables.Lock()
+	activeConfigVariables.values = values
+	activeConfigVariables.Unlock()
+}
+
+func loadConfigVariables() (*configVariableSet, error) {
+	values := newConfigVariableSet()
+	if strings.TrimSpace(configPath) == "" {
+		return values, nil
+	}
+	env := currentConfigTemplateEnvironment()
+	if err := validateConfigTemplateEnvironment(env); err != nil {
+		return nil, err
+	}
+	for _, filename := range []string{
+		filepath.Join("variables", "common.yaml"),
+		filepath.Join("variables", env+".yaml"),
+	} {
+		path := filepath.Join(configPath, "conf", filename)
+		if err := mergeConfigVariablesFile(path, values); err != nil {
+			return nil, err
+		}
+	}
+	return values, nil
+}
+
+func mergeConfigVariablesFile(path string, values *configVariableSet) error {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("reading variables file %q: %w", path, err)
+	}
+	Log(robot.Debug, "Loaded custom variables file %s", path)
+	if len(bytes.TrimSpace(raw)) == 0 {
+		return nil
+	}
+	dec := yaml.NewDecoder(bytes.NewReader(raw))
+	dec.KnownFields(true)
+	var loaded configVariablesFile
+	if err := dec.Decode(&loaded); err != nil {
+		return fmt.Errorf("unmarshalling variables file %q: %w", path, err)
+	}
+	mergeVariableMap(values.Secrets, loaded.Secrets)
+	mergeVariableMap(values.Variables, loaded.Variables)
+	return nil
+}
+
+func mergeVariableMap(dst map[string]string, src map[string]*string) {
+	for k, v := range src {
+		if v == nil {
+			delete(dst, k)
+			continue
+		}
+		dst[k] = *v
+	}
+}
+
+// decryptTpl is intentionally retained only to make legacy template use fail
+// with an actionable migration message.
+func decryptTpl(encval string) (string, error) {
+	return "", fmt.Errorf("template function \"decrypt\" was removed in v3; move this encrypted value to custom/conf/variables/common.yaml or custom/conf/variables/<environment>.yaml under Secrets and reference it with {{ secret \"NAME\" }}")
+}
+
+// secretTpl resolves a named encrypted secret from custom conf/variables files.
+func secretTpl(name string) (string, error) {
 	cryptKey.RLock()
 	initialized := cryptKey.initialized
 	key := cryptKey.key
 	cryptKey.RUnlock()
 	if !initialized {
-		Log(robot.Warn, "Template called decrypt(Tpl) function but encryption not initialized")
-		return ""
+		return "", fmt.Errorf("template secret %q requested but encryption is not initialized", name)
+	}
+	activeConfigVariables.RLock()
+	encval, ok := activeConfigVariables.values.Secrets[name]
+	activeConfigVariables.RUnlock()
+	if !ok {
+		return "", fmt.Errorf("template secret %q is not defined in custom conf/variables/common.yaml or custom conf/variables/%s.yaml", name, currentConfigTemplateEnvironment())
 	}
 	encbytes, err := base64.StdEncoding.DecodeString(encval)
 	if err != nil {
-		Log(robot.Error, "Unable to base64 decode in template decrypt(Tpl): %v", err)
-		return ""
+		return "", fmt.Errorf("base64 decoding template secret %q: %w", name, err)
 	}
 	secret, decerr := decrypt(encbytes, key)
 	if decerr != nil {
-		Log(robot.Error, "Unable to decrypt secret in template decrypt(Tpl): %v", decerr)
-		return ""
+		return "", fmt.Errorf("decrypting template secret %q: %w", name, decerr)
 	}
-	return string(secret)
+	return string(secret), nil
+}
+
+// variableTpl resolves a named plaintext variable from custom conf/variables files.
+func variableTpl(name string) (string, error) {
+	activeConfigVariables.RLock()
+	value, ok := activeConfigVariables.values.Variables[name]
+	activeConfigVariables.RUnlock()
+	if !ok {
+		return "", fmt.Errorf("template variable %q is not defined in custom conf/variables/common.yaml or custom conf/variables/%s.yaml", name, currentConfigTemplateEnvironment())
+	}
+	return value, nil
 }
 
 func isTestBuildTpl() bool {
@@ -203,6 +334,8 @@ func expand(dir string, custom bool, in []byte) (out []byte, err error) {
 		"decrypt":        decryptTpl,
 		"default":        defval,
 		"env":            env,
+		"secret":         secretTpl,
+		"variable":       variableTpl,
 		"GetStartupMode": detectStartupMode,
 		"SetEnv":         setEnvVar,
 		"IsTestBuild":    isTestBuildTpl,

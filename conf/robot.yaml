@@ -14,8 +14,12 @@
 ##   override an environment variable setting during template expansion
 ##   -> Note that this is really mainly useful in default configuration,
 ##      since default is always loaded before custom config.
-## decrypt "<encrypted string>":
-##   decrypt a value encrypted with the 'encrypt <string>' command
+## secret "NAME":
+##   decrypt a named value from custom/conf/variables/common.yaml or
+##   custom/conf/variables/<environment>.yaml Secrets
+## variable "NAME":
+##   read a named plaintext value from custom/conf/variables/common.yaml or
+##   custom/conf/variables/<environment>.yaml Variables
 ## .Include "<filename>":
 ##   Include and expand the contents of another file from the same
 ##   location (installed defaults or custom config)
