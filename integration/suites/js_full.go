@@ -88,7 +88,7 @@ func init() {
 				{null, general, "PIPE ADD COMMAND: ran", false},
 				{null, general, "PIPE FINAL COMMAND: ran", false},
 				{null, general, "PIPE NOTE: final-task", false}}, nil, 0},
-			{aliceID, general, ";js-pipeline-fail", false, []TestMessage{{null, general, "PIPELINE FAIL: armed", false}, {null, general, "PIPE NOTE: fail-task", false}, {null, general, "PIPE FAIL COMMAND: ran", false}}, nil, 0},
+			{aliceID, general, ";js-pipeline-fail", false, []TestMessage{{null, general, "PIPELINE FAIL: armed", false}, {null, general, "PIPE NOTE: fail-task", false}, {null, general, "PIPE FAIL COMMAND: ran", false}, {null, general, "Pipeline failure: exit code 1 \\(Fail\\)", false}}, nil, 0},
 			{aliceID, general, ";js-spawn-job", false, []TestMessage{{null, general, "Starting job 'pipe-spawn-job spawn-step', run [0-9]+ - spawned by pipeline .*", false}, {null, general, "PIPE NOTE: spawn-step", false}, {null, general, "Finished job 'pipe-spawn-job', run [0-9]+, final task 'pipe-spawn-job', status: normal", false}}, nil, 0},
 		}),
 	})

@@ -109,7 +109,7 @@ func hiddenPSAndGetPipelineLogFlow(ctx context.Context, d Driver) []Failure {
 	if err := containsAll(upperLog, "LIVE LOG FOR PIPELINE "+wid, "INSPECT STDOUT READY", "INSPECT STDERR READY"); err != nil {
 		addFlowFailure(&failures, suiteName, "get-pipeline-log", "content", "%v", err)
 	}
-	doneMsg, err := receiveAndMatch(ctx, d, ExpectedMessage{Channel: general, TextPattern: `(?s:.*INSPECT DONE.*)`})
+	doneMsg, err := receiveAndMatch(ctx, d, ExpectedMessage{Channel: general, TextPattern: `(?is:.*inspect done.*)`})
 	if err != nil {
 		addFlowFailure(&failures, suiteName, "admin-inspect", "done", "%v", err)
 		return failures
@@ -171,7 +171,7 @@ func pipelineFailureAlertIncludesTracebackExcerptFlow(ctx context.Context, d Dri
 	if err := containsAll(alertMsg.Text, "Pipeline failure: exit code", "RuntimeError: boom"); err != nil {
 		addFlowFailure(&failures, suiteName, "alert", "content", "%v", err)
 	}
-	_, err = receiveAndMatch(ctx, d, ExpectedMessage{Channel: general, TextPattern: `(?s:Pipeline failed in external task 'admintimeout'.*)`})
+	_, err = receiveAndMatch(ctx, d, ExpectedMessage{User: alice, Channel: general, TextPattern: `(?s:Pipeline failed in external task 'admintimeout'.*)`})
 	if err != nil {
 		addFlowFailure(&failures, suiteName, "user-reply", "reply", "%v", err)
 	}

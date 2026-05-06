@@ -93,7 +93,8 @@ func init() {
 			{aliceID, general, ";lua-pipeline-fail", false, []TestMessage{
 				{null, general, "PIPELINE FAIL: armed", false},
 				{null, general, "PIPE NOTE: fail-task", false},
-				{null, general, "PIPE FAIL COMMAND: ran", false}}, nil, 0},
+				{null, general, "PIPE FAIL COMMAND: ran", false},
+				{null, general, "Pipeline failure: exit code 1 \\(Fail\\)", false}}, nil, 0},
 			{aliceID, general, ";lua-spawn-job", false, []TestMessage{
 				{null, general, "Starting job 'pipe-spawn-job spawn-step', run [0-9]+ - spawned by pipeline .*", false},
 				{null, general, "PIPE NOTE: spawn-step", false},
