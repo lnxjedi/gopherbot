@@ -4,13 +4,6 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
 
 ## Open TODOs
 
-- [ ] Deprecate `Exclusive` in v3 and add a replacement `TaskLock(tag, queue bool) RetVal` API:
-  - Keep the existing `Exclusive(tag, queueTask bool) bool` behavior for v3 compatibility, but document it as deprecated once `TaskLock` exists.
-  - Add exactly one new `RetVal` value, `Busy`; use existing `Ok` and `Failed` for the other states.
-  - `Ok` means the lock was acquired and the caller should proceed.
-  - `Busy` means the lock was not acquired and the caller should exit cleanly. When `queue` is `true`, `Busy` must mean the retry was successfully queued; if queuing was requested but could not be guaranteed, return `Failed` instead.
-  - `Failed` means API misuse or an internal error; the engine must emit an Error-level log with enough detail for the robot owner to diagnose the issue.
-  - Treat contention as normal cooperative behavior, not an error. Reserve operator-visible failure handling for `Failed`.
 - [ ] Replace the `go test ./test` integration harness with a process-backed
   `gopherbot-integration` workflow:
   - Use `aidocs/INTEGRATION_HARNESS_PLAN.md` as the design source.
@@ -20,6 +13,7 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
     instead of streaming full output into model context.
   - Add privsep-only suites that require a real setuid/setgid integration
     binary.
+  - [ ] Migrate new integration tests to engine + data files, vs. compiled
 - Make thread subscription expiration configurable instead of fixed constant:
   Current behavior uses `threadMemoryDuration = 7 * 24h` in `bot/brain.go`, and thread subscriptions are expired by `expireSubscriptions` in `bot/subscribe_thread.go`.
   This affects long-running AI thread continuity after inactivity when using subscription-based routing.
@@ -29,7 +23,7 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
   - Added `ValidatedUser` to `ConnectorMessage`; connectors now explicitly mark whether an inbound canonical username is vouched for.
   - Updated engine handling of `IgnoreUnlistedUsers` so validated canonical identity is required for directory-gated inbound policy.
   - Added admin-only built-in `validate user <username>` with a short-lived 7-digit code and pre-pipeline DM/hidden consume path for returning protocol-local internal IDs to the requesting admin.
-- [ ] Update connectors to take a Reload method that, at the very least, updates the list of Validated Users.
+- [x] Update connectors to take a Reload method that, at the very least, updates the list of Validated Users.
 - [ ] Make external interpreter failures ALSO send error output to jobs channel for default connector, like built-in interpreters
 - [x] Align shipped SimpleMatcher configs with the v3 DSL contract:
   - `devdocs/SimpleMatcher.md` defines the intended semantics: `(label:...)` / `(:...)` required capturing choices, `[label:...]` / `[:...]` optional capturing choices, `{...}` optional non-capturing noise, and `/.../` required non-capturing synonyms.
