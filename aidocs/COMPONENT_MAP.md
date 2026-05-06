@@ -100,7 +100,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Built-in shell/runtime job scripts: `jobs/install-libs.gsh`.
 - External shell job scripts: `jobs/logrotate.sh`.
 - Go job entrypoint example: `jobs/updatecfg/updatecfg.go` (func `JobHandler`).
-- AI conversation retention prune job: `jobs/go-openai-prune/go_openai_prune_job.go` (func `JobHandler`).
+- AI conversation retention prune job: `jobs/go-ai-prune/go_ai_prune_job.go` (func `JobHandler`).
 - SSH onboarding welcome trigger job: `jobs/go-welcome-join/welcome_join.go` (func `JobHandler`).
 - SSH onboarding resume-on-join job: `jobs/go-resume-setup/resume_setup.go` (func `JobHandler`).
 
@@ -123,7 +123,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 - External and interpreter-backed script plugins/samples: `plugins/README.txt`, `plugins/admin.gsh`, `plugins/ssh-admin.gsh`, `plugins/welcome.lua`, `plugins/welcome.sh`, `plugins/samples/README.txt`, `plugins/samples/hello.gsh`, `plugins/test/shfull.gsh`.
 - Shipped OAuth2 onboarding plugin: `plugins/go-github-link/github_link.go`.
-- OpenAI fallback plugin: `plugins/go-openai-fallback/ai.go` (func `PluginHandler`).
+- AI fallback plugin: `plugins/go-ai-fallback/ai.go` (func `PluginHandler`).
 
 ## resources/
 

@@ -1,8 +1,18 @@
 ---
-## Default configuration for the optional openai-fallback plugin.
+## Default configuration for the optional ai-fallback plugin.
 ## This file is merged with the plugin's internal defaults and can be
-## overridden by custom/conf/plugins/openai-fallback.yaml.
+## overridden by custom/conf/plugins/ai-fallback.yaml.
 Config:
+  ## Human-readable provider name used in errors/logs.
+  ProviderName: "AI provider"
+  ## Base URL for a chat-completions-compatible API, e.g.:
+  ## "https://generativelanguage.googleapis.com/v1beta/openai/"
+  APIBaseURL: ""
+  ## Optional exact chat completions URL. Overrides APIBaseURL when set.
+  ChatCompletionsURL: ""
+  ## Optional provider-specific organization/project header name. Leave empty
+  ## for providers that only require bearer-token authentication.
+  OrganizationHeader: ""
   ## Immediate acknowledgment that the prompt was received.
   ## Set to "" to disable.
   HeardNotice: "_(working on a reply...)_"
@@ -22,8 +32,8 @@ Config:
   Profiles:
     "default":
       "params":
-        "model": "gpt-5.2-chat-latest"
-        "temperature": 1 # The only valid value for gpt-5.2-chat-latest is 1.
+        "model": "" # e.g. "gemini-2.5-flash", "claude-sonnet-4-5", provider-specific
+        "temperature": 0.7
       "SystemPrompt":
         "Standard": |
           You are an AI assistant participating in a multi-user chat conversation.

@@ -1,3 +1,242 @@
+# v2.99.0 - Pre-v3 Pilot Series
+
+Gopherbot v2.99.0 starts the pre-v3 pilot series. The v3 architecture work is
+now substantially complete, and this release is intended for real robots that
+can validate the new model before the final v3.0.0 tag.
+
+The goal for the rest of the pre-v3 series is stability: no new
+robot-breaking changes before v3 unless pilot testing uncovers a critical
+defect that cannot be fixed any other way. Existing custom extension code is
+expected to remain compatible across the v2 -> v3 transition, while robot
+configuration is the migration boundary.
+
+For migration details, see [`UPGRADING-v3.md`](UPGRADING-v3.md).
+
+## v3 Direction and Compatibility
+
+The v3 line makes Gopherbot a more self-contained automation framework with a
+clearer internal model and less dependence on external tools. The main
+compatibility stance is:
+
+* Custom plugins, jobs, and tasks written against the Robot API should continue
+  to run without API-signature churn.
+* Username-based authorization and admin semantics remain the security
+  authority.
+* Persistent brain compatibility is preserved where feasible.
+* v2 configuration syntax is not guaranteed. Migration is expected and is
+  documented in `UPGRADING-v3.md`.
+* Installed engine defaults remain authoritative. Custom robot configuration
+  should be delta-only unless intentionally redefining behavior.
+* Shipped extensions that require owner-provided credentials are opt-in; they
+  should be enabled from custom robot config with explicit parameter sets.
+
+## Multi-Protocol Runtime
+
+Gopherbot now supports the v3 multi-protocol runtime model, with simultaneous
+connector support and connector-owned transport behavior.
+
+Notable connector/runtime changes:
+
+* Primary and secondary protocol configuration replaces the old
+  single-protocol assumption.
+* Slack, Google Chat, SSH, terminal, test, and null connectors are supported in
+  the current runtime.
+* Connectors own transport-specific identity mapping, message context, hidden
+  command behavior, and reload behavior.
+* Google Chat now has connector-local `SelfID` handling for the bot's own
+  numeric identity, keeping human username mappings separate from bot identity.
+* Cross-protocol identity equivalence is based on canonical username, not
+  transport IDs.
+* Connector failure isolation is part of the runtime model so one connector
+  failure does not cascade through the whole robot.
+* `protocol-list` / `protocol list` can be used to inspect active connector
+  state during migration and pilot testing.
+
+## Default Message Format and Connector Rendering
+
+The v3 default outgoing message format is now `BasicMarkdown`, giving custom
+extensions a portable default across supported chat connectors.
+
+Compatibility notes:
+
+* Robots that depend on legacy connector-native output should explicitly set
+  `DefaultMessageFormat: Raw`.
+* `Raw`, `Fixed`, and `Variable` remain supported.
+* Slack and Google Chat rendering behavior has been tightened, but literal
+  portability still varies by connector. Prefer `BasicMarkdown` for portable
+  rich output and `Fixed` for stable literal-ish display.
+
+## Configuration, Environment, Secrets, and Bootstrapping
+
+The v3 configuration model is now clearer about installed defaults versus robot
+customization.
+
+Major changes:
+
+* `GOPHER_ENVIRONMENT` selects the robot environment, defaulting to
+  `development`.
+* Environment-specific robot settings belong under
+  `custom/conf/environments/`.
+* Installed defaults under `gopherbot/conf/` define baseline engine behavior.
+  Robot-specific behavior belongs under the robot repository's `custom/conf/`.
+* Provider config moved out of root `robot.yaml`; brain config lives in
+  `conf/brains/<Brain>.yaml`, and history config lives in
+  `conf/history/<HistoryProvider>.yaml`.
+* Git-based file brain backup/restore support has been removed from the v3
+  direction.
+* Custom-only `conf/variables/common.yaml` and
+  `conf/variables/<environment>.yaml` are loaded before custom robot config.
+* `{{ secret "NAME" }}` and `{{ variable "NAME" }}` are now the supported
+  config template APIs for encrypted secrets and plaintext environment values.
+* The old inline `{{ decrypt "..." }}` config-template helper now fails with a
+  migration error.
+* `gopherbot genkey` can create environment-specific encrypted data keys.
+* `;new-robot` provides the current bootstrap flow for creating a robot repo
+  with local SSH access.
+
+See `UPGRADING-v3.md` before migrating production robots, especially for the
+environment-scoped secrets and variables changes.
+
+## Extension Runtime and Reduced External Dependencies
+
+The core runtime now depends far less on host-provided interpreters and shell
+tools.
+
+Highlights:
+
+* Built-in interpreters now cover Go, Lua, JavaScript, and Gopherbot shell.
+* Gopherbot shell is available as an embedded shell-like interpreter.
+* Internal git and ssh support reduce dependence on external `git` and `ssh`
+  behavior during normal robot operation.
+* The project dependency set has been updated to modern supported versions.
+* Go, Gopherbot shell, JavaScript, and Lua full pipeline integration suites now
+  cover core Robot API behavior, messaging, prompting, memory, HTTP, and
+  admin/failure surfaces.
+* JS and Lua HTTP helper modules are available for extension authors.
+* The v3 policy remains that the parent engine owns process execution,
+  routing, authorization, elevation, parameter resolution, and secret scoping.
+  Lua and JavaScript do not gain a broad subprocess escape hatch.
+
+## Multi-Process Execution and Privilege Separation
+
+File-backed extensions now run across a child-process boundary instead of
+relying on in-process execution for most robot work.
+
+Security and operations changes:
+
+* File-backed plugins, jobs, and tasks run in separate Gopherbot child
+  processes.
+* The parent engine remains the policy authority for authorization, identity,
+  routing, parameter resolution, and secret scoping.
+* Built-in interpreters run only after the child process has committed to its
+  selected privilege class.
+* Linux/BSD and macOS now use the v3 one-shot child role commitment model for
+  file-backed execution.
+* Supplementary group retention is fail-closed by default for setuid privilege
+  separation, with explicit configuration for allowed retained groups.
+* Compiled-in Go extensions remain trusted in-process engine code.
+
+Setuid privilege separation still requires host-level manual validation before
+being treated as production-ready on a specific deployment.
+
+## Robot Administration and Operator Visibility
+
+The operator surface is much stronger in v2.99.0.
+
+New or improved capabilities:
+
+* Hidden admin/log inspection commands are available for supported connectors.
+* `ps` now shows robot pipeline IDs, type, start time, and age without exposing
+  OS PIDs by default.
+* `ps -v` includes PID and execution-class details for deeper inspection.
+* Plugins and jobs can now have timeout warn/kill thresholds.
+* Long-running plugin/job warnings and kill events can notify the operator job
+  channel.
+* Active pipelines keep a live in-memory log buffer.
+* `get-pipeline-log <wid>` lets admins inspect the current live pipeline log.
+* Plugin/job crashes and interpreter tracebacks are surfaced to operators with
+  recent log excerpts instead of only writing failure logs.
+
+Review `DefaultJobChannel` and any `TimeOuts` configuration during migration so
+alerts reach the right operator channel.
+
+## Help, Discovery, and Matching
+
+The help and matching systems are now much closer to the v3 model.
+
+Changes include:
+
+* Help and fallback behavior are metadata-driven.
+* Help can be group-aware when an authorizer implements the optional
+  `usergroups` contract.
+* Users are shown command help that better reflects what they are allowed to
+  run.
+* SimpleMatcher now supports the v3 DSL contract, including labeled captures
+  and better invalid-choice diagnostics.
+* Shipped SimpleMatcher configs have been aligned with the documented v3
+  behavior.
+
+A richer first-class groups subsystem remains future work and is not blocking
+the v3 release.
+
+## AI Add-On
+
+The old Ruby AI implementation has been replaced by a native AI add-on that
+is integrated with the v3 help/fallback direction.
+
+The AI add-on remains advisory: it can help users understand and perform robot
+operations, but Gopherbot remains a deterministic automation framework. AI does
+not become an execution authority for automation behavior.
+
+## OAuth2 and Credentialed Extensions
+
+Credentialed shipped extensions are no longer assumed active in the default
+robot. Extensions that need owner-supplied API credentials, OAuth client
+secrets, or linked identity providers must be enabled intentionally in custom
+robot configuration.
+
+Plugins, jobs, or tasks that call identity credential APIs must have the
+provider's credential parameter set attached explicitly. Missing attachments now
+fail as configuration errors instead of relying on broad default activation.
+
+## Testing and Development Workflow
+
+The development and test workflow has been restored and expanded for v3.
+
+Notable improvements:
+
+* `make test` is expected to be meaningful again.
+* Process-backed integration suites are data-driven YAML under
+  `integration/suites/data/`.
+* Integration suites can be selected by subsystem, tag, runtime, and tier.
+* The MCP-integrated integration runner is the supported harness for
+  process-backed tests.
+* Local HTTP fixtures provide deterministic JS/Lua HTTP test coverage.
+* Startup readiness and runtime inspection support are available through the
+  MCP helper.
+
+## Compatibility Notes for Pilot Robots
+
+Before moving an existing robot onto v2.99.0:
+
+* Read `UPGRADING-v3.md`.
+* Run `gopherbot validate <robot-repo>` or perform a clean startup with the
+  intended `GOPHER_ENVIRONMENT`.
+* Remove any remaining `{{ decrypt ... }}` config-template usage.
+* Verify primary and secondary protocol configuration.
+* Verify canonical username mapping, especially with
+  `IgnoreUnlistedUsers: true`.
+* Confirm `DefaultMessageFormat` is what the robot expects.
+* Exercise operator commands such as `ps`, `ps -v`, and
+  `get-pipeline-log <wid>`.
+* Trigger a harmless failing pilot command to verify crash/timeout alert
+  routing.
+* Manually validate setuid privilege separation on any host that depends on it.
+
+The remaining pre-v3 work should be limited to bug fixes, documentation fixes,
+and pilot-driven polish. New robot-breaking changes are intentionally out of
+scope unless required to fix a critical v3 readiness defect.
+
 # v2.17.0 - Lua/JavaScript Interpreters and Extensions, Security Enhancements
 Security note - environment variables, by and large, are leaky - at the very least, they propagate to child processes unless scrubbed. Even though I still disagree with Systemd leaking the contents of a system file with `0600` permissions, I'll go ahead and admit that, for the most part, [Lennart Poettering was right](https://systemd-devel.freedesktop.narkive.com/ibRtoqPS/environment-variable-security).
 
@@ -177,7 +416,7 @@ In most cases, if someone directs a message to the robot (issues a "command") in
 If you want a plugin to override the help system matching direct messages that don't match a command, you can create an alternate configuration for the plugin with `CatchAll: true` and `DirectOnly: true`, which will mark it as a "specific" catch-all.
 
 # v2.7.4 - Longer Memories
-Short-term memories really only came in to serious use with the OpenAI plugin, where 7 minutes just wasn't enough for expectations. Now Gopherbot robots have a 14-hour short-term memory.
+Short-term memories really only came in to serious use with the AI plugin, where 7 minutes just wasn't enough for expectations. Now Gopherbot robots have a 14-hour short-term memory.
 
 # v2.7.3 - Improved ruby/python3 dependency support
 To make it sane to use a `Gemfile`, we now set `GEM_HOME=${HOME}/.local`, which causes bundler to install ruby gems in the same location as python3. To install ruby and python dependencies with the included `install-libs` job, create `Gemfile` and/or `requirements.txt` to the root of your robot's repository, and add this `ScheduledJob` to your `robot.yaml`:
@@ -204,9 +443,9 @@ This new behavior allows for:
 # v2.7.1 - More regex updates, new global ignore command
 * In another potential but unlikely breaking change, command matching now sets the `s` flag by default, which IMHO gives the expected result for e.g. `(?i:echo (.*))` - for a robot command, `.*` would match everything to the end of the message.
 * Additionally, the message space collapsing now includes all whitespace, including newlines. Thus, for somewhat standard commands with simple string arguments, the command will still match even if the user breaks up a long command with a newline.
-* Since I've been deploying the OpenAI chat plugin in an #ai channel, where EVERY message matches the plugin, I've added a simple global `i(gnore) <anything>` command that allows you to speak to other people in a channel without triggering a command or error.
+* Since I've been deploying the AI chat plugin in an #ai channel, where EVERY message matches the plugin, I've added a simple global `i(gnore) <anything>` command that allows you to speak to other people in a channel without triggering a command or error.
 
-# v2.7.0 - Support for OpenAI Chat Plugin, ambient message matching fixes
+# v2.7.0 - Support for AI Chat Plugin, ambient message matching fixes
 
 With the massive ChatGPT craze, and a website that was frequently unavailable, I just *had* to write a AI plugin for Gopherbot. Unfortunately, (or fortunately?) using this plugin revealed a whole host of niggly and corner-case bugs that have mostly been fixed in v2.6.4.1-5. There was one final fix, however, that could possibly break existing plugins...
 
@@ -224,11 +463,11 @@ In the early early days of Gopherbot, users would frequently copy and paste in c
 
 Additionally, the **terminal** connector was updated with a `GenerateNewlines` boolean option. When this option is set, you can type a command like: `;Complete this sequence:\n5,4,3,2`, and a message with a newline will be sent to the engine. Note, however, that `(.*)` won't always match the whole thing as you might expect - you can add the `s` flag to your regexp definition (e.g. `(?is:<something>)`) or use `([\s\S]*)` to match *everything*, including the newlines (CHANGED, see v2.7.1 above).
 
-## The OpenAI Chat Plugin
+## The AI Chat Plugin
 If you'd like to try the `ai.rb` plugin, which uses the OpenAI *completions* api, you'll have to check out [**Floyd**](https://github.com/parsley42/floyd-gopherbot) (my oldest robot).
 
 # v2.6.4(.1) - Add RememberThread, RememberContextThread; Message IDs, env vars
-* To support development of a new OpenAI Chat plugin, these functions were needed to allow a command in a channel to create a short-term memory for a new thread created by the robot.
+* To support development of a new AI Chat plugin, these functions were needed to allow a command in a channel to create a short-term memory for a new thread created by the robot.
 * Added a `Threaded` method for all libraries (except BASH, where you can just set `GOPHER_THREADED_MESSAGE`); `bot.Threaded()` will return a bot object that always speaks and acts in the message thread.
 * Added the `GOPHER_MESSAGE_ID` and `GOPHER_START_MESSAGE_ID` environment variables with opaque message ids; mainly only useful for generating Slack links to a message in a thread, wheeee
 * Added `GOPHER_CHANNEL_ID`, `GOPHER_USER_ID`, `GOPHER_START_CHANNEL_ID` env vars (.1)

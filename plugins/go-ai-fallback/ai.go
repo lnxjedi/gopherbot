@@ -16,10 +16,11 @@ import (
 )
 
 const (
-	shortTermMemoryPrefix      = "openai-fallback-conversation"
-	shortTermMemoryDebugPrefix = "openai-fallback-debug"
-	conversationDatumPrefix    = "openaifallback:conversation:v2"
-	conversationIndexDatumKey  = "openaifallback:conversation:index:v1"
+	pluginLogName = "ai-fallback"
+	shortTermMemoryPrefix      = "ai-fallback-conversation"
+	shortTermMemoryDebugPrefix = "ai-fallback-debug"
+	conversationDatumPrefix    = "aifallback:conversation:v2"
+	conversationIndexDatumKey  = "aifallback:conversation:index:v1"
 	conversationIndexVersion   = 1
 	defaultProfile             = "default"
 	maxPendingMessages         = 24
@@ -27,7 +28,6 @@ const (
 	maxStoredExchanges         = 48
 	defaultMaxRecentExchanges  = 12
 	defaultSummaryBudgetTokens = 768
-	openAIChatCompletionsURL   = "https://api.openai.com/v1/chat/completions"
 	defaultChunkSoftLimit      = 420
 	defaultChunkHardLimit      = 620
 	streamProgressNoticeDelay  = 1300 * time.Millisecond
@@ -45,8 +45,8 @@ Do not echo speaker prefixes unless it helps clarity.`
 	defaultMultipartContinueNotice    = "_(continuing...)_"
 	defaultMultipartEndNotice         = "_(end reply)_"
 	defaultMultipartInterruptedNotice = "_(reply interrupted)_"
-	// See OpenAI reasoning best practices: "Formatting re-enabled" should be the first
-	// line when markdown formatting is desired from reasoning-capable models.
+	// Some reasoning-capable chat-completions providers require "Formatting re-enabled"
+	// as the first line when markdown formatting is desired.
 	basicMarkdownSystemPrefix = "Formatting re-enabled\n" +
 		"Respond using BasicMarkdown v1-compatible output only.\n" +
 		"Allowed constructs: paragraphs, bold (**), italic (*), inline code (`), fenced code blocks (```), " +
@@ -97,6 +97,10 @@ AdminCommands:
 - compact
 - compact-model
 Config:
+  ProviderName: "AI provider"
+  APIBaseURL: ""
+  ChatCompletionsURL: ""
+  OrganizationHeader: ""
   HeardNotice: "_(working on a reply...)_"
   DrawMessages:
   - "working on an image"
@@ -113,8 +117,7 @@ Config:
   Profiles:
     "default":
       "params":
-        "model": "gpt-5.2-chat-latest"
-        "temperature": 0.7
+        "model": ""
       "SystemPrompt":
         "Standard": |
           You are an AI assistant participating in a multi-user chat conversation.
@@ -140,6 +143,10 @@ type aiProfile struct {
 }
 
 type aiConfig struct {
+	ProviderName               string               `json:"ProviderName"`
+	APIBaseURL                 string               `json:"APIBaseURL"`
+	ChatCompletionsURL         string               `json:"ChatCompletionsURL"`
+	OrganizationHeader         string               `json:"OrganizationHeader"`
 	WaitMessages               []string             `json:"WaitMessages"`
 	HeardNotice                string               `json:"HeardNotice"`
 	DrawMessages               []string             `json:"DrawMessages"`
@@ -326,7 +333,7 @@ func handleConversationEntry(r robot.Robot, command string, args ...string) robo
 	reply := ""
 	if strings.TrimSpace(ctx.Prompt) != "" {
 		var err error
-		reply, err = queryOpenAI(tbot.MessageFormat(robot.BasicMarkdown), r, ctx, state, cfg, uiHints)
+			reply, err = queryAIProvider(tbot.MessageFormat(robot.BasicMarkdown), r, ctx, state, cfg, uiHints)
 		if err != nil {
 			tbot.Say("Sorry, there was an error contacting the AI: %s", err)
 			state.InProgress = false
@@ -447,7 +454,7 @@ func handleManualCompaction(r robot.Robot, withModel bool) robot.TaskRetVal {
 		refined, err := modelAssistSummary(r, compacted.Profile, compacted.Summary, older, cfg)
 		if err != nil {
 			modelErr = err
-			r.Log(robot.Warn, "openai-fallback: manual model compaction failed conversation=%s older=%d: %v", ctx.ConversationID, len(older), err)
+			r.Log(robot.Warn, "%s: manual model compaction failed conversation=%s older=%d: %v", pluginLogName, ctx.ConversationID, len(older), err)
 		} else if trimmed := strings.TrimSpace(refined); trimmed != "" {
 			compacted.Summary = clipText(trimmed, summaryBudgetChars(cfg.SummaryBudgetTokens))
 			compacted.Tokens = estimateConversationTokens(compacted.Exchanges) + estimateTokens(compacted.Summary)
@@ -465,8 +472,8 @@ func handleManualCompaction(r robot.Robot, withModel bool) robot.TaskRetVal {
 	if afterTokens <= 0 {
 		afterTokens = estimateConversationTokens(compacted.Exchanges) + estimateTokens(compacted.Summary)
 	}
-	r.Log(robot.Info, "openai-fallback: manual compaction mode=%s conversation=%s deterministic=%t model=%t older=%d exchanges=%d->%d tokens=%d->%d",
-		manualCompactionMode(withModel), ctx.ConversationID, deterministicApplied, modelApplied, len(older), beforeExchanges, len(compacted.Exchanges), beforeTokens, afterTokens)
+	r.Log(robot.Info, "%s: manual compaction mode=%s conversation=%s deterministic=%t model=%t older=%d exchanges=%d->%d tokens=%d->%d",
+		pluginLogName, manualCompactionMode(withModel), ctx.ConversationID, deterministicApplied, modelApplied, len(older), beforeExchanges, len(compacted.Exchanges), beforeTokens, afterTokens)
 
 	if !deterministicApplied {
 		r.Reply("No compaction was needed in this context (%d exchanges currently stored).", len(compacted.Exchanges))
@@ -502,7 +509,7 @@ func compactSummaryState(summary string) string {
 }
 
 func handleImage(r robot.Robot, args ...string) robot.TaskRetVal {
-	r.SayThread("Image generation is not wired yet for openai-fallback.")
+	r.SayThread("Image generation is not wired yet for ai-fallback.")
 	return robot.Normal
 }
 
@@ -540,6 +547,27 @@ func loadConfig(r robot.Robot) aiConfig {
 		return cfg
 	}
 	return cfg
+}
+
+func aiProviderName(cfg aiConfig) string {
+	if name := strings.TrimSpace(cfg.ProviderName); name != "" {
+		return name
+	}
+	return "AI provider"
+}
+
+func chatCompletionsEndpoint(cfg aiConfig) string {
+	if endpoint := strings.TrimSpace(cfg.ChatCompletionsURL); endpoint != "" {
+		return endpoint
+	}
+	if base := strings.TrimSpace(cfg.APIBaseURL); base != "" {
+		base = strings.TrimRight(base, "/")
+		if strings.HasSuffix(base, "/chat/completions") {
+			return base
+		}
+		return base + "/chat/completions"
+	}
+	return ""
 }
 
 func debugJSON(v interface{}) string {
@@ -618,7 +646,7 @@ func makeConversationContext(r robot.Robot, args ...string) conversationContext 
 func loadConversationState(r robot.Robot, ctx conversationContext) (conversationState, bool) {
 	_, raw, exists, ret, panicErr := checkoutDatumRaw(r, ctx.ConversationKey, false)
 	if panicErr != nil {
-		r.Log(robot.Warn, "openai-fallback: panic reading conversation datum id=%s key=%s; will attempt fallback: %v", ctx.ConversationID, ctx.ConversationKey, panicErr)
+		r.Log(robot.Warn, "ai-fallback: panic reading conversation datum id=%s key=%s; will attempt fallback: %v", ctx.ConversationID, ctx.ConversationKey, panicErr)
 	}
 	if ret == robot.Ok && exists {
 		if state, ok := decodeConversationStateFromRaw(raw); ok {
@@ -628,7 +656,7 @@ func loadConversationState(r robot.Robot, ctx conversationContext) (conversation
 			}
 			return state, true
 		}
-		r.Log(robot.Warn, "openai-fallback: unsupported long-term conversation format id=%s key=%s type=%T", ctx.ConversationID, ctx.ConversationKey, raw)
+		r.Log(robot.Warn, "ai-fallback: unsupported long-term conversation format id=%s key=%s type=%T", ctx.ConversationID, ctx.ConversationKey, raw)
 		// Strict schema mode: malformed conversation payloads are discarded.
 		r.DeleteDatum(ctx.ConversationKey)
 		removeConversationIndex(r, ctx.ConversationID)
@@ -705,7 +733,7 @@ func saveConversationState(r robot.Robot, ctx conversationContext, state convers
 func storeConversationStateDatum(r robot.Robot, key string, state conversationState) bool {
 	locktoken, _, _, ret, panicErr := checkoutDatumRaw(r, key, true)
 	if panicErr != nil {
-		r.Log(robot.Warn, "openai-fallback: panic checking out conversation datum for write key=%s: %v", key, panicErr)
+		r.Log(robot.Warn, "ai-fallback: panic checking out conversation datum for write key=%s: %v", key, panicErr)
 	}
 	if ret != robot.Ok {
 		return false
@@ -744,7 +772,7 @@ func deleteConversationIndexEntry(idx *conversationIndex, conversationID string)
 func upsertConversationIndex(r robot.Robot, conversationID, key, updatedAt string) {
 	locktoken, raw, exists, ret, panicErr := checkoutDatumRaw(r, conversationIndexDatumKey, true)
 	if panicErr != nil {
-		r.Log(robot.Warn, "openai-fallback: panic reading conversation index for write key=%s: %v", conversationIndexDatumKey, panicErr)
+		r.Log(robot.Warn, "ai-fallback: panic reading conversation index for write key=%s: %v", conversationIndexDatumKey, panicErr)
 	}
 	if ret != robot.Ok {
 		return
@@ -755,7 +783,7 @@ func upsertConversationIndex(r robot.Robot, conversationID, key, updatedAt strin
 		if ok {
 			idx = decoded
 		} else {
-			r.Log(robot.Warn, "openai-fallback: unsupported conversation index format key=%s type=%T; resetting index", conversationIndexDatumKey, raw)
+			r.Log(robot.Warn, "ai-fallback: unsupported conversation index format key=%s type=%T; resetting index", conversationIndexDatumKey, raw)
 		}
 	}
 	ensureConversationIndexDefaults(&idx)
@@ -768,7 +796,7 @@ func upsertConversationIndex(r robot.Robot, conversationID, key, updatedAt strin
 func removeConversationIndex(r robot.Robot, conversationID string) {
 	locktoken, raw, exists, ret, panicErr := checkoutDatumRaw(r, conversationIndexDatumKey, true)
 	if panicErr != nil {
-		r.Log(robot.Warn, "openai-fallback: panic reading conversation index for delete key=%s: %v", conversationIndexDatumKey, panicErr)
+		r.Log(robot.Warn, "ai-fallback: panic reading conversation index for delete key=%s: %v", conversationIndexDatumKey, panicErr)
 	}
 	if ret != robot.Ok {
 		return
@@ -779,7 +807,7 @@ func removeConversationIndex(r robot.Robot, conversationID string) {
 	}
 	idx, ok := decodeConversationIndexFromRaw(raw)
 	if !ok {
-		r.Log(robot.Warn, "openai-fallback: unsupported conversation index format key=%s type=%T; skipping index delete", conversationIndexDatumKey, raw)
+		r.Log(robot.Warn, "ai-fallback: unsupported conversation index format key=%s type=%T; skipping index delete", conversationIndexDatumKey, raw)
 		r.CheckinDatum(conversationIndexDatumKey, locktoken)
 		return
 	}
@@ -916,24 +944,24 @@ func maybeCompactConversationWithModel(r robot.Robot, state conversationState, c
 		return compacted
 	}
 
-	r.Log(robot.Info, "openai-fallback: automatic deterministic compaction applied older=%d exchanges_now=%d", len(older), len(compacted.Exchanges))
+	r.Log(robot.Info, "ai-fallback: automatic deterministic compaction applied older=%d exchanges_now=%d", len(older), len(compacted.Exchanges))
 	if !cfg.EnableModelCompaction {
 		return compacted
 	}
 
 	refined, err := modelAssistSummary(r, state.Profile, compacted.Summary, older, cfg)
 	if err != nil {
-		r.Log(robot.Warn, "openai-fallback: automatic model-assisted compaction failed; keeping deterministic summary: %v", err)
+		r.Log(robot.Warn, "ai-fallback: automatic model-assisted compaction failed; keeping deterministic summary: %v", err)
 		return compacted
 	}
 	refined = strings.TrimSpace(refined)
 	if refined == "" {
-		r.Log(robot.Warn, "openai-fallback: automatic model-assisted compaction returned empty summary; keeping deterministic summary")
+		r.Log(robot.Warn, "ai-fallback: automatic model-assisted compaction returned empty summary; keeping deterministic summary")
 		return compacted
 	}
 	compacted.Summary = clipText(refined, summaryBudgetChars(cfg.SummaryBudgetTokens))
 	compacted.Tokens = estimateConversationTokens(compacted.Exchanges) + estimateTokens(compacted.Summary)
-	r.Log(robot.Info, "openai-fallback: automatic model-assisted compaction applied exchanges_now=%d", len(compacted.Exchanges))
+	r.Log(robot.Info, "ai-fallback: automatic model-assisted compaction applied exchanges_now=%d", len(compacted.Exchanges))
 	return compacted
 }
 
@@ -1155,17 +1183,20 @@ func nowString() string {
 }
 
 func modelAssistSummary(r robot.Robot, profileName, deterministic string, older []conversationExchange, cfg aiConfig) (string, error) {
-	token := strings.TrimSpace(r.GetParameter("OPENAI_KEY"))
+	token := strings.TrimSpace(r.GetParameter("AI_API_KEY"))
 	if token == "" {
-		return "", fmt.Errorf("OPENAI_KEY not set")
+		return "", fmt.Errorf("AI_API_KEY not set")
 	}
 
 	profile := resolveProfile(profileName, cfg)
-	model := "gpt-5.2-chat-latest"
+	model := ""
 	if raw, ok := profile.Params["model"]; ok {
 		if asString := strings.TrimSpace(fmt.Sprintf("%v", raw)); asString != "" {
 			model = asString
 		}
+	}
+	if model == "" {
+		return "", fmt.Errorf("no model configured for AI profile %q", profileName)
 	}
 
 	payload := map[string]interface{}{
@@ -1197,14 +1228,20 @@ func modelAssistSummary(r robot.Robot, profileName, deterministic string, older 
 		return "", err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, openAIChatCompletionsURL, bytes.NewReader(reqBody))
+	endpoint := chatCompletionsEndpoint(cfg)
+	if endpoint == "" {
+		return "", fmt.Errorf("no AI chat completions endpoint configured")
+	}
+	req, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewReader(reqBody))
 	if err != nil {
 		return "", err
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
-	if org := strings.TrimSpace(r.GetParameter("OPENAI_ORGANIZATION_ID")); org != "" {
-		req.Header.Set("OpenAI-Organization", org)
+	if orgHeader := strings.TrimSpace(cfg.OrganizationHeader); orgHeader != "" {
+		if org := strings.TrimSpace(r.GetParameter("AI_ORGANIZATION_ID")); org != "" {
+			req.Header.Set(orgHeader, org)
+		}
 	}
 
 	client := &http.Client{Timeout: 12 * time.Second}
@@ -1219,7 +1256,7 @@ func modelAssistSummary(r robot.Robot, profileName, deterministic string, older 
 		return "", err
 	}
 	if resp.StatusCode >= 400 {
-		return "", fmt.Errorf("%s", friendlyOpenAIError(resp.StatusCode, resp.Status, body))
+		return "", fmt.Errorf("%s", friendlyAIError(aiProviderName(cfg), resp.StatusCode, resp.Status, body))
 	}
 
 	var parsed struct {
@@ -1285,10 +1322,10 @@ func normalizeChatCompletionPayload(payload map[string]interface{}) {
 	}
 }
 
-func queryOpenAI(outBot robot.Robot, r robot.Robot, ctx conversationContext, state conversationState, cfg aiConfig, uiHints streamUIHints) (string, error) {
-	token := strings.TrimSpace(r.GetParameter("OPENAI_KEY"))
+func queryAIProvider(outBot robot.Robot, r robot.Robot, ctx conversationContext, state conversationState, cfg aiConfig, uiHints streamUIHints) (string, error) {
+	token := strings.TrimSpace(r.GetParameter("AI_API_KEY"))
 	if token == "" {
-		return "", fmt.Errorf("no OPENAI_KEY set")
+		return "", fmt.Errorf("no AI_API_KEY set")
 	}
 
 	profile := resolveProfile(state.Profile, cfg)
@@ -1303,12 +1340,12 @@ func queryOpenAI(outBot robot.Robot, r robot.Robot, ctx conversationContext, sta
 	for k, v := range profile.Params {
 		payload[k] = v
 	}
-	if _, ok := payload["model"]; !ok {
-		payload["model"] = "gpt-5.2-chat-latest"
+	if model, ok := payload["model"]; !ok || strings.TrimSpace(fmt.Sprintf("%v", model)) == "" {
+		return "", fmt.Errorf("no model configured for AI profile %q", state.Profile)
 	}
 	normalizeChatCompletionPayload(payload)
 	if userID := strings.TrimSpace(r.GetParameter("GOPHER_USER_ID")); userID != "" {
-		// Pass a hashed stable user id to OpenAI telemetry field without exposing raw ids.
+		// Pass a hashed stable user id to the provider telemetry field without exposing raw ids.
 		payload["user"] = sha1String(userID)
 	}
 	if strings.TrimSpace(r.Recall(ctx.DebugKey, true)) != "" {
@@ -1320,15 +1357,21 @@ func queryOpenAI(outBot robot.Robot, r robot.Robot, ctx conversationContext, sta
 		return "", err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, openAIChatCompletionsURL, bytes.NewReader(reqBody))
+	endpoint := chatCompletionsEndpoint(cfg)
+	if endpoint == "" {
+		return "", fmt.Errorf("no AI chat completions endpoint configured")
+	}
+	req, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewReader(reqBody))
 	if err != nil {
 		return "", err
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "text/event-stream")
-	if org := strings.TrimSpace(r.GetParameter("OPENAI_ORGANIZATION_ID")); org != "" {
-		req.Header.Set("OpenAI-Organization", org)
+	if orgHeader := strings.TrimSpace(cfg.OrganizationHeader); orgHeader != "" {
+		if org := strings.TrimSpace(r.GetParameter("AI_ORGANIZATION_ID")); org != "" {
+			req.Header.Set(orgHeader, org)
+		}
 	}
 
 	client := &http.Client{Timeout: 3 * time.Minute}
@@ -1340,7 +1383,7 @@ func queryOpenAI(outBot robot.Robot, r robot.Robot, ctx conversationContext, sta
 
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("%s", friendlyOpenAIError(resp.StatusCode, resp.Status, body))
+		return "", fmt.Errorf("%s", friendlyAIError(aiProviderName(cfg), resp.StatusCode, resp.Status, body))
 	}
 
 	reply, err := consumeSSEAndEmit(outBot, resp.Body, uiHints)
@@ -1357,8 +1400,7 @@ func resolveProfile(profileName string, cfg aiConfig) aiProfile {
 	if cfg.Profiles == nil {
 		return aiProfile{
 			Params: map[string]interface{}{
-				"model":       "gpt-5.2-chat-latest",
-				"temperature": 0.7,
+				"model": "",
 			},
 			SystemPrompt: systemPromptConfig{
 				Standard: defaultStandardSystemPrompt,
@@ -1579,7 +1621,7 @@ func extractDeltaContent(payload string) (string, string) {
 			message = code
 		}
 		if message == "" {
-			message = "OpenAI returned an unknown stream error"
+			message = "AI provider returned an unknown stream error"
 		}
 		return "", message
 	}
@@ -1817,7 +1859,11 @@ func normalizeBasicMarkdownInline(text string) string {
 	return text
 }
 
-func friendlyOpenAIError(statusCode int, status string, body []byte) string {
+func friendlyAIError(provider string, statusCode int, status string, body []byte) string {
+	provider = strings.TrimSpace(provider)
+	if provider == "" {
+		provider = "AI provider"
+	}
 	type apiErrorEnvelope struct {
 		Error struct {
 			Message string `json:"message"`
@@ -1834,25 +1880,25 @@ func friendlyOpenAIError(statusCode int, status string, body []byte) string {
 		code := strings.ToLower(strings.TrimSpace(parsed.Error.Code))
 		typ := strings.ToLower(strings.TrimSpace(parsed.Error.Type))
 		if code == "insufficient_quota" || typ == "insufficient_quota" {
-			return "OpenAI quota is exhausted for the configured token. Please update billing or rotate OPENAI_KEY."
+			return fmt.Sprintf("%s quota is exhausted for the configured token. Please update billing or rotate AI_API_KEY.", provider)
 		}
 		if code == "invalid_api_key" {
-			return "OpenAI rejected the configured API key. Please verify OPENAI_KEY."
+			return fmt.Sprintf("%s rejected the configured API key. Please verify AI_API_KEY.", provider)
 		}
 	}
 	if statusCode == http.StatusUnauthorized {
-		return "OpenAI authentication failed (401). Please verify OPENAI_KEY and OPENAI_ORGANIZATION_ID."
+		return fmt.Sprintf("%s authentication failed (401). Please verify AI_API_KEY and AI_ORGANIZATION_ID.", provider)
 	}
 	if statusCode == http.StatusTooManyRequests {
-		return "OpenAI rate-limited this request (429). Please retry shortly."
+		return fmt.Sprintf("%s rate-limited this request (429). Please retry shortly.", provider)
 	}
 	if statusCode >= 500 {
-		return fmt.Sprintf("OpenAI is currently unavailable (%s). Please retry shortly.", status)
+		return fmt.Sprintf("%s is currently unavailable (%s). Please retry shortly.", provider, status)
 	}
 	if message == "" {
-		return fmt.Sprintf("OpenAI request failed: %s", status)
+		return fmt.Sprintf("%s request failed: %s", provider, status)
 	}
-	return fmt.Sprintf("OpenAI request failed: %s", message)
+	return fmt.Sprintf("%s request failed: %s", provider, message)
 }
 
 func sha1String(s string) string {

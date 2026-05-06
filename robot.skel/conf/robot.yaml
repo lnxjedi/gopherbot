@@ -82,11 +82,11 @@ TimeOuts:
 ## - conf/protocols/slack.yaml.sample
 ## - conf/plugins/duo.yaml.sample
 ## - conf/plugins/memes.yaml.sample
-## - conf/plugins/openai-fallback.yaml.sample
+## - conf/plugins/ai-fallback.yaml.sample
 ## - conf/plugins/github-link.yaml.sample
 ## - conf/plugins/github-tools.yaml.sample
 ## - conf/jobs/github-review-digest.yaml.sample
-## - conf/jobs/go-openai-prune.yaml.sample
+## - conf/jobs/go-ai-prune.yaml.sample
 
 ## Jobs are scheduled with github.com/robfig/cron; includes seconds.
 ## Note that pause-notifies is scheduled by default in
@@ -98,8 +98,8 @@ ScheduledJobs:
 ## dependencies with this init job.
 # - Name: install-libs
 #   Schedule: "@init"
-## If using go-openai-fallback, prune stale chat contexts daily.
-# - Name: go-openai-prune
+## If using go-ai-fallback, prune stale chat contexts daily.
+# - Name: go-ai-prune
 #   Schedule: "0 15 3 * * *"
 ## If you want updatecfg compatibility behavior, schedule it explicitly.
 # - Name: updatecfg

@@ -533,7 +533,7 @@ func TestSelectCatchAllTargetFiltersByCommandMode(t *testing.T) {
 		CatchAllModes: []string{"alias"},
 	}
 	namePlugin := &Plugin{
-		Task:          &Task{name: "openai-fallback"},
+		Task:          &Task{name: "ai-fallback"},
 		CatchAll:      true,
 		CatchAllModes: []string{"name", "direct"},
 	}

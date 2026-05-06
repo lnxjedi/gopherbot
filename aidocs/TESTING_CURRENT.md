@@ -122,11 +122,11 @@ For robot-side data shape debugging (for example long-term memory/datum format m
 - `../gopherbot/gopherbot list`
 - `../gopherbot/gopherbot fetch <full_key>`
 
-Example (`openai-fallback` conversation records):
+Example (`ai-fallback` conversation records):
 
-- `../gopherbot/gopherbot list | rg "openaifallback:conversation|conversation:index"`
-- `../gopherbot/gopherbot fetch openai-fallback:openaifallback:conversation:index:v1`
-- `../gopherbot/gopherbot fetch openai-fallback:openaifallback:conversation:v2:<sha1>`
+- `../gopherbot/gopherbot list | rg "aifallback:conversation|conversation:index"`
+- `../gopherbot/gopherbot fetch ai-fallback:aifallback:conversation:index:v1`
+- `../gopherbot/gopherbot fetch ai-fallback:aifallback:conversation:v2:<sha1>`
 
 Notes:
 
@@ -206,7 +206,7 @@ Notes:
 
 ## Targeted Yaegi runtime repros
 
-- `modules/yaegi-dynamic-go/yaegi_dynamic_test.go` contains a narrow repro for an interpreted-Go panic that surfaced in `plugins/go-openai-fallback` compaction work.
+- `modules/yaegi-dynamic-go/yaegi_dynamic_test.go` contains a narrow repro for an interpreted-Go panic that surfaced in `plugins/go-ai-fallback` compaction work.
 - Run the focused repro with: `env GOTELEMETRY=off GOCACHE=/tmp/gocache go test ./modules/yaegi-dynamic-go -run 'Test(CompiledGoMultiReturnStateAndSliceWorks|RunPluginHandlerYaegiMultiReturnPanics|RunPluginHandlerYaegiWrappedReturnWorks)$'`
 - The test establishes three facts: compiled Go accepts the multi-return state/slice helper pattern, Yaegi `RunPluginHandler` panics on the same shape with `reflect.Set ... not assignable`, and a single wrapper-struct return succeeds under the same runner.
 

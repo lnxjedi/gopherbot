@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"net/http"
 	"regexp"
+	"strings"
 	"testing"
 )
 
@@ -107,7 +109,7 @@ func TestConversationDatumKeyDeterministicAndSafe(t *testing.T) {
 
 func TestConversationIndexEntryHelpers(t *testing.T) {
 	idx := conversationIndex{}
-	upsertConversationIndexEntry(&idx, "thread:slack:botdev:1", "openaifallback:conversation:v2:abc", "2026-03-02T12:00:00Z")
+	upsertConversationIndexEntry(&idx, "thread:slack:botdev:1", "aifallback:conversation:v2:abc", "2026-03-02T12:00:00Z")
 	if idx.Version != conversationIndexVersion {
 		t.Fatalf("index version = %d, want %d", idx.Version, conversationIndexVersion)
 	}
@@ -118,8 +120,8 @@ func TestConversationIndexEntryHelpers(t *testing.T) {
 	if !ok {
 		t.Fatal("expected conversation entry to be present")
 	}
-	if entry.Key != "openaifallback:conversation:v2:abc" {
-		t.Fatalf("entry key = %q, want %q", entry.Key, "openaifallback:conversation:v2:abc")
+	if entry.Key != "aifallback:conversation:v2:abc" {
+		t.Fatalf("entry key = %q, want %q", entry.Key, "aifallback:conversation:v2:abc")
 	}
 	deleteConversationIndexEntry(&idx, "thread:slack:botdev:1")
 	if len(idx.Conversations) != 0 {
@@ -219,7 +221,7 @@ func TestDecodeConversationIndexFromRawState(t *testing.T) {
 		Version: conversationIndexVersion,
 		Conversations: map[string]conversationIndexEntry{
 			"thread:slack:general:1": {
-				Key:       "openaifallback:conversation:v2:abc",
+				Key:       "aifallback:conversation:v2:abc",
 				UpdatedAt: "2026-03-04T12:00:00Z",
 			},
 		},
@@ -479,5 +481,65 @@ func TestModelCompactionDisabledDoesNotCallRefiner(t *testing.T) {
 	}
 	if got.Summary == "" {
 		t.Fatal("expected deterministic summary to still be produced")
+	}
+}
+
+func TestChatCompletionsEndpoint(t *testing.T) {
+	tests := []struct {
+		name string
+		cfg  aiConfig
+		want string
+	}{
+		{
+			name: "no default endpoint",
+			cfg:  aiConfig{},
+			want: "",
+		},
+		{
+			name: "openai compatible base url",
+			cfg: aiConfig{
+				APIBaseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+			},
+			want: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+		},
+		{
+			name: "base url already points at chat completions",
+			cfg: aiConfig{
+				APIBaseURL: "https://example.test/openai/chat/completions",
+			},
+			want: "https://example.test/openai/chat/completions",
+		},
+		{
+			name: "exact endpoint overrides base url",
+			cfg: aiConfig{
+				APIBaseURL:         "https://example.test/openai/",
+				ChatCompletionsURL: "https://proxy.example.test/v1/chat/completions",
+			},
+			want: "https://proxy.example.test/v1/chat/completions",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := chatCompletionsEndpoint(tt.cfg); got != tt.want {
+				t.Fatalf("chatCompletionsEndpoint() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestAIProviderName(t *testing.T) {
+	if got := aiProviderName(aiConfig{}); got != "AI provider" {
+		t.Fatalf("aiProviderName(empty) = %q, want AI provider", got)
+	}
+	if got := aiProviderName(aiConfig{ProviderName: " Gemini "}); got != "Gemini" {
+		t.Fatalf("aiProviderName(Gemini) = %q, want Gemini", got)
+	}
+}
+
+func TestFriendlyAIErrorUsesProviderName(t *testing.T) {
+	got := friendlyAIError("Gemini", http.StatusUnauthorized, "401 Unauthorized", nil)
+	if !strings.Contains(got, "Gemini authentication failed") {
+		t.Fatalf("friendlyAIError() = %q, want Gemini authentication message", got)
 	}
 }

@@ -243,15 +243,13 @@ ExternalPlugins:
     Path: plugins/ssh-admin.gsh
     Privileged: true
     NameSpace: ssh
-  "openai-fallback":
-    Description: OpenAI-backed multi-user conversational fallback plugin
-    Path: plugins/go-openai-fallback/ai.go
+  "ai-fallback":
+    Description: Provider-neutral multi-user conversational fallback plugin
+    Path: plugins/go-ai-fallback/ai.go
     Homed: true
     Disabled: true
     Parameters:
-    - Name: OPENAI_KEY
-      Value: ""
-    - Name: OPENAI_ORGANIZATION_ID
+    - Name: AI_API_KEY
       Value: ""
   ## Credentialed extensions such as github-link are shipped with the engine
   ## but are not enabled in the default robot. Enable them only in a custom
@@ -307,10 +305,10 @@ ExternalJobs:
     Homed: true
     NameSpace: manage
     Path: jobs/go-switchbranch/switchbranches.go
-  "go-openai-prune":
-    Description: Prune stale go-openai-fallback conversation datums by retention
+  "go-ai-prune":
+    Description: Prune stale go-ai-fallback conversation datums by retention
     Homed: true
-    Path: jobs/go-openai-prune/go_openai_prune_job.go
+    Path: jobs/go-ai-prune/go_ai_prune_job.go
   "install-libs":
     Description: A job for installing ruby gems and python packages
     Homed: true

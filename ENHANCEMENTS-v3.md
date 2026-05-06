@@ -56,7 +56,7 @@ Why it matters:
 
 ### AI Fallback UX and Rendering Improvements (`Shipped`)
 
-The `go-openai-fallback` plugin has improved streaming behavior and cleaner formatting conversion for chat connectors.
+The `go-ai-fallback` plugin has improved streaming behavior and cleaner formatting conversion for chat connectors.
 Slack mention rendering reliability has also been improved for common punctuation cases.
 
 Why it matters:
@@ -70,7 +70,7 @@ AI chat context now uses long-term datums with an explicit index, retention prun
 Shipped behavior:
 - conversation state stored in datum-backed keys (with legacy short-term read fallback)
 - conversation index datum for prune traversal and cleanup
-- inactivity retention prune job (`go-openai-prune`) driven by `ScheduledJobs` cron
+- inactivity retention prune job (`go-ai-prune`) driven by `ScheduledJobs` cron
 - deterministic summary + recent-window compaction
 - optional model-assisted compaction with deterministic fallback on error
 

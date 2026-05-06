@@ -206,7 +206,7 @@ EncryptSecret return-shape note for external libraries:
 - `.gsh` implements `SetWorkingDirectory` plus a BusyBox-style builtin utility surface in-process inside the child interpreter.
 - `RaisePriv` is Go-only (`robot/robot.go`); there is no wrapper in external language libraries.
 - Yaegi caveat: interpreted Go plugins can diverge from compiled Go when values cross reflective boundaries. A focused local repro in `modules/yaegi-dynamic-go/yaegi_dynamic_test.go` shows that a helper chain returning a mixed multi-value tuple such as `(conversationState, []conversationExchange)` can panic under `RunPluginHandler` with `reflect.Set ... not assignable`, even though the same pattern succeeds in compiled Go.
-- For external Go plugins running under Yaegi, prefer returning a single wrapper struct when state must carry multiple logically-related values across helper boundaries. The `plugins/go-openai-fallback` compaction path now uses `compactionResult{State, Older}` for this reason.
+- For external Go plugins running under Yaegi, prefer returning a single wrapper struct when state must carry multiple logically-related values across helper boundaries. The `plugins/go-ai-fallback` compaction path now uses `compactionResult{State, Older}` for this reason.
 - As of March 11, 2026, no exact upstream Yaegi issue was identified for this specific panic. The behavior is consistent with Yaegi's documented limitation that `reflect` type representation can differ between compiled and interpreted execution.
 
 ## Adding a New Robot API Method (Checklist)

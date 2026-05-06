@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	conversationIndexDatumKey = "openaifallback:conversation:index:v1"
+	conversationIndexDatumKey = "aifallback:conversation:index:v1"
 	defaultRetentionDays      = 30
 	defaultMaxDeletesPerRun   = 200
 )
@@ -42,18 +42,18 @@ func JobHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 	idx := conversationIndex{}
 	_, exists, ret := r.CheckoutDatum(conversationIndexDatumKey, &idx, false)
 	if ret != robot.Ok {
-		r.Log(robot.Error, "go-openai-prune: failed to read conversation index: %s", ret)
+		r.Log(robot.Error, "go-ai-prune: failed to read conversation index: %s", ret)
 		return robot.Fail
 	}
 	if !exists || len(idx.Conversations) == 0 {
-		r.Log(robot.Debug, "go-openai-prune: nothing to prune")
+		r.Log(robot.Debug, "go-ai-prune: nothing to prune")
 		return robot.Normal
 	}
 
 	stale := selectStaleConversations(idx, cutoff)
 	stale = limitStaleConversations(stale, cfg.MaxDeletesPerRun)
 	if len(stale) == 0 {
-		r.Log(robot.Debug, "go-openai-prune: no stale conversations older than %s", cutoff.Format(time.RFC3339))
+		r.Log(robot.Debug, "go-ai-prune: no stale conversations older than %s", cutoff.Format(time.RFC3339))
 		return robot.Normal
 	}
 
@@ -66,19 +66,19 @@ func JobHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 		}
 		if del := r.DeleteDatum(entry.Key); del != robot.Ok {
 			failures++
-			r.Log(robot.Warn, "go-openai-prune: failed deleting conversation datum id=%s key=%s: %s", entry.ID, entry.Key, del)
+			r.Log(robot.Warn, "go-ai-prune: failed deleting conversation datum id=%s key=%s: %s", entry.ID, entry.Key, del)
 			continue
 		}
 		deleted[entry.ID] = entry.Key
 	}
 
 	if cfg.DryRun {
-		r.Log(robot.Info, "go-openai-prune (dry-run): matched=%d retention_days=%d", len(deleted), cfg.RetentionDays)
+		r.Log(robot.Info, "go-ai-prune (dry-run): matched=%d retention_days=%d", len(deleted), cfg.RetentionDays)
 		return robot.Normal
 	}
 
 	removed := updateIndexAfterDeletes(r, deleted)
-	r.Log(robot.Info, "go-openai-prune: deleted=%d index_removed=%d failed=%d retention_days=%d max_per_run=%d", len(deleted), removed, failures, cfg.RetentionDays, cfg.MaxDeletesPerRun)
+	r.Log(robot.Info, "go-ai-prune: deleted=%d index_removed=%d failed=%d retention_days=%d max_per_run=%d", len(deleted), removed, failures, cfg.RetentionDays, cfg.MaxDeletesPerRun)
 	if failures > 0 {
 		return robot.Fail
 	}
@@ -92,7 +92,7 @@ func loadPruneConfig(r robot.Robot) pruneConfig {
 	}
 	loaded := pruneConfig{}
 	if ret := r.GetTaskConfig(&loaded); ret != robot.Ok && ret != robot.NoConfigFound {
-		r.Log(robot.Warn, "go-openai-prune: failed loading job config, using defaults: %s", ret)
+		r.Log(robot.Warn, "go-ai-prune: failed loading job config, using defaults: %s", ret)
 	}
 	if loaded.RetentionDays > 0 {
 		cfg.RetentionDays = loaded.RetentionDays
@@ -148,7 +148,7 @@ func updateIndexAfterDeletes(r robot.Robot, deleted map[string]string) int {
 	idx := conversationIndex{}
 	locktoken, exists, ret := r.CheckoutDatum(conversationIndexDatumKey, &idx, true)
 	if ret != robot.Ok {
-		r.Log(robot.Warn, "go-openai-prune: failed checkout for index update: %s", ret)
+		r.Log(robot.Warn, "go-ai-prune: failed checkout for index update: %s", ret)
 		return 0
 	}
 	if !exists {
@@ -163,7 +163,7 @@ func updateIndexAfterDeletes(r robot.Robot, deleted map[string]string) int {
 	}
 	if ret = r.UpdateDatum(conversationIndexDatumKey, locktoken, idx); ret != robot.Ok {
 		r.CheckinDatum(conversationIndexDatumKey, locktoken)
-		r.Log(robot.Warn, "go-openai-prune: failed writing updated index: %s", ret)
+		r.Log(robot.Warn, "go-ai-prune: failed writing updated index: %s", ret)
 		return 0
 	}
 	return removed

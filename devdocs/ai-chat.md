@@ -1,14 +1,14 @@
 # AI Chat Architecture (v3)
 
-This document describes the current `go-openai-fallback` implementation and the memory lifecycle used for durable AI chat context.
+This document describes the current `go-ai-fallback` implementation and the memory lifecycle used for durable AI chat context.
 
 Primary implementation target:
-- `plugins/go-openai-fallback/ai.go`
+- `plugins/go-ai-fallback/ai.go`
 
 Related jobs/config:
-- `jobs/go-openai-prune/go_openai_prune_job.go`
-- `conf/jobs/go-openai-prune.yaml`
-- `conf/plugins/openai-fallback.yaml`
+- `jobs/go-ai-prune/go_ai_prune_job.go`
+- `conf/jobs/go-ai-prune.yaml`
+- `conf/plugins/ai-fallback.yaml`
 
 ## Runtime Flow
 
@@ -16,7 +16,7 @@ For each inbound AI fallback event, the plugin:
 1. builds conversation context (DM or thread scope)
 2. loads conversation state from long-term datum storage
 3. marks message IDs as processed and queues/merges pending messages
-4. queries OpenAI with streaming responses
+4. queries a configured chat-completions provider with streaming responses
 5. stores updated conversation state back to datum storage
 
 Interactive path remains resilient: if compaction/prune helpers fail, the plugin falls back to deterministic/local behavior and continues replying.
@@ -37,10 +37,10 @@ Conversation IDs:
 - Thread: `thread:<protocol>:<channel>:<thread-id>`
 
 Datum key:
-- `openaifallback:conversation:v2:<sha1(conversation-id)>`
+- `aifallback:conversation:v2:<sha1(conversation-id)>`
 
 Index datum key:
-- `openaifallback:conversation:index:v1`
+- `aifallback:conversation:index:v1`
 
 The index maps conversation ID -> `{key, updated_at}` for retention pruning.
 
@@ -88,7 +88,7 @@ Config knobs:
 
 ### Optional model-assisted compaction
 
-If `EnableModelCompaction: true`, the plugin attempts to refine deterministic summary text with a non-streaming OpenAI call.
+If `EnableModelCompaction: true`, the plugin attempts to refine deterministic summary text with a non-streaming provider call.
 
 Important behavior:
 - deterministic compaction runs first
@@ -97,7 +97,7 @@ Important behavior:
 
 ## Retention Pruning
 
-Pruning is done by scheduled job `go-openai-prune`, not by plugin-local schedule settings.
+Pruning is done by scheduled job `go-ai-prune`, not by plugin-local schedule settings.
 
 Job behavior:
 1. read index datum
@@ -115,10 +115,10 @@ Schedule via `ScheduledJobs` cron in robot config.
 ## Testing
 
 Primary slice tests live in:
-- `plugins/go-openai-fallback/ai_test.go`
-- `jobs/go-openai-prune/go_openai_prune_job_test.go`
+- `plugins/go-ai-fallback/ai_test.go`
+- `jobs/go-ai-prune/go_ai_prune_job_test.go`
 
 Recommended validation command set:
-1. `go test ./plugins/go-openai-fallback`
-2. `GOCACHE=/tmp/gocache go test ./jobs/go-openai-prune`
+1. `go test ./plugins/go-ai-fallback`
+2. `GOCACHE=/tmp/gocache go test ./jobs/go-ai-prune`
 3. manual Slack/SSH validation on a real robot config

@@ -5,6 +5,7 @@ writable_roots = [
   ".",
   "../../gopherbot-doc",
   "../../clu/custom",
+  "../../floyd/custom",
   "../../bishop",
 ]
 
