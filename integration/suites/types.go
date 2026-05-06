@@ -62,10 +62,18 @@ type Suite struct {
 	ConfigDir    string
 	LogName      string
 	FullGate     string
+	Metadata     Metadata
 	Capabilities map[string]robot.ConnectorCapabilities
 	Cases        []Case
 	BeforeStart  func() (func(), error)
 	Flow         func(context.Context, Driver) []Failure
+}
+
+type Metadata struct {
+	Subsystems []string `json:"subsystems,omitempty"`
+	Tags       []string `json:"tags,omitempty"`
+	Runtimes   []string `json:"runtimes,omitempty"`
+	Tier       string   `json:"tier,omitempty"`
 }
 
 type Driver interface {

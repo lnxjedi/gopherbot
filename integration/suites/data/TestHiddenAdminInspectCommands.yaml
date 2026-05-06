@@ -1,4 +1,14 @@
 name: TestHiddenAdminInspectCommands
+metadata:
+  subsystems:
+    - admin
+    - hidden-commands
+  tags:
+    - dump-config
+    - plugin-inspection
+  runtimes:
+    - go
+  tier: focused
 config_dir: test/membrain
 log_name: bottest-admin-hidden.log
 flow:

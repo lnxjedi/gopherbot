@@ -1,4 +1,12 @@
 name: TestBotNameHiddenCommandsUnsupportedConnector
+metadata:
+  subsystems:
+    - connector
+    - hidden-commands
+    - routing
+  tags:
+    - capabilities
+  tier: focused
 config_dir: test/membrain
 log_name: bottest.log
 capabilities:

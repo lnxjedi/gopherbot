@@ -1,4 +1,15 @@
 name: TestMemory
+metadata:
+  subsystems:
+    - brain
+    - memory
+  tags:
+    - links
+    - recall
+  runtimes:
+    - go
+    - sh
+  tier: focused
 config_dir: test/membrain
 log_name: bottest.log
 cases:

@@ -52,7 +52,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - MCP lifecycle helper binary: `cmd/gopherbot-mcp/main.go` (stdio MCP server with robot lifecycle/status/inventory/readiness/log tools (`start_robot`, `stop_robot`, `restart_robot`, `robot_status`, `wait_robot_ready`, `list_robots`, `cleanup_stale_state`, `tail_robot_log`, `read_robot_log`), AI-dev interaction tools (`send_message`, `get_messages`, `send_as_robot`), and integration runner tools (`list_integration_suites`, `run_integration_suite`, `read_integration_result`)).
 - Process-backed integration suite runner:
   `cmd/gopherbot-integration/main.go` (CLI, artifact setup, scripted connector
-  driver, YAML-loaded suite execution).
+  driver, YAML-loaded suite execution, suite metadata selectors).
 
 ## conf/
 

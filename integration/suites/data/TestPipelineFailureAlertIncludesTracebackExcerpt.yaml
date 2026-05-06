@@ -1,4 +1,14 @@
 name: TestPipelineFailureAlertIncludesTracebackExcerpt
+metadata:
+  subsystems:
+    - admin
+    - pipeline
+  tags:
+    - failure-alert
+    - traceback
+  runtimes:
+    - sh
+  tier: focused
 config_dir: test/membrain
 log_name: bottest-admin-failure.log
 flow:

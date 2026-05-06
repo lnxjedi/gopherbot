@@ -1,4 +1,13 @@
 name: TestBotName
+metadata:
+  subsystems:
+    - hidden-commands
+    - routing
+  tags:
+    - addressing
+    - channel
+    - dm
+  tier: smoke
 config_dir: test/membrain
 log_name: bottest.log
 cases:

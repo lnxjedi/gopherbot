@@ -15,8 +15,8 @@ Forward plan:
   instructions. Use `make integration-legacy` for the old Go test harness.
 - Process-backed suite definitions are data-driven YAML files in
   `integration/suites/data/`. Each file names one suite, its config directory,
-  scripted input messages, expected replies, expected event sequence, and any
-  suite-local hooks such as `before_start: test_http_server`.
+  metadata, scripted input messages, expected replies, expected event
+  sequence, and any suite-local hooks such as `before_start: test_http_server`.
 
 ## How tests are discovered and run
 
@@ -47,6 +47,10 @@ Forward plan:
   arguments, and comma-separated selector lists for MCP calls. Any selector
   invocation that resolves to multiple suites uses one timestamped artifact
   directory for the whole invocation.
+- `gopherbot-integration run-suite` also accepts metadata selectors:
+  `subsystem:<name>`, `tag:<name>`, `runtime:<name>`, and `tier:<name>`. These
+  selectors are resolved by the integration binary, so MCP callers should pass
+  the same selector string instead of reimplementing suite filtering.
 - `gopherbot-mcp` exposes integration runner tools for AI automation:
   `list_integration_suites`, `run_integration_suite`, and
   `read_integration_result`. `run_integration_suite` builds
@@ -66,6 +70,9 @@ Forward plan:
   to the test connector's configured transport IDs (`u0001`, `u0002`, etc.).
   Reply expectations use canonical usernames because replies are observed after
   connector identity normalization.
+- `gopherbot-integration list-suites -json` returns suite metadata for tooling.
+  `list-suites` also supports `-subsystem`, `-tag`, `-runtime`, and `-tier`
+  filters for local discovery.
 - `setup()` in `test/common_test.go` starts the bot via `StartTest()` and relies on the test configs to choose the `test` protocol.
 - `setupWithOptions()` in `test/common_test.go` is the per-suite harness entrypoint when a test block needs connector capability overrides (for example simulating a protocol without hidden-command support while still using the `test` connector).
 - `StartTest()` is defined in `bot/start_t.go` (only built with `test` tag). It locates the repo root by walking up until `conf/robot.yaml` is found, `chdir`s there so startup mode resolves to `test-dev`, initializes connector runtime via `initializeConnectorRuntime`, runs `run()`, then waits for the current async plugin-init batch to drain before clearing startup events and returning control to the harness (see also `bot/bot_process.go`, `bot/tasks.go`, and `bot/connector_runtime.go`).
@@ -129,6 +136,13 @@ Notes:
 ## Test case structure
 
 - Process-backed cases are YAML objects under `integration/suites/data/`:
+  - `metadata.subsystems` is the curated selection vocabulary for targeted
+    validation, for example `pipeline`, `authz`, `help`, `secrets`, or
+    `extension-api`.
+  - `metadata.tags` is a descriptive lower-kebab label set for discovery.
+  - `metadata.runtimes` names extension/runtime coverage such as `go`, `js`,
+    `lua`, `sh`, `python`, or `ruby`.
+  - `metadata.tier` is `smoke`, `focused`, or `full`.
   - `input` contains sender, channel, text, and optional `threaded` / `hidden`.
   - `replies` contains regex-based expected bot messages plus strict
     user/channel/thread fields.

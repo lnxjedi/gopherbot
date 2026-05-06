@@ -1,4 +1,16 @@
 name: TestJSFullPipelineAdmin
+metadata:
+  subsystems:
+    - admin
+    - authz
+    - pipeline
+    - scheduler
+  tags:
+    - elevation
+    - spawn-job
+  runtimes:
+    - js
+  tier: focused
 config_dir: test/jsfull
 log_name: bottest.log
 full_gate: js

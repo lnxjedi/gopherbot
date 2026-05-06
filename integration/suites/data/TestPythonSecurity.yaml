@@ -1,4 +1,16 @@
 name: TestPythonSecurity
+metadata:
+  subsystems:
+    - authz
+    - hidden-commands
+    - security
+  tags:
+    - admin-only
+    - elevation
+    - users-only
+  runtimes:
+    - python
+  tier: focused
 config_dir: test/membrain
 log_name: bottest.log
 cases:

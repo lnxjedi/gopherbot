@@ -248,7 +248,7 @@ func (s *mcpServer) tools() []mcpTool {
 		},
 		{
 			Name:        "list_integration_suites",
-			Description: "List suites registered in gopherbot-integration.",
+			Description: "List suites registered in gopherbot-integration, including suite metadata.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -268,6 +268,22 @@ func (s *mcpServer) tools() []mcpTool {
 						"type":        "integer",
 						"description": "Maximum time to wait for list/build commands in milliseconds (default 60000).",
 					},
+					"subsystem": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional subsystem metadata filter. Comma-separated values allowed.",
+					},
+					"tag": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional tag metadata filter. Comma-separated values allowed.",
+					},
+					"runtime": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional runtime metadata filter. Comma-separated values allowed.",
+					},
+					"tier": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional tier metadata filter.",
+					},
 				},
 			},
 		},
@@ -279,7 +295,7 @@ func (s *mcpServer) tools() []mcpTool {
 				"properties": map[string]interface{}{
 					"suite": map[string]interface{}{
 						"type":        "string",
-						"description": "Suite name, glob pattern, comma-separated selector list, or all.",
+						"description": "Suite name, glob pattern, comma-separated selector list, all, or metadata selector such as subsystem:pipeline, tag:hidden-commands, runtime:lua, tier:smoke.",
 					},
 					"gopherbot_integration_binary": map[string]interface{}{
 						"type":        "string",
@@ -1512,6 +1528,22 @@ func (s *mcpServer) toolListIntegrationSuites(args map[string]interface{}) (map[
 	if err != nil {
 		return nil, err
 	}
+	subsystemFilter, err := optionalStringArg(args, "subsystem")
+	if err != nil {
+		return nil, err
+	}
+	tagFilter, err := optionalStringArg(args, "tag")
+	if err != nil {
+		return nil, err
+	}
+	runtimeFilter, err := optionalStringArg(args, "runtime")
+	if err != nil {
+		return nil, err
+	}
+	tierFilter, err := optionalStringArg(args, "tier")
+	if err != nil {
+		return nil, err
+	}
 
 	var buildResult map[string]interface{}
 	if build {
@@ -1531,7 +1563,17 @@ func (s *mcpServer) toolListIntegrationSuites(args map[string]interface{}) (map[
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(commandTimeoutMS)*time.Millisecond)
 	defer cancel()
 	var stdout, stderr bytes.Buffer
-	cmd := exec.CommandContext(ctx, bin, "list-suites")
+	cmdArgs := []string{"list-suites", "-json"}
+	appendFilter := func(flag, value string) {
+		if strings.TrimSpace(value) != "" {
+			cmdArgs = append(cmdArgs, flag, value)
+		}
+	}
+	appendFilter("-subsystem", subsystemFilter)
+	appendFilter("-tag", tagFilter)
+	appendFilter("-runtime", runtimeFilter)
+	appendFilter("-tier", tierFilter)
+	cmd := exec.CommandContext(ctx, bin, cmdArgs...)
 	cmd.Dir = s.rootDir
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -1551,11 +1593,19 @@ func (s *mcpServer) toolListIntegrationSuites(args map[string]interface{}) (map[
 		})
 	}
 
-	suites := parseIntegrationSuiteList(stdout.String())
+	suites, parseErr := parseIntegrationSuiteList(stdout.String())
+	if parseErr != nil {
+		return nil, newToolError("INTEGRATION_LIST_PARSE_FAILED", parseErr.Error(), map[string]interface{}{
+			"gopherbot_integration_binary": bin,
+			"stdout":                       stdout.String(),
+			"stderr":                       stderr.String(),
+		})
+	}
 	result := map[string]interface{}{
 		"gopherbot_integration_binary": bin,
 		"count":                        len(suites),
 		"suites":                       suites,
+		"command_args":                 append([]string{bin}, cmdArgs...),
 	}
 	if buildResult != nil {
 		result["build"] = buildResult
@@ -1865,8 +1915,19 @@ func optionalOutputRoot(base string, args map[string]interface{}) (string, error
 	return resolvePath(base, outputRoot), nil
 }
 
-func parseIntegrationSuiteList(output string) []map[string]interface{} {
-	lines := strings.Split(strings.TrimSpace(output), "\n")
+func parseIntegrationSuiteList(output string) ([]map[string]interface{}, error) {
+	trimmed := strings.TrimSpace(output)
+	if trimmed == "" {
+		return nil, nil
+	}
+	if strings.HasPrefix(trimmed, "[") {
+		var suites []map[string]interface{}
+		if err := json.Unmarshal([]byte(trimmed), &suites); err != nil {
+			return nil, err
+		}
+		return suites, nil
+	}
+	lines := strings.Split(trimmed, "\n")
 	suites := make([]map[string]interface{}, 0, len(lines))
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
@@ -1889,7 +1950,7 @@ func parseIntegrationSuiteList(output string) []map[string]interface{} {
 		}
 		suites = append(suites, entry)
 	}
-	return suites
+	return suites, nil
 }
 
 func discoverIntegrationResultFiles(path string) ([]string, error) {

@@ -1,4 +1,16 @@
 name: TestGoFull
+metadata:
+  subsystems:
+    - extension-api
+    - memory
+    - oauth2
+    - prompting
+  tags:
+    - full-api
+    - parameter-sets
+  runtimes:
+    - go
+  tier: full
 config_dir: test/gofull
 log_name: bottest.log
 full_gate: go

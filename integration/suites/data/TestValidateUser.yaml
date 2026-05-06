@@ -1,4 +1,12 @@
 name: TestValidateUser
+metadata:
+  subsystems:
+    - identity
+  tags:
+    - validation
+  runtimes:
+    - go
+  tier: focused
 config_dir: test/membrain
 log_name: bottest-validate-user.log
 flow:

@@ -1,4 +1,16 @@
 name: TestShFullPipelineAdmin
+metadata:
+  subsystems:
+    - admin
+    - authz
+    - pipeline
+    - scheduler
+  tags:
+    - elevation
+    - spawn-job
+  runtimes:
+    - sh
+  tier: focused
 config_dir: test/shfull
 log_name: bottest.log
 full_gate: sh

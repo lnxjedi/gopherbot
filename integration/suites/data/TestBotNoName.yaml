@@ -1,4 +1,11 @@
 name: TestBotNoName
+metadata:
+  subsystems:
+    - routing
+  tags:
+    - addressing
+    - nameless
+  tier: focused
 config_dir: test/membrain
 log_name: bottest.log
 cases:

@@ -1,4 +1,14 @@
 name: TestDevel
+metadata:
+  subsystems:
+    - help
+    - prompting
+  tags:
+    - fallback
+    - lists
+  runtimes:
+    - go
+  tier: focused
 config_dir: test/membrain
 log_name: bottest.log
 cases:

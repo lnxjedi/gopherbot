@@ -1,4 +1,16 @@
 name: TestShFull
+metadata:
+  subsystems:
+    - extension-api
+    - memory
+    - prompting
+  tags:
+    - full-api
+    - parameter-sets
+    - utilities
+  runtimes:
+    - sh
+  tier: full
 config_dir: test/shfull
 log_name: bottest.log
 full_gate: sh

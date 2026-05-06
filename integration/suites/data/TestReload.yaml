@@ -1,4 +1,14 @@
 name: TestReload
+metadata:
+  subsystems:
+    - admin
+    - config
+    - scheduler
+  tags:
+    - reload
+  runtimes:
+    - go
+  tier: smoke
 config_dir: test/membrain
 log_name: bottest.log
 cases:

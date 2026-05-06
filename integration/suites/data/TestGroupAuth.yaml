@@ -1,4 +1,15 @@
 name: TestGroupAuth
+metadata:
+  subsystems:
+    - authz
+    - groups
+    - memory
+  tags:
+    - dynamic-groups
+  runtimes:
+    - go
+    - sh
+  tier: focused
 config_dir: test/membrain
 log_name: bottest.log
 cases:

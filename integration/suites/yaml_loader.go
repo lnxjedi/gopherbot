@@ -23,6 +23,7 @@ type yamlSuite struct {
 	ConfigDir    string                      `yaml:"config_dir"`
 	LogName      string                      `yaml:"log_name"`
 	FullGate     string                      `yaml:"full_gate"`
+	Metadata     Metadata                    `yaml:"metadata"`
 	BeforeStart  string                      `yaml:"before_start"`
 	Capabilities map[string]yamlCapabilities `yaml:"capabilities"`
 	Cases        []yamlCase                  `yaml:"cases"`
@@ -141,6 +142,7 @@ func (ys yamlSuite) toSuite() (Suite, error) {
 		ConfigDir:    ys.ConfigDir,
 		LogName:      ys.LogName,
 		FullGate:     ys.FullGate,
+		Metadata:     normalizeMetadata(ys.Metadata),
 		Capabilities: capabilities,
 		Cases:        cases,
 	}
@@ -232,6 +234,36 @@ func parseOptionalDuration(raw string) (time.Duration, error) {
 		return 0, fmt.Errorf("duration %q: %w", raw, err)
 	}
 	return d, nil
+}
+
+func normalizeMetadata(metadata Metadata) Metadata {
+	metadata.Subsystems = normalizeLabels(metadata.Subsystems)
+	metadata.Tags = normalizeLabels(metadata.Tags)
+	metadata.Runtimes = normalizeLabels(metadata.Runtimes)
+	metadata.Tier = normalizeLabel(metadata.Tier)
+	return metadata
+}
+
+func normalizeLabels(labels []string) []string {
+	if len(labels) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(labels))
+	seen := make(map[string]bool, len(labels))
+	for _, label := range labels {
+		label = normalizeLabel(label)
+		if label == "" || seen[label] {
+			continue
+		}
+		seen[label] = true
+		out = append(out, label)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func normalizeLabel(label string) string {
+	return strings.ToLower(strings.TrimSpace(label))
 }
 
 func runYAMLFlow(ctx context.Context, d Driver, suiteName string, steps []yamlFlowStep) []Failure {

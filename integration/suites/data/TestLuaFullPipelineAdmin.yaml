@@ -1,4 +1,16 @@
 name: TestLuaFullPipelineAdmin
+metadata:
+  subsystems:
+    - admin
+    - authz
+    - pipeline
+    - scheduler
+  tags:
+    - elevation
+    - spawn-job
+  runtimes:
+    - lua
+  tier: focused
 config_dir: test/luafull
 log_name: bottest.log
 full_gate: lua

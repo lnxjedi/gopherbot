@@ -1,4 +1,16 @@
 name: TestLuaFull
+metadata:
+  subsystems:
+    - extension-api
+    - memory
+    - prompting
+  tags:
+    - full-api
+    - http
+    - parameter-sets
+  runtimes:
+    - lua
+  tier: full
 config_dir: test/luafull
 log_name: bottest.log
 full_gate: lua

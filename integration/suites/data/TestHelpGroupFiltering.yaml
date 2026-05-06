@@ -1,4 +1,14 @@
 name: TestHelpGroupFiltering
+metadata:
+  subsystems:
+    - authz
+    - groups
+    - help
+  tags:
+    - visibility
+  runtimes:
+    - go
+  tier: focused
 config_dir: test/membrain
 log_name: bottest.log
 flow:

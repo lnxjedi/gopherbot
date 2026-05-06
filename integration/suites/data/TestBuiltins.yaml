@@ -1,4 +1,15 @@
 name: TestBuiltins
+metadata:
+  subsystems:
+    - admin
+    - help
+    - hidden-commands
+  tags:
+    - builtins
+    - log
+  runtimes:
+    - go
+  tier: smoke
 config_dir: test/membrain
 log_name: bottest-builtins.log
 cases:

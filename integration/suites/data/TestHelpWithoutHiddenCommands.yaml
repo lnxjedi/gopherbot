@@ -1,4 +1,14 @@
 name: TestHelpWithoutHiddenCommands
+metadata:
+  subsystems:
+    - connector
+    - help
+    - hidden-commands
+  tags:
+    - capabilities
+  runtimes:
+    - go
+  tier: focused
 config_dir: test/membrain
 log_name: bottest.log
 capabilities:

@@ -1,4 +1,13 @@
 name: TestFormatting
+metadata:
+  subsystems:
+    - extension-api
+    - formatting
+  tags:
+    - basic-markdown
+  runtimes:
+    - sh
+  tier: focused
 config_dir: test/membrain
 log_name: bottest.log
 cases:

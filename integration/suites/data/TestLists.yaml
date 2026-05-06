@@ -1,4 +1,12 @@
 name: TestLists
+metadata:
+  subsystems:
+    - memory
+  tags:
+    - lists
+  runtimes:
+    - go
+  tier: focused
 config_dir: test/membrain
 log_name: bottest.log
 cases:

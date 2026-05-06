@@ -1,4 +1,14 @@
 name: TestHelp
+metadata:
+  subsystems:
+    - help
+    - routing
+  tags:
+    - catch-all
+    - discovery
+  runtimes:
+    - go
+  tier: smoke
 config_dir: test/membrain
 log_name: bottest.log
 cases:

@@ -1,4 +1,16 @@
 name: TestShFullSecurity
+metadata:
+  subsystems:
+    - authz
+    - hidden-commands
+    - security
+  tags:
+    - admin-only
+    - elevation
+    - users-only
+  runtimes:
+    - sh
+  tier: focused
 config_dir: test/shfull
 log_name: bottest.log
 full_gate: sh

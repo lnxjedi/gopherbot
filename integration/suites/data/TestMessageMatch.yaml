@@ -1,4 +1,15 @@
 name: TestMessageMatch
+metadata:
+  subsystems:
+    - routing
+  tags:
+    - ambient
+    - catch-all
+    - simple-match
+  runtimes:
+    - go
+    - sh
+  tier: smoke
 config_dir: test/membrain
 log_name: bottest.log
 cases:

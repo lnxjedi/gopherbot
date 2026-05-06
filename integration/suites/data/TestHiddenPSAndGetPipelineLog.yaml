@@ -1,4 +1,15 @@
 name: TestHiddenPSAndGetPipelineLog
+metadata:
+  subsystems:
+    - admin
+    - hidden-commands
+    - pipeline
+  tags:
+    - live-log
+    - process-inspection
+  runtimes:
+    - sh
+  tier: focused
 config_dir: test/membrain
 log_name: bottest-admin-watchdog.log
 flow:

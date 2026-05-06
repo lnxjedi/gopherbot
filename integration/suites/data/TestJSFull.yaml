@@ -1,4 +1,17 @@
 name: TestJSFull
+metadata:
+  subsystems:
+    - extension-api
+    - memory
+    - oauth2
+    - prompting
+  tags:
+    - full-api
+    - http
+    - parameter-sets
+  runtimes:
+    - js
+  tier: full
 config_dir: test/jsfull
 log_name: bottest.log
 full_gate: js

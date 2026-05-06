@@ -17,6 +17,12 @@ func TestYAMLSuitesLoaded(t *testing.T) {
 		if len(suite.Cases) == 0 && suite.Flow == nil {
 			t.Fatalf("%s: no cases or flow", suite.Name)
 		}
+		if len(suite.Metadata.Subsystems) == 0 {
+			t.Fatalf("%s: no metadata subsystems", suite.Name)
+		}
+		if suite.Metadata.Tier == "" {
+			t.Fatalf("%s: no metadata tier", suite.Name)
+		}
 	}
 }
 
