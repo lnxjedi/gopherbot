@@ -4,17 +4,38 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
 
 ## Open TODOs
 
-- [ ] Replace the `go test ./test` integration harness with a process-backed
+- [x] Replace the `go test ./test` integration harness with a process-backed
   `gopherbot-integration` workflow:
-  - Use `aidocs/INTEGRATION_HARNESS_PLAN.md` as the design source.
-  - Keep suite definitions in Go so existing tests can be ported mechanically.
-  - Preserve the old `StartTest` path until coverage parity is proven.
-  - [x] Add MCP support so integration suites run through file-backed logs/results
-    instead of streaming full output into model context.
-  - Add privsep-only suites that require a real setuid/setgid integration
-    binary.
-  - [ ] Migrate new integration tests to engine + data files, vs. compiled
-- Make thread subscription expiration configurable instead of fixed constant:
+  - Process-backed integration suites now live as readable YAML under
+    `integration/suites/data/`.
+  - The compiled-in suite definitions were removed from normal integration
+    execution; the legacy `test/` package remains only as a compatibility
+    fallback and should not be the AI/operator default.
+  - MCP support runs suites through file-backed logs/results instead of
+    streaming full output into model context.
+  - Suite metadata now supports targeted selectors for subsystem, tag, runtime,
+    and tier.
+- [ ] Add privsep-only integration suites that require a real setuid/setgid
+  integration binary. This remains intentionally separate from the normal
+  process-backed suite because it requires host-level install state.
+- [ ] Run and record a final clean-build full integration pass before tagging
+  2.9.0:
+  - Build with `make mcp integration-build`.
+  - Run the MCP `run_integration_suite` tool for `all`.
+  - Also spot-check targeted selectors such as `subsystem:pipeline`,
+    `subsystem:secrets`, `subsystem:routing`, `subsystem:help`,
+    `subsystem:security`, `runtime:go`, `runtime:lua`, `runtime:js`, and
+    `runtime:sh`.
+- [ ] Perform pre-2.9.0 pilot robot migration dry-runs:
+  - Search each selected custom robot for `{{ decrypt` and move remaining
+    encrypted values into custom-only `conf/variables/*.yaml` files.
+  - Validate `GOPHER_ENVIRONMENT` startup behavior for development and
+    production-like environments.
+  - Confirm primary/secondary connector startup, reload, identity mapping, and
+    hidden-command support against real configs.
+  - Treat pilot findings as bugfix/UX work only unless a critical configuration
+    break is discovered.
+- [ ] Make thread subscription expiration configurable instead of fixed constant:
   Current behavior uses `threadMemoryDuration = 7 * 24h` in `bot/brain.go`, and thread subscriptions are expired by `expireSubscriptions` in `bot/subscribe_thread.go`.
   This affects long-running AI thread continuity after inactivity when using subscription-based routing.
   Candidate direction:
@@ -24,7 +45,12 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
   - Updated engine handling of `IgnoreUnlistedUsers` so validated canonical identity is required for directory-gated inbound policy.
   - Added admin-only built-in `validate user <username>` with a short-lived 7-digit code and pre-pipeline DM/hidden consume path for returning protocol-local internal IDs to the requesting admin.
 - [x] Update connectors to take a Reload method that, at the very least, updates the list of Validated Users.
-- [ ] Make external interpreter failures ALSO send error output to jobs channel for default connector, like built-in interpreters
+- [x] Make external interpreter failures also send error output to the operator
+  channel like built-in interpreters:
+  pipeline failure alerts now go to the plugin `DefaultJobChannel` or the job's
+  configured channel, include recent live log excerpts, and are covered by
+  process-backed integration suites for Go, Lua, JavaScript, and Gopherbot
+  shell failure cases.
 - [x] Align shipped SimpleMatcher configs with the v3 DSL contract:
   - `devdocs/SimpleMatcher.md` defines the intended semantics: `(label:...)` / `(:...)` required capturing choices, `[label:...]` / `[:...]` optional capturing choices, `{...}` optional non-capturing noise, and `/.../` required non-capturing synonyms.
   - Audited `SimpleMatcher:` entries under `conf/plugins/` and test configs so plugin handler argument indexes match the documented contract.
@@ -32,7 +58,7 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
 
 ## Current Cleanup TODOs
 
-- [ ] Clean-up / wrap up googlechat connector
+- [x] Clean-up / wrap up googlechat connector
   - Remove new user detection and logging from googlechat connector, now superceded by new Validated user bits.
   - Adjust logging: remove logging that should never be necessary, use "debug" when appropriate for debugging and "trace" for logs that should only show when we absolutely want to see everything happening.
 
@@ -54,13 +80,12 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
   - review whether `IncomingMessage.MessageText`, `HiddenMessage`, and `BotMessage` are being populated in the cleanest possible way for local hidden commands
   - preserve engine-owned hidden-command policy while reducing connector-local surprises
 
-- [ ] Revisit the connector contract around canonical usernames vs transport user IDs:
-  The current split between engine username authority, connector-local `UserMap`, inbound `ProtocolUser`, and outbound user-targeted send helpers grew organically over time and is now subtle enough to cause connector drift.
-  Follow-up goals:
-  - make the contract for canonical username, protocol user ID, and connector-side lookup/fallback explicit
-  - decide what the engine may assume about `userProto` / `userIDProto` population from connector-local identity maps
-  - document when connectors may treat a string as an already-resolved transport ID versus when they must resolve a canonical username
-  - re-check Slack, Google Chat, SSH, terminal, and test connector behavior against that contract
+- [x] Revisit the connector contract around canonical usernames vs transport user IDs:
+  `aidocs/CONNECTOR_CONTRACT.md` now makes the username/transport-ID boundary
+  explicit, and connector-specific docs cover the major protocol behavior.
+  Remaining work is deployment validation rather than contract design:
+  re-check Slack, Google Chat, SSH, terminal, and test connector behavior during
+  pre-2.9 pilot deployments.
 
 - [ ] Revisit runtime bot-ID fallback handling (`getRuntimeBotID`) in the engine:
   The current runtime bot-ID helpers are useful for engine-owned bot identity lookups, but they are tempting as a generic fallback for connector self-message detection.

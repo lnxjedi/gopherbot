@@ -63,6 +63,12 @@ So, at `Warn`, the robot should message the administrators in the job channel th
 * When a job or plugin starts, it should keep an ephemeral buffer for Log lines, whether the log is being written to file or not; if the plugin crashes or times out, the logs should also be sent to jobs
 * While a plugin/job is still running, the admin should be able to inspect the log buffer with e.g. `get-pipeline-log <id>`
 
+Status: DONE ENOUGH for v3. Hidden admin/log inspection commands, `ps -v`,
+pipeline timeout warn/kill alerts, live log buffers, and crash/traceback
+alerts are implemented and covered by process-backed integration suites. Pre-2.9
+pilot deployments should still validate operator-channel routing and alert
+quality with real robot configs.
+
 ### Stretch Goal: Add a shell-like built-in interpreter to mostly obviate system "bash"
 Deep research uncovered [mvdan.cc/sh](https://github.com/mvdan/sh) as a possibility for an embedded interpreter that could be used for most cases where plugins/extensions are currently written in bash with jq. We could wrap gojq for a "jq" built-in, as well as find implementations for most of the common shell utilities ala *busybox*. This would make gopherbot plugins more portable and easier to test, as well as allow for removing the system shell for system hardening.
 
@@ -70,10 +76,16 @@ Status: done!
 
 ### Support for running external system processes in Lua, JS
 
-If there are existing libraries or patterns for running external system processes (e.g. `wg` for wireguard), our Lua
+Status: DEFERRED / NON-BLOCKING. The current v3 direction is to keep the
+parent engine as the policy and process-execution authority, while Lua and
+JavaScript extensions communicate with the engine through the Robot API and
+child RPC boundary. Extension authors who need host commands should continue to
+use file-backed executable tasks/plugins or Go tasks with explicit privilege
+configuration rather than adding broad subprocess escape hatches to the Lua/JS
+APIs.
 
 ### Backward Compatibility with v2 Custom Extensions, but Not Configuration
-To the greatest extent possible, custom extensions written to the robot API from v2 should continue to function unmodified. To support greater functionality, `robot.yaml` and other configuration will be changed, no longer supporting v2 configuration syntax. `UPGRADING-v3.md` will be the definitely guide for upgrading v2 robots to v3 robots.
+To the greatest extent possible, custom extensions written to the robot API from v2 should continue to function unmodified. To support greater functionality, `robot.yaml` and other configuration will be changed, no longer supporting v2 configuration syntax. `UPGRADING-v3.md` will be the definitive guide for upgrading v2 robots to v3 robots.
 
 ### Multi-Protocol Support and a Common Outgoing Message Format
 Gopherbot v3 will support multiple simultaneous chat protocols, and will support more team chat platforms.
@@ -86,7 +98,7 @@ For v3, we will try to support:
 * Rocket.Chat
 
 In addition, Gopherbot will implement a new default outgoing message format for use by custom extensions, `BasicMarkdown` (see devdocs/BasicMarkdown.md).
-* Slack Variable and Fixed support should be updated to use BlockKit it possible
+* Slack Variable and Fixed support should be updated to use BlockKit if possible
 
 Status: DONE ENOUGH for now - support for Slack, Google Chat and SSH
 
@@ -112,11 +124,18 @@ The system should explicitly support AI-assisted workflows for creating plugins,
 Ideally, a new developer, after reading some initial documentation, should be able to ask an AI e.g. "based on the documentation and examples in `writing-extensions/`, please create a new (plugin, job) that does (something)."
 
 Progress notes:
-- JS and Lua full integration tests exist and are gated via `RUN_FULL`/`TEST` (see `test/` and `aidocs/TESTING_CURRENT.md`).
+- Process-backed integration suites are now data-driven YAML under
+  `integration/suites/data/`, with metadata selectors for targeted subsystem,
+  tag, runtime, and tier runs.
+- Go, Gopherbot shell, JavaScript, and Lua full pipeline suites cover core
+  Robot API behavior, messaging, prompting, memory, HTTP, and admin/failure
+  surfaces.
 - Local HTTP test server exists for deterministic JS/Lua HTTP coverage.
 - JS and Lua HTTP helper modules are available for extension authors (see `aidocs/JS_HTTP_API.md`, `aidocs/LUA_HTTP_API.md`).
 - Long-term TODO: add a Bash Full integration suite with emphasis on formatting behavior parity (including `-f` fixed-format handling). The Bash library (`lib/gopherbot_v1.sh`) likely needs a cleanup/rewrite.
-- Long-term TODO: document `AddCommand` as a pipeline-composition API (not a user-message injection API), and evaluate a separate user-scoped resume primitive for reconnect/onboarding workflows.
+- `AddCommand` is documented as a pipeline-composition API in
+  `aidocs/PIPELINE_LIFECYCLE.md`. Long-term TODO: evaluate a separate
+  user-scoped resume primitive for reconnect/onboarding workflows.
 
 ### Strengthen and Integrate the Groups and Help Systems
 
@@ -130,13 +149,18 @@ Help and discovery mechanisms should be group-aware and provide clear, contextua
 * Stretch direction: help output should be generated from command-linked help metadata (rather than loose text blocks), so help content and executable commands stay naturally aligned
 * Stretch direction: extend the authorizer plugin contract with a `usergroups` command (for example `usergroups david`) that returns a JSON array of groups for that user; help rendering can then filter command visibility to only commands available to that user
 
-Status: Help System: DONE; Groups update: NOT STARTED
+Status: Help System: DONE ENOUGH for v3; groups update remains NOT STARTED /
+NON-BLOCKING. Help and fallback behavior are metadata-driven and group-aware
+when an authorizer implements the optional `usergroups` contract. A richer
+first-class groups subsystem remains future work.
 
 #### Integrate new SimpleMatcher with Help System
 
 Allow `foo:`-type labels for required and optional capturing choices, use special matching algorithm to provide better user feedback on errors, e.g. user says `set loglevel to fine`, with a SimpleMatcher of `set-loglevel {to} (level:trace|debug|info|warn|error)` should recognize the command matches but the loglevel doesn't match a value, and produce a helpful error like "Invalid value 'fine' for 'level'; valid values: trace, debug, info, warn, error".
 
-Status: not started
+Status: DONE ENOUGH for v3. The shipped SimpleMatcher configs have been aligned
+with the v3 DSL contract and invalid-choice diagnostics are covered by tests and
+`aidocs/SIMPLE_MATCHER_DIAGNOSTICS.md`.
 
 ### Improve Configuration Clarity and Bootstrapping
 
@@ -161,7 +185,7 @@ Status: DONE, needs more QA
 
 This feature makes it cleaner and easier to keep secrets for one environment separate from another, for robot development with dedicated secrets for the development environment.
 
-*Before* reading custom robot.yaml, read custom `conf/variables/common.yaml`, and `conf/variables/<environment>.yaml`, where values from the enviroment file override values from the common file, similar to how custom overrides defaults.
+*Before* reading custom robot.yaml, read custom `conf/variables/common.yaml`, and `conf/variables/<environment>.yaml`, where values from the environment file override values from the common file, similar to how custom overrides defaults.
 
 Plaintext variables and encrypted secrets live in variables files; for example:
 ```yaml
@@ -177,12 +201,21 @@ Add new template functions `secret` and `variable` for use in other locations, e
 
 Together these features enable a robot developer to cleanly separate secrets from configuration to simplify developing robot extensions with distinct credentials encrypted by a separate `binary-encrypted-key.environment` (already supported). To further simplify this, the gopherbot CLI should support a new "genkey" function that generates a new `binary-encrypted-key` string encrypted by the current `GOPHER_ENCRYPTION_KEY`.
 
+Status: DONE. Custom-only `conf/variables/common.yaml` and
+`conf/variables/<environment>.yaml` are loaded before custom robot config,
+environment values override common values, `secret` and `variable` template
+functions are available, `decrypt` now fails with a migration error, and
+`gopherbot genkey` exists for environment-specific encrypted data keys.
+
 ### Make Robots Easy to Set Up with New Brains, Connectors, etc.
 
 * Initial setup should end with a robot repo in git deployable with a deployment key encoded in environment, and a robot accessible via local ssh protocol
 * Additional setup-focused plugins should make it simple to add additional connectors, a brain, etc. - need to determine structure for this
 
-Status: STARTED - ";new-robot" works nicely, other stuff still needs work.
+Status: DONE ENOUGH for 2.9/v3 pilot use. `;new-robot` works for initial
+bootstrap and local SSH access. Additional setup helpers for adding connectors,
+brains, and deployment targets remain useful polish, but should not require more
+configuration-breaking changes.
 
 ### Improve Robustness and Security by running Multi-Process
 In Gopherbot v3, compiled-in plugins and jobs will continue to run in in-process threads, but extensions loaded from file will run in separate gopherbot child processes. This isolates the main engine from any panics or freezes for most of the work a robot does, and also makes for a cleaner means of implementing privilege separation. It also paves the way for better support of the working directory method(s).
@@ -209,9 +242,11 @@ Design direction:
 
 Design note: see `aidocs/macos-privsep.md`.
 
-Status: IMPLEMENTATION STARTED - one-shot child role commitment exists for Linux/BSD and macOS; manual setuid validation is still required before calling macOS privilege separation production-ready.
-
-Status: done
+Status: DONE ENOUGH for engine architecture. One-shot child role commitment
+exists for Linux/BSD and macOS, and file-backed execution no longer depends on
+normal task execution through thread-scoped credential changes. Manual setuid
+validation is still required before treating privilege separation as
+production-ready on a specific host/OS deployment.
 
 ### Make Good Use of AI with Included Components
 The current ruby AI implementation should be replaced with a native implementation, making better use of memories. The full-name fallback should be the same; "Floyd, what is the meaning of life?" should go straight to the AI (with the regular, normal system prompt additions). We should update the alias fallback (robot addressed with alias, but no command matched) to be an ai-augmented help - the robot should reply in a thread with something reasonable based on the robot's configuration; for instance "Oops, you typed that in the wrong channel - try that in #devops or #chatops", or "It looks like you're trying to start a remote dev environment, but you didn't supply a valid type ...".
@@ -237,7 +272,7 @@ These items are worth improving, but are not intended to block the v3 release un
 
 The following items are explicitly *not* required for v3 and should not block release unless this document is updated to say otherwise.
 
-* Configuration compatibility with v2 robots - when breaking changes are required to meet the above goals, we will document what the user needs to know in an `Upgrading_to_v3.md` document.
+* Configuration compatibility with v2 robots - when breaking changes are required to meet the above goals, we will document what the user needs to know in `UPGRADING-v3.md`.
 
 ## How We Decide v3 Is Ready
 

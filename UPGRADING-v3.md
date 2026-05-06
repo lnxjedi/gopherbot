@@ -16,7 +16,39 @@ Compatibility scope for this guide:
 6. Ensure connector-emitted validated usernames match global `UserRoster` entries (especially with `IgnoreUnlistedUsers: true`).
 7. Confirm connector-specific identity mapping config is correct inside each connector `ProtocolConfig` (for example Slack `ProtocolConfig.UserMap`, SSH `ProtocolConfig.UserKeys`).
 8. Confirm your preferred `DefaultMessageFormat` (v3 default is now `BasicMarkdown`; set `Raw` explicitly to preserve legacy protocol-native output).
-9. Reload and verify runtime with `protocol-list` (or `protocol list`).
+9. Search custom config for `{{ decrypt` and move encrypted values into
+   custom-only `conf/variables/*.yaml` `Secrets`.
+10. Move environment-specific plaintext deployment values into
+    `conf/variables/*.yaml` `Variables` and reference them with
+    `{{ variable "NAME" }}`.
+11. Review `DefaultJobChannel` and any `TimeOuts` values so pipeline alerts
+    reach the right operator channel.
+12. Reload and verify runtime with `protocol-list` (or `protocol list`).
+
+## 2.9.0 Pre-v3 Pilot Checklist
+
+For non-critical pilot robots before tagging 2.9.0:
+
+1. Run `gopherbot validate <robot-repo>` or a clean startup with the intended
+   `GOPHER_ENVIRONMENT`.
+2. Confirm no custom config still contains `{{ decrypt`.
+3. Verify the selected environment loads the expected
+   `conf/variables/common.yaml` and `conf/variables/<environment>.yaml`
+   values.
+4. Exercise the primary connector plus any secondary connectors used by the
+   robot.
+5. Check canonical username mapping with one admin and one non-admin user,
+   especially when `IgnoreUnlistedUsers: true`.
+6. Exercise hidden/admin commands that operators rely on, including `ps`,
+   `ps -v`, and `get-pipeline-log <wid>`.
+7. Trigger one harmless failing test command or pilot-only pipeline to confirm
+   failure alerts and recent log excerpts reach the expected operator channel.
+8. If the robot uses setuid privilege separation, perform the manual
+   host-level privsep validation from `AGENTS.md` / the execution security docs
+   before treating that deployment as representative.
+
+During the 2.9.0 pilot window, prefer bugfixes and UX fixes only. Avoid new
+configuration-breaking changes unless a pilot uncovers a critical defect.
 
 ## 2026-05-06 Environment-Scoped Secrets And Variables
 
