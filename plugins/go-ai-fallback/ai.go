@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	pluginLogName = "ai-fallback"
+	pluginLogName              = "ai-fallback"
 	shortTermMemoryPrefix      = "ai-fallback-conversation"
 	shortTermMemoryDebugPrefix = "ai-fallback-debug"
 	conversationDatumPrefix    = "aifallback:conversation:v2"
@@ -333,7 +333,7 @@ func handleConversationEntry(r robot.Robot, command string, args ...string) robo
 	reply := ""
 	if strings.TrimSpace(ctx.Prompt) != "" {
 		var err error
-			reply, err = queryAIProvider(tbot.MessageFormat(robot.BasicMarkdown), r, ctx, state, cfg, uiHints)
+		reply, err = queryAIProvider(tbot.MessageFormat(robot.BasicMarkdown), r, ctx, state, cfg, uiHints)
 		if err != nil {
 			tbot.Say("Sorry, there was an error contacting the AI: %s", err)
 			state.InProgress = false

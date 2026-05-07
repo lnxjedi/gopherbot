@@ -32,7 +32,7 @@ Config:
   Profiles:
     "default":
       "params":
-        "model": "" # e.g. "gemini-2.5-flash", "claude-sonnet-4-5", provider-specific
+        "model": "" # e.g. "gemini-flash-latest", provider-specific
         "temperature": 0.7
       "SystemPrompt":
         "Standard": |
