@@ -31,7 +31,7 @@ CONTENTS="conf/ jobs/ lib/ licenses/ plugins/ resources/ robot/ robot.skel/ help
 
 ADIR="build-archive"
 
-BUILDOS="linux"
+BUILDOS="$GOOS"
 
 rm -rf "$ADIR/gopherbot"
 mkdir -p "$ADIR/gopherbot"
