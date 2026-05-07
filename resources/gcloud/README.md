@@ -323,6 +323,7 @@ Fill the required sections:
 - Graphic Assets
 - Screenshots
 - Support Links
+- Set "Distribution" to "All Regions"
 
 Google currently requires:
 
@@ -340,7 +341,7 @@ Practical note:
 - it is also fine to use a public README URL for the required listing links
   while you are still iterating
 
-Publish the app as a private Marketplace app for your organization.
+Click "Save Draft" then "Publish" to publish the app as a private Marketplace app for your organization.
 
 After private publish, the app should appear under **Internal Apps** for the
 organization.
