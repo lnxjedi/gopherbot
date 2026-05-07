@@ -1,5 +1,5 @@
 -- chuck.lua
--- Lua version of the Chuck Norris plugin using gopherbot_http.
+-- Lua version of the Chuck Norris plugin using gluahttp.
 
 local defaultConfig = [[
 ---
@@ -35,20 +35,26 @@ local function handleChuck(bot)
   local openings = cfg.Openings or {}
   local opening = bot:RandomString(openings)
 
-  local http = require("gopherbot_http")
-  local client, err = http.create_client{
-    base_url = "https://api.chucknorris.io",
-    timeout_ms = 10000,
-    throw_on_http_error = true,
-  }
+  local http = require("http")
+  local json = require("json")
+  local response, err = http.get("https://api.chucknorris.io/jokes/random", {
+    headers = { Accept = "application/json" },
+    timeout = "10s",
+  })
   if err then
     bot:Say("I tried to fetch a Chuck Norris joke but something broke.")
     return task.Normal
   end
 
-  local data, httpErr = client:get_json("/jokes/random")
-  if httpErr then
-    bot:Log(log.Error, "chuck.lua HTTP error: " .. tostring(httpErr.message))
+  if response.status_code >= 400 then
+    bot:Log(log.Error, "chuck.lua HTTP error: HTTP " .. tostring(response.status_code))
+    bot:Say("I tried to fetch a Chuck Norris joke but something broke.")
+    return task.Normal
+  end
+
+  local data, decodeErr = json.decode(response.body)
+  if decodeErr then
+    bot:Log(log.Error, "chuck.lua JSON error: " .. tostring(decodeErr))
     bot:Say("I tried to fetch a Chuck Norris joke but something broke.")
     return task.Normal
   end

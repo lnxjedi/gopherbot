@@ -21,7 +21,7 @@ Config:
 `;
 
 const { Robot, ret, task } = require('gopherbot_v1')();
-const http = require("gopherbot_http");
+const http = require("http");
 
 function loadConfig(bot) {
   const cfg = bot.GetTaskConfig();
@@ -36,16 +36,30 @@ function loadConfig(bot) {
   };
 }
 
+function githubRequest(cfg, token, method, path, options) {
+  const baseURL = cfg.APIBaseURL || "https://api.github.com";
+  const opts = options || {};
+  opts.headers = Object.assign({
+    Authorization: "Bearer " + token,
+    Accept: "application/vnd.github+json",
+  }, opts.headers || {});
+  opts.timeout = opts.timeout || "10s";
+  const response = http.request(method, baseURL + path, opts);
+  if (!response.ok) {
+    throw new Error(`GitHub API HTTP ${response.statusCode}: ${response.body}`);
+  }
+  return response;
+}
+
 function githubClient(cfg, token) {
-  return http.createClient({
-    baseURL: cfg.APIBaseURL || "https://api.github.com",
-    headers: {
-      Authorization: "Bearer " + token,
-      Accept: "application/vnd.github+json",
+  return {
+    searchIssues(options) {
+      return githubRequest(cfg, token, "GET", "/search/issues", options).json;
     },
-    timeoutMs: 10000,
-    throwOnHTTPError: true,
-  });
+    request(method, path, options) {
+      return githubRequest(cfg, token, method, path, options);
+    },
+  };
 }
 
 function requireToken(bot, provider, user) {
@@ -82,7 +96,7 @@ function listReviewRequests(bot, cfg) {
   }
   const client = githubClient(cfg, token);
   const limit = cfg.MaxItems || 10;
-  const data = client.getJSON("/search/issues", {
+  const data = client.searchIssues({
     query: {
       q: cfg.ReviewQuery || "is:open is:pr review-requested:@me archived:false",
       per_page: String(limit),
@@ -108,14 +122,11 @@ function runWorkflow(bot, cfg, repo, workflow, ref) {
     return task.Fail;
   }
   const client = githubClient(cfg, token);
-  client.request({
-    method: "POST",
-    path: `/repos/${repo}/actions/workflows/${workflow}/dispatches`,
+  client.request("POST", `/repos/${repo}/actions/workflows/${workflow}/dispatches`, {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ ref: ref }),
-    throwOnHTTPError: true,
+    body: { ref: ref },
   });
   bot.Say(`Triggered workflow \`${workflow}\` for \`${repo}\` on ref \`${ref}\`.`);
   return task.Normal;

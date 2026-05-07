@@ -1,5 +1,5 @@
 // chuck.js
-// JavaScript version of the Chuck Norris plugin using gopherbot_http.
+// JavaScript version of the Chuck Norris plugin using the native http module.
 
 const defaultConfig = `---
 MessageMatchers:
@@ -27,15 +27,16 @@ function handleChuck(bot) {
   const openings = cfg.config.Openings;
   const opening = bot.RandomString(openings);
 
-  const http = require("gopherbot_http");
-  const client = http.createClient({
-    baseURL: "https://api.chucknorris.io",
-    timeoutMs: 10000,
-    throwOnHTTPError: true,
-  });
-
   try {
-    const data = client.getJSON("/jokes/random");
+    const http = require("http");
+    const response = http.get("https://api.chucknorris.io/jokes/random", {
+      headers: { Accept: "application/json" },
+      timeout: "10s",
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.statusCode}`);
+    }
+    const data = response.json;
     const joke = data && data.value ? data.value : null;
     bot.Say(`${opening} Did you know ...?`);
     bot.Pause(2);

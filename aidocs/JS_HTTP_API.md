@@ -1,95 +1,105 @@
-# JavaScript HTTP API (Design Notes)
+# JavaScript HTTP API
 
-This doc captures the current JavaScript HTTP support and the goals for a redesigned, devops-friendly API. Use it to restart context and drive implementation.
+JavaScript exposes a native synchronous HTTP module as `require("http")`.
 
-## Current implementation (baseline)
+The API intentionally mirrors Lua's `require("http")` surface while using
+JavaScript-friendly response field names and request body handling.
 
-The legacy API (`http.New(...)` with callbacks) has been replaced. See **Current JS API** below for the new surface.
-
-## Design goals for the new API
-
-Prioritize a first-class JS developer experience and DevOps usage:
-
-- **Ergonomic, modern JS API** with consistent error handling.
-- **Simple JSON helpers** (`getJSON`, `postJSON`, and a `json()` response helper).
-- **Clean error semantics**: network errors throw; HTTP error handling opt-in (e.g., `throwOnHTTPError`).
-- **Timeouts and cancellation**: per-request timeout in ms; future support for cancel tokens.
-- **Defaults**: base URL, default headers, and default timeout set on a client object.
-- **Minimal surface**: one `request` function and a few helpers; no heavy wrappers.
-- **No backward-compat constraint**: v3 is not released; we can replace the existing API.
-
-## Current JS API (implemented)
+## Basic GET
 
 ```js
-const http = require("gopherbot_http");
-const client = http.createClient({
-  baseURL: "https://api.example.com",
-  headers: { Authorization: `Bearer ${token}` },
-  timeoutMs: 10000,
-  throwOnHTTPError: false,
-});
+const http = require("http");
 
-const res = client.request({
-  method: "GET",
-  path: "/v1/status",
+const response = http.get("https://api.example.com/v1/status", {
   query: { region: "us-east-1" },
+  headers: {
+    Accept: "application/json",
+  },
+  timeout: "10s",
 });
 
-const data = client.getJSON("/v1/items");
-const created = client.postJSON("/v1/items", { name: "foo" });
+if (!response.ok) {
+  throw new Error(`HTTP ${response.statusCode}: ${response.body}`);
+}
+
+const data = response.json;
 ```
 
-**Client options:**
-- `baseURL` (string, optional) - Base URL for relative paths.
-- `headers` (object) - Default headers for all requests.
-- `timeoutMs` (number) - Default timeout in milliseconds.
-- `throwOnHTTPError` (boolean) - Throw on non-2xx/3xx responses when true.
+## JSON POST
 
-**Request options:**
-- `method` (string) - HTTP method; defaults to GET if empty.
-- `path` (string) - Relative path (requires `baseURL`) or absolute URL.
-- `url` (string) - Absolute URL (overrides `path`).
-- `query` (object) - Query string parameters; values are stringified.
-- `headers` (object) - Per-request headers.
-- `body` (string or byte array) - Request body for non-JSON requests.
-- `timeoutMs` (number) - Per-request timeout in milliseconds.
-- `throwOnHTTPError` (boolean) - Override default error handling.
+```js
+const http = require("http");
 
-**Response shape:**
+const response = http.post("https://api.example.com/v1/items", {
+  body: { name: "foo" },
+  headers: {
+    Accept: "application/json",
+  },
+  timeout: "10s",
+});
+```
+
+Object and array request bodies are encoded as JSON automatically. If the caller
+does not set `Content-Type`, the runtime sets `Content-Type: application/json`
+for JSON-encoded bodies.
+
+## HTTP Helpers
+
+- `http.get(url, options)`
+- `http.delete(url, options)`
+- `http.head(url, options)`
+- `http.patch(url, options)`
+- `http.post(url, options)`
+- `http.put(url, options)`
+- `http.request(method, url, options)`
+- `http.requestBatch(requests)` / `http.request_batch(requests)`
+
+## Request Options
+
+- `query` (object or string) - Query parameters. Objects are URL-encoded; string
+  values are used as the raw query string.
+- `cookies` (object) - Cookie names and values.
+- `headers` (object) - Request headers.
+- `body` (string, byte array, object, or array) - Request body. Objects and
+  arrays are JSON-encoded automatically.
+- `form` (string) - URL-encoded request body; sets
+  `Content-Type: application/x-www-form-urlencoded` when `body` is not set.
+- `timeout` (number or string) - Number of seconds or Go-style duration string
+  such as `"500ms"` or `"1m"`.
+- `timeoutMs` (number) - Millisecond timeout convenience alias.
+- `auth` (object) - Basic auth object: `{ user: "name", pass: "secret" }`.
+
+## Response
+
+Successful HTTP transport returns:
+
 ```js
 {
-  status: 200,
-  statusText: "OK",
-  headers: { "content-type": ["application/json"] },
   body: "...",
-  json: () => ({ ... }) // throws on invalid JSON
+  bodySize: 123,
+  headers: { "content-type": "application/json" },
+  cookies: { session: "..." },
+  statusCode: 200,
+  statusText: "OK",
+  ok: true,
+  url: "https://api.example.com/v1/status",
+  json: { ... }
 }
 ```
 
-**JSON helpers:**
-- `client.getJSON(path, options)` returns parsed JSON.
-- `client.postJSON(path, payload, options)` sends JSON and returns parsed JSON.
-- `client.putJSON(path, payload, options)` sends JSON and returns parsed JSON.
+`json` is automatically parsed when the response `Content-Type` is
+`application/json` or ends in `+json`. If parsing fails, or the content type is
+not JSON, `json` is `null` and `body` remains the original response string.
 
-**Errors:**
-- Network errors throw `Error` with message + optional cause.
-- If `throwOnHTTPError` is true, non-2xx responses throw an error with `status`/`body`.
+HTTP 4xx/5xx responses are not JavaScript exceptions. Check `response.ok` or
+`response.statusCode` explicitly when the caller wants to treat non-2xx/3xx
+statuses as failures.
 
-**Availability:**
-- The `gopherbot_http` module is registered alongside `require()` setup, so it is available in both runtime and `configure` scripts.
+Transport failures, invalid URLs, invalid timeout values, and request context
+timeouts throw JavaScript `Error` values.
 
-**Runtime note:**
-- The embedded JS runtime does not support Promises/`async` today, so HTTP helpers are synchronous.
+## Runtime Note
 
-## Open questions
-
-- Should we also expose `gopherbot_http` via a global (e.g., `GBOT.http`) for convenience?
-- Should we support streaming bodies or only string/JSON?
-- Do we need retry/backoff helpers, or keep those in user space?
-
-## Next steps
-
-- Decide on final JS API surface.
-- Implement in `modules/javascript/http_object.go` and expose into the VM.
-- Update tests in `test/jsfull` to exercise the new API.
-- Update `aidocs/JS_METHOD_CHECKLIST.md` once the HTTP API is finalized.
+The embedded JavaScript runtime is synchronous and does not support Node's
+streaming asynchronous `http` module. Gopherbot's `http` module blocks until the
+request completes and returns the full response body.

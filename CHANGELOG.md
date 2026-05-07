@@ -112,7 +112,7 @@ Highlights:
 * Go, Gopherbot shell, JavaScript, and Lua full pipeline integration suites now
   cover core Robot API behavior, messaging, prompting, memory, HTTP, and
   admin/failure surfaces.
-* JS and Lua HTTP helper modules are available for extension authors.
+* JS and Lua synchronous `require("http")` support is available for extension authors.
 * The v3 policy remains that the parent engine owns process execution,
   routing, authorization, elevation, parameter resolution, and secret scoping.
   Lua and JavaScript do not gain a broad subprocess escape hatch.

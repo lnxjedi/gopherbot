@@ -85,8 +85,8 @@ Sources:
 ## Lua add-on helpers (DevOps focus)
 
 ### HTTP / remote APIs
-- [x] `gopherbot_http.create_client(...):request(options)` – method, URL/path, headers, body, timeout; returns status, headers, body.
-- [x] `client:get_json(path, options)` / `client:post_json(path, payload, options)` / `client:put_json(path, payload, options)` – JSON helpers.
+- [x] `require("http")` via `github.com/cjoudrey/gluahttp` – method, URL, query, headers, body, timeout, auth; returns `http.response`.
+- [x] `require("json")` – `encode(value)` / `decode(string)` helpers for JSON request and response bodies.
 
 ### Local file access (workspace-safe)
 - [ ] `ReadFile(path, options)` – respects workspace/current working dir.

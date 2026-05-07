@@ -372,10 +372,8 @@ The goal is for all interpreters to provide the same Robot API. Current status:
 | Short-term memory | ✓ | ✓ | ✓ | ✓ |
 | Pipeline control | ✓ | ✓ | ✓ | ✓ |
 | Attributes | ✓ | ✓ | ✓ | ✓ |
-| HTTP client | ✗ | ✓ | ✓ | ✓ |
+| HTTP client | ✓ | ✓ | ✓ | ✓ |
 | File I/O | ✗ | ✗ | ✓ | ✓ |
-
-**v3 TODO:** Add HTTP client to Lua for parity with JavaScript.
 
 ## Debugging Scripts
 

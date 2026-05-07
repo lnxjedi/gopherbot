@@ -122,27 +122,38 @@ function handler(argv) {
           bot.Say("No http base url configured");
           return task.Fail;
         }
-        const http = require("gopherbot_http");
-        const client = http.createClient({
-          baseURL: baseURL,
-          timeoutMs: 5000,
-          throwOnHTTPError: true,
-        });
-        const getRes = client.getJSON("/json/get");
+        const http = require("http");
+        function requestJSON(method, path, options, body) {
+          const opts = options || {};
+          opts.headers = opts.headers || {};
+          opts.headers.Accept = "application/json";
+          if (body !== undefined) {
+            opts.body = body;
+          }
+          const response = http.request(method, baseURL + path, opts);
+          if (!response.ok) {
+            const err = new Error(`HTTP ${response.statusCode}`);
+            err.status = response.statusCode;
+            err.body = response.body;
+            throw err;
+          }
+          return response.json;
+        }
+        const getRes = requestJSON("GET", "/json/get", { timeout: "5s" });
         bot.Say(`HTTP GET ok: ${getRes.method}`);
-        const postRes = client.postJSON("/json/post", { value: "alpha" });
+        const postRes = requestJSON("POST", "/json/post", { timeout: "5s" }, { value: "alpha" });
         bot.Say(`HTTP POST ok: ${postRes.value}`);
-        const putRes = client.putJSON("/json/put", { value: "bravo" });
+        const putRes = requestJSON("PUT", "/json/put", { timeout: "5s" }, { value: "bravo" });
         bot.Say(`HTTP PUT ok: ${putRes.value}`);
         try {
-          client.getJSON("/json/error");
+          requestJSON("GET", "/json/error", { timeout: "5s" });
           bot.Say("HTTP ERROR unexpected");
         } catch (err) {
           const status = err && err.status ? err.status : "unknown";
           bot.Say(`HTTP ERROR ok: ${status}`);
         }
         try {
-          client.getJSON("/json/slow", { timeoutMs: 50 });
+          requestJSON("GET", "/json/slow", { timeout: "50ms" });
           bot.Say("HTTP TIMEOUT unexpected");
         } catch (err) {
           bot.Say("HTTP TIMEOUT ok");

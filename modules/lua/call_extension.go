@@ -72,7 +72,7 @@ func CallExtension(execPath, taskPath, taskName string, pkgPath []string, logger
 		return ret, err
 	}
 
-	// Register native HTTP module for require("gopherbot_http")
+	// Register native helper modules for require("http") and require("json")
 	registerHttpModule(L)
 
 	// Compile and run the Lua file

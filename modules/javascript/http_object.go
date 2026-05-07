@@ -1,6 +1,8 @@
 package javascript
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,263 +16,179 @@ import (
 	"github.com/dop251/goja_nodejs/require"
 )
 
-type httpClient struct {
-	baseURL          *url.URL
-	headers          map[string]string
-	timeout          time.Duration
-	throwOnHTTPError bool
-	vm               *goja.Runtime
+type jsHTTPModule struct {
+	vm *goja.Runtime
+}
+
+type jsHTTPRequestOptions struct {
+	Query     interface{}
+	Cookies   map[string]string
+	Headers   map[string]string
+	Body      interface{}
+	Form      interface{}
+	Timeout   time.Duration
+	TimeoutOn bool
+	Auth      *jsHTTPAuth
+}
+
+type jsHTTPAuth struct {
+	User string
+	Pass string
 }
 
 func registerHttpModule(registry *require.Registry) {
-	registry.RegisterNativeModule("gopherbot_http", func(rt *goja.Runtime, module *goja.Object) {
+	registry.RegisterNativeModule("http", func(rt *goja.Runtime, module *goja.Object) {
 		exports := module.Get("exports").(*goja.Object)
-		clientFactory := func(call goja.FunctionCall) goja.Value {
-			client := newHTTPClient(rt, call)
-			obj := rt.NewObject()
-			_ = obj.Set("request", client.request)
-			_ = obj.Set("getJSON", client.getJSON)
-			_ = obj.Set("postJSON", client.postJSON)
-			_ = obj.Set("putJSON", client.putJSON)
-			return obj
-		}
-		_ = exports.Set("createClient", clientFactory)
+		mod := &jsHTTPModule{vm: rt}
+
+		_ = exports.Set("get", mod.verb("GET"))
+		_ = exports.Set("delete", mod.verb("DELETE"))
+		_ = exports.Set("head", mod.verb("HEAD"))
+		_ = exports.Set("patch", mod.verb("PATCH"))
+		_ = exports.Set("post", mod.verb("POST"))
+		_ = exports.Set("put", mod.verb("PUT"))
+		_ = exports.Set("request", mod.request)
+		_ = exports.Set("requestBatch", mod.requestBatch)
+		_ = exports.Set("request_batch", mod.requestBatch)
 	})
 }
 
-func newHTTPClient(vm *goja.Runtime, call goja.FunctionCall) *httpClient {
-	var opts map[string]interface{}
-	if len(call.Arguments) > 0 && !isUndefinedOrNull(call.Arguments[0]) {
-		raw := call.Arguments[0].Export()
-		var ok bool
-		opts, ok = raw.(map[string]interface{})
-		if !ok {
-			panic(vm.NewTypeError("createClient: options must be an object"))
+func (m *jsHTTPModule) verb(method string) func(goja.FunctionCall) goja.Value {
+	return func(call goja.FunctionCall) goja.Value {
+		if len(call.Arguments) == 0 {
+			panic(m.vm.NewTypeError("%s: url is required", strings.ToLower(method)))
 		}
-	}
-
-	baseURL, err := parseBaseURL(opts)
-	if err != nil {
-		panic(vm.NewTypeError(err.Error()))
-	}
-	headers, err := parseHeaders(opts, "headers")
-	if err != nil {
-		panic(vm.NewTypeError(err.Error()))
-	}
-	timeout, err := parseTimeoutMs(opts, "timeoutMs")
-	if err != nil {
-		panic(vm.NewTypeError(err.Error()))
-	}
-	throwOnHTTPError, err := parseBool(opts, "throwOnHTTPError", false)
-	if err != nil {
-		panic(vm.NewTypeError(err.Error()))
-	}
-
-	return &httpClient{
-		baseURL:          baseURL,
-		headers:          headers,
-		timeout:          timeout,
-		throwOnHTTPError: throwOnHTTPError,
-		vm:               vm,
+		return m.doRequestValue(method, call.Arguments[0], optionalArg(call, 1))
 	}
 }
 
-func (c *httpClient) request(call goja.FunctionCall) goja.Value {
-	if len(call.Arguments) == 0 {
-		panic(c.vm.NewTypeError("request: options are required"))
-	}
-	opts, err := parseRequestOptions(c.vm, call.Arguments[0])
-	if err != nil {
-		panic(c.vm.NewTypeError(err.Error()))
-	}
-
-	respVal, err := c.doRequest(opts)
-	if err != nil {
-		panic(c.jsError(err))
-	}
-	return respVal
-}
-
-func (c *httpClient) getJSON(call goja.FunctionCall) goja.Value {
-	if len(call.Arguments) == 0 {
-		panic(c.vm.NewTypeError("getJSON: path is required"))
-	}
-	path := call.Arguments[0].String()
-	var opts map[string]interface{}
-	if len(call.Arguments) > 1 && !isUndefinedOrNull(call.Arguments[1]) {
-		raw := call.Arguments[1].Export()
-		var ok bool
-		opts, ok = raw.(map[string]interface{})
-		if !ok {
-			panic(c.vm.NewTypeError("getJSON: options must be an object"))
-		}
-	}
-
-	req := requestOptions{
-		Method: "GET",
-		Path:   path,
-		Opts:   opts,
-	}
-
-	bodyVal, err := c.doRequestJSON(req)
-	if err != nil {
-		panic(c.jsError(err))
-	}
-	return bodyVal
-}
-
-func (c *httpClient) postJSON(call goja.FunctionCall) goja.Value {
+func (m *jsHTTPModule) request(call goja.FunctionCall) goja.Value {
 	if len(call.Arguments) < 2 {
-		panic(c.vm.NewTypeError("postJSON: path and payload are required"))
+		panic(m.vm.NewTypeError("request: method and url are required"))
 	}
-	path := call.Arguments[0].String()
-	payload := call.Arguments[1].Export()
-	bodyBytes, err := json.Marshal(payload)
-	if err != nil {
-		panic(c.vm.NewTypeError(fmt.Sprintf("postJSON: unable to serialize payload: %s", err)))
+	return m.doRequestValue(call.Arguments[0].String(), call.Arguments[1], optionalArg(call, 2))
+}
+
+func (m *jsHTTPModule) requestBatch(call goja.FunctionCall) goja.Value {
+	if len(call.Arguments) == 0 {
+		panic(m.vm.NewTypeError("requestBatch: requests array is required"))
 	}
-	var opts map[string]interface{}
-	if len(call.Arguments) > 2 && !isUndefinedOrNull(call.Arguments[2]) {
-		raw := call.Arguments[2].Export()
-		var ok bool
-		opts, ok = raw.(map[string]interface{})
+	requests, ok := call.Arguments[0].Export().([]interface{})
+	if !ok {
+		panic(m.vm.NewTypeError("requestBatch: requests must be an array"))
+	}
+
+	responses := m.vm.NewArray()
+	errors := m.vm.NewArray()
+	hasErrors := false
+	for i, raw := range requests {
+		method, rawURL, opts, ok := m.batchRequest(raw)
 		if !ok {
-			panic(c.vm.NewTypeError("postJSON: options must be an object"))
+			_ = responses.Set(strconv.Itoa(i), goja.Null())
+			_ = errors.Set(strconv.Itoa(i), "request must be an object")
+			hasErrors = true
+			continue
 		}
+		response, err := m.doRequest(method, rawURL, opts)
+		if err != nil {
+			_ = responses.Set(strconv.Itoa(i), goja.Null())
+			_ = errors.Set(strconv.Itoa(i), err.Error())
+			hasErrors = true
+			continue
+		}
+		_ = responses.Set(strconv.Itoa(i), response)
+		_ = errors.Set(strconv.Itoa(i), goja.Null())
 	}
-
-	req := requestOptions{
-		Method: "POST",
-		Path:   path,
-		Body:   bodyBytes,
-		Opts:   opts,
+	if hasErrors {
+		out := m.vm.NewArray()
+		_ = out.Set("0", responses)
+		_ = out.Set("1", errors)
+		return out
 	}
-
-	bodyVal, err := c.doRequestJSON(req)
-	if err != nil {
-		panic(c.jsError(err))
-	}
-	return bodyVal
+	return responses
 }
 
-func (c *httpClient) putJSON(call goja.FunctionCall) goja.Value {
-	if len(call.Arguments) < 2 {
-		panic(c.vm.NewTypeError("putJSON: path and payload are required"))
-	}
-	path := call.Arguments[0].String()
-	payload := call.Arguments[1].Export()
-	bodyBytes, err := json.Marshal(payload)
-	if err != nil {
-		panic(c.vm.NewTypeError(fmt.Sprintf("putJSON: unable to serialize payload: %s", err)))
-	}
-	var opts map[string]interface{}
-	if len(call.Arguments) > 2 && !isUndefinedOrNull(call.Arguments[2]) {
-		raw := call.Arguments[2].Export()
-		var ok bool
-		opts, ok = raw.(map[string]interface{})
-		if !ok {
-			panic(c.vm.NewTypeError("putJSON: options must be an object"))
+func (m *jsHTTPModule) batchRequest(raw interface{}) (string, string, goja.Value, bool) {
+	switch request := raw.(type) {
+	case map[string]interface{}:
+		method, _ := request["method"].(string)
+		if method == "" {
+			method = "GET"
 		}
+		rawURL, _ := request["url"].(string)
+		return method, rawURL, m.vm.ToValue(request["options"]), rawURL != ""
+	case []interface{}:
+		if len(request) < 2 {
+			return "", "", nil, false
+		}
+		method := fmt.Sprint(request[0])
+		rawURL := fmt.Sprint(request[1])
+		opts := goja.Undefined()
+		if len(request) > 2 {
+			opts = m.vm.ToValue(request[2])
+		}
+		return method, rawURL, opts, rawURL != ""
+	default:
+		return "", "", nil, false
 	}
-
-	req := requestOptions{
-		Method: "PUT",
-		Path:   path,
-		Body:   bodyBytes,
-		Opts:   opts,
-	}
-
-	bodyVal, err := c.doRequestJSON(req)
-	if err != nil {
-		panic(c.jsError(err))
-	}
-	return bodyVal
 }
 
-func (c *httpClient) doRequestJSON(req requestOptions) (goja.Value, error) {
-	headers, err := parseHeaders(req.Opts, "headers")
+func (m *jsHTTPModule) doRequestValue(method string, rawURL goja.Value, rawOpts goja.Value) goja.Value {
+	response, err := m.doRequest(method, rawURL.String(), rawOpts)
 	if err != nil {
-		return nil, err
+		panic(m.vm.NewGoError(err))
 	}
-	if headers == nil {
-		headers = make(map[string]string)
-	}
-	if _, ok := headers["Accept"]; !ok {
-		headers["Accept"] = "application/json"
-	}
-	if req.Method == "POST" || req.Method == "PUT" || req.Method == "PATCH" {
-		if _, ok := headers["Content-Type"]; !ok {
-			headers["Content-Type"] = "application/json"
-		}
-	}
-	req.Headers = headers
-
-	timeout, err := parseTimeoutMs(req.Opts, "timeoutMs")
-	if err != nil {
-		return nil, err
-	}
-	req.Timeout = timeout
-	req.TimeoutSet = hasKey(req.Opts, "timeoutMs")
-
-	throwOnHTTPError, err := parseBool(req.Opts, "throwOnHTTPError", false)
-	if err != nil {
-		return nil, err
-	}
-	req.ThrowOnHTTPError = throwOnHTTPError
-	req.ThrowOnHTTPErrorSet = hasKey(req.Opts, "throwOnHTTPError")
-
-	query, err := parseQuery(req.Opts, "query")
-	if err != nil {
-		return nil, err
-	}
-	req.Query = query
-
-	respVal, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
-	}
-	respObj := respVal.ToObject(c.vm)
-	body := respObj.Get("body").String()
-	return c.parseJSON(body)
+	return response
 }
 
-func (c *httpClient) doRequest(opts requestOptions) (goja.Value, error) {
-	method := strings.ToUpper(strings.TrimSpace(opts.Method))
+func (m *jsHTTPModule) doRequest(method, rawURL string, rawOpts goja.Value) (goja.Value, error) {
+	method = strings.ToUpper(strings.TrimSpace(method))
 	if method == "" {
 		method = "GET"
 	}
+	if strings.TrimSpace(rawURL) == "" {
+		return nil, fmt.Errorf("request: url is required")
+	}
 
-	fullURL, err := c.buildURL(opts)
+	opts, err := parseJSHTTPRequestOptions(rawOpts)
 	if err != nil {
 		return nil, err
 	}
 
-	bodyReader, err := bodyReaderFromValue(opts.Body)
+	fullURL, err := buildJSHTTPURL(rawURL, opts.Query)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest(method, fullURL, bodyReader)
+	body, contentType, err := jsHTTPBodyReader(opts.Body, opts.Form)
 	if err != nil {
 		return nil, err
 	}
 
-	headers := mergeHeaders(c.headers, opts.Headers)
-	for key, value := range headers {
-		req.Header.Set(key, value)
+	req, err := http.NewRequest(method, fullURL, body)
+	if err != nil {
+		return nil, err
 	}
 
-	timeout := c.timeout
-	if opts.TimeoutSet {
-		timeout = opts.Timeout
+	for name, value := range opts.Headers {
+		req.Header.Set(name, value)
+	}
+	if contentType != "" && req.Header.Get("Content-Type") == "" {
+		req.Header.Set("Content-Type", contentType)
+	}
+	for name, value := range opts.Cookies {
+		req.AddCookie(&http.Cookie{Name: name, Value: value})
+	}
+	if opts.Auth != nil {
+		req.SetBasicAuth(opts.Auth.User, opts.Auth.Pass)
+	}
+	if opts.TimeoutOn {
+		ctx, cancel := context.WithTimeout(req.Context(), opts.Timeout)
+		defer cancel()
+		req = req.WithContext(ctx)
 	}
 
-	client := &http.Client{}
-	if timeout > 0 {
-		client.Timeout = timeout
-	}
-
-	resp, err := client.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -280,343 +198,218 @@ func (c *httpClient) doRequest(opts requestOptions) (goja.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	body := string(respBody)
-	statusText := statusTextFromResponse(resp)
-	throwOnHTTPError := c.throwOnHTTPError
-	if opts.ThrowOnHTTPErrorSet {
-		throwOnHTTPError = opts.ThrowOnHTTPError
-	}
-	if throwOnHTTPError && resp.StatusCode >= 400 {
-		return nil, &httpStatusError{
-			Status:     resp.StatusCode,
-			StatusText: statusText,
-			Body:       body,
-		}
-	}
-
-	responseObj := c.vm.NewObject()
-	_ = responseObj.Set("status", resp.StatusCode)
-	_ = responseObj.Set("statusText", statusText)
-	_ = responseObj.Set("headers", resp.Header)
-	_ = responseObj.Set("body", body)
-	_ = responseObj.Set("json", func(call goja.FunctionCall) goja.Value {
-		value, err := c.parseJSON(body)
-		if err != nil {
-			panic(c.vm.NewTypeError(err.Error()))
-		}
-		return value
-	})
-
-	return responseObj, nil
+	return m.responseObject(resp, respBody), nil
 }
 
-func (c *httpClient) buildURL(opts requestOptions) (string, error) {
-	var rawURL string
-	if opts.URL != "" {
-		rawURL = opts.URL
-	} else if opts.Path != "" {
-		rawURL = opts.Path
-	}
-	if rawURL == "" {
-		return "", fmt.Errorf("request: path or url is required")
+func (m *jsHTTPModule) responseObject(resp *http.Response, body []byte) goja.Value {
+	obj := m.vm.NewObject()
+	bodyString := string(body)
+	statusText := statusTextFromResponse(resp)
+	contentType := resp.Header.Get("Content-Type")
+
+	_ = obj.Set("body", bodyString)
+	_ = obj.Set("bodySize", len(body))
+	_ = obj.Set("headers", responseHeaders(resp.Header))
+	_ = obj.Set("cookies", responseCookies(resp.Cookies()))
+	_ = obj.Set("statusCode", resp.StatusCode)
+	_ = obj.Set("statusText", statusText)
+	_ = obj.Set("ok", resp.StatusCode >= 200 && resp.StatusCode < 400)
+	if resp.Request != nil && resp.Request.URL != nil {
+		_ = obj.Set("url", resp.Request.URL.String())
 	}
 
+	jsonValue := goja.Null()
+	if isJSONContentType(contentType) {
+		var parsed interface{}
+		if err := json.Unmarshal(body, &parsed); err == nil {
+			jsonValue = m.vm.ToValue(parsed)
+		}
+	}
+	_ = obj.Set("json", jsonValue)
+	return obj
+}
+
+func parseJSHTTPRequestOptions(raw goja.Value) (jsHTTPRequestOptions, error) {
+	if isUndefinedOrNull(raw) {
+		return jsHTTPRequestOptions{}, nil
+	}
+	exported := raw.Export()
+	opts, ok := exported.(map[string]interface{})
+	if !ok {
+		return jsHTTPRequestOptions{}, fmt.Errorf("request options must be an object")
+	}
+
+	headers, err := stringMapOption(opts, "headers")
+	if err != nil {
+		return jsHTTPRequestOptions{}, err
+	}
+	cookies, err := stringMapOption(opts, "cookies")
+	if err != nil {
+		return jsHTTPRequestOptions{}, err
+	}
+	timeout, timeoutOn, err := timeoutOption(opts)
+	if err != nil {
+		return jsHTTPRequestOptions{}, err
+	}
+	auth, err := authOption(opts)
+	if err != nil {
+		return jsHTTPRequestOptions{}, err
+	}
+
+	return jsHTTPRequestOptions{
+		Query:     opts["query"],
+		Cookies:   cookies,
+		Headers:   headers,
+		Body:      opts["body"],
+		Form:      opts["form"],
+		Timeout:   timeout,
+		TimeoutOn: timeoutOn,
+		Auth:      auth,
+	}, nil
+}
+
+func buildJSHTTPURL(rawURL string, query interface{}) (string, error) {
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
 		return "", err
 	}
-
-	if parsed.Scheme == "" {
-		if c.baseURL == nil {
-			return "", fmt.Errorf("request: baseURL is required when path is relative")
-		}
-		parsed, err = c.baseURL.Parse(rawURL)
-		if err != nil {
-			return "", err
-		}
+	if query == nil {
+		return parsed.String(), nil
 	}
-
-	if len(opts.Query) > 0 {
+	switch q := query.(type) {
+	case string:
+		parsed.RawQuery = q
+	case map[string]interface{}:
 		values := parsed.Query()
-		for key, list := range opts.Query {
-			for _, value := range list {
-				values.Add(key, value)
+		for key, value := range q {
+			switch v := value.(type) {
+			case []interface{}:
+				for _, item := range v {
+					values.Add(key, fmt.Sprint(item))
+				}
+			default:
+				values.Add(key, fmt.Sprint(v))
 			}
 		}
 		parsed.RawQuery = values.Encode()
+	default:
+		return "", fmt.Errorf("query must be a string or object")
 	}
-
 	return parsed.String(), nil
 }
 
-func (c *httpClient) parseJSON(body string) (goja.Value, error) {
-	var parsed interface{}
-	if err := json.Unmarshal([]byte(body), &parsed); err != nil {
-		return nil, fmt.Errorf("invalid JSON response: %w", err)
+func jsHTTPBodyReader(body, form interface{}) (io.Reader, string, error) {
+	if body == nil {
+		if form == nil {
+			return nil, "", nil
+		}
+		return strings.NewReader(fmt.Sprint(form)), "application/x-www-form-urlencoded", nil
 	}
-	return c.vm.ToValue(parsed), nil
-}
-
-func (c *httpClient) jsError(err error) goja.Value {
-	if httpErr, ok := err.(*httpStatusError); ok {
-		errObj := c.vm.NewTypeError(fmt.Sprintf("HTTP %d %s", httpErr.Status, httpErr.StatusText))
-		obj := errObj.ToObject(c.vm)
-		_ = obj.Set("status", httpErr.Status)
-		_ = obj.Set("statusText", httpErr.StatusText)
-		_ = obj.Set("body", httpErr.Body)
-		return errObj
-	}
-	return c.vm.NewGoError(err)
-}
-
-type httpStatusError struct {
-	Status     int
-	StatusText string
-	Body       string
-}
-
-func (e *httpStatusError) Error() string {
-	return fmt.Sprintf("HTTP %d %s", e.Status, e.StatusText)
-}
-
-type requestOptions struct {
-	Method              string
-	Path                string
-	URL                 string
-	Query               map[string][]string
-	Headers             map[string]string
-	Body                interface{}
-	Timeout             time.Duration
-	TimeoutSet          bool
-	ThrowOnHTTPError    bool
-	ThrowOnHTTPErrorSet bool
-	Opts                map[string]interface{}
-}
-
-func parseRequestOptions(vm *goja.Runtime, val goja.Value) (requestOptions, error) {
-	if isUndefinedOrNull(val) {
-		return requestOptions{}, fmt.Errorf("request: options are required")
-	}
-	raw := val.Export()
-	opts, ok := raw.(map[string]interface{})
-	if !ok {
-		return requestOptions{}, fmt.Errorf("request: options must be an object")
-	}
-
-	method := parseString(opts, "method")
-	path := parseString(opts, "path")
-	rawURL := parseString(opts, "url")
-	headers, err := parseHeaders(opts, "headers")
-	if err != nil {
-		return requestOptions{}, err
-	}
-	query, err := parseQuery(opts, "query")
-	if err != nil {
-		return requestOptions{}, err
-	}
-	timeout, err := parseTimeoutMs(opts, "timeoutMs")
-	if err != nil {
-		return requestOptions{}, err
-	}
-	timeoutSet := hasKey(opts, "timeoutMs")
-	throwOnHTTPError, err := parseBool(opts, "throwOnHTTPError", false)
-	if err != nil {
-		return requestOptions{}, err
-	}
-	throwOnHTTPErrorSet := hasKey(opts, "throwOnHTTPError")
-
-	body, err := parseBody(opts)
-	if err != nil {
-		return requestOptions{}, err
-	}
-
-	return requestOptions{
-		Method:              method,
-		Path:                path,
-		URL:                 rawURL,
-		Query:               query,
-		Headers:             headers,
-		Body:                body,
-		Timeout:             timeout,
-		TimeoutSet:          timeoutSet,
-		ThrowOnHTTPError:    throwOnHTTPError,
-		ThrowOnHTTPErrorSet: throwOnHTTPErrorSet,
-		Opts:                opts,
-	}, nil
-}
-
-func parseBaseURL(opts map[string]interface{}) (*url.URL, error) {
-	if opts == nil {
-		return nil, nil
-	}
-	raw, ok := opts["baseURL"]
-	if !ok {
-		return nil, nil
-	}
-	str, ok := raw.(string)
-	if !ok || strings.TrimSpace(str) == "" {
-		return nil, fmt.Errorf("createClient: baseURL must be a non-empty string")
-	}
-	parsed, err := url.Parse(str)
-	if err != nil {
-		return nil, fmt.Errorf("createClient: invalid baseURL: %w", err)
-	}
-	if parsed.Scheme == "" {
-		return nil, fmt.Errorf("createClient: baseURL must include a scheme")
-	}
-	return parsed, nil
-}
-
-func parseHeaders(opts map[string]interface{}, key string) (map[string]string, error) {
-	if opts == nil {
-		return nil, nil
-	}
-	raw, ok := opts[key]
-	if !ok || raw == nil {
-		return nil, nil
-	}
-	headerMap, ok := raw.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("%s: headers must be an object", key)
-	}
-	out := make(map[string]string, len(headerMap))
-	for k, v := range headerMap {
-		out[k] = fmt.Sprint(v)
-	}
-	return out, nil
-}
-
-func parseQuery(opts map[string]interface{}, key string) (map[string][]string, error) {
-	if opts == nil {
-		return nil, nil
-	}
-	raw, ok := opts[key]
-	if !ok || raw == nil {
-		return nil, nil
-	}
-	queryMap, ok := raw.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("query must be an object")
-	}
-	out := make(map[string][]string, len(queryMap))
-	for k, v := range queryMap {
-		switch val := v.(type) {
-		case []interface{}:
-			values := make([]string, 0, len(val))
-			for _, item := range val {
-				values = append(values, fmt.Sprint(item))
+	switch value := body.(type) {
+	case string:
+		return strings.NewReader(value), "", nil
+	case []byte:
+		return bytes.NewReader(value), "", nil
+	case []interface{}:
+		bytesValue := make([]byte, len(value))
+		for i, item := range value {
+			n, ok := numericByte(item)
+			if !ok {
+				return nil, "", fmt.Errorf("body byte array contains non-byte value at index %d", i)
 			}
-			out[k] = values
-		default:
-			out[k] = []string{fmt.Sprint(val)}
+			bytesValue[i] = n
 		}
+		return bytes.NewReader(bytesValue), "", nil
+	default:
+		data, err := json.Marshal(value)
+		if err != nil {
+			return nil, "", fmt.Errorf("unable to encode request body as JSON: %w", err)
+		}
+		return bytes.NewReader(data), "application/json", nil
+	}
+}
+
+func stringMapOption(opts map[string]interface{}, key string) (map[string]string, error) {
+	raw, ok := opts[key]
+	if !ok || raw == nil {
+		return nil, nil
+	}
+	values, ok := raw.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("%s must be an object", key)
+	}
+	out := make(map[string]string, len(values))
+	for name, value := range values {
+		out[name] = fmt.Sprint(value)
 	}
 	return out, nil
 }
 
-func parseTimeoutMs(opts map[string]interface{}, key string) (time.Duration, error) {
-	if opts == nil {
-		return 0, nil
-	}
-	raw, ok := opts[key]
-	if !ok {
-		return 0, nil
-	}
-	switch val := raw.(type) {
-	case int64:
-		if val <= 0 {
-			return 0, nil
+func timeoutOption(opts map[string]interface{}) (time.Duration, bool, error) {
+	if raw, ok := opts["timeoutMs"]; ok && raw != nil {
+		ms, ok := numberOption(raw)
+		if !ok {
+			return 0, false, fmt.Errorf("timeoutMs must be a number")
 		}
-		return time.Duration(val) * time.Millisecond, nil
-	case float64:
-		if val <= 0 {
-			return 0, nil
+		if ms <= 0 {
+			return 0, false, nil
 		}
-		return time.Duration(val) * time.Millisecond, nil
-	case int:
-		if val <= 0 {
-			return 0, nil
-		}
-		return time.Duration(val) * time.Millisecond, nil
-	default:
-		return 0, fmt.Errorf("%s must be a number (milliseconds)", key)
+		return time.Duration(ms) * time.Millisecond, true, nil
 	}
-}
-
-func parseBool(opts map[string]interface{}, key string, fallback bool) (bool, error) {
-	if opts == nil {
-		return fallback, nil
-	}
-	raw, ok := opts[key]
-	if !ok {
-		return fallback, nil
-	}
-	val, ok := raw.(bool)
-	if !ok {
-		return fallback, fmt.Errorf("%s must be a boolean", key)
-	}
-	return val, nil
-}
-
-func parseString(opts map[string]interface{}, key string) string {
-	if opts == nil {
-		return ""
-	}
-	raw, ok := opts[key]
+	raw, ok := opts["timeout"]
 	if !ok || raw == nil {
-		return ""
+		return 0, false, nil
 	}
-	str, ok := raw.(string)
-	if !ok {
-		return ""
+	switch value := raw.(type) {
+	case string:
+		duration, err := time.ParseDuration(value)
+		if err != nil {
+			return 0, false, err
+		}
+		return duration, duration > 0, nil
+	default:
+		seconds, ok := numberOption(value)
+		if !ok {
+			return 0, false, fmt.Errorf("timeout must be a duration string or number of seconds")
+		}
+		if seconds <= 0 {
+			return 0, false, nil
+		}
+		return time.Duration(seconds) * time.Second, true, nil
 	}
-	return str
 }
 
-func parseBody(opts map[string]interface{}) (interface{}, error) {
-	if opts == nil {
-		return nil, nil
-	}
-	raw, ok := opts["body"]
+func authOption(opts map[string]interface{}) (*jsHTTPAuth, error) {
+	raw, ok := opts["auth"]
 	if !ok || raw == nil {
 		return nil, nil
 	}
-	switch val := raw.(type) {
-	case string:
-		return val, nil
-	case []byte:
-		return val, nil
-	default:
-		return nil, fmt.Errorf("request: body must be a string or byte array (use postJSON for JSON)")
+	authMap, ok := raw.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("auth must be an object")
 	}
+	user, userOK := authMap["user"]
+	pass, passOK := authMap["pass"]
+	if !userOK || !passOK || user == nil || pass == nil {
+		return nil, fmt.Errorf("auth must include user and pass")
+	}
+	return &jsHTTPAuth{User: fmt.Sprint(user), Pass: fmt.Sprint(pass)}, nil
 }
 
-func bodyReaderFromValue(body interface{}) (io.Reader, error) {
-	switch val := body.(type) {
-	case nil:
-		return nil, nil
-	case string:
-		return strings.NewReader(val), nil
-	case []byte:
-		return strings.NewReader(string(val)), nil
-	default:
-		return nil, fmt.Errorf("request: body must be a string or byte array")
+func responseHeaders(headers http.Header) map[string]string {
+	out := make(map[string]string, len(headers))
+	for name, values := range headers {
+		out[strings.ToLower(name)] = strings.Join(values, ", ")
 	}
+	return out
 }
 
-func mergeHeaders(clientHeaders, requestHeaders map[string]string) map[string]string {
-	if len(clientHeaders) == 0 && len(requestHeaders) == 0 {
-		return nil
+func responseCookies(cookies []*http.Cookie) map[string]string {
+	out := make(map[string]string, len(cookies))
+	for _, cookie := range cookies {
+		out[cookie.Name] = cookie.Value
 	}
-	merged := make(map[string]string, len(clientHeaders)+len(requestHeaders))
-	for k, v := range clientHeaders {
-		merged[k] = v
-	}
-	for k, v := range requestHeaders {
-		merged[k] = v
-	}
-	return merged
+	return out
 }
 
 func statusTextFromResponse(resp *http.Response) string {
@@ -631,12 +424,37 @@ func statusTextFromResponse(resp *http.Response) string {
 	return status
 }
 
-func hasKey(opts map[string]interface{}, key string) bool {
-	if opts == nil {
-		return false
+func isJSONContentType(contentType string) bool {
+	mediaType := strings.ToLower(strings.TrimSpace(strings.Split(contentType, ";")[0]))
+	return mediaType == "application/json" || strings.HasSuffix(mediaType, "+json")
+}
+
+func numberOption(value interface{}) (int64, bool) {
+	switch v := value.(type) {
+	case int:
+		return int64(v), true
+	case int64:
+		return v, true
+	case float64:
+		return int64(v), true
+	default:
+		return 0, false
 	}
-	_, ok := opts[key]
-	return ok
+}
+
+func numericByte(value interface{}) (byte, bool) {
+	n, ok := numberOption(value)
+	if !ok || n < 0 || n > 255 {
+		return 0, false
+	}
+	return byte(n), true
+}
+
+func optionalArg(call goja.FunctionCall, index int) goja.Value {
+	if len(call.Arguments) <= index {
+		return goja.Undefined()
+	}
+	return call.Arguments[index]
 }
 
 func isUndefinedOrNull(val goja.Value) bool {

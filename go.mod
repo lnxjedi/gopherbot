@@ -20,6 +20,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.54.0
 	github.com/aws/smithy-go v1.24.0
 	github.com/chzyer/readline v1.5.1
+	github.com/cjoudrey/gluahttp v0.0.0-20201111170219-25003d9adfa9
 	github.com/dop251/goja v0.0.0-20260106131823-651366fbe6e3
 	github.com/dop251/goja_nodejs v0.0.0-20251015164255-5e94316bedaf
 	github.com/duosecurity/duo_api_golang v0.0.0-20250430191550-ac36954387e7

@@ -40,7 +40,7 @@ func GetPluginConfig(execPath, taskPath, taskName string, emptyBot map[string]st
 		return nil, err
 	}
 
-	// Register native HTTP module for require("gopherbot_http")
+	// Register native helper modules for require("http") and require("json")
 	registerHttpModule(L)
 
 	// Load + Run the script

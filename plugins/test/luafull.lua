@@ -114,41 +114,57 @@ function commands.http(bot)
     bot:Say("No http base url configured")
     return task.Fail
   end
-  local http = require("gopherbot_http")
-  local client, err = http.create_client{
-    base_url = baseURL,
-    timeout_ms = 5000,
-    throw_on_http_error = true,
-  }
-  if err then
-    bot:Say("HTTP client error")
-    return task.Fail
+  local http = require("http")
+  local json = require("json")
+  local function request_json(method, path, opts, payload)
+    opts = opts or {}
+    opts.headers = opts.headers or {}
+    opts.headers.Accept = "application/json"
+    if payload ~= nil then
+      local body, encodeErr = json.encode(payload)
+      if encodeErr then
+        return nil, encodeErr
+      end
+      opts.body = body
+      opts.headers["Content-Type"] = "application/json"
+    end
+    local response, requestErr = http.request(method, baseURL .. path, opts)
+    if requestErr then
+      return nil, requestErr
+    end
+    if response.status_code >= 400 then
+      return nil, {
+        status = response.status_code,
+        body = response.body,
+      }
+    end
+    return json.decode(response.body)
   end
-  local getRes, err = client:get_json("/json/get")
+  local getRes, err = request_json("GET", "/json/get", { timeout = "5s" })
   if err then
     bot:Say("HTTP GET failed")
     return task.Fail
   end
   bot:Say("HTTP GET ok: " .. tostring(getRes.method))
-  local postRes, err = client:post_json("/json/post", { value = "alpha" })
+  local postRes, err = request_json("POST", "/json/post", { timeout = "5s" }, { value = "alpha" })
   if err then
     bot:Say("HTTP POST failed")
     return task.Fail
   end
   bot:Say("HTTP POST ok: " .. tostring(postRes.value))
-  local putRes, err = client:put_json("/json/put", { value = "bravo" })
+  local putRes, err = request_json("PUT", "/json/put", { timeout = "5s" }, { value = "bravo" })
   if err then
     bot:Say("HTTP PUT failed")
     return task.Fail
   end
   bot:Say("HTTP PUT ok: " .. tostring(putRes.value))
-  local _, err = client:get_json("/json/error")
+  local _, err = request_json("GET", "/json/error", { timeout = "5s" })
   if err and err.status then
     bot:Say("HTTP ERROR ok: " .. tostring(err.status))
   else
     bot:Say("HTTP ERROR unexpected")
   end
-  local _, err = client:get_json("/json/slow", { timeout_ms = 50 })
+  local _, err = request_json("GET", "/json/slow", { timeout = "50ms" })
   if err then
     bot:Say("HTTP TIMEOUT ok")
   else
