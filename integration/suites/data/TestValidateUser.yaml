@@ -18,7 +18,7 @@ flow:
       text: validate user bob
     receive:
       user: alice
-      text_pattern: "Validation code for 'bob': ([0-9]{7})"
+      text_pattern: "Validation code for 'bob': ([0-9]{7}).*direct app message to the robot or a hidden command"
       capture_regex:
         validation_code: "Validation code for 'bob': ([0-9]{7})"
   - name: drain-validation-code-events
@@ -29,6 +29,12 @@ flow:
     send:
       user: bob
       text: '${validation_code}'
+    receive:
+      user: bob
+      text_pattern: "Code accepted"
+      exact_text: "Code accepted"
+  - name: validation-admin-notify
+    wait_for_idle: true
     receive:
       user: alice
       text_pattern: "User validation received: test user 'bob' has internal ID 'u0002'"

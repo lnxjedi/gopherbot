@@ -197,6 +197,16 @@ func TestValidateUser(t *testing.T) {
 	conn.SendBotMessage(&testc.TestMessage{bobID, null, matches[1], false, false})
 	got, err = conn.GetBotMessage()
 	if err != nil {
+		t.Fatalf("timed out waiting for validation acknowledgement: %v", err)
+	}
+	if got.User != bob || got.Channel != null {
+		t.Fatalf("validation acknowledgement target = {%s, %s}, want {%s, %s}", got.User, got.Channel, bob, null)
+	}
+	if got.Message != "Code accepted" {
+		t.Fatalf("validation acknowledgement = %q", got.Message)
+	}
+	got, err = conn.GetBotMessage()
+	if err != nil {
 		t.Fatalf("timed out waiting for validation notification: %v", err)
 	}
 	if got.User != alice || got.Channel != null {

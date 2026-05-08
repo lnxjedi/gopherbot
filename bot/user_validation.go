@@ -11,7 +11,7 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-const userValidationCodeTTL = 30 * time.Second
+const userValidationCodeTTL = 42 * time.Second
 
 type userValidationRequest struct {
 	UserName      string
@@ -135,10 +135,28 @@ func consumeIncomingUserValidationCode(inc *robot.ConnectorMessage) bool {
 	if userID == "" {
 		userID = "(unknown)"
 	}
+	if strings.TrimSpace(inc.UserID) != "" {
+		ret := sendUserValidationAcknowledgement(inc)
+		if ret != robot.Ok {
+			Log(robot.Warn, "User validation acknowledgement failed for protocol user '%s' on protocol '%s': %s", inc.UserID, protocol, ret)
+		}
+	}
 	msg := fmt.Sprintf("User validation received: %s user '%s' has internal ID '%s'", protocol, request.UserName, userID)
 	ret := interfaces.SendProtocolUserMessage(request.AdminUser, msg, robot.BasicMarkdown, &robot.ConnectorMessage{Protocol: request.AdminProtocol})
 	if ret != robot.Ok {
 		Log(robot.Warn, "User validation notification failed for admin '%s' on protocol '%s': %s", request.AdminUser, request.AdminProtocol, ret)
 	}
 	return true
+}
+
+func sendUserValidationAcknowledgement(inc *robot.ConnectorMessage) robot.RetVal {
+	user := bracket(inc.UserID)
+	if inc.DirectMessage || strings.TrimSpace(inc.ChannelID) == "" {
+		return interfaces.SendProtocolUserMessage(user, "Code accepted", robot.BasicMarkdown, inc)
+	}
+	thread := ""
+	if inc.ThreadedMessage {
+		thread = inc.ThreadID
+	}
+	return interfaces.SendProtocolUserChannelThreadMessage(user, inc.UserName, bracket(inc.ChannelID), thread, "Code accepted", robot.BasicMarkdown, inc)
 }

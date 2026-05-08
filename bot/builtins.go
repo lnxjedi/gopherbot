@@ -2100,7 +2100,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			r.Say("I couldn't issue a validation code right now.")
 			return
 		}
-		r.Reply("Validation code for '%s': %s (expires in about 30 seconds)", userName, code)
+		r.Reply("Validation code for '%s': %s (expires in about 42 seconds); instruct %s to send this exact code to me from the account you want to validate, using a hidden or direct app message to the robot", userName, code, userName, code)
 	case "abort":
 		buf := make([]byte, 32768)
 		runtime.Stack(buf, true)
