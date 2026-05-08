@@ -85,7 +85,7 @@ func googleChatPlugin(r robot.Robot, command string, args ...string) (retval rob
 					connector.Log(robot.Warn, "Google Chat robot validation acknowledgement failed in %q: %s", result.AckSpace, ret)
 				}
 			}
-			r.MessageFormat(robot.BasicMarkdown).Reply("Google Chat robot validation received: bot internal ID is `%s`", result.BotID)
+			r.MessageFormat(robot.BasicMarkdown).Reply("Google Chat robot validation received: bot internal ID is `%s`; add `SelfID: %s` to your googlechat.yaml ProtocolConfig", result.BotID, result.BotID)
 		case <-timer.C:
 			connector.CancelRobotValidation(code)
 			r.Reply("Google Chat robot validation timed out waiting for code %s.", code)
