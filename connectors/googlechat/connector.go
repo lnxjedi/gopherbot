@@ -30,7 +30,7 @@ const (
 	ambientRenewInterval    = 90 * time.Minute
 	recentMessageWindow     = 2 * time.Minute
 	ambientSubscriptionLead = 90 * time.Minute
-	robotValidationTTL      = 30 * time.Second
+	robotValidationTTL      = 42 * time.Second
 )
 
 var googleChatRequestSeq atomic.Uint64

@@ -74,13 +74,13 @@ func googleChatPlugin(r robot.Robot, command string, args ...string) (retval rob
 			r.Reply("Google Chat SelfID is already known: %s", code)
 			return
 		}
-		r.Reply("Google Chat robot validation code: %s (expires in about 30 seconds). Mention me in Google Chat with this code and I'll confirm there, then send the discovered numeric SelfID back here.", code)
+		r.Reply("Google Chat robot validation code: %s (expires in about 42 seconds). Mention me in Google Chat with this code and I'll confirm there, then send the discovered numeric SelfID back here.", code)
 		timer := time.NewTimer(robotValidationTTL)
 		defer timer.Stop()
 		select {
 		case result := <-resultCh:
 			if result.AckSpace != "" {
-				ret := connector.sendMessage(result.AckSpace, "", result.AckThread, "Code accepted.", robot.Variable, nil)
+				ret := connector.sendMessage(result.AckSpace, "", result.AckThread, "Code accepted", robot.Variable, nil)
 				if ret != robot.Ok {
 					connector.Log(robot.Warn, "Google Chat robot validation acknowledgement failed in %q: %s", result.AckSpace, ret)
 				}
