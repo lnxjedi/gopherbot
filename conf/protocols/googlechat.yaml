@@ -22,8 +22,8 @@ ProtocolConfig:
   ##   google validate robot
   # SelfID: users/1234567890
   ## Set this to the slash command name configured in the Google Chat API,
-  ## without or with the leading slash. It is used for hidden-command help and
-  ## fallback rendering, and enables hidden command support in the connector.
+  ## without or with the leading slash. It is used for private-command help and
+  ## fallback rendering, and enables hidden/ephemeral support in the connector.
   # SlashCommand: bishop
   ## If IgnoreUnlistedUsers is true (and it should be), you'll
   ## need to add map entries here for all your robot's users. User

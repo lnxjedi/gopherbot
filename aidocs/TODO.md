@@ -62,12 +62,12 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
   - Remove new user detection and logging from googlechat connector, now superceded by new Validated user bits.
   - Adjust logging: remove logging that should never be necessary, use "debug" when appropriate for debugging and "trace" for logs that should only show when we absolutely want to see everything happening.
 
-- [x] Define connector capability semantics for hidden-command help/examples:
-  Hidden-command help now uses an engine-owned connector `Capabilities` runtime flag (`HiddenCommands`) plus connector-owned hidden-help rendering through the shared `robot/` contract.
+- [x] Define connector capability semantics for private-command help/examples:
+  Private-command help now uses an engine-owned connector `Capabilities` runtime flag (`HiddenCommands`) plus connector-owned slash/private rendering through the shared `robot/` contract.
   Current behavior:
-  - help metadata and builtin help only surface hidden examples when the current initialized connector reports hidden-command support
-  - connectors with hidden-command support render concrete hidden commands such as `/clu help knock/knock` through connector-owned formatting
-  - engine-owned denial/help copy uses the same concrete hidden-command formatter instead of placeholder `/(bot)` text or a separate connector hint
+  - help metadata and builtin help only surface private slash examples when the current initialized connector reports hidden/ephemeral support
+  - connectors with hidden/ephemeral support render concrete private commands such as `/clu help knock/knock` through connector-owned formatting
+  - engine-owned denial/help copy uses the same concrete formatter instead of placeholder `/(bot)` text or a separate connector hint
 
 - [ ] Reconcile SSH and terminal hidden-message parsing and `IncomingMessage` shaping:
   Current local-connector behavior still has some awkwardness and drift:
@@ -75,10 +75,10 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
   - only `/<botname> ...` is normalized into a bot-addressed command payload before `IncomingMessage(...)`
   - the test connector is intentionally different because the harness injects the hidden flag directly instead of parsing slash syntax
   Follow-up goals:
-  - decide whether SSH and terminal should keep the current split between "hidden/private" and "robot-addressed hidden command", or move to a cleaner unified model
+  - decide whether SSH and terminal should keep the current split between "hidden/private" and "robot-addressed private command", or move to a cleaner unified model
   - make the SSH and terminal parsing/path shaping consistent with each other
-  - review whether `IncomingMessage.MessageText`, `HiddenMessage`, and `BotMessage` are being populated in the cleanest possible way for local hidden commands
-  - preserve engine-owned hidden-command policy while reducing connector-local surprises
+  - review whether `IncomingMessage.MessageText`, `HiddenMessage`, and `BotMessage` are being populated in the cleanest possible way for local private commands
+  - preserve engine-owned private-command policy while reducing connector-local surprises
 
 - [x] Revisit the connector contract around canonical usernames vs transport user IDs:
   `aidocs/CONNECTOR_CONTRACT.md` now makes the username/transport-ID boundary

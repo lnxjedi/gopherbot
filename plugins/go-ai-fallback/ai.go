@@ -56,7 +56,8 @@ Do not echo speaker prefixes unless it helps clarity.`
 
 var defaultConfig = []byte(`
 ---
-AllowDirect: true
+AllowedPrivateCommands:
+- "*"
 AllChannels: true
 CatchAll: true
 CatchAllModes:

@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime/pprof"
 	"sort"
 	"strings"
 	"time"
@@ -39,6 +40,7 @@ type suiteResult struct {
 	RobotDir   string           `json:"robot_dir"`
 	RobotLog   string           `json:"robot_log"`
 	Transcript string           `json:"transcript"`
+	Goroutines string           `json:"goroutines"`
 	ResultPath string           `json:"result_path"`
 	Failures   []suites.Failure `json:"failures"`
 }
@@ -146,6 +148,8 @@ Flags:
   -output-root DIR   Directory for integration artifacts (default integration/runs).
   -run-id ID         Shared run identifier for grouped suite artifacts.
   -timeout DURATION  Per-suite timeout (default 2m).
+  -case-timeout DURATION
+                      Per-test timeout before dumping goroutines and exiting hard (default 14s).
   -live              Print scripted interaction while running (default true).
 `)
 }
@@ -197,6 +201,7 @@ func runSuiteCommand(args []string) int {
 	outputRoot := fs.String("output-root", filepath.Join("integration", "runs"), "directory for integration run artifacts")
 	live := fs.Bool("live", true, "print live scripted interaction")
 	timeout := fs.Duration("timeout", 2*time.Minute, "per-suite timeout")
+	caseTimeout := fs.Duration("case-timeout", suites.DefaultCaseTimeout, "per-test timeout")
 	runID := fs.String("run-id", "", "shared run identifier for grouped suite artifacts")
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -225,10 +230,10 @@ func runSuiteCommand(args []string) int {
 		return 1
 	}
 	if len(selected) > 1 {
-		return runSuites(absOutputRoot, selected, *live, *timeout, *runID)
+		return runSuites(absOutputRoot, selected, *live, *timeout, *caseTimeout, *runID)
 	}
 	suite := selected[0]
-	outcome := runOneSuite(root, absOutputRoot, suite, *live, *timeout, *runID)
+	outcome := runOneSuite(root, absOutputRoot, suite, *live, *timeout, *caseTimeout, *runID)
 	if outcome.err != nil {
 		fmt.Fprintf(os.Stderr, "suite %s failed to run: %v\n", suite.Name, outcome.err)
 		return 1
@@ -419,7 +424,7 @@ func normalizeSelectorValue(value string) string {
 	return strings.ToLower(strings.TrimSpace(value))
 }
 
-func runSuites(outputRoot string, selected []suites.Suite, live bool, timeout time.Duration, runID string) int {
+func runSuites(outputRoot string, selected []suites.Suite, live bool, timeout, caseTimeout time.Duration, runID string) int {
 	if strings.TrimSpace(runID) == "" {
 		runID = time.Now().UTC().Format("20060102T150405Z")
 	}
@@ -431,6 +436,7 @@ func runSuites(outputRoot string, selected []suites.Suite, live bool, timeout ti
 			"-output-root", outputRoot,
 			"-run-id", runID,
 			"-timeout", timeout.String(),
+			"-case-timeout", caseTimeout.String(),
 		}
 		if !live {
 			cmdArgs = append(cmdArgs, "-live=false")
@@ -447,15 +453,19 @@ func runSuites(outputRoot string, selected []suites.Suite, live bool, timeout ti
 	return code
 }
 
-func runOneSuite(root, outputRoot string, suite suites.Suite, live bool, timeout time.Duration, runID string) runOutcome {
+func runOneSuite(root, outputRoot string, suite suites.Suite, live bool, timeout, caseTimeout time.Duration, runID string) runOutcome {
 	started := time.Now().UTC()
 	if strings.TrimSpace(runID) == "" {
 		runID = started.Format("20060102T150405Z")
+	}
+	if caseTimeout <= 0 {
+		caseTimeout = suites.DefaultCaseTimeout
 	}
 	outputDir := filepath.Join(outputRoot, runID, safeName(suite.Name))
 	robotDir := filepath.Join(outputDir, "robot")
 	robotLog := filepath.Join(outputDir, "robot.log")
 	transcriptPath := filepath.Join(outputDir, "transcript.txt")
+	goroutineDumpPath := filepath.Join(outputDir, "goroutines.txt")
 	resultPath := filepath.Join(outputDir, "result.json")
 
 	result := suiteResult{
@@ -466,6 +476,8 @@ func runOneSuite(root, outputRoot string, suite suites.Suite, live bool, timeout
 		RobotDir:   robotDir,
 		RobotLog:   robotLog,
 		Transcript: transcriptPath,
+		Goroutines: goroutineDumpPath,
+		ResultPath: resultPath,
 	}
 	if err := prepareRobotDir(root, suite, robotDir); err != nil {
 		result.FinishedAt = time.Now().UTC().Format(time.RFC3339)
@@ -497,8 +509,12 @@ func runOneSuite(root, outputRoot string, suite suites.Suite, live bool, timeout
 
 	liveOut := os.Stdout
 	resultCh := make(chan runOutcome, 1)
+	robotExited := make(chan struct{})
+	shutdownStarted := make(chan struct{})
+	defer close(robotExited)
+	go watchSuiteTimeouts(result, resultPath, goroutineDumpPath, timeout, caseTimeout, robotExited, shutdownStarted)
 	go func() {
-		resultCh <- runSuiteAgainstConnector(ctx, suite, outputDir, robotDir, robotLog, transcriptPath, resultPath, live, liveOut)
+		resultCh <- runSuiteAgainstConnector(ctx, suite, outputDir, robotDir, robotLog, transcriptPath, goroutineDumpPath, resultPath, live, liveOut, caseTimeout, shutdownStarted)
 	}()
 
 	if err := os.Chdir(robotDir); err != nil {
@@ -529,7 +545,7 @@ func runOneSuite(root, outputRoot string, suite suites.Suite, live bool, timeout
 	}
 }
 
-func runSuiteAgainstConnector(ctx context.Context, suite suites.Suite, outputDir, robotDir, robotLog, transcriptPath, resultPath string, live bool, liveOut *os.File) runOutcome {
+func runSuiteAgainstConnector(ctx context.Context, suite suites.Suite, outputDir, robotDir, robotLog, transcriptPath, goroutineDumpPath, resultPath string, live bool, liveOut *os.File, caseTimeout time.Duration, shutdownStarted chan<- struct{}) runOutcome {
 	conn, err := testc.WaitForConnector(ctx)
 	result := suiteResult{
 		Suite:      suite.Name,
@@ -539,6 +555,7 @@ func runSuiteAgainstConnector(ctx context.Context, suite suites.Suite, outputDir
 		RobotDir:   robotDir,
 		RobotLog:   robotLog,
 		Transcript: transcriptPath,
+		Goroutines: goroutineDumpPath,
 		ResultPath: resultPath,
 	}
 	if err != nil {
@@ -569,18 +586,101 @@ func runSuiteAgainstConnector(ctx context.Context, suite suites.Suite, outputDir
 		liveOut:    liveOut,
 		transcript: transcript,
 	}
-	failures := suites.RunSuite(ctx, driver, suite)
+	failures := suites.RunSuiteWithOptions(ctx, driver, suite, suites.RunOptions{CaseTimeout: caseTimeout})
 	result.Failures = failures
 	if len(failures) == 0 {
 		result.Status = "passed"
 	}
+	if hasTimedOutFailure(failures) {
+		result.FinishedAt = time.Now().UTC().Format(time.RFC3339)
+		_ = writeResult(resultPath, result)
+		driver.writeTranscriptLine("!! suite timed out; dumping goroutines to %s and exiting hard\n", goroutineDumpPath)
+		hardExitWithGoroutineDump(result, resultPath, goroutineDumpPath, "test case timed out")
+	}
 
-	_ = driver.Send(context.Background(), suites.Message{User: suites.AliceID, Text: "quit"})
+	close(shutdownStarted)
+	_ = driver.Send(context.Background(), suites.Message{User: suites.AliceID, Channel: suites.General, Text: "bender quit"})
 	result.FinishedAt = time.Now().UTC().Format(time.RFC3339)
 	if err := writeResult(resultPath, result); err != nil {
 		return runOutcome{result: result, err: err}
 	}
 	return runOutcome{result: result}
+}
+
+func watchSuiteTimeouts(result suiteResult, resultPath, goroutineDumpPath string, suiteTimeout, shutdownTimeout time.Duration, robotExited <-chan struct{}, shutdownStarted <-chan struct{}) {
+	if suiteTimeout <= 0 {
+		suiteTimeout = 2 * time.Minute
+	}
+	if shutdownTimeout <= 0 {
+		shutdownTimeout = suites.DefaultCaseTimeout
+	}
+	suiteTimer := time.NewTimer(suiteTimeout)
+	defer suiteTimer.Stop()
+	var shutdownTimer <-chan time.Time
+	for {
+		select {
+		case <-robotExited:
+			return
+		case <-shutdownStarted:
+			shutdownStarted = nil
+			timer := time.NewTimer(shutdownTimeout)
+			defer timer.Stop()
+			shutdownTimer = timer.C
+		case <-suiteTimer.C:
+			result.Failures = append(result.Failures, suites.Failure{
+				Suite:    result.Suite,
+				Case:     result.Suite,
+				Step:     "suite-timeout",
+				Error:    fmt.Sprintf("suite exceeded timeout %s", suiteTimeout),
+				TimedOut: true,
+			})
+			hardExitWithGoroutineDump(result, resultPath, goroutineDumpPath, "suite timeout")
+		case <-shutdownTimer:
+			result.Failures = append(result.Failures, suites.Failure{
+				Suite:    result.Suite,
+				Case:     result.Suite,
+				Step:     "shutdown",
+				Error:    fmt.Sprintf("robot did not exit within %s after bender quit", shutdownTimeout),
+				TimedOut: true,
+			})
+			hardExitWithGoroutineDump(result, resultPath, goroutineDumpPath, "shutdown timeout after bender quit")
+		}
+	}
+}
+
+func hasTimedOutFailure(failures []suites.Failure) bool {
+	for _, failure := range failures {
+		if failure.TimedOut {
+			return true
+		}
+	}
+	return false
+}
+
+func hardExitWithGoroutineDump(result suiteResult, resultPath, goroutineDumpPath, reason string) {
+	result.Status = "failed"
+	result.FinishedAt = time.Now().UTC().Format(time.RFC3339)
+	result.Goroutines = goroutineDumpPath
+	if len(result.Failures) == 0 {
+		result.Failures = append(result.Failures, suites.Failure{
+			Suite:    result.Suite,
+			Case:     result.Suite,
+			Step:     "timeout",
+			Error:    reason,
+			TimedOut: true,
+		})
+	}
+	_ = os.MkdirAll(filepath.Dir(goroutineDumpPath), 0755)
+	if f, err := os.OpenFile(goroutineDumpPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644); err == nil {
+		_, _ = fmt.Fprintf(f, "gopherbot-integration hard exit: %s\nsuite: %s\ntime: %s\n\n", reason, result.Suite, result.FinishedAt)
+		if profile := pprof.Lookup("goroutine"); profile != nil {
+			_ = profile.WriteTo(f, 2)
+		}
+		_ = f.Close()
+	}
+	_ = writeResult(resultPath, result)
+	fmt.Fprintf(os.Stderr, "gopherbot-integration hard exit: %s; goroutines: %s\n", reason, goroutineDumpPath)
+	os.Exit(1)
 }
 
 type scriptedConnectorDriver struct {
@@ -591,6 +691,7 @@ type scriptedConnectorDriver struct {
 }
 
 func (d *scriptedConnectorDriver) WaitForIdle(ctx context.Context) error {
+	d.writeTranscriptLine(".. wait for background init idle\n")
 	done := make(chan struct{})
 	go func() {
 		bot.WaitForBackgroundInits()
@@ -605,6 +706,7 @@ func (d *scriptedConnectorDriver) WaitForIdle(ctx context.Context) error {
 }
 
 func (d *scriptedConnectorDriver) DrainEvents(ctx context.Context) ([]bot.Event, error) {
+	d.writeTranscriptLine(".. drain events\n")
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -640,6 +742,7 @@ func (d *scriptedConnectorDriver) Send(ctx context.Context, msg suites.Message) 
 }
 
 func (d *scriptedConnectorDriver) Receive(ctx context.Context, want suites.ExpectedMessage) (suites.Message, error) {
+	d.writeTranscriptLine(".. expect reply /%s/\n", want.TextPattern)
 	type receiveResult struct {
 		msg *testc.TestMessage
 		err error
@@ -673,6 +776,10 @@ func (d *scriptedConnectorDriver) Receive(ctx context.Context, want suites.Expec
 		d.writeTranscriptLine("<- %s/%s: %s\n", msg.User, target, msg.Text)
 		return msg, nil
 	}
+}
+
+func (d *scriptedConnectorDriver) LogStep(suiteName, caseName, step, format string, args ...interface{}) {
+	d.writeTranscriptLine(".. %s/%s %s: %s\n", suiteName, caseName, step, fmt.Sprintf(format, args...))
 }
 
 func (d *scriptedConnectorDriver) writeTranscriptLine(format string, args ...interface{}) {

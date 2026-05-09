@@ -1,6 +1,5 @@
 ---
 AllChannels: true
-AllowDirect: true
 Authorizer: ""
 AuthRequire: Helpdesk
 AdminCommands: []
@@ -8,7 +7,7 @@ AuthorizedCommands:
 - secmisconfig
 ElevatedCommands: []
 ElevateImmediateCommands: []
-AllowedHiddenCommands: []
+AllowedPrivateCommands: []
 Commands:
 - # Regex: (?i:python-sec-auth-misconfig)
   SimpleMatcher: python-sec-auth-misconfig

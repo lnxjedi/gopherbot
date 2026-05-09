@@ -40,7 +40,7 @@ func TestBotNameHiddenCommandsUnsupportedConnector(t *testing.T) {
 	}, t)
 
 	tests := []testItem{
-		{aliceID, null, "/ping", false, []TestMessage{{alice, null, "This command isn't supported with test because hidden commands are unavailable for this connector\\. Check with the robot administrator\\.", false}}, []Event{BotDirectMessage}, 0},
+		{aliceID, null, "/ping", false, []TestMessage{{alice, null, "This command isn't supported with test because private command transport is unavailable for this connector\\. Check with the robot administrator\\.", false}}, []Event{BotDirectMessage}, 0},
 	}
 	testcases(t, conn, tests)
 
@@ -55,7 +55,7 @@ func TestBotNoName(t *testing.T) {
 		{aliceID, null, "ping", false, []TestMessage{{alice, null, "PONG", false}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";ping", false, []TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "ping;", false, []TestMessage{}, []Event{}, 0},
-		{bobID, general, "bender: echo hello world", false, []TestMessage{{null, general, "hello world", true}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
+			{bobID, general, "bender: echo hello world", false, []TestMessage{{null, general, `(?s:I couldn't match bender, echo hello world in channel #general.*Try /bender commands or /bender help <keyword>\.)`, true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
 		// When you forget to address the robot, you can say it's name
 		{aliceID, general, "ping", false, []TestMessage{}, []Event{}, 500},
 		{aliceID, general, ";", false, []TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
@@ -81,7 +81,7 @@ func TestBotNoAlias(t *testing.T) {
 		{aliceID, general, "bender, ping", false, []TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "@bender ping", false, []TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "ping, @bender", false, []TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{bobID, general, "bender: echo hello world", false, []TestMessage{{null, general, "hello world", false}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
+			{bobID, general, "bender: echo hello world", false, []TestMessage{{null, general, `(?s:I couldn't match bender, echo hello world in channel #general.*Try /bender commands or /bender help <keyword>\.)`, true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
 		// When you forget to address the robot, you can say it's name
 		{aliceID, general, "ping", false, []TestMessage{}, []Event{}, 200},
 		{aliceID, general, "bender", false, []TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
@@ -113,8 +113,8 @@ func TestMessageMatch(t *testing.T) {
 		{aliceID, general, ";hello world", false, []TestMessage{{null, general, "Hello, World!", false}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
 		{aliceID, general, ";HELLO   WORLD", false, []TestMessage{{null, general, "Hello, World!", false}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
 		{aliceID, general, ";hello-world", false, []TestMessage{{null, general, "Hello, World!", false}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
-		{aliceID, null, "hello robot", false, []TestMessage{{alice, null, "Hello, World!", false}}, []Event{BotDirectMessage, AmbientTaskRan, ExternalTaskRan}, 0},
-		{aliceID, null, "bender, hello robot", false, []TestMessage{{alice, null, "Hello, World!", false}}, []Event{BotDirectMessage, AmbientTaskRan, ExternalTaskRan}, 0},
+			{aliceID, null, "hello robot", false, []TestMessage{{alice, null, "Sorry, 'hello2/hello' cannot be run as a private command", false}}, []Event{BotDirectMessage}, 0},
+			{aliceID, null, "bender, hello robot", false, []TestMessage{{alice, null, "Sorry, 'hello2/hello' cannot be run as a private command", false}}, []Event{BotDirectMessage}, 0},
 		{aliceID, general, "ping", false, []TestMessage{}, []Event{}, 100},
 		{aliceID, general, ";hello robot", false, []TestMessage{{null, general, "Hello, World!", false}}, []Event{AmbientTaskRan, ExternalTaskRan}, 100},
 		{aliceID, general, "bender", false, []TestMessage{{null, general, `Yes\?`, false}}, []Event{}, 0},
@@ -130,10 +130,10 @@ func TestVisibility(t *testing.T) {
 	done, conn := setup("test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
-		{aliceID, general, "help ruby, bender", false, []TestMessage{{null, general, `(?s:Command matches for keyword: ruby.*Availability: channels: random)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, "help ruby, bender", false, []TestMessage{{null, general, `(?s:Command matches for keyword: ruby.*Availability: #random)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "ruby me, bender", false, []TestMessage{{null, general, "rubydemo/ruby not available in #general, try #random", true}}, []Event{}, 0},
-		{aliceID, deadzone, "bender: echo hello world", false, []TestMessage{{null, deadzone, "echo/echo not available in #deadzone, try one of: #general, #random", true}}, []Event{}, 0},
-		{aliceID, null, "hear me out", false, []TestMessage{{alice, null, "bashdemo/hear not available in direct messages, try it in any regular channel", false}}, []Event{BotDirectMessage}, 0},
+		{aliceID, deadzone, "bender: echo hello world", false, []TestMessage{{null, deadzone, `(?s:I couldn't match bender, echo hello world in channel #deadzone.*Try /bender commands or /bender help <keyword>\.)`, true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
+		{aliceID, null, "hear me out", false, []TestMessage{{alice, null, "Sorry, 'bashdemo/hear' cannot be run as a private command", false}}, []Event{BotDirectMessage}, 0},
 		{bobID, general, ";ping", false, []TestMessage{{null, general, `(?s:I couldn't match .*More help: .*help builtin-help/help.*Try .*commands.*help <keyword>.*)`, true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
 		{bobID, general, ";reload", false, []TestMessage{{null, general, `(?s:I couldn't match .*Try .*commands.*help <keyword>.*)`, true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
 	}
@@ -146,17 +146,17 @@ func TestBuiltins(t *testing.T) {
 	done, conn := setup("test/membrain", "/tmp/bottest-builtins.log", t)
 
 	tests := []testItem{
-		{aliceID, general, ";help log", false, []TestMessage{{null, general, `(?s:Command matches for keyword: log.*Availability: direct message only)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";help log", false, []TestMessage{{null, general, `(?s:Command matches for keyword: log.*builtin-logging/show.*Availability: private context only)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, ";set log level fine", false, []TestMessage{{alice, null, "Invalid value 'fine' for 'level'; valid values: trace, debug, info, warn, error\\.", false}}, []Event{BotDirectMessage}, 0},
 		{aliceID, null, ";set log lines to two", false, []TestMessage{{alice, null, "Invalid value 'two' for 'lines'; expected an integer\\.", false}}, []Event{BotDirectMessage}, 0},
 		{aliceID, null, ";set log lines to 0", false, []TestMessage{{alice, null, "Lines per page of log output set to: 1", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, ";set log lines to 3", false, []TestMessage{{alice, null, "Lines per page of log output set to: 3", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";help info", false, []TestMessage{{null, general, `(?s:Command matches for keyword: info.*Summary: .*admins.*)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, random, ";help ruby", false, []TestMessage{{null, random, `(?s:Command matches for keyword: ruby.*Availability: channels: random)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, random, ";help ruby", false, []TestMessage{{null, random, `(?s:Command matches for keyword: ruby.*Availability: #random)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "help", false, []TestMessage{{null, general, `(?s:Help.*Hi, I'm Bender, a staff robot\. I see you've asked for help\..*I've been programmed to perform a variety of tasks for your team.*Getting command help.*bender, help ping.*Useful discovery commands.*;help.*;commands.*;help <keyword>.*;help-all.*When I ask a follow-up question.*= uses the default value.*- cancels.*;info.*parsley@linuxjedi\.org.*)`, true}}, []Event{AmbientTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";whoami", false, []TestMessage{{null, general, "you are 'test' user 'alice/u0001', speaking in channel 'general/#general', email address: alice@example.com", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		// NOTE: Dumps are all format = Fixed, which for the test connector is ALL CAPS
-		{aliceID, null, "dump robot", false, []TestMessage{{alice, null, "This command is only available as a hidden command.", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";dump robot", false, []TestMessage{{null, general, "This command is only available in a private context.", false}}, []Event{AdminCheckPassed}, 0},
 		{aliceID, general, "/bender: dump robot", false, []TestMessage{{null, general, "HERE'S HOW I'VE BEEN CONFIGURED.*", false}}, []Event{AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "/bender: dump plugin echo", false, []TestMessage{{null, general, "ALLCHANNELS.*", false}}, []Event{AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "/bender: dump plugin default echo", false, []TestMessage{{null, general, "HERE'S.*", false}}, []Event{AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},

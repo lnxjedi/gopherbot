@@ -63,5 +63,5 @@ func hiddenCommandHintForProtocol(protocol string) string {
 	if command == "" {
 		return ""
 	}
-	return fmt.Sprintf("Use `%s` to address a hidden command.", command)
+	return fmt.Sprintf("Use `%s` to address a private command.", command)
 }

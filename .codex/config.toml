@@ -44,3 +44,9 @@ approval_mode = "approve"
 
 [mcp_servers.gopherbot-mcp.tools.read_integration_result]
 approval_mode = "approve"
+
+[mcp_servers.gopherbot-mcp.tools.cleanup_stale_state]
+approval_mode = "approve"
+
+[mcp_servers.gopherbot-mcp.tools.list_robots]
+approval_mode = "approve"

@@ -18,6 +18,6 @@ cases:
       text: /ping
     replies:
       - user: alice
-        text_pattern: This command isn't supported with test because hidden commands are unavailable for this connector\. Check with the robot administrator\.
+        text_pattern: This command isn't supported with test because private command transport is unavailable for this connector\. Check with the robot administrator\.
     events:
       - BotDirectMessage

@@ -133,12 +133,12 @@ The concern here is not command visibility (hard to hide) but message routing co
 
 **Connector authority over message context:**
 - Connectors are the sole authority for `Incoming.DirectMessage`. This flag must be set accurately by the connector and must not be modified by the engine or plugins after `handler.IncomingMessage` returns.
-- `DirectOnly: true` on a task is enforced in `pluginAvailable` before the pipeline starts — the task will not match in a channel. This enforcement must not be weakened.
+- Private-command requirements are enforced before plugin logic runs; sensitive command privacy must remain engine-owned.
 
 **Response routing — no implicit privatization:**
 - `r.Say()` and `r.Reply()` reply in the same channel/DM context as the triggering message. The engine does not implicitly privatize responses. This must not change.
 - Plugins or tasks that return sensitive data (credentials, tokens, personal info, secrets) must either:
-  - Be marked `DirectOnly: true` (command can only be invoked via DM), **or**
+  - Be configured with `RequiredPrivateCommands` / `RequireAllCommandsPrivate`, **or**
   - Explicitly call `r.Direct().Reply()` / `r.Direct().Say()` to force a DM response.
 - Bot-initiated messages (not in response to a user command) containing per-user sensitive data must use `SendUserMessage` (DM path), not `SendChannelMessage`. There is no engine guard for this — it is a code review requirement.
 

@@ -1,6 +1,5 @@
 ---
 AllChannels: true
-AllowDirect: true
 AdminCommands:
 - secadmincmd
 AuthorizedCommands:
@@ -10,7 +9,7 @@ ElevatedCommands:
 - secelevated
 ElevateImmediateCommands:
 - secimmediate
-AllowedHiddenCommands:
+AllowedPrivateCommands:
 - sechiddenok
 Commands:
 - # Regex: (?i:go-sec-open)

@@ -2,10 +2,8 @@
 # The default fallback catchall plugin, provides a slightly-helpful
 # error message when a user speaks to the robot, but no other command
 # matches. Other plugins can take over this function by setting
-# CatchAll: true and providing specific channels, or for DMs by
-# setting AllowDirect: false.
+# CatchAll: true and providing specific channels or CatchAllModes.
 AllChannels: true
 CatchAll: true
-AllowDirect: true
-AllowedHiddenCommands:
+AllowedPrivateCommands:
 - catchall

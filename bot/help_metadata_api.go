@@ -9,39 +9,38 @@ import (
 )
 
 type helpMetadataContext struct {
-	BotName                 string `json:"bot_name,omitempty"`
-	BotAlias                string `json:"bot_alias,omitempty"`
-	User                    string `json:"user,omitempty"`
-	Channel                 string `json:"channel,omitempty"`
-	CommandMode             string `json:"command_mode,omitempty"`
-	Direct                  bool   `json:"direct"`
-	Threaded                bool   `json:"threaded"`
-	Protocol                string `json:"protocol,omitempty"`
-	HiddenCommandsSupported bool   `json:"hidden_commands_supported,omitempty"`
-	HiddenCommandHint       string `json:"hidden_command_hint,omitempty"`
-	RawQuery                string `json:"raw_query,omitempty"`
-	NormalizedQuery         string `json:"normalized_query,omitempty"`
+	BotName                  string `json:"bot_name,omitempty"`
+	BotAlias                 string `json:"bot_alias,omitempty"`
+	User                     string `json:"user,omitempty"`
+	Channel                  string `json:"channel,omitempty"`
+	CommandMode              string `json:"command_mode,omitempty"`
+	Direct                   bool   `json:"direct"`
+	Threaded                 bool   `json:"threaded"`
+	Protocol                 string `json:"protocol,omitempty"`
+	PrivateCommandsSupported bool   `json:"private_commands_supported,omitempty"`
+	PrivateCommandHint       string `json:"private_command_hint,omitempty"`
+	RawQuery                 string `json:"raw_query,omitempty"`
+	NormalizedQuery          string `json:"normalized_query,omitempty"`
 }
 
 type helpMetadataEntry struct {
-	PluginName      string   `json:"plugin"`
-	Command         string   `json:"command"`
-	SimpleMatcher   string   `json:"-"`
-	Usage           string   `json:"usage,omitempty"`
-	Summary         string   `json:"summary,omitempty"`
-	Examples        []string `json:"examples,omitempty"`
-	HiddenExamples  []string `json:"hidden_examples,omitempty"`
-	Keywords        []string `json:"keywords,omitempty"`
-	Scope           string   `json:"scope,omitempty"`
-	HiddenOK        bool     `json:"hidden_ok,omitempty"`
-	HiddenSupported bool     `json:"hidden_supported,omitempty"`
-	HiddenHint      string   `json:"hidden_hint,omitempty"`
-	VisibleHere     bool     `json:"visible_here"`
-	Channels        []string `json:"channels,omitempty"`
-	AllChannels     bool     `json:"all_channels,omitempty"`
-	AllowDirect     bool     `json:"allow_direct,omitempty"`
-	DirectOnly      bool     `json:"direct_only,omitempty"`
-	PluginSummary   string   `json:"plugin_summary,omitempty"`
+	PluginName       string   `json:"plugin"`
+	Command          string   `json:"command"`
+	SimpleMatcher    string   `json:"-"`
+	Usage            string   `json:"usage,omitempty"`
+	Summary          string   `json:"summary,omitempty"`
+	Examples         []string `json:"examples,omitempty"`
+	PrivateExamples  []string `json:"private_examples,omitempty"`
+	Keywords         []string `json:"keywords,omitempty"`
+	Scope            string   `json:"scope,omitempty"`
+	PrivateOK        bool     `json:"private_ok,omitempty"`
+	PrivateRequired  bool     `json:"private_required,omitempty"`
+	PrivateSupported bool     `json:"private_supported,omitempty"`
+	PrivateHint      string   `json:"private_hint,omitempty"`
+	VisibleHere      bool     `json:"visible_here"`
+	Channels         []string `json:"channels,omitempty"`
+	AllChannels      bool     `json:"all_channels,omitempty"`
+	PluginSummary    string   `json:"plugin_summary,omitempty"`
 }
 
 type helpMetadataMatch struct {
@@ -68,8 +67,6 @@ type fallbackAdviceEntry struct {
 	Examples      []string `json:"examples,omitempty"`
 	Keywords      []string `json:"keywords,omitempty"`
 	Channels      []string `json:"channels,omitempty"`
-	DirectOnly    bool     `json:"direct_only,omitempty"`
-	AllowDirect   bool     `json:"allow_direct,omitempty"`
 	VisibleHere   bool     `json:"visible_here,omitempty"`
 	Score         int      `json:"score,omitempty"`
 	PluginSummary string   `json:"plugin_summary,omitempty"`
@@ -114,23 +111,22 @@ type fallbackMatchSignal struct {
 
 func (e helpMetadataEntry) toHelpCommandMetadata() helpCommandMetadata {
 	return helpCommandMetadata{
-		PluginName:      e.PluginName,
-		Command:         e.Command,
-		SimpleMatcher:   e.SimpleMatcher,
-		Usage:           e.Usage,
-		Summary:         e.Summary,
-		Examples:        append([]string(nil), e.Examples...),
-		HiddenExamples:  append([]string(nil), e.HiddenExamples...),
-		Keywords:        append([]string(nil), e.Keywords...),
-		Scope:           e.Scope,
-		Channels:        append([]string(nil), e.Channels...),
-		AllChannels:     e.AllChannels,
-		AllowDirect:     e.AllowDirect,
-		DirectOnly:      e.DirectOnly,
-		HiddenOK:        e.HiddenOK,
-		HiddenSupported: e.HiddenSupported,
-		HiddenHint:      e.HiddenHint,
-		PluginSummary:   e.PluginSummary,
+		PluginName:       e.PluginName,
+		Command:          e.Command,
+		SimpleMatcher:    e.SimpleMatcher,
+		Usage:            e.Usage,
+		Summary:          e.Summary,
+		Examples:         append([]string(nil), e.Examples...),
+		PrivateExamples:  append([]string(nil), e.PrivateExamples...),
+		Keywords:         append([]string(nil), e.Keywords...),
+		Scope:            e.Scope,
+		Channels:         append([]string(nil), e.Channels...),
+		AllChannels:      e.AllChannels,
+		PrivateOK:        e.PrivateOK,
+		PrivateRequired:  e.PrivateRequired,
+		PrivateSupported: e.PrivateSupported,
+		PrivateHint:      e.PrivateHint,
+		PluginSummary:    e.PluginSummary,
 	}
 }
 
@@ -199,18 +195,18 @@ func (r Robot) collectHelpMetadata(query string) helpMetadataResponse {
 	protocol := protocolFromIncoming(r.Incoming, r.Protocol)
 	result := helpMetadataResponse{
 		Context: helpMetadataContext{
-			BotName:                 botName,
-			BotAlias:                alias,
-			User:                    r.User,
-			Channel:                 r.Channel,
-			CommandMode:             strings.TrimSpace(r.GetParameter("GOPHER_CMDMODE")),
-			Direct:                  len(strings.TrimSpace(r.Channel)) == 0,
-			Threaded:                r.Incoming != nil && r.Incoming.ThreadedMessage,
-			Protocol:                protocol,
-			HiddenCommandsSupported: hiddenCommandsSupportedForProtocol(protocol),
-			HiddenCommandHint:       hiddenCommandHintForProtocol(protocol),
-			RawQuery:                strings.TrimSpace(query),
-			NormalizedQuery:         normalized,
+			BotName:                  botName,
+			BotAlias:                 alias,
+			User:                     r.User,
+			Channel:                  r.Channel,
+			CommandMode:              strings.TrimSpace(r.GetParameter("GOPHER_CMDMODE")),
+			Direct:                   len(strings.TrimSpace(r.Channel)) == 0,
+			Threaded:                 r.Incoming != nil && r.Incoming.ThreadedMessage,
+			Protocol:                 protocol,
+			PrivateCommandsSupported: hiddenCommandsSupportedForProtocol(protocol),
+			PrivateCommandHint:       hiddenCommandHintForProtocol(protocol),
+			RawQuery:                 strings.TrimSpace(query),
+			NormalizedQuery:          normalized,
 		},
 	}
 
@@ -251,6 +247,12 @@ func (r Robot) collectHelpMetadata(query string) helpMetadataResponse {
 					continue
 				}
 			}
+			commandVisibleHere := visibleHere
+			if privateCommandContext(w.Incoming) {
+				commandVisibleHere = commandVisibleHere && commandAllowsPrivate(plugin, command)
+			} else if commandRequiresPrivate(plugin, command) {
+				commandVisibleHere = false
+			}
 
 			key := task.name + "|" + command
 			entry, ok := byCommand[key]
@@ -259,16 +261,14 @@ func (r Robot) collectHelpMetadata(query string) helpMetadataResponse {
 					PluginName:    task.name,
 					Command:       command,
 					Scope:         helpScopeText(task),
-					VisibleHere:   visibleHere,
+					VisibleHere:   commandVisibleHere,
 					Channels:      append([]string(nil), task.Channels...),
 					AllChannels:   task.AllChannels,
-					AllowDirect:   task.AllowDirect,
-					DirectOnly:    task.DirectOnly,
 					PluginSummary: helpPluginSummary(task),
 				}
 				byCommand[key] = entry
 			}
-			if visibleHere {
+			if commandVisibleHere {
 				entry.VisibleHere = true
 			}
 			if len(entry.Usage) == 0 && len(strings.TrimSpace(matcher.Usage)) > 0 {
@@ -283,24 +283,25 @@ func (r Robot) collectHelpMetadata(query string) helpMetadataResponse {
 			if entry.PluginSummary == "" {
 				entry.PluginSummary = helpPluginSummary(task, matcher.Summary)
 			}
-			if commandAllowsHidden(plugin, command) {
-				entry.HiddenOK = true
-				if result.Context.HiddenCommandsSupported {
-					entry.HiddenSupported = true
+			if commandAllowsPrivate(plugin, command) {
+				entry.PrivateOK = true
+				entry.PrivateRequired = commandRequiresPrivate(plugin, command)
+				if result.Context.PrivateCommandsSupported {
+					entry.PrivateSupported = true
 				}
-				if entry.HiddenHint == "" && strings.TrimSpace(result.Context.HiddenCommandHint) != "" {
-					entry.HiddenHint = strings.TrimSpace(result.Context.HiddenCommandHint)
+				if entry.PrivateHint == "" && strings.TrimSpace(result.Context.PrivateCommandHint) != "" {
+					entry.PrivateHint = strings.TrimSpace(result.Context.PrivateCommandHint)
 				}
 			}
 			entry.Examples = appendUniqueStrings(entry.Examples, matcher.Examples...)
-			if entry.HiddenOK && result.Context.HiddenCommandsSupported {
+			if entry.PrivateOK && result.Context.PrivateCommandsSupported {
 				for _, example := range matcher.Examples {
 					commandText := helpSurfaceCommandText(example, alias, botName)
 					hidden := strings.TrimSpace(formatHiddenCommand(protocol, commandText))
 					if hidden == "" {
 						continue
 					}
-					entry.HiddenExamples = appendUniqueStrings(entry.HiddenExamples, hidden)
+					entry.PrivateExamples = appendUniqueStrings(entry.PrivateExamples, hidden)
 				}
 			}
 			entry.Keywords = appendUniqueStrings(entry.Keywords, matcher.Keywords...)
@@ -432,8 +433,6 @@ func toFallbackAdviceEntry(entry helpMetadataEntry, score int) fallbackAdviceEnt
 		Examples:      append([]string(nil), entry.Examples...),
 		Keywords:      append([]string(nil), entry.Keywords...),
 		Channels:      append([]string(nil), entry.Channels...),
-		DirectOnly:    entry.DirectOnly,
-		AllowDirect:   entry.AllowDirect,
 		VisibleHere:   entry.VisibleHere,
 		Score:         score,
 		PluginSummary: entry.PluginSummary,
@@ -512,14 +511,12 @@ func isRelevantFallbackMatch(entry helpMetadataEntry, normalized string, score i
 
 func shouldPreferWrongChannel(here []fallbackAdviceEntry, elsewhere fallbackAdviceEntry, normalized string) bool {
 	elseSignals := fallbackMatchSignals(helpMetadataEntry{
-		PluginName:  elsewhere.PluginName,
-		Command:     elsewhere.Command,
-		Usage:       elsewhere.Usage,
-		Summary:     elsewhere.Summary,
-		Keywords:    append([]string(nil), elsewhere.Keywords...),
-		Channels:    append([]string(nil), elsewhere.Channels...),
-		AllowDirect: elsewhere.AllowDirect,
-		DirectOnly:  elsewhere.DirectOnly,
+		PluginName: elsewhere.PluginName,
+		Command:    elsewhere.Command,
+		Usage:      elsewhere.Usage,
+		Summary:    elsewhere.Summary,
+		Keywords:   append([]string(nil), elsewhere.Keywords...),
+		Channels:   append([]string(nil), elsewhere.Channels...),
 	}, normalized)
 	var hereTop *fallbackAdviceEntry
 	if len(here) > 0 {
@@ -530,14 +527,12 @@ func shouldPreferWrongChannel(here []fallbackAdviceEntry, elsewhere fallbackAdvi
 			return true
 		}
 		hereSignals := fallbackMatchSignals(helpMetadataEntry{
-			PluginName:  hereTop.PluginName,
-			Command:     hereTop.Command,
-			Usage:       hereTop.Usage,
-			Summary:     hereTop.Summary,
-			Keywords:    append([]string(nil), hereTop.Keywords...),
-			Channels:    append([]string(nil), hereTop.Channels...),
-			AllowDirect: hereTop.AllowDirect,
-			DirectOnly:  hereTop.DirectOnly,
+			PluginName: hereTop.PluginName,
+			Command:    hereTop.Command,
+			Usage:      hereTop.Usage,
+			Summary:    hereTop.Summary,
+			Keywords:   append([]string(nil), hereTop.Keywords...),
+			Channels:   append([]string(nil), hereTop.Channels...),
 		}, normalized)
 		if hereSignals.MeaningfulHits < elseSignals.MeaningfulHits {
 			return true
@@ -556,16 +551,10 @@ func shouldPreferWrongChannel(here []fallbackAdviceEntry, elsewhere fallbackAdvi
 }
 
 func describeFallbackContext(entry helpMetadataEntry) string {
-	if entry.DirectOnly {
-		return "This looks more likely to be a direct-message-only command."
-	}
 	if len(entry.Channels) > 0 {
 		channels := append([]string(nil), entry.Channels...)
 		sort.Strings(channels)
 		return "This looks more likely to belong in " + joinFallbackChannels(channels) + "."
-	}
-	if entry.AllowDirect && !entry.AllChannels {
-		return "This might work better in a direct message."
 	}
 	return ""
 }
@@ -591,7 +580,7 @@ func (r Robot) buildDeterministicFallbackReply(advice fallbackAdviceResponse) st
 	}
 	displayPrefix := commandPrefix()
 	formatHelpCommand := func(command string) string {
-		if advice.Context.HiddenCommandsSupported {
+		if advice.Context.PrivateCommandsSupported {
 			if hidden := strings.TrimSpace(formatHiddenCommand(advice.Context.Protocol, command)); hidden != "" {
 				return "`" + hidden + "`"
 			}
@@ -663,9 +652,7 @@ func (r Robot) buildDeterministicFallbackReply(advice fallbackAdviceResponse) st
 			lines = append(lines, "Try: "+example)
 		}
 		if includeAvailability {
-			if entry.DirectOnly {
-				lines = append(lines, "That command isn't available in channel "+formatChannel()+"; try a direct message.")
-			} else if len(entry.Channels) > 0 {
+			if len(entry.Channels) > 0 {
 				lines = append(lines, "That command isn't available in channel "+formatChannel()+"; try "+joinFallbackChannels(entry.Channels)+".")
 			}
 		}
@@ -783,16 +770,10 @@ func (r Robot) formatFallbackNextStep(alias string, entry fallbackAdviceEntry) s
 		if len(entry.Channels) > 0 {
 			return "Try `" + helpPath + "` in " + joinFallbackChannels(entry.Channels) + ", or run `" + example + "` there."
 		}
-		if entry.DirectOnly {
-			return "Try `" + helpPath + "` in a direct message, or run `" + example + "` there."
-		}
 		return "Try `" + helpPath + "` or run `" + example + "`."
 	}
 	if len(entry.Channels) > 0 {
 		return "Try `" + helpPath + "` in " + joinFallbackChannels(entry.Channels) + "."
-	}
-	if entry.DirectOnly {
-		return "Try `" + helpPath + "` in a direct message."
 	}
 	return "Try `" + helpPath + "`."
 }
@@ -829,14 +810,8 @@ func (e fallbackAdviceEntry) toHelpCommandMetadata() helpCommandMetadata {
 }
 
 func fallbackContextFromAdviceEntry(entry fallbackAdviceEntry) string {
-	if entry.DirectOnly {
-		return "This looks more likely to be a direct-message-only command."
-	}
 	if len(entry.Channels) > 0 {
 		return "This looks more likely to belong in " + joinFallbackChannels(entry.Channels) + "."
-	}
-	if entry.AllowDirect {
-		return "This might work better in a direct message."
 	}
 	return ""
 }

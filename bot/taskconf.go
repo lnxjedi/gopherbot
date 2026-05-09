@@ -301,10 +301,7 @@ LoadLoop:
 				continue
 			}
 		}
-		// Boolean false values can be explicitly false, or default to false
-		// when not specified. In some cases that matters.
 		explicitAllChannels := false
-		explicitAllowDirect := false
 
 		for key, value := range tcfgload {
 			var strval string
@@ -325,9 +322,9 @@ LoadLoop:
 				val = &timeoutval
 			case "Disabled":
 				skip = true
-			case "AllowDirect", "AmbientMatchCommand", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll", "MatchUnlisted", "Quiet":
+			case "AmbientMatchCommand", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "RequireAllCommandsPrivate", "CatchAll", "MatchUnlisted", "Quiet":
 				val = &boolval
-			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AllowedHiddenCommands", "AdminCommands", "ParameterSets", "CatchAllModes":
+			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AllowedPrivateCommands", "RequiredPrivateCommands", "AdminCommands", "ParameterSets", "CatchAllModes":
 				val = &sarrval
 			case "Commands", "ReplyMatchers", "MessageMatchers", "Arguments":
 				val = &mval
@@ -358,11 +355,6 @@ LoadLoop:
 			mismatch := false
 			// Defaults
 			switch key {
-			case "AllowDirect":
-				task.AllowDirect = *(val.(*bool))
-				explicitAllowDirect = true
-			case "DirectOnly":
-				task.DirectOnly = *(val.(*bool))
 			// plugins can be scheduled, so Channel applies to both
 			case "Channel":
 				task.Channel = *(val.(*string))
@@ -414,9 +406,15 @@ LoadLoop:
 				task.Authorizer = *(val.(*string))
 			case "AuthRequire":
 				task.AuthRequire = *(val.(*string))
-			case "AllowedHiddenCommands":
+			case "AllowedPrivateCommands":
 				if isPlugin {
-					plugin.AllowedHiddenCommands = *(val.(*[]string))
+					plugin.AllowedPrivateCommands = *(val.(*[]string))
+				} else {
+					mismatch = true
+				}
+			case "RequiredPrivateCommands":
+				if isPlugin {
+					plugin.RequiredPrivateCommands = *(val.(*[]string))
 				} else {
 					mismatch = true
 				}
@@ -435,6 +433,12 @@ LoadLoop:
 			case "AuthorizeAllCommands":
 				if isPlugin {
 					plugin.AuthorizeAllCommands = *(val.(*bool))
+				} else {
+					mismatch = true
+				}
+			case "RequireAllCommandsPrivate":
+				if isPlugin {
+					plugin.RequireAllCommandsPrivate = *(val.(*bool))
 				} else {
 					mismatch = true
 				}
@@ -509,25 +513,6 @@ LoadLoop:
 		// End of reading configuration keys
 
 		// Start sanity checking of configuration
-		if task.DirectOnly {
-			if explicitAllowDirect {
-				if !task.AllowDirect {
-					msg := fmt.Sprintf("Task '%s' has conflicting values for AllowDirect (false) and DirectOnly (true), disabling", task.name)
-					Log(robot.Error, msg)
-					task.Disabled = true
-					task.reason = msg
-					continue
-				}
-			} else {
-				Log(robot.Debug, "DirectOnly specified without AllowDirect; setting AllowDirect = true")
-				task.AllowDirect = true
-				explicitAllowDirect = true
-			}
-		}
-
-		if !explicitAllowDirect {
-			task.AllowDirect = processed.defaultAllowDirect
-		}
 		if err := validateTimeOutThresholds(fmt.Sprintf("task '%s' TimeOuts", task.name), task.TimeOuts); err != nil {
 			msg := fmt.Sprintf("Disabling task '%s' - invalid TimeOuts: %v", task.name, err)
 			Log(robot.Error, msg)
@@ -577,8 +562,8 @@ LoadLoop:
 				msg := fmt.Sprintf("Plugin '%s' will be available in channels %q", task.name, task.Channels)
 				Log(robot.Info, msg)
 			} else {
-				if !(task.AllowDirect || task.AllChannels) {
-					msg := fmt.Sprintf("Plugin '%s' not visible in any channels or by direct message, disabling", task.name)
+				if !(pluginHasPrivatePolicy(plugin) || task.AllChannels) {
+					msg := fmt.Sprintf("Plugin '%s' not visible in any channels or private command policy, disabling", task.name)
 					Log(robot.Error, msg)
 					task.Disabled = true
 					task.reason = msg
@@ -697,9 +682,9 @@ LoadLoop:
 			if len(plugin.CatchAllModes) > 0 {
 				for _, mode := range plugin.CatchAllModes {
 					switch strings.TrimSpace(strings.ToLower(mode)) {
-					case "alias", "name", "direct":
+					case "alias", "name", "direct", "private":
 					default:
-						msg := fmt.Sprintf("Disabling %s, invalid CatchAllModes value '%s' (expected alias, name, or direct)", task.name, mode)
+						msg := fmt.Sprintf("Disabling %s, invalid CatchAllModes value '%s' (expected alias, name, direct, or private)", task.name, mode)
 						Log(robot.Error, msg)
 						task.Disabled = true
 						task.reason = msg
@@ -716,6 +701,7 @@ LoadLoop:
 				{"elevate immediate", plugin.ElevateImmediateCommands},
 				{"authorized", plugin.AuthorizedCommands},
 				{"admin", plugin.AdminCommands},
+				{"required private", plugin.RequiredPrivateCommands},
 			}
 			for _, cmd := range cmdlist {
 				if len(cmd.clist) > 0 {

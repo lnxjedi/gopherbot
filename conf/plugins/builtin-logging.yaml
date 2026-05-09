@@ -1,5 +1,5 @@
 ---
-DirectOnly: true
+RequireAllCommandsPrivate: true
 RequireAdmin: true
 Commands:
 - Command: "level"

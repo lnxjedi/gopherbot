@@ -209,7 +209,7 @@ func TestShFullSecurity(t *testing.T) {
 		{aliceID, general, "/bender sh-sec-hidden-ok", false, []TestMessage{
 			{null, general, "\\(SECURITY CHECK: sechiddenok\\)", false}}, nil, 0},
 		{aliceID, general, "/bender sh-sec-hidden-denied", false, []TestMessage{
-			{alice, general, "\\(?Sorry, 'shsec/sechiddendenied' cannot be run as a hidden command - use the robot's name or alias\\)?", false}}, nil, 0},
+			{alice, general, "\\(?Sorry, 'shsec/sechiddendenied' cannot be run as a private command\\)?", false}}, nil, 0},
 		{aliceID, general, ";sh-sec-adminonly", false, []TestMessage{
 			{null, general, "SECURITY CHECK: secadminonly", false}}, nil, 0},
 		{bobID, general, ";sh-sec-adminonly", false, []TestMessage{

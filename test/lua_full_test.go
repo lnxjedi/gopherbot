@@ -209,7 +209,7 @@ func TestLuaFullSecurity(t *testing.T) {
 		{aliceID, general, "/bender lua-sec-hidden-ok", false, []TestMessage{
 			{null, general, "\\(SECURITY CHECK: sechiddenok\\)", false}}, nil, 0},
 		{aliceID, general, "/bender lua-sec-hidden-denied", false, []TestMessage{
-			{alice, general, "\\(?Sorry, 'luasec/sechiddendenied' cannot be run as a hidden command - use the robot's name or alias\\)?", false}}, nil, 0},
+			{alice, general, "\\(?Sorry, 'luasec/sechiddendenied' cannot be run as a private command\\)?", false}}, nil, 0},
 		{aliceID, general, ";lua-sec-adminonly", false, []TestMessage{
 			{null, general, "SECURITY CHECK: secadminonly", false}}, nil, 0},
 		{bobID, general, ";lua-sec-adminonly", false, []TestMessage{

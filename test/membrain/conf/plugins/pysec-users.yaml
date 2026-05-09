@@ -1,6 +1,5 @@
 ---
 AllChannels: true
-AllowDirect: true
 Users:
 - alice
 Authorizer: ""
@@ -9,7 +8,7 @@ AdminCommands: []
 AuthorizedCommands: []
 ElevatedCommands: []
 ElevateImmediateCommands: []
-AllowedHiddenCommands: []
+AllowedPrivateCommands: []
 Commands:
 - # Regex: (?i:python-sec-usersonly)
   SimpleMatcher: python-sec-usersonly

@@ -412,10 +412,17 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 					break
 				}
 			}
-			if isPlugin && r.Incoming.HiddenMessage {
-				if r.checkHiddenCommands(w, t, command) != robot.Success {
-					if hiddenMessageAddressedToRobot(w.Incoming.BotMessage, w.cmdMode) {
-						r.Reply("Sorry, '%s/%s' cannot be run as a hidden command - use the robot's name or alias", task.name, command)
+			if isPlugin {
+				if r.checkRequiredPrivateCommand(w, t, command) != robot.Success {
+					ret = robot.Fail
+					deregisterWorker(r.tid)
+					break
+				}
+			}
+			if isPlugin && privateCommandContext(r.Incoming) {
+				if r.checkPrivateCommands(w, t, command) != robot.Success {
+					if (r.Incoming.DirectMessage && !r.Incoming.HiddenMessage) || hiddenMessageAddressedToRobot(w.Incoming.BotMessage, w.cmdMode) {
+						r.Reply("Sorry, '%s/%s' cannot be run as a private command", task.name, command)
 					}
 					ret = robot.Fail
 					deregisterWorker(r.tid)
@@ -590,6 +597,9 @@ func (w *worker) getEnvironment(t interface{}) (env, parameters map[string]strin
 	}
 	if w.Incoming.HiddenMessage {
 		envhash["GOPHER_HIDDEN_COMMAND"] = "true"
+	}
+	if privateCommandContext(w.Incoming) {
+		envhash["GOPHER_PRIVATE_COMMAND"] = "true"
 	}
 	envhash["GOPHER_CMDMODE"] = w.cmdMode
 	envhash["GOPHER_USER"] = w.User

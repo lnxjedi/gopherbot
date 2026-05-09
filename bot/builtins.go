@@ -189,23 +189,22 @@ func hiddenSlashBotCommand(botName, command string) string {
 }
 
 type helpCommandMetadata struct {
-	PluginName      string
-	Command         string
-	SimpleMatcher   string
-	Usage           string
-	Summary         string
-	Examples        []string
-	HiddenExamples  []string
-	Keywords        []string
-	Scope           string
-	Channels        []string
-	AllChannels     bool
-	AllowDirect     bool
-	DirectOnly      bool
-	HiddenOK        bool
-	HiddenSupported bool
-	HiddenHint      string
-	PluginSummary   string
+	PluginName       string
+	Command          string
+	SimpleMatcher    string
+	Usage            string
+	Summary          string
+	Examples         []string
+	PrivateExamples  []string
+	Keywords         []string
+	Scope            string
+	Channels         []string
+	AllChannels      bool
+	PrivateOK        bool
+	PrivateRequired  bool
+	PrivateSupported bool
+	PrivateHint      string
+	PluginSummary    string
 }
 
 type rankedHelpMatch struct {
@@ -334,9 +333,6 @@ func normalizeFallbackTerm(input, alias, botName string) string {
 }
 
 func helpScopeText(task *Task) string {
-	if task.DirectOnly {
-		return "direct message only"
-	}
 	if len(task.Channels) > 0 {
 		if len(task.Channels) > tooManyChannels {
 			return "channels: (many)"
@@ -344,25 +340,38 @@ func helpScopeText(task *Task) string {
 		return "channels: " + strings.Join(task.Channels, ", ")
 	}
 	if task.AllChannels {
-		if task.AllowDirect {
-			return "all channels + direct messages"
-		}
 		return "all channels"
-	}
-	if task.AllowDirect {
-		return "direct messages"
 	}
 	return "channel scoped"
 }
 
-func commandAllowsHidden(plugin *Plugin, command string) bool {
-	if plugin == nil || len(plugin.AllowedHiddenCommands) == 0 {
+func commandAllowsPrivate(plugin *Plugin, command string) bool {
+	if plugin == nil {
 		return false
 	}
+	if commandRequiresPrivate(plugin, command) {
+		return true
+	}
 	command = strings.TrimSpace(strings.ToLower(command))
-	for _, allowed := range plugin.AllowedHiddenCommands {
+	for _, allowed := range plugin.AllowedPrivateCommands {
 		key := strings.TrimSpace(strings.ToLower(allowed))
 		if key == "*" || key == command {
+			return true
+		}
+	}
+	return false
+}
+
+func commandRequiresPrivate(plugin *Plugin, command string) bool {
+	if plugin == nil {
+		return false
+	}
+	if plugin.RequireAllCommandsPrivate {
+		return true
+	}
+	command = strings.TrimSpace(strings.ToLower(command))
+	for _, required := range plugin.RequiredPrivateCommands {
+		if strings.TrimSpace(strings.ToLower(required)) == command {
 			return true
 		}
 	}
@@ -435,8 +444,6 @@ func (r Robot) collectHelpCommandMetadata(includeGlobal bool) []helpCommandMetad
 					Scope:         helpScopeText(task),
 					Channels:      append([]string(nil), task.Channels...),
 					AllChannels:   task.AllChannels,
-					AllowDirect:   task.AllowDirect,
-					DirectOnly:    task.DirectOnly,
 					PluginSummary: helpPluginSummary(task),
 				}
 				byCommand[key] = entry
@@ -453,24 +460,25 @@ func (r Robot) collectHelpCommandMetadata(includeGlobal bool) []helpCommandMetad
 			if entry.PluginSummary == "" {
 				entry.PluginSummary = helpPluginSummary(task, matcher.Summary)
 			}
-			if commandAllowsHidden(plugin, command) {
-				entry.HiddenOK = true
+			if commandAllowsPrivate(plugin, command) {
+				entry.PrivateOK = true
+				entry.PrivateRequired = commandRequiresPrivate(plugin, command)
 				if hiddenSupported {
-					entry.HiddenSupported = true
+					entry.PrivateSupported = true
 				}
-				if entry.HiddenHint == "" && strings.TrimSpace(hiddenHint) != "" {
-					entry.HiddenHint = strings.TrimSpace(hiddenHint)
+				if entry.PrivateHint == "" && strings.TrimSpace(hiddenHint) != "" {
+					entry.PrivateHint = strings.TrimSpace(hiddenHint)
 				}
 			}
 			entry.Examples = appendUniqueStrings(entry.Examples, matcher.Examples...)
-			if entry.HiddenOK && hiddenSupported {
+			if entry.PrivateOK && hiddenSupported {
 				for _, example := range matcher.Examples {
 					commandText := helpSurfaceCommandText(example, aliasString(w.cfg.alias), w.cfg.botinfo.UserName)
 					hidden := strings.TrimSpace(formatHiddenCommand(protocol, commandText))
 					if hidden == "" {
 						continue
 					}
-					entry.HiddenExamples = appendUniqueStrings(entry.HiddenExamples, hidden)
+					entry.PrivateExamples = appendUniqueStrings(entry.PrivateExamples, hidden)
 				}
 			}
 			entry.Keywords = appendUniqueStrings(entry.Keywords, matcher.Keywords...)
@@ -1026,7 +1034,7 @@ func (r Robot) renderHelpEntry(entry helpCommandMetadata, includeExamples, inclu
 				lines = append(lines, "- "+example)
 			}
 		}
-		hiddenExamples := entry.HiddenExamples
+		hiddenExamples := entry.PrivateExamples
 		if exampleLimit > 0 && len(hiddenExamples) > exampleLimit {
 			hiddenExamples = hiddenExamples[:exampleLimit]
 		}
@@ -1039,23 +1047,25 @@ func (r Robot) renderHelpEntry(entry helpCommandMetadata, includeExamples, inclu
 			renderedHidden = append(renderedHidden, line)
 		}
 		if len(renderedHidden) > 0 {
-			lines = append(lines, "**Hidden examples:**")
+			lines = append(lines, "**Private examples:**")
 			for _, example := range renderedHidden {
 				lines = append(lines, "- "+example)
 			}
-		} else if entry.HiddenSupported && strings.TrimSpace(entry.HiddenHint) != "" {
-			lines = append(lines, "**Hidden:** "+r.expandHelpPlaceholders(entry.HiddenHint))
+		} else if entry.PrivateSupported && strings.TrimSpace(entry.PrivateHint) != "" {
+			lines = append(lines, "**Private:** "+r.expandHelpPlaceholders(entry.PrivateHint))
 		}
 	}
-	if includeScope && len(entry.Scope) > 0 {
-		lines = append(lines, "**Availability:** "+entry.Scope)
+	if includeScope {
+		if availability := strings.TrimSpace(formatExactHelpAvailability(entry)); availability != "" {
+			lines = append(lines, "**Availability:** "+availability)
+		}
 	}
 	return strings.Join(lines, "\n")
 }
 
 func formatExactHelpAvailability(entry helpCommandMetadata) string {
-	if entry.DirectOnly {
-		return "direct message only"
+	if entry.PrivateRequired {
+		return "private context only"
 	}
 	if len(entry.Channels) > 0 {
 		channels := append([]string(nil), entry.Channels...)
@@ -1064,19 +1074,10 @@ func formatExactHelpAvailability(entry helpCommandMetadata) string {
 		for _, channel := range channels {
 			display = append(display, "`#"+channel+"`")
 		}
-		if entry.AllowDirect {
-			return strings.Join(display, ", ") + ", and direct messages"
-		}
 		return strings.Join(display, ", ")
 	}
 	if entry.AllChannels {
-		if entry.AllowDirect {
-			return "all robot channels and direct messages"
-		}
 		return "all robot channels"
-	}
-	if entry.AllowDirect {
-		return "direct messages"
 	}
 	return entry.Scope
 }
@@ -1108,7 +1109,7 @@ func (r Robot) renderHelpListingEntry(entry helpCommandMetadata, includeExamples
 				lines = append(lines, "- "+example)
 			}
 		}
-		hiddenExamples := entry.HiddenExamples
+		hiddenExamples := entry.PrivateExamples
 		if exampleLimit > 0 && len(hiddenExamples) > exampleLimit {
 			hiddenExamples = hiddenExamples[:exampleLimit]
 		}
@@ -1121,16 +1122,18 @@ func (r Robot) renderHelpListingEntry(entry helpCommandMetadata, includeExamples
 			renderedHidden = append(renderedHidden, line)
 		}
 		if len(renderedHidden) > 0 {
-			lines = append(lines, "**Hidden examples:**")
+			lines = append(lines, "**Private examples:**")
 			for _, example := range renderedHidden {
 				lines = append(lines, "- "+example)
 			}
-		} else if entry.HiddenSupported && strings.TrimSpace(entry.HiddenHint) != "" {
-			lines = append(lines, "**Hidden:** "+r.expandHelpPlaceholders(entry.HiddenHint))
+		} else if entry.PrivateSupported && strings.TrimSpace(entry.PrivateHint) != "" {
+			lines = append(lines, "**Private:** "+r.expandHelpPlaceholders(entry.PrivateHint))
 		}
 	}
-	if includeScope && len(entry.Scope) > 0 {
-		lines = append(lines, "**Availability:** "+entry.Scope)
+	if includeScope {
+		if availability := strings.TrimSpace(formatExactHelpAvailability(entry)); availability != "" {
+			lines = append(lines, "**Availability:** "+availability)
+		}
 	}
 	lines = append(lines, "**Exact help:** "+r.formatInlineSuggestedCommand("(alias) help "+entry.PluginName+"/"+entry.Command))
 	return strings.Join(lines, "\n")
@@ -1585,14 +1588,6 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 	return
 }
 
-func adminHiddenCommandRequired(r Robot) bool {
-	if r.Incoming != nil && r.Incoming.HiddenMessage {
-		return true
-	}
-	r.Say("This command is only available as a hidden command.")
-	return false
-}
-
 func adminDumpRobot(r Robot) {
 	confLock.RLock()
 	c, _ := yaml.Marshal(config)
@@ -1691,21 +1686,13 @@ func adminListPlugins(r Robot, args []string) {
 func handleAdminInspectCommand(r Robot, command string, args []string) bool {
 	switch command {
 	case "dumprobot":
-		if adminHiddenCommandRequired(r) {
-			adminDumpRobot(r)
-		}
+		adminDumpRobot(r)
 	case "dumpplugdefault":
-		if adminHiddenCommandRequired(r) {
-			adminDumpPluginDefault(r, args)
-		}
+		adminDumpPluginDefault(r, args)
 	case "dumpplugin":
-		if adminHiddenCommandRequired(r) {
-			adminDumpPlugin(r, args)
-		}
+		adminDumpPlugin(r, args)
 	case "listplugins":
-		if adminHiddenCommandRequired(r) {
-			adminListPlugins(r, args)
-		}
+		adminListPlugins(r, args)
 	default:
 		return false
 	}
@@ -1784,7 +1771,7 @@ func psVerboseRequested(args []string) bool {
 }
 
 func psAllowedInContext(incoming *robot.ConnectorMessage) bool {
-	return incoming != nil && (incoming.DirectMessage || incoming.HiddenMessage)
+	return privateCommandContext(incoming)
 }
 
 func psDisplayValue(value string) string {
@@ -2073,8 +2060,8 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			r.Say("This command requires a validated administrator account.")
 			return
 		}
-		if !r.Incoming.DirectMessage && !r.Incoming.HiddenMessage {
-			r.Say("This command is only available in direct messages or hidden messages.")
+		if !privateCommandContext(r.Incoming) {
+			r.Say("This command is only available in a private context.")
 			return
 		}
 		if len(args) == 0 {
@@ -2100,7 +2087,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			r.Say("I couldn't issue a validation code right now.")
 			return
 		}
-		r.Reply("Validation code for '%s': %s (expires in about 42 seconds); instruct %s to send this exact code to me from the account you want to validate, using a hidden or direct app message to the robot", userName, code, userName)
+		r.Reply("Validation code for '%s': %s (expires in about 42 seconds); instruct %s to send this exact code to me from the account you want to validate, using a private app message to the robot", userName, code, userName)
 	case "abort":
 		buf := make([]byte, 32768)
 		runtime.Stack(buf, true)
@@ -2109,7 +2096,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		panic("Abort command issued")
 	case "ps":
 		if !psAllowedInContext(r.Incoming) {
-			r.Say("This command is only available in direct messages or hidden messages.")
+			r.Say("This command is only available in a private context.")
 			return
 		}
 		verbose := psVerboseRequested(args)

@@ -40,7 +40,7 @@ func TestPythonSecurity(t *testing.T) {
 		{aliceID, general, "/bender: python-sec-hidden-ok", false, []TestMessage{
 			{null, general, "\\(SECURITY CHECK: sechiddenok\\)", false}}, nil, 0},
 		{aliceID, general, "/bender: python-sec-hidden-denied", false, []TestMessage{
-			{alice, general, "\\(?Sorry, 'pysec/sechiddendenied' cannot be run as a hidden command - use the robot's name or alias\\)?", false}}, nil, 0},
+			{alice, general, "\\(?Sorry, 'pysec/sechiddendenied' cannot be run as a private command\\)?", false}}, nil, 0},
 		{aliceID, general, ";python-sec-adminonly", false, []TestMessage{
 			{null, general, "SECURITY CHECK: secadminonly", false}}, nil, 0},
 		{bobID, general, ";python-sec-adminonly", false, []TestMessage{

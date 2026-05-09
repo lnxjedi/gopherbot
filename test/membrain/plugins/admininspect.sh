@@ -12,7 +12,7 @@ configure() {
 Commands:
 - Command: "inspect"
   Regex: '(?i:admin inspect)'
-AllowedHiddenCommands:
+AllowedPrivateCommands:
 - inspect
 EOF
 }

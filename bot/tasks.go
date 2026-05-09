@@ -151,8 +151,6 @@ type Task struct {
 	Parameters    []Parameter       `yaml:"Parameters"`      // Fixed parameters for a given job; many jobs will use the same script with differing parameters
 	ParameterSets []string          `yaml:"ParameterSets"`   //
 	Description   string            `yaml:"Description"`     // Description of job or plugin
-	AllowDirect   bool              `yaml:"AllowDirect"`     // Set this true if this plugin can be accessed via direct message
-	DirectOnly    bool              `yaml:"DirectOnly"`      // Set this true if this plugin ONLY accepts direct messages
 	Channel       string            `yaml:"Channel"`         // Channel where a job can be interacted with, or a scheduled task (job or plugin) runs
 	Channels      []string          `yaml:"Channels"`        // Plugins only; Channels where the plugin is available. If empty, uses DefaultChannels
 	AllChannels   bool              `yaml:"AllChannels"`     // If the Channels list is empty and AllChannels is true, the plugin should be active in all channels the bot is in
@@ -183,19 +181,21 @@ type Job struct {
 // Plugin specifies the structure of a plugin configuration. Plugins should include an example/default config.
 // Custom plugin configuration will be loaded from conf/plugins/<plugin>.yaml, which can also include anything from a Task.
 type Plugin struct {
-	AdminCommands            []string       `yaml:"AdminCommands"`            // A list of commands only a bot admin can use
-	ElevatedCommands         []string       `yaml:"ElevatedCommands"`         // Commands that require elevation, usually via 2FA
-	ElevateImmediateCommands []string       `yaml:"ElevateImmediateCommands"` // Commands that always require elevation prompting, regardless of timeouts
-	AuthorizedCommands       []string       `yaml:"AuthorizedCommands"`       // Which commands to authorize
-	AllowedHiddenCommands    []string       `yaml:"AllowedHiddenCommands"`    // Which commands are allowed to be hidden
-	AuthorizeAllCommands     bool           `yaml:"AuthorizeAllCommands"`     // When ALL commands need to be authorized
-	Commands                 []InputMatcher `yaml:"Commands"`                 // Input matchers for messages that need to be directed to the bot
-	MessageMatchers          []InputMatcher `yaml:"MessageMatchers"`          // Input matchers for messages the bot hears even when it’s not being spoken to
-	AmbientMatchCommand      bool           `yaml:"AmbientMatchCommand"`      // Whether message matchers should also match when isCommand is true
-	CatchAll                 bool           `yaml:"CatchAll"`                 // Plugins with CatchAll=true get called with command="catchall" and argument=<full message text to robot>
-	CatchAllModes            []string       `yaml:"CatchAllModes"`            // Optional command modes for catchall matching: alias, name, direct
-	MatchUnlisted            bool           `yaml:"MatchUnlisted"`            // Set to true if ambient message matches should be checked for users not listed in the UserRoster
-	*Task                    `yaml:",inline"`
+	AdminCommands             []string       `yaml:"AdminCommands"`             // A list of commands only a bot admin can use
+	ElevatedCommands          []string       `yaml:"ElevatedCommands"`          // Commands that require elevation, usually via 2FA
+	ElevateImmediateCommands  []string       `yaml:"ElevateImmediateCommands"`  // Commands that always require elevation prompting, regardless of timeouts
+	AuthorizedCommands        []string       `yaml:"AuthorizedCommands"`        // Which commands to authorize
+	AllowedPrivateCommands    []string       `yaml:"AllowedPrivateCommands"`    // Which commands are allowed in private contexts
+	RequiredPrivateCommands   []string       `yaml:"RequiredPrivateCommands"`   // Which commands must run in private contexts
+	AuthorizeAllCommands      bool           `yaml:"AuthorizeAllCommands"`      // When ALL commands need to be authorized
+	RequireAllCommandsPrivate bool           `yaml:"RequireAllCommandsPrivate"` // When ALL commands must run in private contexts
+	Commands                  []InputMatcher `yaml:"Commands"`                  // Input matchers for messages that need to be directed to the bot
+	MessageMatchers           []InputMatcher `yaml:"MessageMatchers"`           // Input matchers for messages the bot hears even when it’s not being spoken to
+	AmbientMatchCommand       bool           `yaml:"AmbientMatchCommand"`       // Whether message matchers should also match when isCommand is true
+	CatchAll                  bool           `yaml:"CatchAll"`                  // Plugins with CatchAll=true get called with command="catchall" and argument=<full message text to robot>
+	CatchAllModes             []string       `yaml:"CatchAllModes"`             // Optional command modes for catchall matching: alias, name, direct
+	MatchUnlisted             bool           `yaml:"MatchUnlisted"`             // Set to true if ambient message matches should be checked for users not listed in the UserRoster
+	*Task                     `yaml:",inline"`
 }
 
 var pluginHandlers = make(map[string]robot.PluginHandler)

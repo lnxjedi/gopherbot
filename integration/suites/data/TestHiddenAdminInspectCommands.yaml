@@ -12,19 +12,17 @@ metadata:
 config_dir: test/membrain
 log_name: bottest-admin-hidden.log
 flow:
-  - name: dump-robot-dm
+  - name: dump-robot-public
     case:
       input:
         user: alice
-        text: dump robot
+        channel: general
+        text: ;dump robot
       replies:
-        - user: alice
-          text_pattern: This command is only available as a hidden command.
+        - channel: general
+          text_pattern: This command is only available in a private context.
       events:
-        - BotDirectMessage
         - AdminCheckPassed
-        - CommandTaskRan
-        - GoPluginRan
   - name: dump-robot-hidden
     case:
       input:

@@ -2,6 +2,7 @@ package suites
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"sort"
@@ -13,6 +14,8 @@ import (
 )
 
 const (
+	DefaultCaseTimeout = 14 * time.Second
+
 	Alice = "alice"
 	Bob   = "bob"
 	Carol = "carol"
@@ -83,14 +86,25 @@ type Driver interface {
 	Receive(context.Context, ExpectedMessage) (Message, error)
 }
 
+type StepLogger interface {
+	LogStep(suiteName, caseName, step, format string, args ...interface{})
+}
+
 type Failure struct {
-	Suite string `json:"suite"`
-	Case  string `json:"case"`
-	Step  string `json:"step"`
-	Error string `json:"error"`
+	Suite    string `json:"suite"`
+	Case     string `json:"case"`
+	Step     string `json:"step"`
+	Error    string `json:"error"`
+	TimedOut bool   `json:"timed_out,omitempty"`
+}
+
+type RunOptions struct {
+	CaseTimeout time.Duration
 }
 
 var registry = make(map[string]Suite)
+
+type runOptionsContextKey struct{}
 
 func Register(s Suite) {
 	if strings.TrimSpace(s.Name) == "" {
@@ -130,6 +144,12 @@ func List() []Suite {
 }
 
 func RunSuite(ctx context.Context, d Driver, s Suite) []Failure {
+	return RunSuiteWithOptions(ctx, d, s, RunOptions{})
+}
+
+func RunSuiteWithOptions(ctx context.Context, d Driver, s Suite, opts RunOptions) []Failure {
+	opts = normalizeRunOptions(opts)
+	ctx = context.WithValue(ctx, runOptionsContextKey{}, opts)
 	if s.Flow != nil {
 		failures := s.Flow(ctx, d)
 		for i := range failures {
@@ -143,13 +163,15 @@ func RunSuite(ctx context.Context, d Driver, s Suite) []Failure {
 }
 
 func RunCases(ctx context.Context, d Driver, suiteName string, cases []Case) []Failure {
+	opts := runOptionsFromContext(ctx)
 	failures := make([]Failure, 0)
-	addFailure := func(c Case, step, format string, args ...interface{}) {
+	addFailure := func(c Case, step string, timedOut bool, format string, args ...interface{}) {
 		failures = append(failures, Failure{
-			Suite: suiteName,
-			Case:  c.Name,
-			Step:  step,
-			Error: fmt.Sprintf(format, args...),
+			Suite:    suiteName,
+			Case:     c.Name,
+			Step:     step,
+			Error:    fmt.Sprintf(format, args...),
+			TimedOut: timedOut,
 		})
 	}
 
@@ -157,12 +179,24 @@ func RunCases(ctx context.Context, d Driver, suiteName string, cases []Case) []F
 		if c.Name == "" {
 			c.Name = fmt.Sprintf("case-%03d", i+1)
 		}
-		if err := d.WaitForIdle(ctx); err != nil {
-			addFailure(c, "wait-before", "%v", err)
+		caseCtx, cancel := context.WithTimeout(ctx, opts.CaseTimeout)
+		logStep(d, suiteName, c.Name, "case", "start timeout=%s", opts.CaseTimeout)
+		if err := d.WaitForIdle(caseCtx); err != nil {
+			timedOut := contextTimedOut(caseCtx, err)
+			addFailure(c, "wait-before", timedOut, "%v", err)
+			cancel()
+			if timedOut {
+				return failures
+			}
 			continue
 		}
-		if _, err := d.DrainEvents(ctx); err != nil {
-			addFailure(c, "drain-before", "%v", err)
+		if _, err := d.DrainEvents(caseCtx); err != nil {
+			timedOut := contextTimedOut(caseCtx, err)
+			addFailure(c, "drain-before", timedOut, "%v", err)
+			cancel()
+			if timedOut {
+				return failures
+			}
 			continue
 		}
 
@@ -174,49 +208,103 @@ func RunCases(ctx context.Context, d Driver, suiteName string, cases []Case) []F
 			input.Hidden = true
 			input.Text = strings.TrimPrefix(input.Text, "/")
 		}
-		if err := d.Send(ctx, input); err != nil {
-			addFailure(c, "send", "%v", err)
+		if err := d.Send(caseCtx, input); err != nil {
+			timedOut := contextTimedOut(caseCtx, err)
+			addFailure(c, "send", timedOut, "%v", err)
+			cancel()
+			if timedOut {
+				return failures
+			}
 			continue
 		}
 		for _, want := range c.Replies {
 			if want.InReplyTo == "" {
 				want.InReplyTo = input.MessageID
 			}
-			got, err := d.Receive(ctx, want)
+			got, err := d.Receive(caseCtx, want)
 			if err != nil {
-				addFailure(c, "receive", "timeout waiting for reply %q: %v", want.TextPattern, err)
+				timedOut := contextTimedOut(caseCtx, err)
+				addFailure(c, "receive", timedOut, "timeout waiting for reply %q: %v", want.TextPattern, err)
+				if timedOut {
+					cancel()
+					return failures
+				}
 				continue
 			}
 			if err := matchMessage(want, got); err != nil {
-				addFailure(c, "reply", "%v", err)
+				addFailure(c, "reply", false, "%v", err)
 			}
 		}
 		if !c.RepliesOnly {
-			gotEvents, err := d.DrainEvents(ctx)
+			gotEvents, err := d.DrainEvents(caseCtx)
 			if err != nil {
-				addFailure(c, "events", "%v", err)
+				timedOut := contextTimedOut(caseCtx, err)
+				addFailure(c, "events", timedOut, "%v", err)
+				if timedOut {
+					cancel()
+					return failures
+				}
 			} else if err := matchEvents(c.Events, gotEvents); err != nil {
-				addFailure(c, "events", "%v", err)
+				addFailure(c, "events", false, "%v", err)
 			}
 		}
 		if c.Pause > 0 {
 			timer := time.NewTimer(c.Pause)
 			select {
-			case <-ctx.Done():
+			case <-caseCtx.Done():
 				timer.Stop()
-				addFailure(c, "pause", "%v", ctx.Err())
+				timedOut := contextTimedOut(caseCtx, caseCtx.Err())
+				addFailure(c, "pause", timedOut, "%v", caseCtx.Err())
+				cancel()
+				if timedOut {
+					return failures
+				}
 			case <-timer.C:
 			}
 		}
-		if err := d.WaitForIdle(ctx); err != nil {
-			addFailure(c, "wait-after", "%v", err)
+		if err := d.WaitForIdle(caseCtx); err != nil {
+			timedOut := contextTimedOut(caseCtx, err)
+			addFailure(c, "wait-after", timedOut, "%v", err)
+			cancel()
+			if timedOut {
+				return failures
+			}
 			continue
 		}
-		if _, err := d.DrainEvents(ctx); err != nil {
-			addFailure(c, "drain-after", "%v", err)
+		if _, err := d.DrainEvents(caseCtx); err != nil {
+			timedOut := contextTimedOut(caseCtx, err)
+			addFailure(c, "drain-after", timedOut, "%v", err)
+			cancel()
+			if timedOut {
+				return failures
+			}
 		}
+		cancel()
+		logStep(d, suiteName, c.Name, "case", "finish")
 	}
 	return failures
+}
+
+func normalizeRunOptions(opts RunOptions) RunOptions {
+	if opts.CaseTimeout <= 0 {
+		opts.CaseTimeout = DefaultCaseTimeout
+	}
+	return opts
+}
+
+func runOptionsFromContext(ctx context.Context) RunOptions {
+	opts, _ := ctx.Value(runOptionsContextKey{}).(RunOptions)
+	return normalizeRunOptions(opts)
+}
+
+func contextTimedOut(ctx context.Context, err error) bool {
+	return errors.Is(err, context.DeadlineExceeded) || errors.Is(ctx.Err(), context.DeadlineExceeded)
+}
+
+func logStep(d Driver, suiteName, caseName, step, format string, args ...interface{}) {
+	if logger, ok := d.(StepLogger); ok {
+		logger.LogStep(suiteName, caseName, step, format, args...)
+	}
 }
 
 func matchMessage(want ExpectedMessage, got Message) error {

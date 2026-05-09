@@ -59,7 +59,7 @@ Commands:
   Command: pipefailcmd
 - Regex: (?i:go-encrypt-secret-unpriv)
   Command: encryptsecret
-AllowedHiddenCommands:
+AllowedPrivateCommands:
 - sendmsg
 Config:
   Openings:

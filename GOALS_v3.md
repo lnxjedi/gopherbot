@@ -38,8 +38,8 @@ These goals are intended to unblock and accelerate later v3 work. Changes that a
 ### Robot Administration Improvements
 We want to make the life of a robot administrator easier.
 
-#### Make most commands available hidden
-Log and process inspection commands should be available as hidden commands.
+#### Make most sensitive commands available privately
+Log and process inspection commands should be available in private command contexts.
 
 #### Plugin Crash Handling
 * Plugin crashes should log error/traceback to the robot's job channel

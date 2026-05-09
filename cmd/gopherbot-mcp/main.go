@@ -309,6 +309,10 @@ func (s *mcpServer) tools() []mcpTool {
 						"type":        "integer",
 						"description": "Per-suite timeout passed to gopherbot-integration in milliseconds (default 120000).",
 					},
+					"case_timeout_ms": map[string]interface{}{
+						"type":        "integer",
+						"description": "Per-test timeout passed to gopherbot-integration in milliseconds (default 14000).",
+					},
 					"command_timeout_ms": map[string]interface{}{
 						"type":        "integer",
 						"description": "Maximum time to wait for the command in milliseconds (default 600000).",
@@ -1497,15 +1501,17 @@ type integrationResult struct {
 	RobotDir   string               `json:"robot_dir"`
 	RobotLog   string               `json:"robot_log"`
 	Transcript string               `json:"transcript"`
+	Goroutines string               `json:"goroutines"`
 	ResultPath string               `json:"result_path"`
 	Failures   []integrationFailure `json:"failures"`
 }
 
 type integrationFailure struct {
-	Suite string `json:"suite"`
-	Case  string `json:"case"`
-	Step  string `json:"step"`
-	Error string `json:"error"`
+	Suite    string `json:"suite"`
+	Case     string `json:"case"`
+	Step     string `json:"step"`
+	Error    string `json:"error"`
+	TimedOut bool   `json:"timed_out,omitempty"`
 }
 
 func (s *mcpServer) toolListIntegrationSuites(args map[string]interface{}) (map[string]interface{}, error) {
@@ -1637,6 +1643,13 @@ func (s *mcpServer) toolRunIntegrationSuite(args map[string]interface{}) (map[st
 	if timeoutMS <= 0 {
 		return nil, newToolError("INVALID_ARGUMENT", "argument timeout_ms must be > 0", map[string]interface{}{"argument": "timeout_ms"})
 	}
+	caseTimeoutMS, err := optionalIntArg(args, "case_timeout_ms", 14000)
+	if err != nil {
+		return nil, err
+	}
+	if caseTimeoutMS <= 0 {
+		return nil, newToolError("INVALID_ARGUMENT", "argument case_timeout_ms must be > 0", map[string]interface{}{"argument": "case_timeout_ms"})
+	}
 	commandTimeoutMS, err := optionalIntArg(args, "command_timeout_ms", 600000)
 	if err != nil {
 		return nil, err
@@ -1687,12 +1700,14 @@ func (s *mcpServer) toolRunIntegrationSuite(args map[string]interface{}) (map[st
 	defer logFile.Close()
 
 	suiteTimeout := time.Duration(timeoutMS) * time.Millisecond
+	caseTimeout := time.Duration(caseTimeoutMS) * time.Millisecond
 	resultsRoot := filepath.Join(suiteOutputRoot, runID)
 	cmdArgs := []string{
 		"run-suite",
 		"-output-root", suiteOutputRoot,
 		"-run-id", runID,
 		"-timeout", suiteTimeout.String(),
+		"-case-timeout", caseTimeout.String(),
 	}
 	if !live {
 		cmdArgs = append(cmdArgs, "-live=false")
@@ -2020,6 +2035,7 @@ func readIntegrationResultSummaries(paths []string, includeLogTail bool, tailLin
 			"robot_dir":     result.RobotDir,
 			"robot_log":     result.RobotLog,
 			"transcript":    result.Transcript,
+			"goroutines":    result.Goroutines,
 			"result_path":   result.ResultPath,
 			"failure_count": len(result.Failures),
 			"failures":      result.Failures,

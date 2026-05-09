@@ -36,7 +36,7 @@ cases:
       text: /ping
     replies:
       - user: alice
-        text_pattern: \(Use /bender <command> to address a hidden command\.\)
+        text_pattern: \(Use /bender <command> to address a private command\.\)
     events:
       - BotDirectMessage
   - input:
@@ -135,22 +135,24 @@ cases:
       text: 'bender: echo hello world'
     replies:
       - channel: general
-        text_pattern: 'Sure thing: hello world'
+        text_pattern: '(?s:I couldn''t match bender, echo hello world in channel #general.*Try /bender commands or /bender help <keyword>\.)'
         threaded: true
     events:
-      - CommandTaskRan
-      - ExternalTaskRan
+      - CatchAllsRan
+      - CatchAllTaskRan
+      - GoPluginRan
   - input:
       user: bob
       channel: general
       text: '/bender: echo hello world'
     replies:
       - channel: general
-        text_pattern: '\(Sure thing: hello world\)'
+        text_pattern: '\((?s:I couldn''t match bender, echo hello world in channel #general.*Try /bender commands or /bender help <keyword>\.)\)'
         threaded: true
     events:
-      - CommandTaskRan
-      - ExternalTaskRan
+      - CatchAllsRan
+      - CatchAllTaskRan
+      - GoPluginRan
   - input:
       user: alice
       channel: general

@@ -1,6 +1,5 @@
 ---
 AllChannels: true
-AllowDirect: true
 RequireAdmin: true
 Authorizer: ""
 AuthRequire: ""
@@ -8,7 +7,7 @@ AdminCommands: []
 AuthorizedCommands: []
 ElevatedCommands: []
 ElevateImmediateCommands: []
-AllowedHiddenCommands: []
+AllowedPrivateCommands: []
 Commands:
 - # Regex: (?i:python-sec-adminonly)
   SimpleMatcher: python-sec-adminonly

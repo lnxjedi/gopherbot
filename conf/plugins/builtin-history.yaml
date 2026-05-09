@@ -1,7 +1,6 @@
 ---
 AllChannels: true
-AllowDirect: false
-AllowedHiddenCommands:
+AllowedPrivateCommands:
 - maillog
 - taillog
 - linklog

@@ -212,7 +212,7 @@ func TestJSFullSecurity(t *testing.T) {
 		{aliceID, general, "/bender js-sec-hidden-ok", false, []TestMessage{
 			{null, general, "\\(SECURITY CHECK: sechiddenok\\)", false}}, nil, 0},
 		{aliceID, general, "/bender js-sec-hidden-denied", false, []TestMessage{
-			{alice, general, "\\(?Sorry, 'jssec/sechiddendenied' cannot be run as a hidden command - use the robot's name or alias\\)?", false}}, nil, 0},
+			{alice, general, "\\(?Sorry, 'jssec/sechiddendenied' cannot be run as a private command\\)?", false}}, nil, 0},
 		{aliceID, general, ";js-sec-oauth2-denied", false, []TestMessage{
 			{null, general, "IDENTITY FLOW: link=IdentityConfigError token= get=IdentityConfigError unlink=IdentityConfigError", false}}, nil, 0},
 		{aliceID, general, ";js-sec-adminonly", false, []TestMessage{

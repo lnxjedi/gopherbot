@@ -3,3 +3,6 @@ Users:
 - alice
 - carol
 # but not bob
+AllowedPrivateCommands:
+- ping
+- whoami

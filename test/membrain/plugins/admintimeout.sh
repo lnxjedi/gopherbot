@@ -14,7 +14,7 @@ Commands:
   Regex: '(?i:admin slow)'
 - Command: "fail"
   Regex: '(?i:admin fail)'
-AllowedHiddenCommands:
+AllowedPrivateCommands:
 - slow
 - fail
 EOF

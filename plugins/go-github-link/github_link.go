@@ -34,7 +34,8 @@ Commands:
   Summary: "Verify the GitHub account currently linked to your robot user."
   Examples:
   - "(alias) github-whoami"
-AllowDirect: true
+AllowedPrivateCommands:
+- "*"
 `)
 
 const (

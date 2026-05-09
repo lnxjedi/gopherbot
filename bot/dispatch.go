@@ -229,7 +229,7 @@ func (w *worker) checkWrongLocationCommandMatch() bool {
 			if existing, found := candidates[key]; found {
 				existing.Channels = appendUniquePreserveOrder(existing.Channels, hint.Channels...)
 				existing.AnyRegularChannel = existing.AnyRegularChannel || hint.AnyRegularChannel
-				existing.DirectMessageOnly = existing.DirectMessageOnly || hint.DirectMessageOnly
+				existing.PrivateOnly = existing.PrivateOnly || hint.PrivateOnly
 				candidates[key] = existing
 				continue
 			}
@@ -368,24 +368,34 @@ func (w *worker) handleMessage() {
 			w.messageHeard()
 			Log(robot.Debug, "Unmatched command sent to robot, calling catchalls: %s", w.msg)
 			emit(CatchAllsRan) // for testing, otherwise noop
-			specificCatchAll, fallbackCatchAll, multipleCatchallMatched, multipleFallbackMatched := selectCatchAllTarget(w.tasks.t[1:], w.cmdMode, func(task *Task, plugin *Plugin) (bool, bool) {
-				if plugin == nil || task == nil {
-					return false, false
-				}
-				available, specific := w.pluginAvailable(task, false, false)
-				if !available {
-					Log(robot.Trace, "Checking plugin %s for catch-all (false)", task.name)
-					return false, false
-				}
-				if len(plugin.CatchAllModes) > 0 {
-					Log(robot.Trace, "Checking plugin %s for catch-all (true, specific, mode %s)", task.name, w.cmdMode)
-				} else if specific {
-					Log(robot.Trace, "Checking plugin %s for catch-all (true, specific)", task.name)
-				} else {
-					Log(robot.Trace, "Checking plugin %s for catch-all (true, non-specific)", task.name)
-				}
-				return true, specific
-			})
+			selectCatchAll := func(mode string) (interface{}, interface{}, bool, bool) {
+				return selectCatchAllTarget(w.tasks.t[1:], mode, func(task *Task, plugin *Plugin) (bool, bool) {
+					if plugin == nil || task == nil {
+						return false, false
+					}
+					available, specific := w.pluginAvailable(task, false, false)
+					if !available {
+						Log(robot.Trace, "Checking plugin %s for catch-all (false)", task.name)
+						return false, false
+					}
+					if len(plugin.CatchAllModes) > 0 {
+						Log(robot.Trace, "Checking plugin %s for catch-all (true, specific, mode %s)", task.name, mode)
+					} else if specific {
+						Log(robot.Trace, "Checking plugin %s for catch-all (true, specific)", task.name)
+					} else {
+						Log(robot.Trace, "Checking plugin %s for catch-all (true, non-specific)", task.name)
+					}
+					return true, specific
+				})
+			}
+			var specificCatchAll, fallbackCatchAll interface{}
+			var multipleCatchallMatched, multipleFallbackMatched bool
+			if privateCommandContext(w.Incoming) {
+				specificCatchAll, _, multipleCatchallMatched, _ = selectCatchAll("private")
+			}
+			if specificCatchAll == nil && !multipleCatchallMatched {
+				specificCatchAll, fallbackCatchAll, multipleCatchallMatched, multipleFallbackMatched = selectCatchAll(w.cmdMode)
+			}
 			if multipleCatchallMatched {
 				Log(robot.Error, "More than one specific catch-all matched, none will be called")
 			} else {

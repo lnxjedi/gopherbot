@@ -1,6 +1,6 @@
 # Google Chat Connector Notes
 
-This file captures Google Chat connector behavior relevant to routing, hidden commands, identity mapping, ambient Workspace Events subscriptions, threading, and outgoing message formatting.
+This file captures Google Chat connector behavior relevant to routing, private slash commands, identity mapping, ambient Workspace Events subscriptions, threading, and outgoing message formatting.
 
 ## Source Anchors
 
@@ -87,15 +87,15 @@ This file captures Google Chat connector behavior relevant to routing, hidden co
   - root/top-level threaded-space messages still carry `ThreadID` for connector-local default threading decisions
 - The connector keeps a short-lived seen-message cache so the same Chat message is not processed twice if both an interaction event and a Workspace Events delivery arrive for it.
 
-## Hidden Command Semantics
+## Private Command Semantics
 
-- Hidden-command support is enabled when `ProtocolConfig.SlashCommand` is configured.
+- Hidden/ephemeral transport support is enabled when `ProtocolConfig.SlashCommand` is configured.
 - Google Chat slash commands are private to the invoking user and the Chat app, so connector maps slash-command events to:
   - `HiddenMessage=true`
   - `BotMessage=true`
 - Connector implements `robot.HiddenCommandFormatter`.
 - Help/fallback rendering uses the configured slash command name, for example `/bishop help ping`.
-- When replying to a hidden slash command:
+- When replying to a private slash command:
   - if reply stays in the same user + same space context, connector uses `privateMessageViewer` so only that user sees the response
   - if engine code uses a channel/thread-style send in that same hidden context, the connector still recovers the original invoking user from the hidden event so the reply remains private
   - if target user or space changes, connector drops hidden/private treatment and sends a normal visible message instead

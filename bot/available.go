@@ -10,7 +10,7 @@ type commandLocationHint struct {
 	Command           string
 	Channels          []string
 	AnyRegularChannel bool
-	DirectMessageOnly bool
+	PrivateOnly       bool
 }
 
 func appendUniquePreserveOrder(dst []string, values ...string) []string {
@@ -52,8 +52,8 @@ func (h commandLocationHint) format(currentChannel string, directMessage bool) s
 
 	command := h.PluginName + "/" + h.Command
 	switch {
-	case h.DirectMessageOnly:
-		return command + " not available in " + location + ", try direct message"
+	case h.PrivateOnly:
+		return command + " not available in " + location + ", try a private context"
 	case h.AnyRegularChannel:
 		return command + " not available in " + location + ", try it in any regular channel"
 	case len(h.Channels) == 1:
@@ -170,31 +170,31 @@ func (w *worker) commandLocationHint(task *Task, plugin *Plugin, command string)
 	}
 
 	if w.Incoming.DirectMessage {
-		switch {
-		case task.AllowDirect || task.DirectOnly:
+		if commandAllowsPrivate(plugin, command) {
 			return commandLocationHint{}, false
-		case len(task.Channels) > 0:
+		}
+		if len(task.Channels) > 0 {
 			return commandLocationHint{
 				PluginName: task.name,
 				Command:    command,
 				Channels:   append([]string(nil), task.Channels...),
 			}, true
-		case task.AllChannels:
+		}
+		if task.AllChannels {
 			return commandLocationHint{
 				PluginName:        task.name,
 				Command:           command,
 				AnyRegularChannel: true,
 			}, true
-		default:
-			return commandLocationHint{}, false
 		}
+		return commandLocationHint{}, false
 	}
 
-	if task.DirectOnly {
+	if commandRequiresPrivate(plugin, command) {
 		return commandLocationHint{
-			PluginName:        task.name,
-			Command:           command,
-			DirectMessageOnly: true,
+			PluginName:  task.name,
+			Command:     command,
+			PrivateOnly: true,
 		}, true
 	}
 	if len(task.Channels) > 0 {
@@ -217,25 +217,16 @@ func (w *worker) commandLocationHint(task *Task, plugin *Plugin, command string)
 // both handleMessage and the help builtin. verboseOnly is set when availability
 // is being checked for ambient messages or auth/elevation plugins, to indicate
 // debugging verboseness. The `specific` bool is set whenever a plugin lists the
-// channel explicitly, or for direct messages when DirectOnly is true; this is
-// used by the help plugin to differentiate "<robot>, help" from "<robot> help-all".
+// channel explicitly; this is used by the help plugin to differentiate
+// "<robot>, help" from "<robot> help-all".
 func (w *worker) pluginAvailable(task *Task, helpSystem, verboseOnly bool) (available, specific bool) {
 	if task.Disabled {
-		return false, false
-	}
-	if !w.Incoming.DirectMessage && task.DirectOnly && !helpSystem {
-		return false, false
-	}
-	if w.Incoming.DirectMessage && !task.AllowDirect && !helpSystem {
 		return false, false
 	}
 	if !w.userCanAccessTask(task) {
 		return false, false
 	}
-	if w.Incoming.DirectMessage && (task.AllowDirect || task.DirectOnly) {
-		if task.DirectOnly {
-			return true, true
-		}
+	if w.Incoming.DirectMessage {
 		return true, helpSystem
 	}
 	if len(task.Channels) > 0 {

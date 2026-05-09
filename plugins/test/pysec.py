@@ -6,7 +6,6 @@ from gopherbot_v2 import Robot
 default_config = """
 ---
 AllChannels: true
-AllowDirect: true
 Authorizer: groups
 AuthRequire: Helpdesk
 AdminCommands:
@@ -17,7 +16,7 @@ ElevatedCommands:
 - secelevated
 ElevateImmediateCommands:
 - secimmediate
-AllowedHiddenCommands:
+AllowedPrivateCommands:
 - sechiddenok
 Commands:
 - Regex: (?i:python-sec-open)

@@ -8,7 +8,6 @@ bot = Robot.new()
 defaultConfig = <<'DEFCONFIG'
 Channels:
 - botdev
-AllowDirect: false
 Commands:
 - Regex: '(?i:format world)'
   Command: "format"

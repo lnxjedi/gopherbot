@@ -435,7 +435,7 @@ func TestHelpSurfaceCommandText(t *testing.T) {
 	}
 }
 
-func TestRenderHelpEntryIncludesHiddenExamples(t *testing.T) {
+func TestRenderHelpEntryIncludesPrivateExamples(t *testing.T) {
 	w := &worker{
 		cfg: &configuration{alias: '!', botinfo: UserInfo{UserName: "Clu"}},
 		pipeContext: &pipeContext{
@@ -447,17 +447,17 @@ func TestRenderHelpEntryIncludesHiddenExamples(t *testing.T) {
 	w.registerWorker(r.tid)
 	defer deregisterWorker(r.tid)
 	entry := helpCommandMetadata{
-		PluginName:     "builtin-help",
-		Command:        "help",
-		Examples:       []string{"(alias) help ping"},
-		HiddenExamples: []string{"/clu help ping"},
+		PluginName:      "builtin-help",
+		Command:         "help",
+		Examples:        []string{"(alias) help ping"},
+		PrivateExamples: []string{"/clu help ping"},
 	}
 	rendered := r.renderHelpEntry(entry, true, false, 0)
 	if !containsLine(rendered, "**Examples:**") {
 		t.Fatalf("rendered help missing Examples section: %q", rendered)
 	}
-	if !containsLine(rendered, "**Hidden examples:**") {
-		t.Fatalf("rendered help missing Hidden examples section: %q", rendered)
+	if !containsLine(rendered, "**Private examples:**") {
+		t.Fatalf("rendered help missing Private examples section: %q", rendered)
 	}
 }
 
@@ -504,16 +504,39 @@ func TestParseHelpQuery(t *testing.T) {
 	}
 }
 
-func TestCommandAllowsHidden(t *testing.T) {
-	plugin := &Plugin{AllowedHiddenCommands: []string{"help", "*"}}
-	if !commandAllowsHidden(plugin, "help") {
-		t.Fatalf("expected explicit hidden command match")
+func TestCommandAllowsPrivate(t *testing.T) {
+	plugin := &Plugin{AllowedPrivateCommands: []string{"help", "*"}}
+	if !commandAllowsPrivate(plugin, "help") {
+		t.Fatalf("expected explicit private command match")
 	}
-	if !commandAllowsHidden(plugin, "whoami") {
-		t.Fatalf("expected wildcard hidden command match")
+	if !commandAllowsPrivate(plugin, "whoami") {
+		t.Fatalf("expected wildcard private command match")
 	}
-	if commandAllowsHidden(&Plugin{}, "help") {
-		t.Fatalf("expected false for plugin with no hidden commands")
+	if commandAllowsPrivate(&Plugin{}, "help") {
+		t.Fatalf("expected false for plugin with no private commands")
+	}
+}
+
+func TestCommandAllowsPrivateIncludesRequiredPrivate(t *testing.T) {
+	plugin := &Plugin{RequiredPrivateCommands: []string{"dump"}}
+	if !commandRequiresPrivate(plugin, "dump") {
+		t.Fatalf("expected required private command match")
+	}
+	if !commandAllowsPrivate(plugin, "dump") {
+		t.Fatalf("expected required private command to be allowed private")
+	}
+	if commandRequiresPrivate(plugin, "help") {
+		t.Fatalf("expected unrelated command not to require private")
+	}
+}
+
+func TestCommandAllowsPrivateIncludesRequireAllCommandsPrivate(t *testing.T) {
+	plugin := &Plugin{RequireAllCommandsPrivate: true}
+	if !commandRequiresPrivate(plugin, "anything") {
+		t.Fatalf("expected all commands to require private")
+	}
+	if !commandAllowsPrivate(plugin, "anything") {
+		t.Fatalf("expected all required private commands to be allowed private")
 	}
 }
 

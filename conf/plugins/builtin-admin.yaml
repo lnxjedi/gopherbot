@@ -1,8 +1,7 @@
 ---
 AllChannels: true
-AllowDirect: true
 RequireAdmin: true
-AllowedHiddenCommands:
+AllowedPrivateCommands:
 - reload
 - update
 - branch
@@ -21,6 +20,7 @@ AllowedHiddenCommands:
 - pauselist
 - chanlog
 - stopchanlog
+RequiredPrivateCommands:
 - listplugins
 - dumpplugdefault
 - dumpplugin
@@ -156,31 +156,31 @@ Commands:
   Regex: '(?i:list(?:[- ](disabled))?[- ]plugins?)'
   Keywords: [ "list", "plugin", "plugins" ]
   Usage: "list (disabled) plugins"
-  Summary: "list all known plugins, or list disabled plugins with the reason disabled; hidden command only"
+  Summary: "list all known plugins, or list disabled plugins with the reason disabled; private command only"
   Examples:
-  - "(hidden) list plugins"
-  - "(hidden) list disabled plugins"
+  - "(private) list plugins"
+  - "(private) list disabled plugins"
 - Command: "dumpplugdefault"
   # Regex: '(?i:dump[- ]plugin[- ]default ([\d\w-.]+))'
   SimpleMatcher: "dump plugin default <plugin:token>"
   Keywords: [ "dump", "plugin" ]
   Usage: "dump plugin (default) <plugname>"
-  Summary: "dump the default configuration for the plugin; hidden command only"
+  Summary: "dump the default configuration for the plugin; private command only"
   Examples:
-  - "(hidden) dump plugin default ping"
+  - "(private) dump plugin default ping"
 - Command: "dumpplugin"
   # Regex: '(?i:dump[- ]plugin ([\d\w-.]+))'
   SimpleMatcher: "dump plugin <plugin:token>"
   Keywords: [ "dump", "plugin" ]
   Usage: "dump plugin (default) <plugname>"
-  Summary: "dump the current configuration for the plugin; hidden command only"
+  Summary: "dump the current configuration for the plugin; private command only"
   Examples:
-  - "(hidden) dump plugin ping"
+  - "(private) dump plugin ping"
 - Command: "dumprobot"
   # Regex: "(?i:dump[- ]robot)"
   SimpleMatcher: "dump robot"
   Keywords: [ "dump", "robot" ]
   Usage: "dump robot"
-  Summary: "dump the current configuration for the robot; hidden command only"
+  Summary: "dump the current configuration for the robot; private command only"
   Examples:
-  - "(hidden) dump robot"
+  - "(private) dump robot"

@@ -82,7 +82,6 @@ type configuration struct {
 	mailConf                   botMailer // configuration to use when sending email
 	ignoreUsers                []string  // list of users to never listen to, like other bots
 	joinChannels               []string  // list of channels to join
-	defaultAllowDirect         bool      // whether plugins are available in DM by default
 	ignoreUnlistedUsers        bool      // ignore users not listed in the UserRoster
 	secureParamRetrieve        bool      // don't publish parameters as environment variables
 	privsepSupplementaryGroups privsepSupplementaryGroupPolicy

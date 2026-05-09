@@ -1,12 +1,12 @@
 # Slack Connector Notes
 
-This file captures Slack connector behavior relevant to routing, hidden commands, and help rendering.
+This file captures Slack connector behavior relevant to routing, private slash commands, and help rendering.
 
 ## Source Anchors
 
 - Registration/init: `connectors/slack/static.go`, `connectors/slack/connect.go`
 - Incoming message normalization: `connectors/slack/incomingMsgs.go`
-- Outgoing formatting + hidden-command hooks: `connectors/slack/connectorMethods.go`
+- Outgoing formatting + private-command hooks: `connectors/slack/connectorMethods.go`
 
 ## Identity Mapping
 
@@ -37,18 +37,18 @@ This file captures Slack connector behavior relevant to routing, hidden commands
   - `MessageText=<slash payload text>`
   - no thread metadata (slash commands are non-threaded inbound).
 
-## Hidden Command Semantics
+## Private Command Semantics
 
-- Slack hidden-command support is decided at connector initialization time, not registration time.
+- Slack hidden/ephemeral transport support is decided at connector initialization time, not registration time.
 - `Initialize(...)` returns `robot.InitializedConnector{Connector, Capabilities}` and only sets `Capabilities.HiddenCommands=true` when slash-command support is explicitly enabled in config.
 - Slack protocol config must explicitly set `AcceptSlashCommands: true|false`.
 - If `AcceptSlashCommands: true`, `SlashCommand` is required. The connector normalizes either `clu` or `/clu` to the canonical slash form.
 - If `AcceptSlashCommands` is omitted, or `SlashCommand` is missing while slash commands are enabled, Slack startup fails with a clear fatal log message so the robot owner knows the config is incomplete.
 - Slack slash commands are platform-routed to one bot app, so connector sets `BotMessage=true`.
-- Engine hidden-command policy then treats slash payload as addressed-to-robot without requiring an explicit robot name in text.
-- Command still must be explicitly allowed by plugin `AllowedHiddenCommands`.
-- Slack implements `robot.HiddenCommandFormatter`, so engine help/fallback can suggest concrete hidden commands such as `/clu help knock/knock` instead of placeholder `/(bot)` text.
-- Engine remains the owner of user-facing denial copy; when a hidden command is matched but addressed incorrectly for the protocol, engine uses Slack's formatter to produce one concrete guidance message.
+- Engine private-command policy then treats slash payload as addressed-to-robot without requiring an explicit robot name in text.
+- Command still must be explicitly allowed by plugin `AllowedPrivateCommands`, `RequiredPrivateCommands`, or `RequireAllCommandsPrivate`.
+- Slack implements `robot.HiddenCommandFormatter`, so engine help/fallback can suggest concrete private slash commands such as `/clu help knock/knock` instead of placeholder `/(bot)` text.
+- Engine remains the owner of user-facing denial copy; when a private hidden invocation is matched but addressed incorrectly for the protocol, engine uses Slack's formatter to produce one concrete guidance message.
 
 ## Outgoing Format Behavior
 

@@ -33,7 +33,17 @@ Forward plan:
   `integration/runs/`, starts a real robot process in that directory using the
   scripted test connector, prints live interaction when requested, and writes
   `result.json`, `robot.log`, and `transcript.txt`. The transcript contains the
-  same `->` / `<-` interaction lines that live output prints.
+  same `->` / `<-` interaction lines that live output prints, plus step-level
+  progress such as case starts, idle waits, event drains, and expected replies.
+- `gopherbot-integration run-suite` enforces a per-test timeout with
+  `-case-timeout` (default `14s`). If a case or YAML flow step exceeds that
+  deadline, the suite writes `goroutines.txt`, marks the failed step with
+  `timed_out: true` in `result.json`, and exits the suite process hard so the
+  goroutine state reflects the hang.
+- After scripted cases complete, the runner sends the normal admin `bender quit`
+  command in `#general`. If the robot does not exit within the same
+  `-case-timeout`, the runner writes `goroutines.txt`, records a `shutdown`
+  timeout failure, and exits hard.
 - `gopherbot-integration` owns its top-level CLI. Running it with no arguments
   or `--help` prints integration-runner help rather than starting a robot.
   Explicit `gopherbot-integration run [gopherbot flags]` is the high-fidelity
@@ -56,7 +66,9 @@ Forward plan:
   `read_integration_result`. `run_integration_suite` builds
   `gopherbot-integration` by default, runs the selected suite with output
   redirected to artifact files, and returns a compact summary plus paths,
-  including `results_root` for the common output directory.
+  including `results_root` for the common output directory. It passes
+  `case_timeout_ms` through to `gopherbot-integration` when supplied; the
+  default is `14000`.
 - `make integration-mcp TEST=<SuiteName>` wraps `gopherbot-mcp`
   `run_integration_suite` for local/AI use. Prefer this wrapper when running
   from Codex so the already-approved `make` path is used instead of repeatedly

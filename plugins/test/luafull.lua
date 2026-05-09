@@ -54,7 +54,7 @@ Commands:
   Command: pipefailcmd
 - Regex: (?i:lua-encrypt-secret-unpriv)
   Command: encryptsecret
-AllowedHiddenCommands:
+AllowedPrivateCommands:
 - sendmsg
 Config:
   Openings:

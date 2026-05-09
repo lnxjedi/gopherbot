@@ -9,7 +9,6 @@ configure(){
   cat <<"EOF"
 Channels:
 - random
-AllowDirect: false
 Commands:
 - Regex: '(?i:hello robot)'
   Command: "hello"

@@ -6,7 +6,8 @@ from gopherbot_v2 import Robot
 default_config = """
 ---
 AllChannels: true
-AllowDirect: true
+AllowedPrivateCommands:
+- "*"
 """
 
 

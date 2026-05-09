@@ -56,7 +56,7 @@ Commands:
   Command: pipefailcmd
 - Regex: (?i:js-encrypt-secret-unpriv)
   Command: encryptsecret
-AllowedHiddenCommands:
+AllowedPrivateCommands:
 - sendmsg
 Config:
   Openings:

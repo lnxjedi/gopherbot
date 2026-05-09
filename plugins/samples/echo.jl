@@ -12,7 +12,7 @@ function configure()
 Commands:
 - Command: "echo"
   Regex: '(?i:echo ([^\n]*))'
-AllowedHiddenCommands:
+AllowedPrivateCommands:
 - echo
 """
     println(yaml)

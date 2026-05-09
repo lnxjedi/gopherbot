@@ -18,7 +18,7 @@ flow:
       text: validate user bob
     receive:
       user: alice
-      text_pattern: "Validation code for 'bob': ([0-9]{7}).*direct app message to the robot or a hidden command"
+      text_pattern: "Validation code for 'bob': ([0-9]{7}).*private app message to the robot"
       capture_regex:
         validation_code: "Validation code for 'bob': ([0-9]{7})"
   - name: drain-validation-code-events

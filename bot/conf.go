@@ -88,7 +88,6 @@ type ConfigLoader struct {
 	DefaultElevator                    string                            `yaml:"DefaultElevator"`                    // Elevator plugin for ElevatedCommands and ElevateImmediateCommands
 	DefaultAuthorizer                  string                            `yaml:"DefaultAuthorizer"`                  // Authorizer plugin for AuthorizedCommands, or when AuthorizeAllCommands = true
 	DefaultMessageFormat               string                            `yaml:"DefaultMessageFormat"`               // How the robot formats outgoing messages; default: BasicMarkdown
-	DefaultAllowDirect                 bool                              `yaml:"DefaultAllowDirect"`                 // Whether plugins are available in a DM by default
 	IgnoreUnlistedUsers                bool                              `yaml:"IgnoreUnlistedUsers"`                // Drop messages unless user is in global UserRoster
 	SecureParameters                   bool                              `yaml:"SecureParameters"`                   // Don't publish parameters as environment variables
 	PrivsepAllowAllSupplementaryGroups bool                              `yaml:"PrivsepAllowAllSupplementaryGroups"` // Allow all retained supplementary groups in unprivileged privsep children
@@ -392,8 +391,6 @@ func loadConfig(preConnect bool) error {
 		return fmt.Errorf("loading configuration file: %v", err)
 	}
 
-	explicitDefaultAllowDirect := false
-
 	for key, value := range configload {
 		var strval string
 		var sarrval []string
@@ -413,7 +410,7 @@ func loadConfig(preConnect bool) error {
 		switch key {
 		case "AdminContact", "Email", "PrimaryProtocol", "DefaultProtocol", "Brain", "EncryptionKey", "HistoryProvider", "WorkSpace", "DefaultJobChannel", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogDest", "LogLevel", "TimeZone":
 			val = &strval
-		case "DefaultAllowDirect", "HttpDebug", "IgnoreUnlistedUsers", "SecureParameters", "PrivsepAllowAllSupplementaryGroups":
+		case "HttpDebug", "IgnoreUnlistedUsers", "SecureParameters", "PrivsepAllowAllSupplementaryGroups":
 			val = &boolval
 		case "BotInfo":
 			val = &bival
@@ -487,9 +484,6 @@ func loadConfig(preConnect bool) error {
 			newconfig.UserRoster = *(val.(*[]UserRosterEntry))
 		case "ChannelRoster":
 			newconfig.ChannelRoster = *(val.(*[]ChannelInfo))
-		case "DefaultAllowDirect":
-			newconfig.DefaultAllowDirect = *(val.(*bool))
-			explicitDefaultAllowDirect = true
 		case "DefaultChannels":
 			newconfig.DefaultChannels = *(val.(*[]string))
 		case "IgnoreUsers":
@@ -665,12 +659,6 @@ func loadConfig(preConnect bool) error {
 		processed.defaultMessageFormat = robot.BasicMarkdown
 	} else {
 		processed.defaultMessageFormat = setFormat(newconfig.DefaultMessageFormat)
-	}
-
-	if explicitDefaultAllowDirect {
-		processed.defaultAllowDirect = newconfig.DefaultAllowDirect
-	} else {
-		processed.defaultAllowDirect = true // rare case of defaulting to true
 	}
 
 	if newconfig.AdminContact != "" {

@@ -8,7 +8,6 @@ bot = Robot()
 default_config = '''
 Channels:
 - random
-AllowDirect: false
 Commands:
 - Regex: '(?i:format world)'
   Command: "format"

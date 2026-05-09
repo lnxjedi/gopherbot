@@ -169,15 +169,16 @@ These apply to `bot/handler.go`, `bot/available.go`, `bot/authorize.go`, `bot/el
 - `Task.Users` is a whitelist: an empty list means all users are permitted. Never invert this — empty must never restrict access.
 - An authorizer plugin returning `robot.Normal` (0) is a mechanism failure, not success. Auth plugins must explicitly return `robot.Success` (1). Do not change this behavior.
 
-### Hidden inspection/admin commands
+### Private inspection/admin commands
 
-- Hidden-command allow/deny remains engine-owned and still requires connector support plus plugin `AllowedHiddenCommands`.
-- The broadened hidden admin surface does not weaken underlying auth/elevation checks:
-  - `builtin-admin` may expose most admin commands as hidden-capable, but `quit`, `restart`, and `abort` remain excluded.
-  - Legacy `builtin-dmadmin` inspection commands (`dump robot`, `dump plugin`, `dump plugin default`, `list plugins`) now live on `builtin-admin` as globally available hidden-required commands; direct or channel-visible invocation is rejected by the handler before returning configuration data.
-  - `builtin-history` and `builtin-jobcmd` can now expose their allowed hidden commands.
+- Private-command allow/deny remains engine-owned through plugin `AllowedPrivateCommands`, `RequiredPrivateCommands`, or `RequireAllCommandsPrivate`.
+- Hidden/ephemeral invocations also require connector support and robot addressing; direct messages do not require hidden transport support.
+- The broadened private admin surface does not weaken underlying auth/elevation checks:
+  - `builtin-admin` exposes selected admin commands as private-capable through explicit command lists.
+  - Legacy `builtin-dmadmin` inspection commands (`dump robot`, `dump plugin`, `dump plugin default`, `list plugins`) now live on `builtin-admin` as globally available private-required commands; public channel invocation is rejected by the engine before plugin code returns configuration data.
+  - `builtin-history` and `builtin-jobcmd` can expose their allowed private commands.
   - job/history security checks still authorize against the target job/task and preserve normal admin/authorization/elevation ordering.
-- Practical implication: hidden `ps`, `get-pipeline-log`, config inspection, `jobs`, and history lookups are a transport/privacy convenience, not a policy bypass.
+- Practical implication: private `ps`, `get-pipeline-log`, config inspection, `jobs`, and history lookups are a transport/privacy convenience, not a policy bypass.
 
 ## Message Context and Privacy Invariants
 
@@ -185,14 +186,14 @@ The concern is not command visibility (hard to hide) but message routing confide
 
 ### Connector authority over message context
 
-- Connectors are the sole authority for `Incoming.DirectMessage`. This flag must be set accurately by the connector and must not be modified by the engine or plugins after `handler.IncomingMessage` returns.
-- `DirectOnly: true` on a task is enforced in `pluginAvailable` before the pipeline starts — the task will not match in a channel. This enforcement must not be weakened.
+- Connectors are the sole authority for `Incoming.DirectMessage` and `Incoming.HiddenMessage`. These flags must be set accurately by the connector and must not be modified by the engine or plugins after `handler.IncomingMessage` returns.
+- Private-command requirements are enforced in engine pipeline startup before plugin code runs.
 
 ### Response routing — no implicit privatization
 
 - `r.Say()` and `r.Reply()` reply in the same channel/DM context as the triggering message. The engine does not implicitly privatize responses. This must not change.
 - Plugins or tasks that return sensitive data (credentials, tokens, personal info, secrets) must either:
-  - Be marked `DirectOnly: true` (command can only be invoked via DM), **or**
+  - Be configured through `RequiredPrivateCommands` / `RequireAllCommandsPrivate`, **or**
   - Explicitly call `r.Direct().Reply()` / `r.Direct().Say()` to force a DM response.
 - Bot-initiated messages (not in response to a user command) containing per-user sensitive data must use `SendUserMessage` (DM path), not `SendChannelMessage`. There is no engine guard for this — it is a code review requirement.
 

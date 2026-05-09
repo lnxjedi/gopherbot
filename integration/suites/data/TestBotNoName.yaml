@@ -50,11 +50,12 @@ cases:
       text: 'bender: echo hello world'
     replies:
       - channel: general
-        text_pattern: hello world
+        text_pattern: '(?s:I couldn''t match bender, echo hello world in channel #general.*Try /bender commands or /bender help <keyword>\.)'
         threaded: true
     events:
-      - CommandTaskRan
-      - ExternalTaskRan
+      - CatchAllsRan
+      - CatchAllTaskRan
+      - GoPluginRan
   - input:
       user: alice
       channel: general

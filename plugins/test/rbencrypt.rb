@@ -5,7 +5,8 @@ require 'gopherbot_v1'
 default_config = <<'DEFCONFIG'
 ---
 AllChannels: true
-AllowDirect: true
+AllowedPrivateCommands:
+- "*"
 DEFCONFIG
 
 command = ARGV.shift()

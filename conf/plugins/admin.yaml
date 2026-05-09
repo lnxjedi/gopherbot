@@ -1,5 +1,6 @@
 ---
 RequireAdmin: true
-AllowDirect: true
+AllowedPrivateCommands:
+- "*"
 AllChannels: true
 Commands: []

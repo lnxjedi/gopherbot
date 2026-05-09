@@ -160,8 +160,8 @@ func TestAdminPSAndGetPipelineLog(t *testing.T) {
 	activePipelines.Unlock()
 
 	admin(r, "ps")
-	if !strings.Contains(fake.lastMessage, "direct messages or hidden messages") {
-		t.Fatalf("visible ps did not require hidden/DM context: %q", fake.lastMessage)
+	if !strings.Contains(fake.lastMessage, "private context") {
+		t.Fatalf("visible ps did not require private context: %q", fake.lastMessage)
 	}
 
 	r.Incoming.HiddenMessage = true

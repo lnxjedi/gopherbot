@@ -1,6 +1,7 @@
 ---
 AllChannels: true
-AllowDirect: true
+AllowedPrivateCommands:
+- "*"
 AuthorizeAllCommands: true
 AuthRequire: Helpdesk
 Commands:

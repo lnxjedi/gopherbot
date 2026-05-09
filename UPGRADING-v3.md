@@ -471,8 +471,8 @@ Field semantics and authoring conventions:
 - `Examples` should use placeholders, not hardcoded names/aliases:
   - Use `(alias)` for concise CLI-like commands (for example `(alias) reboot-server Omega`).
   - Use `(bot)` for conversational commands (for example `(bot) tell me a joke`).
-- Hidden-capable command examples:
-  - When a command is listed in plugin `AllowedHiddenCommands`, built-in help may render `(bot)` examples as slash-addressed forms (for example `/(bot) whoami` rendered as `/Clu whoami`).
+- Private-capable command examples:
+  - When a command is listed in plugin `AllowedPrivateCommands`, built-in help may render `(bot)` examples as slash-addressed forms (for example `/(bot) whoami` rendered as `/Clu whoami`).
 - `Keywords` are optional and used for explicit help/fallback relevance boosts.
 - Help search automatically indexes command metadata (`plugin`, `command`, `usage`, `summary`) even when `Keywords` are omitted.
 
@@ -503,20 +503,20 @@ Help/fallback filtering behavior:
 - if `usergroups` returns usable groups, commands requiring auth are filtered by `AuthRequire`
 - if `usergroups` is not implemented, returns `NotFound`, or errors, help output is not group-filtered (no-filter fallback)
 
-## Hidden Command Addressing
+## Private Command Addressing
 
-Hidden command execution now requires both:
+Private command execution now requires both:
 
-- command is listed in plugin `AllowedHiddenCommands`
-- hidden message is robot-addressed:
+- command is listed in plugin `AllowedPrivateCommands`, `RequiredPrivateCommands`, or covered by `RequireAllCommandsPrivate`
+- for hidden/ephemeral invocations, the message is robot-addressed:
   - connector-routed bot message (`BotMessage=true`, e.g. Slack slash command), or
   - name-addressed hidden message (`/<botname> <command>` in connectors like SSH)
 
 Practical migration note:
-- plain hidden `/<command>` is not treated as a robot-addressed hidden command by default.
+- plain hidden `/<command>` is not treated as a robot-addressed private command by default.
 
-Built-in hidden-capable surface is also broader now:
+Built-in private-capable surface is also broader now:
 
-- `builtin-admin` may expose most admin commands as hidden-capable, but `quit`, `restart`, and `abort` remain excluded.
-- `builtin-history` and `builtin-jobcmd` can also mark specific commands as hidden-capable through `AllowedHiddenCommands`.
-- Hidden-capable admin/history/job commands still run through the same engine-owned connector support checks and normal admin/authorization/elevation policy.
+- `builtin-admin` exposes selected admin commands as private-capable through explicit command lists.
+- `builtin-history` and `builtin-jobcmd` can also mark specific commands as private-capable through `AllowedPrivateCommands`.
+- Private-capable admin/history/job commands still run through the same engine-owned connector support checks and normal admin/authorization/elevation policy.

@@ -15,7 +15,7 @@ func TestHiddenAdminInspectCommands(t *testing.T) {
 	done, conn := setup("test/membrain", "/tmp/bottest-admin-hidden.log", t)
 
 	tests := []testItem{
-		{aliceID, null, "dump robot", false, []TestMessage{{alice, null, "This command is only available as a hidden command.", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";dump robot", false, []TestMessage{{null, general, "This command is only available in a private context.", false}}, []Event{AdminCheckPassed}, 0},
 		{aliceID, general, "/bender: dump robot", false, []TestMessage{{null, general, "HERE'S HOW I'VE BEEN CONFIGURED.*", false}}, []Event{AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "/bender: dump plugin echo", false, []TestMessage{{null, general, "ALLCHANNELS.*", false}}, []Event{AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "/bender: dump plugin default echo", false, []TestMessage{{null, general, "HERE'S.*", false}}, []Event{AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},

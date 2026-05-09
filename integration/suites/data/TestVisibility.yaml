@@ -20,7 +20,7 @@ cases:
       text: help ruby, bender
     replies:
       - channel: general
-        text_pattern: '(?s:Command matches for keyword: ruby.*Availability: channels: random)'
+        text_pattern: '(?s:Command matches for keyword: ruby.*Availability: #random)'
         threaded: true
     events:
       - CommandTaskRan
@@ -39,14 +39,18 @@ cases:
       text: 'bender: echo hello world'
     replies:
       - channel: deadzone
-        text_pattern: 'echo/echo not available in #deadzone, try one of: #general, #random'
+        text_pattern: '(?s:I couldn''t match bender, echo hello world in channel #deadzone.*Try /bender commands or /bender help <keyword>\.)'
         threaded: true
+    events:
+      - CatchAllsRan
+      - CatchAllTaskRan
+      - GoPluginRan
   - input:
       user: alice
       text: hear me out
     replies:
       - user: alice
-        text_pattern: bashdemo/hear not available in direct messages, try it in any regular channel
+        text_pattern: Sorry, 'bashdemo/hear' cannot be run as a private command
     events:
       - BotDirectMessage
   - input:

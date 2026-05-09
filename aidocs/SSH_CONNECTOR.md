@@ -205,18 +205,18 @@ Direct messages are buffered and replayed only to the sender/recipient.
 
 ## Hidden Messages
 
-- `/botname ...` sends a hidden message addressed by robot name and returns hidden replies only to that user.
-- `/...` (without bot name) is still hidden from other SSH users, but is not considered a name-addressed hidden command by engine policy.
+- `/botname ...` sends a private message addressed by robot name and returns private replies only to that user.
+- `/...` (without bot name) is still hidden from other SSH users, but is not considered a name-addressed private command by engine policy.
 - `/ foo` sends nothing to others; emit `(INFO: '/' note to self message not sent to other users)`.
-- Incoming SSH hidden messages therefore split into two cases:
+- Incoming SSH hidden/private messages therefore split into two cases:
   - `HiddenMessage=true` for any slash-prefixed hidden/private message
   - a robot-addressed command payload only for `/<botname> ...`, which SSH normalizes to `<BotInfo.UserName> ...` before calling `IncomingMessage(...)`
 - Hidden replies are prefixed with `private/` in the timestamp segment.
 - SSH advertises hidden-command support from `Initialize(...)` through `robot.InitializedConnector.Capabilities.HiddenCommands`.
-- SSH implements `robot.HiddenCommandFormatter`, so built-in help and metadata can render concrete hidden examples such as `/clu help ping` and `/clu ping`.
-- The same formatter is used by engine-owned denial copy when a hidden command is matched but not addressed with SSH hidden syntax.
-- Engine-side hidden policy still applies:
-  - command must be listed in plugin `AllowedHiddenCommands`
+- SSH implements `robot.HiddenCommandFormatter`, so built-in help and metadata can render concrete private examples such as `/clu help ping` and `/clu ping`.
+- The same formatter is used by engine-owned denial copy when a private command is matched but not addressed with SSH hidden syntax.
+- Engine-side private policy still applies:
+  - command must be listed in plugin `AllowedPrivateCommands`, `RequiredPrivateCommands`, or covered by `RequireAllCommandsPrivate`
   - and hidden message must be robot-addressed (`/<botname> ...` for SSH, or connector-routed `BotMessage=true` in protocols like Slack slash commands).
 
 ## AI-Dev Injection and Retrieval

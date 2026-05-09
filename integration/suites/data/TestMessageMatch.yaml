@@ -68,21 +68,17 @@ cases:
       text: hello robot
     replies:
       - user: alice
-        text_pattern: Hello, World!
+        text_pattern: Sorry, 'hello2/hello' cannot be run as a private command
     events:
       - BotDirectMessage
-      - AmbientTaskRan
-      - ExternalTaskRan
   - input:
       user: alice
       text: bender, hello robot
     replies:
       - user: alice
-        text_pattern: Hello, World!
+        text_pattern: Sorry, 'hello2/hello' cannot be run as a private command
     events:
       - BotDirectMessage
-      - AmbientTaskRan
-      - ExternalTaskRan
   - input:
       user: alice
       channel: general

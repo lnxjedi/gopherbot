@@ -1,6 +1,7 @@
 ---
 RequireAdmin: true
-AllowDirect: true
+AllowedPrivateCommands:
+- "*"
 AllChannels: true
 Commands:
 - Command: "theia"

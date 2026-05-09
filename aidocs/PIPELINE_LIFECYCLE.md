@@ -23,33 +23,36 @@ AI‑onboarding view: entrypoints, decision points, and data flow for message‑
 - Direct commands → `Commands`: `bot/dispatch.go:handleMessage`, `bot/dispatch.go:checkPluginMatchersAndRun`.
 - Ambient messages → `MessageMatchers`: `bot/dispatch.go:handleMessage`, `bot/dispatch.go:checkPluginMatchersAndRun`.
 - Job triggers / `run job`: `bot/dispatch.go:handleMessage`, `bot/jobrun.go:checkJobMatchersAndRun`.
-- Unmatched directed-command location diagnostics next: when no command/message/job matched, the engine may emit a first-class "wrong location" response if the text regex-matches exactly one plugin command that is available to the same user in a different channel or only via DM. This runs before catch-alls and suppresses hints for command-level authorization when user visibility cannot be determined confidently (for example, authorizers without `usergroups` support).
+- Unmatched directed-command location diagnostics next: when no command/message/job matched, the engine may emit a first-class "wrong location" response if the text regex-matches exactly one plugin command that is available to the same user in a different channel or private context. This runs before catch-alls and suppresses hints for command-level authorization when user visibility cannot be determined confidently (for example, authorizers without `usergroups` support).
 - Catch‑alls (only when directly addressed and nothing matched): `bot/dispatch.go:handleMessage`.
 - Thread subscriptions last (`Subscribe`/`Unsubscribe`) keyed by `protocol/channel/thread`, with legacy fallback for restored pre-protocol keys: `bot/dispatch.go:handleMessage`, `bot/subscribe_thread.go`.
 
 Catch-all mode scoping:
-- Plugins may optionally set `CatchAllModes` to any subset of `alias`, `name`, `direct`.
+- Plugins may optionally set `CatchAllModes` to any subset of `alias`, `name`, `direct`, `private`.
 - `alias` means the robot was addressed through its alias prefix.
 - `name` means the robot was addressed by name/mention form.
 - `direct` means the command arrived in a DM context.
-- During unmatched-command routing, dispatch only considers catch-all plugins whose `CatchAllModes` include the current `cmdMode`.
+- `private` means the command arrived through a private context (`DirectMessage` or `HiddenMessage`).
+- During normal unmatched-command routing, dispatch only considers catch-all plugins whose `CatchAllModes` include the current `cmdMode`.
+- Private unmatched commands first try a `private` mode catch-all, allowing robot owners to route private command recovery separately. If no private-specific catch-all matches, dispatch falls back to the normal `alias`/`name`/`direct` mode selection.
 - Mode-scoped catchalls are treated as "specific" catchalls for precedence, so an alias-only recovery plugin can coexist with a name/direct AI fallback without colliding with generic fallback behavior.
 
-## Hidden Command Policy (routing + safety guard)
+## Private Command Policy (routing + safety guard)
 
-- Hidden-command policy check runs at pipeline-start time: `bot/run_pipelines.go` calls `Robot.checkHiddenCommands` in `bot/allow_hidden.go`.
-- Hidden-command support is a connector capability (`robot.ConnectorCapabilities.HiddenCommands`) supplied by the initialized connector instance and consumed through `bot/connector_capabilities.go`.
+- Private-command policy check runs at pipeline-start time: `bot/run_pipelines.go` calls `Robot.checkPrivateCommands` in `bot/allow_hidden.go`.
+- Hidden/ephemeral transport support is still a connector capability (`robot.ConnectorCapabilities.HiddenCommands`) supplied by the initialized connector instance and consumed through `bot/connector_capabilities.go`.
 - Connector registrations are static, but capability values are runtime/init-time so they can depend on protocol config (for example Slack slash-command enablement).
-- A hidden command is allowed only if both are true:
-  - the command is listed in plugin `AllowedHiddenCommands`
-  - the hidden message is explicitly addressed to this robot:
+- A private command is allowed only if both are true:
+  - the command is listed in plugin `AllowedPrivateCommands`, listed in `RequiredPrivateCommands`, or covered by `RequireAllCommandsPrivate: true`
+  - for hidden/ephemeral invocations, the message is explicitly addressed to this robot:
     - connector-marked bot message (`Incoming.BotMessage=true`, e.g. Slack slash route), or
     - name-addressed command mode (`cmdMode == "name"`).
-- Practical effect: hidden `/...` payloads that are not bot-addressed by connector or name will not execute hidden commands.
-- Some admin inspection commands are hidden-required even though they are globally available by matcher location. For example, `dump robot`, `dump plugin`, `dump plugin default`, and `list plugins` are implemented by `builtin-admin` but reject non-hidden invocation before returning configuration data.
+- Practical effect: hidden `/...` payloads that are not bot-addressed by connector or name will not execute private commands.
+- Plugins can require private invocation for selected commands with `RequiredPrivateCommands`, or for every command with `RequireAllCommandsPrivate`. The engine rejects non-private invocation with `This command is only available in a private context.` before plugin code runs.
+- Some admin inspection commands are private-required even though they are globally available by matcher location. For example, `dump robot`, `dump plugin`, `dump plugin default`, and `list plugins` are implemented by `builtin-admin` and configured through `RequiredPrivateCommands`.
 - User-facing denial behavior is split cleanly:
-  - if the active connector does not support hidden commands, engine returns a single protocol-specific unsupported message
-  - if the connector does support hidden commands but the user addressed them incorrectly, engine returns a single engine-authored guidance string built from the connector's concrete hidden-command formatter (for example ``Use `/clu <command>` to address a hidden command.``)
+  - if a hidden invocation uses a connector that does not support hidden/ephemeral transport, engine returns a single protocol-specific unsupported message
+  - if the connector does support hidden transport but the user addressed it incorrectly, engine returns a single engine-authored guidance string built from the connector's concrete formatter (for example ``Use `/clu <command>` to address a private command.``)
 
 ## Self-Message Routing Nuance (HearSelf-style flows)
 

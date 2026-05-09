@@ -19,7 +19,7 @@ cases:
       text: ;help log
     replies:
       - channel: general
-        text_pattern: '(?s:Command matches for keyword: log.*Availability: direct message only)'
+        text_pattern: '(?s:Command matches for keyword: log.*builtin-logging/show.*Availability: private context only)'
         threaded: true
     events:
       - CommandTaskRan
@@ -79,7 +79,7 @@ cases:
       text: ;help ruby
     replies:
       - channel: random
-        text_pattern: '(?s:Command matches for keyword: ruby.*Availability: channels: random)'
+        text_pattern: '(?s:Command matches for keyword: ruby.*Availability: #random)'
         threaded: true
     events:
       - CommandTaskRan
@@ -107,15 +107,13 @@ cases:
       - GoPluginRan
   - input:
       user: alice
-      text: dump robot
+      channel: general
+      text: ;dump robot
     replies:
-      - user: alice
-        text_pattern: This command is only available as a hidden command.
+      - channel: general
+        text_pattern: This command is only available in a private context.
     events:
-      - BotDirectMessage
       - AdminCheckPassed
-      - CommandTaskRan
-      - GoPluginRan
   - input:
       user: alice
       channel: general

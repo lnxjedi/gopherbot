@@ -14,51 +14,77 @@ func hiddenMessageAddressedToRobot(botMessage bool, cmdMode string) bool {
 	return cmdMode == "name"
 }
 
-func unsupportedHiddenCommandMessage(protocol string) string {
+func privateCommandContext(incoming *robot.ConnectorMessage) bool {
+	return incoming != nil && (incoming.DirectMessage || incoming.HiddenMessage)
+}
+
+func pluginHasPrivatePolicy(plugin *Plugin) bool {
+	return plugin != nil && (plugin.RequireAllCommandsPrivate || len(plugin.AllowedPrivateCommands) > 0 || len(plugin.RequiredPrivateCommands) > 0)
+}
+
+func unsupportedPrivateCommandMessage(protocol string) string {
 	protocol = strings.TrimSpace(normalizeProtocolName(protocol))
 	if protocol == "" {
-		return "This command isn't supported here because hidden commands are unavailable for this connector. Check with the robot administrator."
+		return "This command isn't supported here because private command transport is unavailable for this connector. Check with the robot administrator."
 	}
-	return fmt.Sprintf("This command isn't supported with %s because hidden commands are unavailable for this connector. Check with the robot administrator.", protocol)
+	return fmt.Sprintf("This command isn't supported with %s because private command transport is unavailable for this connector. Check with the robot administrator.", protocol)
 }
 
-func defaultHiddenCommandHint(botName string) string {
+func defaultPrivateCommandHint(botName string) string {
 	botName = strings.TrimSpace(botName)
 	if botName == "" {
-		return "Hidden commands must be addressed to the robot."
+		return "Private commands must be addressed to the robot."
 	}
-	return fmt.Sprintf("Hidden commands must be addressed to %s.", botName)
+	return fmt.Sprintf("Private commands must be addressed to %s.", botName)
 }
 
-// Check whether a given command is allowed to run as a hidden command. Connectors set HiddenMessage
-// to true if the command isn't visible in the team chat. For security/visibility, commands need to be
-// explicitly allowed to run "hidden". This occurs, for instance, with a slack slash command.
-func (r Robot) checkHiddenCommands(w *worker, t interface{}, command string) (retval robot.TaskRetVal) {
-	if !w.Incoming.HiddenMessage {
+func requiredPrivateCommandMessage() string {
+	return "This command is only available in a private context."
+}
+
+func (r Robot) checkRequiredPrivateCommand(w *worker, t interface{}, command string) robot.TaskRetVal {
+	if privateCommandContext(w.Incoming) {
 		return robot.Success
 	}
-	protocol := protocolFromIncoming(r.Incoming, r.Protocol)
-	if !hiddenCommandsSupportedForProtocol(protocol) {
-		r.Reply(unsupportedHiddenCommandMessage(protocol))
-		return robot.Fail
+	_, plugin, _ := getTask(t)
+	if !commandRequiresPrivate(plugin, command) {
+		return robot.Success
 	}
-	// Hidden commands from connectors should still be explicitly addressed to the
-	// robot unless the connector marks them as BotMessage (e.g. slash commands
-	// already routed to this robot by the platform).
-	if !hiddenMessageAddressedToRobot(w.Incoming.BotMessage, w.cmdMode) {
-		hint := strings.TrimSpace(r.expandHelpPlaceholders(hiddenCommandHintForProtocol(protocol)))
-		if hint == "" {
-			hint = defaultHiddenCommandHint(r.GetBotAttribute("name").String())
+	r.Say(requiredPrivateCommandMessage())
+	return robot.Fail
+}
+
+// Check whether a given command is allowed to run in a private context. Direct
+// messages and transport-private hidden messages both count as private, but
+// hidden messages still require connector support and explicit robot addressing.
+func (r Robot) checkPrivateCommands(w *worker, t interface{}, command string) (retval robot.TaskRetVal) {
+	if !privateCommandContext(w.Incoming) {
+		return robot.Success
+	}
+	if w.Incoming.HiddenMessage {
+		protocol := protocolFromIncoming(r.Incoming, r.Protocol)
+		if !hiddenCommandsSupportedForProtocol(protocol) {
+			r.Reply(unsupportedPrivateCommandMessage(protocol))
+			return robot.Fail
 		}
-		r.Reply(hint)
-		return robot.Fail
+		// Hidden/private commands from connectors should still be explicitly addressed to
+		// the robot unless the connector marks them as BotMessage (e.g. slash
+		// commands already routed to this robot by the platform).
+		if !hiddenMessageAddressedToRobot(w.Incoming.BotMessage, w.cmdMode) {
+			hint := strings.TrimSpace(r.expandHelpPlaceholders(hiddenCommandHintForProtocol(protocol)))
+			if hint == "" {
+				hint = defaultPrivateCommandHint(r.GetBotAttribute("name").String())
+			}
+			r.Reply(hint)
+			return robot.Fail
+		}
 	}
 	_, plugin, _ := getTask(t)
 	if plugin == nil {
 		return robot.Success
 	}
-	if commandAllowsHidden(plugin, command) {
-		w.Log(robot.Audit, "Hidden command '%s' from plugin '%s' issued by user '%s' in channel '%s'", command, plugin.name, r.User, r.Channel)
+	if commandAllowsPrivate(plugin, command) {
+		w.Log(robot.Audit, "Private command '%s' from plugin '%s' issued by user '%s' in channel '%s'", command, plugin.name, r.User, r.Channel)
 		return robot.Success
 	}
 	return robot.Fail

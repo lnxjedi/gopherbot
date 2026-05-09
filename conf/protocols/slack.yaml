@@ -5,7 +5,7 @@ ProtocolConfig:
   MaxMessageSplit: 2
   # AppToken: # requires override
   # BotToken: # requires override
-  ## You will probably want to override this to allow slash (hidden)
+  ## You will probably want to override this to allow slash (private)
   ## commands.
   AcceptSlashCommands: false
   # SlashCommand: clu

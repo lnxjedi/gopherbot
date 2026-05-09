@@ -49,7 +49,7 @@ func TestCommandLocationHintMultipleChannels(t *testing.T) {
 
 func TestCommandLocationHintAnyRegularChannelFromDM(t *testing.T) {
 	w := newAvailabilityTestWorker("alice", "", true)
-	task := &Task{name: "bashdemo", AllChannels: true, AllowDirect: false}
+	task := &Task{name: "bashdemo", AllChannels: true}
 	plugin := &Plugin{Task: task}
 
 	hint, ok := w.commandLocationHint(task, plugin, "hear")
@@ -63,17 +63,17 @@ func TestCommandLocationHintAnyRegularChannelFromDM(t *testing.T) {
 	}
 }
 
-func TestCommandLocationHintDirectOnly(t *testing.T) {
+func TestCommandLocationHintPrivateOnly(t *testing.T) {
 	w := newAvailabilityTestWorker("alice", "general", false)
-	task := &Task{name: "log", DirectOnly: true, AllowDirect: true}
-	plugin := &Plugin{Task: task}
+	task := &Task{name: "log", AllChannels: true}
+	plugin := &Plugin{Task: task, RequiredPrivateCommands: []string{"show"}}
 
 	hint, ok := w.commandLocationHint(task, plugin, "show")
 	if !ok {
 		t.Fatalf("commandLocationHint() = not ok, want hint")
 	}
 	got := hint.format(w.Channel, w.Incoming.DirectMessage)
-	want := "log/show not available in #general, try direct message"
+	want := "log/show not available in #general, try a private context"
 	if got != want {
 		t.Fatalf("commandLocationHint().format() = %q, want %q", got, want)
 	}

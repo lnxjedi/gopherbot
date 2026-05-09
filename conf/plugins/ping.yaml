@@ -1,7 +1,7 @@
 ---
 # These are used to see if the robot is alive, so should answer in every channel
 AllChannels: true
-AllowedHiddenCommands:
+AllowedPrivateCommands:
 - ping
 - whoami
 Commands:

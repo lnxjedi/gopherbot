@@ -134,7 +134,7 @@ cases:
     replies:
       - user: alice
         channel: general
-        text_pattern: \(?Sorry, 'shsec/sechiddendenied' cannot be run as a hidden command - use the robot's name or alias\)?
+        text_pattern: \(?Sorry, 'shsec/sechiddendenied' cannot be run as a private command\)?
     replies_only: true
   - input:
       user: alice

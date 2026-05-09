@@ -1,6 +1,7 @@
 ---
 AllChannels: true
-AllowDirect: true
+AllowedPrivateCommands:
+- "*"
 RequireAdmin: true
 Commands:
 - SimpleMatcher: lua-encrypt-secret

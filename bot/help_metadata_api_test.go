@@ -46,9 +46,8 @@ func TestGetHelpMetadataFiltersAndMarksVisibility(t *testing.T) {
 			&Task{name: "namespace"},
 			&Plugin{
 				Task: &Task{
-					name:        "lists",
-					Channels:    []string{"general"},
-					AllowDirect: true,
+					name:     "lists",
+					Channels: []string{"general"},
 				},
 				Commands: []InputMatcher{{
 					Command:  "add",
@@ -141,7 +140,7 @@ func TestGetHelpMetadataFiltersAndMarksVisibility(t *testing.T) {
 	}
 }
 
-func TestGetHelpMetadataIncludesHiddenExamplesForSupportedConnector(t *testing.T) {
+func TestGetHelpMetadataIncludesPrivateExamplesForSupportedConnector(t *testing.T) {
 	runtimeConnectors.Lock()
 	originalPrimary := runtimeConnectors.primary
 	originalDefault := runtimeConnectors.defaultProtocol
@@ -164,8 +163,8 @@ func TestGetHelpMetadataIncludesHiddenExamplesForSupportedConnector(t *testing.T
 		t: []interface{}{
 			&Task{name: "namespace"},
 			&Plugin{
-				Task:                  &Task{name: "builtin-help", Channels: []string{"general"}},
-				AllowedHiddenCommands: []string{"help"},
+				Task:                   &Task{name: "builtin-help", Channels: []string{"general"}},
+				AllowedPrivateCommands: []string{"help"},
 				Commands: []InputMatcher{{
 					Command:  "help",
 					Usage:    "(alias) help <keyword>",
@@ -195,21 +194,21 @@ func TestGetHelpMetadataIncludesHiddenExamplesForSupportedConnector(t *testing.T
 	defer deregisterWorker(r.tid)
 
 	payload := r.collectHelpMetadata("help")
-	if !payload.Context.HiddenCommandsSupported {
-		t.Fatalf("expected hidden command support in metadata context")
+	if !payload.Context.PrivateCommandsSupported {
+		t.Fatalf("expected private command support in metadata context")
 	}
-	if got := payload.Context.HiddenCommandHint; got != "Use `/clu <command>` to address a hidden command." {
-		t.Fatalf("unexpected hidden command hint in metadata context: %q", got)
+	if got := payload.Context.PrivateCommandHint; got != "Use `/clu <command>` to address a private command." {
+		t.Fatalf("unexpected private command hint in metadata context: %q", got)
 	}
 	if len(payload.VisibleHere) != 1 {
 		t.Fatalf("visible_here = %+v, want one help entry", payload.VisibleHere)
 	}
 	entry := payload.VisibleHere[0]
-	if !entry.HiddenSupported {
-		t.Fatalf("expected hidden support on help entry: %+v", entry)
+	if !entry.PrivateSupported {
+		t.Fatalf("expected private support on help entry: %+v", entry)
 	}
-	if len(entry.HiddenExamples) != 1 || entry.HiddenExamples[0] != "/clu help ping" {
-		t.Fatalf("hidden examples = %+v, want [/clu help ping]", entry.HiddenExamples)
+	if len(entry.PrivateExamples) != 1 || entry.PrivateExamples[0] != "/clu help ping" {
+		t.Fatalf("private examples = %+v, want [/clu help ping]", entry.PrivateExamples)
 	}
 }
 
@@ -524,6 +523,9 @@ func TestCatchAllModeMatches(t *testing.T) {
 	if !catchAllModeMatches(&Plugin{CatchAll: true}, "direct") {
 		t.Fatal("expected generic catchall to match all command modes")
 	}
+	if !catchAllModeMatches(&Plugin{CatchAll: true, CatchAllModes: []string{"private"}}, "private") {
+		t.Fatal("expected private catchall mode to match private input")
+	}
 }
 
 func TestSelectCatchAllTargetFiltersByCommandMode(t *testing.T) {
@@ -539,6 +541,57 @@ func TestSelectCatchAllTargetFiltersByCommandMode(t *testing.T) {
 	}
 
 	specific, fallback, multipleSpecific, multipleFallback := selectCatchAllTarget([]interface{}{aliasPlugin, namePlugin}, "alias", func(task *Task, plugin *Plugin) (bool, bool) {
+		return true, false
+	})
+	if multipleSpecific || multipleFallback {
+		t.Fatalf("unexpected multiple matches: specific=%t fallback=%t", multipleSpecific, multipleFallback)
+	}
+	if specific != aliasPlugin {
+		t.Fatalf("specific catchall = %#v, want alias plugin", specific)
+	}
+	if fallback != nil {
+		t.Fatalf("fallback catchall = %#v, want nil", fallback)
+	}
+}
+
+func TestSelectCatchAllTargetCanRoutePrivateSeparately(t *testing.T) {
+	genericPlugin := &Plugin{
+		Task:     &Task{name: "generic-fallback"},
+		CatchAll: true,
+	}
+	privatePlugin := &Plugin{
+		Task:          &Task{name: "private-fallback"},
+		CatchAll:      true,
+		CatchAllModes: []string{"private"},
+	}
+
+	specific, fallback, multipleSpecific, multipleFallback := selectCatchAllTarget([]interface{}{genericPlugin, privatePlugin}, "private", func(task *Task, plugin *Plugin) (bool, bool) {
+		return true, false
+	})
+	if multipleSpecific || multipleFallback {
+		t.Fatalf("unexpected multiple matches: specific=%t fallback=%t", multipleSpecific, multipleFallback)
+	}
+	if specific != privatePlugin {
+		t.Fatalf("specific catchall = %#v, want private plugin", specific)
+	}
+	if fallback != genericPlugin {
+		t.Fatalf("fallback catchall = %#v, want generic plugin", fallback)
+	}
+}
+
+func TestSelectCatchAllTargetKeepsAliasAndDirectSeparate(t *testing.T) {
+	aliasPlugin := &Plugin{
+		Task:          &Task{name: "alias-fallback"},
+		CatchAll:      true,
+		CatchAllModes: []string{"alias"},
+	}
+	directPlugin := &Plugin{
+		Task:          &Task{name: "direct-fallback"},
+		CatchAll:      true,
+		CatchAllModes: []string{"direct"},
+	}
+
+	specific, fallback, multipleSpecific, multipleFallback := selectCatchAllTarget([]interface{}{aliasPlugin, directPlugin}, "alias", func(task *Task, plugin *Plugin) (bool, bool) {
 		return true, false
 	})
 	if multipleSpecific || multipleFallback {

@@ -22,20 +22,20 @@ func TestHiddenMessageAddressedToRobot(t *testing.T) {
 	}
 }
 
-func TestUnsupportedHiddenCommandMessage(t *testing.T) {
-	if got := unsupportedHiddenCommandMessage(""); got == "" {
-		t.Fatal("unsupportedHiddenCommandMessage(\"\") returned empty string")
+func TestUnsupportedPrivateCommandMessage(t *testing.T) {
+	if got := unsupportedPrivateCommandMessage(""); got == "" {
+		t.Fatal("unsupportedPrivateCommandMessage(\"\") returned empty string")
 	}
-	if got := unsupportedHiddenCommandMessage("test"); got != "This command isn't supported with test because hidden commands are unavailable for this connector. Check with the robot administrator." {
-		t.Fatalf("unsupportedHiddenCommandMessage(test) = %q", got)
+	if got := unsupportedPrivateCommandMessage("test"); got != "This command isn't supported with test because private command transport is unavailable for this connector. Check with the robot administrator." {
+		t.Fatalf("unsupportedPrivateCommandMessage(test) = %q", got)
 	}
 }
 
-func TestDefaultHiddenCommandHint(t *testing.T) {
-	if got := defaultHiddenCommandHint(""); got != "Hidden commands must be addressed to the robot." {
-		t.Fatalf("defaultHiddenCommandHint(\"\") = %q", got)
+func TestDefaultPrivateCommandHint(t *testing.T) {
+	if got := defaultPrivateCommandHint(""); got != "Private commands must be addressed to the robot." {
+		t.Fatalf("defaultPrivateCommandHint(\"\") = %q", got)
 	}
-	if got := defaultHiddenCommandHint("Clu"); got != "Hidden commands must be addressed to Clu." {
-		t.Fatalf("defaultHiddenCommandHint(Clu) = %q", got)
+	if got := defaultPrivateCommandHint("Clu"); got != "Private commands must be addressed to Clu." {
+		t.Fatalf("defaultPrivateCommandHint(Clu) = %q", got)
 	}
 }

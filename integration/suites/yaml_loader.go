@@ -267,6 +267,7 @@ func normalizeLabel(label string) string {
 }
 
 func runYAMLFlow(ctx context.Context, d Driver, suiteName string, steps []yamlFlowStep) []Failure {
+	opts := runOptionsFromContext(ctx)
 	failures := make([]Failure, 0)
 	vars := make(map[string]string)
 	for i, step := range steps {
@@ -274,44 +275,52 @@ func runYAMLFlow(ctx context.Context, d Driver, suiteName string, steps []yamlFl
 		if caseName == "" {
 			caseName = fmt.Sprintf("step-%03d", i+1)
 		}
+		stepCtx, cancel := context.WithTimeout(ctx, opts.CaseTimeout)
+		logStep(d, suiteName, caseName, "flow-step", "start timeout=%s", opts.CaseTimeout)
 		if step.Case != nil {
 			c, err := yamlCaseToCase(*step.Case)
 			if err != nil {
+				cancel()
 				addYAMLFlowFailure(&failures, suiteName, caseName, "case", "%v", err)
 				return failures
 			}
 			if c.Name == "" {
 				c.Name = caseName
 			}
-			caseFailures := RunCases(ctx, d, suiteName, []Case{c})
+			caseFailures := RunCases(stepCtx, d, suiteName, []Case{c})
 			if len(caseFailures) > 0 {
+				cancel()
 				failures = append(failures, caseFailures...)
 				return failures
 			}
 		}
 		if step.WaitForIdle {
-			if err := d.WaitForIdle(ctx); err != nil {
-				addYAMLFlowFailure(&failures, suiteName, caseName, "wait", "%v", err)
+			if err := d.WaitForIdle(stepCtx); err != nil {
+				cancel()
+				addYAMLFlowFailureTimed(&failures, suiteName, caseName, "wait", contextTimedOut(stepCtx, err), "%v", err)
 				return failures
 			}
 		}
 		if step.DrainEvents {
-			if _, err := d.DrainEvents(ctx); err != nil {
-				addYAMLFlowFailure(&failures, suiteName, caseName, "drain", "%v", err)
+			if _, err := d.DrainEvents(stepCtx); err != nil {
+				cancel()
+				addYAMLFlowFailureTimed(&failures, suiteName, caseName, "drain", contextTimedOut(stepCtx, err), "%v", err)
 				return failures
 			}
 		}
 		if step.Sleep != "" {
 			pause, err := parseOptionalDuration(step.Sleep)
 			if err != nil {
+				cancel()
 				addYAMLFlowFailure(&failures, suiteName, caseName, "sleep", "%v", err)
 				return failures
 			}
 			timer := time.NewTimer(pause)
 			select {
-			case <-ctx.Done():
+			case <-stepCtx.Done():
 				timer.Stop()
-				addYAMLFlowFailure(&failures, suiteName, caseName, "sleep", "%v", ctx.Err())
+				addYAMLFlowFailureTimed(&failures, suiteName, caseName, "sleep", contextTimedOut(stepCtx, stepCtx.Err()), "%v", stepCtx.Err())
+				cancel()
 				return failures
 			case <-timer.C:
 			}
@@ -319,32 +328,39 @@ func runYAMLFlow(ctx context.Context, d Driver, suiteName string, steps []yamlFl
 		if step.Send != nil {
 			msg := yamlMessageToMessage(*step.Send)
 			msg.Text = expandFlowVars(msg.Text, vars)
-			if err := d.Send(ctx, msg); err != nil {
-				addYAMLFlowFailure(&failures, suiteName, caseName, "send", "%v", err)
+			if err := d.Send(stepCtx, msg); err != nil {
+				cancel()
+				addYAMLFlowFailureTimed(&failures, suiteName, caseName, "send", contextTimedOut(stepCtx, err), "%v", err)
 				return failures
 			}
 		}
 		if step.Receive != nil {
-			if err := runYAMLReceive(ctx, d, suiteName, caseName, step.Receive, vars, &failures); err != nil {
+			if err := runYAMLReceive(stepCtx, d, suiteName, caseName, step.Receive, vars, &failures); err != nil {
+				cancel()
 				return failures
 			}
 		}
 		if len(step.ExpectEvents) > 0 {
 			want, err := yamlEventsToEvents(step.ExpectEvents)
 			if err != nil {
+				cancel()
 				addYAMLFlowFailure(&failures, suiteName, caseName, "events", "%v", err)
 				return failures
 			}
-			got, err := d.DrainEvents(ctx)
+			got, err := d.DrainEvents(stepCtx)
 			if err != nil {
-				addYAMLFlowFailure(&failures, suiteName, caseName, "events", "%v", err)
+				cancel()
+				addYAMLFlowFailureTimed(&failures, suiteName, caseName, "events", contextTimedOut(stepCtx, err), "%v", err)
 				return failures
 			}
 			if err := matchEvents(want, got); err != nil {
+				cancel()
 				addYAMLFlowFailure(&failures, suiteName, caseName, "events", "%v", err)
 				return failures
 			}
 		}
+		cancel()
+		logStep(d, suiteName, caseName, "flow-step", "finish")
 	}
 	return failures
 }
@@ -358,7 +374,7 @@ func runYAMLReceive(ctx context.Context, d Driver, suiteName, caseName string, r
 	}
 	got, err := d.Receive(ctx, want)
 	if err != nil {
-		addYAMLFlowFailure(failures, suiteName, caseName, "reply", "%v", err)
+		addYAMLFlowFailureTimed(failures, suiteName, caseName, "reply", contextTimedOut(ctx, err), "%v", err)
 		return err
 	}
 	if err := matchMessage(want, got); err != nil {
@@ -436,11 +452,16 @@ func resolveInputUser(user string) string {
 }
 
 func addYAMLFlowFailure(failures *[]Failure, suiteName, caseName, step string, format string, args ...interface{}) {
+	addYAMLFlowFailureTimed(failures, suiteName, caseName, step, false, format, args...)
+}
+
+func addYAMLFlowFailureTimed(failures *[]Failure, suiteName, caseName, step string, timedOut bool, format string, args ...interface{}) {
 	*failures = append(*failures, Failure{
-		Suite: suiteName,
-		Case:  caseName,
-		Step:  step,
-		Error: fmt.Sprintf(format, args...),
+		Suite:    suiteName,
+		Case:     caseName,
+		Step:     step,
+		Error:    fmt.Sprintf(format, args...),
+		TimedOut: timedOut,
 	})
 }
 
