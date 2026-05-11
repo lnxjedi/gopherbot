@@ -4,6 +4,27 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
 
 ## Open TODOs
 
+- [ ] Clear up Private interaction with Channel Restrictions and Direct
+  Messages - document and enforce in code.
+  RULE: When a Channel Restriction Applies, a Direct Message isn't allowed
+  UNLESS "" (an empty channel name) is in the list of allowed channels;
+  channel restrictions may be used to restrict visibility of a command, but
+  may also be used by the Administrator to restrict availability of certain
+  commands and jobs to invited members of private channels.
+- [ ] Enforce non-empty job channel - jobs must use a real channel, not a
+      direct message ("").
+- [ ] Convert "run job" into a REAL built-in plugin:
+  - One "special" thing about the builtin "runjob" plugin is that the
+    command matcher captures a valid job name in the first argument and uses
+    THAT as the "command" to the plugin. Otherwise, all plugin configuration
+    for Private, Authorized, Admin, etc. use the job name for these lists.
+  - The other "special" thing about "runjob" is that job channel visibility
+    is taken from the Job config, not the plugin.
+    - Taken with the Private security rule and job channel interpretation
+      above, this means run job is never available in a direct message.
+  - The rest of the command after job name should be processed as currently -
+    use "builtin" privileges to examine the job arguments and parse them from
+    the rest of the command, or prompt the user for them.
 - [x] Replace the `go test ./test` integration harness with a process-backed
   `gopherbot-integration` workflow:
   - Process-backed integration suites now live as readable YAML under
