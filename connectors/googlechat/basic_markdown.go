@@ -8,18 +8,8 @@ import (
 	"github.com/lnxjedi/gopherbot/robot/util"
 )
 
-var basicMarkdownCoreEmoji = map[string]string{
-	"white_check_mark": "\u2705",
-	"warning":          "\u26a0\ufe0f",
-	"x":                "\u274c",
-	"rocket":           "\U0001f680",
-	"fire":             "\U0001f525",
-	"joy":              "\U0001f602",
-	"thinking_face":    "\U0001f914",
-	"eyes":             "\U0001f440",
-	"thumbsup":         "\U0001f44d",
-	"thumbsdown":       "\U0001f44e",
-}
+// Emoji rendering now uses the comprehensive emoji map from util.EmojiUnicode
+// with automatic shortcode normalization (dashes converted to underscores).
 
 const googleChatZWSP = "\u200B"
 
@@ -420,7 +410,7 @@ func replaceBasicMarkdownEmoji(msg string) string {
 		}
 
 		name := msg[i+1 : end]
-		if emoji, ok := basicMarkdownCoreEmoji[name]; ok {
+		if emoji := util.EmojiUnicode(name); emoji != "" {
 			out.WriteString(emoji)
 		} else {
 			out.WriteString(msg[i : end+1])

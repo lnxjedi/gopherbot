@@ -1,5 +1,7 @@
 package util
 
+import "strings"
+
 var EmojiMap = map[string]string{
 	"+1":                              "👍",
 	"100":                             "💯",
@@ -1914,4 +1916,15 @@ var EmojiMap = map[string]string{
 	"zombie_man":                           "🧟‍♂️",
 	"zombie_woman":                         "🧟‍♀️",
 	"zzz":                                  "💤",
+}
+
+// EmojiUnicode returns the unicode emoji string for a given shortcode.
+// Automatically normalizes the shortcode to lowercase with underscores instead of dashes.
+// Returns an empty string if the shortcode is not found.
+func EmojiUnicode(shortcode string) string {
+	normalizedName := strings.ReplaceAll(shortcode, "-", "_")
+	if emoji, ok := EmojiMap[normalizedName]; ok {
+		return emoji
+	}
+	return ""
 }
