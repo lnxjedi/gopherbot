@@ -15,6 +15,8 @@ func TestRuneWidth(t *testing.T) {
 		{[]rune("☭"), 1},
 		{[]rune("a"), 1},
 		{[]rune("你"), 2},
+		{[]rune("🚀"), 2},
+		{[]rune("🇦🇫"), 2},
 		{runes.ColorFilter([]rune("☭\033[13;1m你")), 3},
 	}
 	for _, r := range rs {

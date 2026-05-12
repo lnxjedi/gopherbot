@@ -61,7 +61,7 @@ func (w Wrapper) Wrap(s string, limit int) string {
 
 func (w Wrapper) line(s string, limit int) string {
 	tokens := tokenizeWrapLine(s, w.Breakpoints)
-	if limit < 1 || visibleTokenCount(tokens) < limit+1 {
+	if limit < 1 || visibleDisplayWidth(tokens) <= limit {
 		return w.OutputLinePrefix + s + w.OutputLineSuffix
 	}
 
@@ -80,6 +80,7 @@ type wrapToken struct {
 	text       string
 	visible    bool
 	breakpoint bool
+	width      int
 }
 
 func tokenizeWrapLine(s, breakpoints string) []wrapToken {
@@ -90,14 +91,21 @@ func tokenizeWrapLine(s, breakpoints string) []wrapToken {
 			i += n
 			continue
 		}
+		if emoji, width := MatchEmojiPrefix(s[i:]); width > 0 {
+			tokens = append(tokens, wrapToken{text: emoji, visible: true, width: width})
+			i += len(emoji)
+			continue
+		}
 		r, size := utf8.DecodeRuneInString(s[i:])
 		if size <= 0 {
 			break
 		}
+		width := RuneDisplayWidth(r)
 		tokens = append(tokens, wrapToken{
 			text:       s[i : i+size],
-			visible:    true,
+			visible:    width > 0,
 			breakpoint: strings.ContainsRune(breakpoints, r),
+			width:      width,
 		})
 		i += size
 	}
@@ -130,12 +138,26 @@ func visibleTokenCount(tokens []wrapToken) int {
 	return count
 }
 
+// visibleDisplayWidth calculates the terminal display width of visible tokens,
+// accounting for emoji that take 2 columns.
+// Used for wrapping text that contains emoji.
+func visibleDisplayWidth(tokens []wrapToken) int {
+	width := 0
+	for _, token := range tokens {
+		if !token.visible {
+			continue
+		}
+		width += token.width
+	}
+	return width
+}
+
 func lastVisibleBreakpoint(tokens []wrapToken, limit int) int {
 	visible := 0
 	last := -1
 	for i, token := range tokens {
 		if token.visible {
-			visible++
+			visible += token.width
 		}
 		if token.breakpoint && visible <= limit {
 			last = i

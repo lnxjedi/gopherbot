@@ -2,6 +2,8 @@ package readline
 
 import (
 	"bytes"
+
+	"github.com/lnxjedi/gopherbot/robot/util"
 	"unicode"
 	"unicode/utf8"
 )
@@ -147,18 +149,18 @@ func (Runes) Width(r rune) int {
 	if r == '\t' {
 		return TabWidth
 	}
-	if unicode.IsOneOf(zeroWidth, r) {
-		return 0
-	}
-	if unicode.IsOneOf(doubleWidth, r) {
-		return 2
-	}
-	return 1
+	return util.RuneDisplayWidth(r)
 }
 
 func (Runes) WidthAll(r []rune) (length int) {
-	for i := 0; i < len(r); i++ {
+	for i := 0; i < len(r); {
+		if emoji, width := util.MatchEmojiPrefix(string(r[i:])); width > 0 {
+			length += width
+			i += utf8.RuneCountInString(emoji)
+			continue
+		}
 		length += runes.Width(r[i])
+		i++
 	}
 	return
 }

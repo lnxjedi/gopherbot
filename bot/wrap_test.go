@@ -19,3 +19,12 @@ func TestWrapPreservesPlainBehavior(t *testing.T) {
 		t.Fatalf("Wrap() = %q, want %q", got, want)
 	}
 }
+
+func TestWrapCountsEmojiAsDoubleWidth(t *testing.T) {
+	in := "alpha 🇦🇫 beta"
+	got := Wrap(in, 8)
+	want := "alpha 🇦🇫\nbeta\n"
+	if got != want {
+		t.Fatalf("Wrap() = %q, want %q", got, want)
+	}
+}

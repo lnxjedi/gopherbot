@@ -1,6 +1,10 @@
 package util
 
-import "strings"
+import (
+	"strings"
+	"unicode"
+	"unicode/utf8"
+)
 
 var EmojiMap = map[string]string{
 	"+1":                              "👍",
@@ -1927,4 +1931,104 @@ func EmojiUnicode(shortcode string) string {
 		return emoji
 	}
 	return ""
+}
+
+type emojiWidthTrie struct {
+	width int
+	next  map[rune]*emojiWidthTrie
+}
+
+var emojiWidthRoot = buildEmojiWidthTrie()
+
+var zeroWidth = []*unicode.RangeTable{
+	unicode.Mn,
+	unicode.Me,
+	unicode.Cc,
+	unicode.Cf,
+}
+
+var doubleWidth = []*unicode.RangeTable{
+	unicode.Han,
+	unicode.Hangul,
+	unicode.Hiragana,
+	unicode.Katakana,
+}
+
+func buildEmojiWidthTrie() *emojiWidthTrie {
+	root := &emojiWidthTrie{}
+	for _, emoji := range EmojiMap {
+		root.add(emoji, 2)
+	}
+	return root
+}
+
+func (n *emojiWidthTrie) add(emoji string, width int) {
+	cur := n
+	for _, r := range emoji {
+		if cur.next == nil {
+			cur.next = make(map[rune]*emojiWidthTrie)
+		}
+		next := cur.next[r]
+		if next == nil {
+			next = &emojiWidthTrie{}
+			cur.next[r] = next
+		}
+		cur = next
+	}
+	cur.width = width
+}
+
+// MatchEmojiPrefix returns the longest emoji sequence that prefixes s and its width.
+// Returns "", 0 when s does not start with a known emoji sequence.
+func MatchEmojiPrefix(s string) (string, int) {
+	cur := emojiWidthRoot
+	matchedBytes := 0
+	matchedWidth := 0
+	for i, r := range s {
+		next := cur.next[r]
+		if next == nil {
+			break
+		}
+		cur = next
+		if cur.width > 0 {
+			matchedWidth = cur.width
+			matchedBytes = i + utf8.RuneLen(r)
+		}
+	}
+	if matchedWidth == 0 {
+		return "", 0
+	}
+	return s[:matchedBytes], matchedWidth
+}
+
+// RuneDisplayWidth returns the terminal display width of a single rune.
+// Emoji sequences are handled separately by MatchEmojiPrefix.
+func RuneDisplayWidth(r rune) int {
+	if unicode.IsOneOf(zeroWidth, r) {
+		return 0
+	}
+	if unicode.IsOneOf(doubleWidth, r) {
+		return 2
+	}
+	return 1
+}
+
+// StringDisplayWidth returns the terminal display width of a string.
+// It recognizes known emoji sequences directly and falls back to rune width for the rest.
+func StringDisplayWidth(s string) int {
+	width := 0
+	for len(s) > 0 {
+		if emoji, emojiWidth := MatchEmojiPrefix(s); emojiWidth > 0 {
+			width += emojiWidth
+			s = s[len(emoji):]
+			continue
+		}
+		r, size := utf8.DecodeRuneInString(s)
+		if size <= 0 {
+			break
+		}
+		width += RuneDisplayWidth(r)
+		s = s[size:]
+	}
+	return width
 }

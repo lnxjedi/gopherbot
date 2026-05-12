@@ -572,13 +572,15 @@ func (c *sshClient) stampSuffixWrapSmart(line []rune, ts time.Time) ([]rune, int
 	stamp := fmt.Sprintf(" (%s)", ts.Format("15:04:05"))
 	width := c.getWidth()
 	if width > 0 {
-		promptWidth := readline.Runes{}.WidthAll([]rune(c.promptString()))
-		lineWidth := readline.Runes{}.WidthAll(line)
+		promptStr := c.promptString()
+		lineStr := string(line)
+		promptWidth := util.StringDisplayWidth(promptStr)
+		lineWidth := util.StringDisplayWidth(lineStr)
 		col := (promptWidth + lineWidth) % width
 		if col == 0 {
 			stamp = strings.TrimPrefix(stamp, " ")
 		} else {
-			stampWidth := len(stamp)
+			stampWidth := util.StringDisplayWidth(stamp)
 			if col+stampWidth > width {
 				padding := width - col
 				if padding > 1 {
