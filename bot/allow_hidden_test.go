@@ -1,6 +1,10 @@
 package bot
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/lnxjedi/gopherbot/robot"
+)
 
 func TestHiddenMessageAddressedToRobot(t *testing.T) {
 	tests := []struct {
@@ -37,5 +41,50 @@ func TestDefaultPrivateCommandHint(t *testing.T) {
 	}
 	if got := defaultPrivateCommandHint("Clu"); got != "Private commands must be addressed to Clu." {
 		t.Fatalf("defaultPrivateCommandHint(Clu) = %q", got)
+	}
+}
+
+func TestPrivateContextSatisfiesChannels(t *testing.T) {
+	task := &Task{name: "scoped", Channels: []string{"ops"}}
+	plugin := &Plugin{Task: task, RestrictPrivateChannels: true}
+	tests := []struct {
+		name     string
+		channel  string
+		incoming *robot.ConnectorMessage
+		want     bool
+	}{
+		{
+			name:     "hidden allowed channel",
+			channel:  "ops",
+			incoming: &robot.ConnectorMessage{HiddenMessage: true},
+			want:     true,
+		},
+		{
+			name:     "hidden wrong channel",
+			channel:  "general",
+			incoming: &robot.ConnectorMessage{HiddenMessage: true},
+			want:     false,
+		},
+		{
+			name:     "direct message rejected",
+			channel:  "",
+			incoming: &robot.ConnectorMessage{DirectMessage: true},
+			want:     false,
+		},
+	}
+	for _, tt := range tests {
+		w := &worker{Channel: tt.channel, Incoming: tt.incoming}
+		if got := w.privateContextSatisfiesChannels(task, plugin); got != tt.want {
+			t.Fatalf("%s: privateContextSatisfiesChannels() = %t, want %t", tt.name, got, tt.want)
+		}
+	}
+}
+
+func TestPrivateContextSatisfiesChannelsWhenNotRestricted(t *testing.T) {
+	task := &Task{name: "scoped", Channels: []string{"ops"}}
+	plugin := &Plugin{Task: task, AllowedPrivateCommands: []string{"show"}}
+	w := &worker{Incoming: &robot.ConnectorMessage{DirectMessage: true}}
+	if !w.privateContextSatisfiesChannels(task, plugin) {
+		t.Fatal("unrestricted private command should not enforce plugin Channels")
 	}
 }

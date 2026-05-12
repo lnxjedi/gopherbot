@@ -42,6 +42,14 @@ func requiredPrivateCommandMessage() string {
 	return "This command is only available in a private context."
 }
 
+func privateChannelRestrictedMessage(pluginName string) string {
+	pluginName = strings.TrimSpace(pluginName)
+	if pluginName == "" {
+		return "This private command is restricted to configured channels."
+	}
+	return fmt.Sprintf("Private commands for '%s' are restricted to configured channels.", pluginName)
+}
+
 func (r Robot) checkRequiredPrivateCommand(w *worker, t interface{}, command string) robot.TaskRetVal {
 	if privateCommandContext(w.Incoming) {
 		return robot.Success
@@ -84,8 +92,15 @@ func (r Robot) checkPrivateCommands(w *worker, t interface{}, command string) (r
 		return robot.Success
 	}
 	if commandAllowsPrivate(plugin, command) {
+		if !w.privateContextSatisfiesChannels(plugin.Task, plugin) {
+			r.Reply(privateChannelRestrictedMessage(plugin.name))
+			return robot.Fail
+		}
 		w.Log(robot.Audit, "Private command '%s' from plugin '%s' issued by user '%s' in channel '%s'", command, plugin.name, r.User, r.Channel)
 		return robot.Success
+	}
+	if (w.Incoming.DirectMessage && !w.Incoming.HiddenMessage) || hiddenMessageAddressedToRobot(w.Incoming.BotMessage, w.cmdMode) {
+		r.Reply("Sorry, '%s/%s' cannot be run as a private command", plugin.name, command)
 	}
 	return robot.Fail
 }

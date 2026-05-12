@@ -4,7 +4,17 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
 
 ## Open TODOs
 
-- [ ] Clear up Private interaction with Channel Restrictions and Direct
+- [ ] Add "Purpose" descriptive section to integration tests that spell
+  out in plain language what the specific suite is meant to test, to help
+  disambiguate test failures. Add per-test "Description" that describes
+  the end-to-end behavior that particular test is meant to be testing,
+  for similar reasons.
+- [ ] Survey built-ins to see which ones are intended for administrators
+  (e.g. logging), then update configuration in line with other admin
+  commands - e.g. available hidden.
+- [ ] Enforce non-empty job channel - jobs must use a real channel, not a
+      direct message ("").
+- [x] Clear up Private interaction with Channel Restrictions and Direct
   Messages - document and enforce in code.
   DESIGN NOTES: Restricing channels is normally about restricting where
   commands can be visible (to e.g. keep "meme" plugins from junking up
@@ -25,8 +35,10 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
   channels are prohibited if "RestrictPrivateChannels" is set. Otherwise
   Private Allowed commands are available in a DM or any channel where the
   robot is available.
-- [ ] Enforce non-empty job channel - jobs must use a real channel, not a
-      direct message ("").
+  DONE: Desired behavior is now captured in `aidocs/PIPELINE_LIFECYCLE.md`,
+  `aidocs/EXECUTION_SECURITY_MODEL.md`, `aidocs/CONNECTOR_CONTRACT.md`, and
+  connector/test docs. Config schema, engine enforcement, help metadata, and
+  focused `TestPrivateRules` coverage are implemented.
 - [x] Replace the `go test ./test` integration harness with a process-backed
   `gopherbot-integration` workflow:
   - Process-backed integration suites now live as readable YAML under

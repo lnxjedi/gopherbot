@@ -173,6 +173,12 @@ These apply to `bot/handler.go`, `bot/available.go`, `bot/authorize.go`, `bot/el
 
 - Private-command allow/deny remains engine-owned through plugin `AllowedPrivateCommands`, `RequiredPrivateCommands`, or `RequireAllCommandsPrivate`.
 - Hidden/ephemeral invocations also require connector support and robot addressing; direct messages do not require hidden transport support.
+- Plugin `Channels` normally scope public visibility, public command routing, and help relevance. They are not normally an access-control boundary for private-capable commands.
+- Private-capable commands are therefore normally runnable in a DM or hidden context even when their plugin has public channel restrictions. This is intentional for commands that are sensitive, verbose, or operator-focused and should not pollute normal channels.
+- `RestrictPrivateChannels: true` is the explicit opt-in for treating plugin channels as an access boundary for private-capable commands:
+  - DMs are prohibited for that plugin's private-capable commands when channel restrictions apply
+  - hidden invocations are permitted only from configured plugin channels
+  - this remains a location check; username authority still comes from `Users`, admin checks, authorizers, and elevation
 - The broadened private admin surface does not weaken underlying auth/elevation checks:
   - `builtin-admin` exposes selected admin commands as private-capable through explicit command lists.
   - Legacy `builtin-dmadmin` inspection commands (`dump robot`, `dump plugin`, `dump plugin default`, `list plugins`) now live on `builtin-admin` as globally available private-required commands; public channel invocation is rejected by the engine before plugin code returns configuration data.

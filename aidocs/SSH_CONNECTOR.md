@@ -218,7 +218,8 @@ Direct messages are buffered and replayed only to the sender/recipient.
 - The same formatter is used by engine-owned denial copy when a private command is matched but not addressed with SSH hidden syntax.
 - Engine-side private policy still applies:
   - command must be listed in plugin `AllowedPrivateCommands`, `RequiredPrivateCommands`, or covered by `RequireAllCommandsPrivate`
-  - and hidden message must be robot-addressed (`/<botname> ...` for SSH, or connector-routed `BotMessage=true` in protocols like Slack slash commands).
+  - hidden message must be robot-addressed (`/<botname> ...` for SSH, or connector-routed `BotMessage=true` in protocols like Slack slash commands)
+  - plugin channel restrictions normally scope public visibility/help, not private-capable SSH hidden commands; `RestrictPrivateChannels: true` makes the engine require hidden commands to originate from an allowed plugin channel and rejects DMs for those private-capable commands.
 
 ## AI-Dev Injection and Retrieval
 

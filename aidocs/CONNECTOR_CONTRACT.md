@@ -59,6 +59,9 @@ Examples:
 - Google Chat slash commands
 
 The engine remains the owner of hidden-command policy and user-facing denial/help behavior.
+Connectors must not enforce plugin channel restrictions or
+`RestrictPrivateChannels`; they only provide accurate message context,
+transport identity, and hidden-command capability/formatting.
 
 For outbound replies in that same hidden context, connectors may recover the original invoking user from the inbound hidden message so transport-private reply semantics are preserved even when engine code uses a channel/thread-style send helper.
 

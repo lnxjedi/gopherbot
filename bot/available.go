@@ -212,6 +212,45 @@ func (w *worker) commandLocationHint(task *Task, plugin *Plugin, command string)
 	return commandLocationHint{}, false
 }
 
+func channelInList(channel string, channels []string) bool {
+	for _, allowed := range channels {
+		if allowed == channel {
+			return true
+		}
+	}
+	return false
+}
+
+func (w *worker) privateChannelRestricted(task *Task, plugin *Plugin) bool {
+	return task != nil && plugin != nil && plugin.RestrictPrivateChannels && len(task.Channels) > 0
+}
+
+func (w *worker) privateContextSatisfiesChannels(task *Task, plugin *Plugin) bool {
+	if !w.privateChannelRestricted(task, plugin) {
+		return true
+	}
+	if w.Incoming == nil || w.Incoming.DirectMessage {
+		return false
+	}
+	return channelInList(w.Channel, task.Channels)
+}
+
+func (w *worker) pluginAvailableForPrivateCommandMatch(task *Task, plugin *Plugin, verboseOnly bool) bool {
+	if plugin == nil || task == nil || !privateCommandContext(w.Incoming) {
+		return false
+	}
+	if verboseOnly {
+		return false
+	}
+	if !pluginHasPrivatePolicy(plugin) {
+		return false
+	}
+	if !w.userCanAccessTask(task) {
+		return false
+	}
+	return true
+}
+
 // pluginAvailable checks the user and channel against the task's
 // configuration to determine if the task should be available. Used by
 // both handleMessage and the help builtin. verboseOnly is set when availability

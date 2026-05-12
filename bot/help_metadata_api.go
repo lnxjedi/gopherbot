@@ -249,7 +249,7 @@ func (r Robot) collectHelpMetadata(query string) helpMetadataResponse {
 			}
 			commandVisibleHere := visibleHere
 			if privateCommandContext(w.Incoming) {
-				commandVisibleHere = commandVisibleHere && commandAllowsPrivate(plugin, command)
+				commandVisibleHere = commandAllowsPrivate(plugin, command) && w.privateContextSatisfiesChannels(task, plugin)
 			} else if commandRequiresPrivate(plugin, command) {
 				commandVisibleHere = false
 			}

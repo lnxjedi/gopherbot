@@ -212,6 +212,89 @@ func TestGetHelpMetadataIncludesPrivateExamplesForSupportedConnector(t *testing.
 	}
 }
 
+func TestGetHelpMetadataPrivateContextIgnoresPublicChannelScope(t *testing.T) {
+	tasks := &taskList{
+		t: []interface{}{
+			&Task{name: "namespace"},
+			&Plugin{
+				Task:                   &Task{name: "inspect", Channels: []string{"ops"}},
+				AllowedPrivateCommands: []string{"show"},
+				Commands: []InputMatcher{{
+					Command: "show",
+					Usage:   "(alias) show",
+				}},
+			},
+		},
+		nameMap:       map[string]int{"inspect": 1},
+		nameSpaces:    map[string]ParameterSet{},
+		parameterSets: map[string]ParameterSet{},
+	}
+	w := &worker{
+		User:       "alice",
+		Channel:    "general",
+		Protocol:   robot.Test,
+		Incoming:   &robot.ConnectorMessage{DirectMessage: true},
+		cfg:        &configuration{alias: '!', botinfo: UserInfo{UserName: "Clu"}},
+		tasks:      tasks,
+		listedUser: true,
+		pipeContext: &pipeContext{
+			parameters:  map[string]string{"GOPHER_CMDMODE": "direct"},
+			environment: map[string]string{},
+		},
+	}
+	r := w.makeRobot()
+	w.registerWorker(r.tid)
+	defer deregisterWorker(r.tid)
+
+	payload := r.collectHelpMetadata("show")
+	if len(payload.VisibleHere) != 1 || payload.VisibleHere[0].PluginName != "inspect" {
+		t.Fatalf("visible_here = %+v, want private-capable inspect/show", payload.VisibleHere)
+	}
+}
+
+func TestGetHelpMetadataRestrictPrivateChannelsHidesDirectMessage(t *testing.T) {
+	tasks := &taskList{
+		t: []interface{}{
+			&Task{name: "namespace"},
+			&Plugin{
+				Task:                    &Task{name: "inspect", Channels: []string{"ops"}},
+				AllowedPrivateCommands:  []string{"show"},
+				RestrictPrivateChannels: true,
+				Commands: []InputMatcher{{
+					Command: "show",
+					Usage:   "(alias) show",
+				}},
+			},
+		},
+		nameMap:       map[string]int{"inspect": 1},
+		nameSpaces:    map[string]ParameterSet{},
+		parameterSets: map[string]ParameterSet{},
+	}
+	w := &worker{
+		User:       "alice",
+		Protocol:   robot.Test,
+		Incoming:   &robot.ConnectorMessage{DirectMessage: true},
+		cfg:        &configuration{alias: '!', botinfo: UserInfo{UserName: "Clu"}},
+		tasks:      tasks,
+		listedUser: true,
+		pipeContext: &pipeContext{
+			parameters:  map[string]string{"GOPHER_CMDMODE": "direct"},
+			environment: map[string]string{},
+		},
+	}
+	r := w.makeRobot()
+	w.registerWorker(r.tid)
+	defer deregisterWorker(r.tid)
+
+	payload := r.collectHelpMetadata("show")
+	if len(payload.VisibleHere) != 0 {
+		t.Fatalf("visible_here = %+v, want restricted private command hidden in DM", payload.VisibleHere)
+	}
+	if len(payload.Browseable) != 1 || !payload.Browseable[0].PrivateOK {
+		t.Fatalf("browseable = %+v, want private-capable command still browseable", payload.Browseable)
+	}
+}
+
 func TestCollectFallbackAdviceWrongChannel(t *testing.T) {
 	tasks := &taskList{
 		t: []interface{}{
@@ -523,8 +606,8 @@ func TestCatchAllModeMatches(t *testing.T) {
 	if !catchAllModeMatches(&Plugin{CatchAll: true}, "direct") {
 		t.Fatal("expected generic catchall to match all command modes")
 	}
-	if !catchAllModeMatches(&Plugin{CatchAll: true, CatchAllModes: []string{"private"}}, "private") {
-		t.Fatal("expected private catchall mode to match private input")
+	if !catchAllModeMatches(&Plugin{CatchAll: true, CatchAllModes: []string{"hidden"}}, "hidden") {
+		t.Fatal("expected hidden catchall mode to match hidden input")
 	}
 }
 
@@ -554,25 +637,25 @@ func TestSelectCatchAllTargetFiltersByCommandMode(t *testing.T) {
 	}
 }
 
-func TestSelectCatchAllTargetCanRoutePrivateSeparately(t *testing.T) {
+func TestSelectCatchAllTargetCanRouteHiddenSeparately(t *testing.T) {
 	genericPlugin := &Plugin{
 		Task:     &Task{name: "generic-fallback"},
 		CatchAll: true,
 	}
-	privatePlugin := &Plugin{
-		Task:          &Task{name: "private-fallback"},
+	hiddenPlugin := &Plugin{
+		Task:          &Task{name: "hidden-fallback"},
 		CatchAll:      true,
-		CatchAllModes: []string{"private"},
+		CatchAllModes: []string{"hidden"},
 	}
 
-	specific, fallback, multipleSpecific, multipleFallback := selectCatchAllTarget([]interface{}{genericPlugin, privatePlugin}, "private", func(task *Task, plugin *Plugin) (bool, bool) {
+	specific, fallback, multipleSpecific, multipleFallback := selectCatchAllTarget([]interface{}{genericPlugin, hiddenPlugin}, "hidden", func(task *Task, plugin *Plugin) (bool, bool) {
 		return true, false
 	})
 	if multipleSpecific || multipleFallback {
 		t.Fatalf("unexpected multiple matches: specific=%t fallback=%t", multipleSpecific, multipleFallback)
 	}
-	if specific != privatePlugin {
-		t.Fatalf("specific catchall = %#v, want private plugin", specific)
+	if specific != hiddenPlugin {
+		t.Fatalf("specific catchall = %#v, want hidden plugin", specific)
 	}
 	if fallback != genericPlugin {
 		t.Fatalf("fallback catchall = %#v, want generic plugin", fallback)

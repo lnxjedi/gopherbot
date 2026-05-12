@@ -1,0 +1,9 @@
+---
+Channels:
+- ops
+RestrictPrivateChannels: true
+AllowedPrivateCommands:
+- locked
+Commands:
+- Command: locked
+  SimpleMatcher: locked rule

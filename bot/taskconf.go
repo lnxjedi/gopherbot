@@ -322,7 +322,7 @@ LoadLoop:
 				val = &timeoutval
 			case "Disabled":
 				skip = true
-			case "AmbientMatchCommand", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "RequireAllCommandsPrivate", "CatchAll", "MatchUnlisted", "Quiet":
+			case "AmbientMatchCommand", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "RequireAllCommandsPrivate", "RestrictPrivateChannels", "CatchAll", "MatchUnlisted", "Quiet":
 				val = &boolval
 			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AllowedPrivateCommands", "RequiredPrivateCommands", "AdminCommands", "ParameterSets", "CatchAllModes":
 				val = &sarrval
@@ -439,6 +439,12 @@ LoadLoop:
 			case "RequireAllCommandsPrivate":
 				if isPlugin {
 					plugin.RequireAllCommandsPrivate = *(val.(*bool))
+				} else {
+					mismatch = true
+				}
+			case "RestrictPrivateChannels":
+				if isPlugin {
+					plugin.RestrictPrivateChannels = *(val.(*bool))
 				} else {
 					mismatch = true
 				}
@@ -682,9 +688,9 @@ LoadLoop:
 			if len(plugin.CatchAllModes) > 0 {
 				for _, mode := range plugin.CatchAllModes {
 					switch strings.TrimSpace(strings.ToLower(mode)) {
-					case "alias", "name", "direct", "private":
+					case "alias", "name", "direct", "hidden":
 					default:
-						msg := fmt.Sprintf("Disabling %s, invalid CatchAllModes value '%s' (expected alias, name, direct, or private)", task.name, mode)
+						msg := fmt.Sprintf("Disabling %s, invalid CatchAllModes value '%s' (expected alias, name, direct, or hidden)", task.name, mode)
 						Log(robot.Error, msg)
 						task.Disabled = true
 						task.reason = msg

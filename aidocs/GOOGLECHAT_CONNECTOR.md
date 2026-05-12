@@ -95,6 +95,7 @@ This file captures Google Chat connector behavior relevant to routing, private s
   - `BotMessage=true`
 - Connector implements `robot.HiddenCommandFormatter`.
 - Help/fallback rendering uses the configured slash command name, for example `/bishop help ping`.
+- Plugin channel restrictions for private-capable commands are engine policy. By default, private-capable Google Chat slash commands are not limited by plugin `Channels`; `RestrictPrivateChannels: true` makes the engine require the slash command to originate from an allowed plugin space/channel.
 - When replying to a private slash command:
   - if reply stays in the same user + same space context, connector uses `privateMessageViewer` so only that user sees the response
   - if engine code uses a channel/thread-style send in that same hidden context, the connector still recovers the original invoking user from the hidden event so the reply remains private

@@ -147,7 +147,7 @@ func TestBuiltins(t *testing.T) {
 
 	tests := []testItem{
 		{aliceID, general, ";help log", false, []TestMessage{{null, general, `(?s:Command matches for keyword: log.*builtin-logging/show.*Availability: private context only)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, null, ";set log level fine", false, []TestMessage{{alice, null, "Invalid value 'fine' for 'level'; valid values: trace, debug, info, warn, error\\.", false}}, []Event{BotDirectMessage}, 0},
+		{aliceID, null, ";set-loglevel to fine", false, []TestMessage{{alice, null, "Invalid value 'fine' for 'level'; valid values: trace, debug, info, warn, error\\.", false}}, []Event{BotDirectMessage}, 0},
 		{aliceID, null, ";set log lines to two", false, []TestMessage{{alice, null, "Invalid value 'two' for 'lines'; expected an integer\\.", false}}, []Event{BotDirectMessage}, 0},
 		{aliceID, null, ";set log lines to 0", false, []TestMessage{{alice, null, "Lines per page of log output set to: 1", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, ";set log lines to 3", false, []TestMessage{{alice, null, "Lines per page of log output set to: 3", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},

@@ -1,0 +1,76 @@
+name: TestPrivateRules
+metadata:
+  subsystems:
+    - routing
+    - hidden-commands
+    - security
+  tags:
+    - private-commands
+    - channel-scope
+  runtimes:
+    - sh
+  tier: focused
+config_dir: test/membrain
+log_name: bottest-private-rules.log
+cases:
+  - input:
+      user: alice
+      channel: general
+      text: 'bender: free rule'
+      hidden: true
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: 'private-rules:free'
+    replies_only: true
+  - input:
+      user: alice
+      text: free rule
+    replies:
+      - user: alice
+        text_pattern: 'private-rules:free'
+    replies_only: true
+  - input:
+      user: alice
+      text: open rule
+    replies:
+      - user: alice
+        text_pattern: Sorry, 'private-rules/open' cannot be run as a private command
+    events:
+      - BotDirectMessage
+  - input:
+      user: alice
+      channel: ops
+      text: 'bender: secret rule'
+    replies:
+      - channel: ops
+        text_pattern: This command is only available in a private context.
+    replies_only: true
+  - input:
+      user: alice
+      channel: general
+      text: 'bender: locked rule'
+      hidden: true
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: Private commands for 'private-locked' are restricted to configured channels.
+    replies_only: true
+  - input:
+      user: alice
+      text: locked rule
+    replies:
+      - user: alice
+        text_pattern: Private commands for 'private-locked' are restricted to configured channels.
+    events:
+      - BotDirectMessage
+  - input:
+      user: alice
+      channel: ops
+      text: 'bender: locked rule'
+      hidden: true
+    replies:
+      - user: alice
+        channel: ops
+        text_pattern: 'private-rules:locked'
+    replies_only: true

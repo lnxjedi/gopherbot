@@ -51,8 +51,11 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 		Log(robot.Trace, "Checking availability of task '%s' in channel '%s' for user '%s', active in %d channels (allchannels: %t)", task.name, w.Channel, w.User, len(task.Channels), task.AllChannels)
 		ok, _ := w.pluginAvailable(task, false, verboseOnly)
 		if !ok {
-			Log(robot.Trace, "Task '%s' not available for user '%s' in channel '%s', doesn't meet criteria", task.name, w.User, w.Channel)
-			continue
+			if pipelineType != plugCommand || !w.pluginAvailableForPrivateCommandMatch(task, plugin, verboseOnly) {
+				Log(robot.Trace, "Task '%s' not available for user '%s' in channel '%s', doesn't meet criteria", task.name, w.User, w.Channel)
+				continue
+			}
+			Log(robot.Trace, "Task '%s' not publicly available in channel '%s', checking private-capable commands", task.name, w.Channel)
 		}
 		var matchers []InputMatcher
 		switch pipelineType {
@@ -390,8 +393,8 @@ func (w *worker) handleMessage() {
 			}
 			var specificCatchAll, fallbackCatchAll interface{}
 			var multipleCatchallMatched, multipleFallbackMatched bool
-			if privateCommandContext(w.Incoming) {
-				specificCatchAll, _, multipleCatchallMatched, _ = selectCatchAll("private")
+			if w.Incoming.HiddenMessage {
+				specificCatchAll, _, multipleCatchallMatched, _ = selectCatchAll("hidden")
 			}
 			if specificCatchAll == nil && !multipleCatchallMatched {
 				specificCatchAll, fallbackCatchAll, multipleCatchallMatched, multipleFallbackMatched = selectCatchAll(w.cmdMode)

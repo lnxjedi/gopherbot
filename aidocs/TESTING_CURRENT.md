@@ -172,6 +172,12 @@ Notes:
 - Hidden messages are signaled by a leading `/` in `message` and transformed before sending (see `test/common_test.go`).
 - The harness sets the test connector's `Hidden` flag directly; the test connector does not parse slash syntax itself. That is intentional so integration suites can simulate protocols with and without hidden-command support using the same connector.
 - Hidden admin/history/job-command coverage should continue using that same mechanism rather than trying to emulate connector-local slash parsing in the test connector.
+- Private/channel rule coverage uses the focused process-backed `TestPrivateRules` suite with the test connector's `hidden` flag:
+  - private-capable commands remain runnable in DMs and hidden contexts even when normal public help/channel visibility is scoped elsewhere
+  - non-private commands remain rejected in private contexts
+  - `RequiredPrivateCommands` remain rejected in public contexts
+  - `RestrictPrivateChannels: true` rejects DMs and rejects hidden invocations outside configured plugin channels while allowing hidden invocation from configured channels
+  - hidden denial paths still cover connector hidden-command capability and robot-addressing requirements separately from channel-restriction policy
 
 ## Protocol selection for tests
 

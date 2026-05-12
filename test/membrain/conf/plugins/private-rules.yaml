@@ -1,0 +1,14 @@
+---
+Channels:
+- ops
+AllowedPrivateCommands:
+- free
+RequiredPrivateCommands:
+- secret
+Commands:
+- Command: open
+  SimpleMatcher: open rule
+- Command: free
+  SimpleMatcher: free rule
+- Command: secret
+  SimpleMatcher: secret rule

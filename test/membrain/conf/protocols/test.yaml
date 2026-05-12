@@ -4,6 +4,7 @@ ProtocolConfig:
   Channels:
   - random
   - general
+  - ops
   - bottest
   - deadzone
   Users:

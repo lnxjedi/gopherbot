@@ -50,3 +50,6 @@ approval_mode = "approve"
 
 [mcp_servers.gopherbot-mcp.tools.list_robots]
 approval_mode = "approve"
+
+[mcp_servers.gopherbot-mcp.tools.wait_robot_ready]
+approval_mode = "approve"

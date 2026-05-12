@@ -26,7 +26,7 @@ cases:
       - GoPluginRan
   - input:
       user: alice
-      text: ;set log level fine
+      text: ;set-loglevel to fine
     replies:
       - user: alice
         text_pattern: 'Invalid value ''fine'' for ''level''; valid values: trace, debug, info, warn, error\.'

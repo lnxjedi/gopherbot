@@ -28,13 +28,13 @@ AI‑onboarding view: entrypoints, decision points, and data flow for message‑
 - Thread subscriptions last (`Subscribe`/`Unsubscribe`) keyed by `protocol/channel/thread`, with legacy fallback for restored pre-protocol keys: `bot/dispatch.go:handleMessage`, `bot/subscribe_thread.go`.
 
 Catch-all mode scoping:
-- Plugins may optionally set `CatchAllModes` to any subset of `alias`, `name`, `direct`, `private`.
+- Plugins may optionally set `CatchAllModes` to any subset of `alias`, `name`, `direct`, `hidden`.
 - `alias` means the robot was addressed through its alias prefix.
 - `name` means the robot was addressed by name/mention form.
 - `direct` means the command arrived in a DM context.
-- `private` means the command arrived through a private context (`DirectMessage` or `HiddenMessage`).
+- `hidden` means the command arrived through hidden/ephemeral transport (`HiddenMessage=true`).
 - During normal unmatched-command routing, dispatch only considers catch-all plugins whose `CatchAllModes` include the current `cmdMode`.
-- Private unmatched commands first try a `private` mode catch-all, allowing robot owners to route private command recovery separately. If no private-specific catch-all matches, dispatch falls back to the normal `alias`/`name`/`direct` mode selection.
+- Hidden unmatched commands first try a `hidden` mode catch-all, allowing robot owners to route hidden command recovery separately from DM recovery. If no hidden-specific catch-all matches, dispatch falls back to the normal `alias`/`name`/`direct` mode selection.
 - Mode-scoped catchalls are treated as "specific" catchalls for precedence, so an alias-only recovery plugin can coexist with a name/direct AI fallback without colliding with generic fallback behavior.
 
 ## Private Command Policy (routing + safety guard)
@@ -42,14 +42,23 @@ Catch-all mode scoping:
 - Private-command policy check runs at pipeline-start time: `bot/run_pipelines.go` calls `Robot.checkPrivateCommands` in `bot/allow_hidden.go`.
 - Hidden/ephemeral transport support is still a connector capability (`robot.ConnectorCapabilities.HiddenCommands`) supplied by the initialized connector instance and consumed through `bot/connector_capabilities.go`.
 - Connector registrations are static, but capability values are runtime/init-time so they can depend on protocol config (for example Slack slash-command enablement).
-- A private command is allowed only if both are true:
+- A private command is allowed only if all applicable checks pass:
   - the command is listed in plugin `AllowedPrivateCommands`, listed in `RequiredPrivateCommands`, or covered by `RequireAllCommandsPrivate: true`
   - for hidden/ephemeral invocations, the message is explicitly addressed to this robot:
     - connector-marked bot message (`Incoming.BotMessage=true`, e.g. Slack slash route), or
     - name-addressed command mode (`cmdMode == "name"`).
+  - if the plugin has `RestrictPrivateChannels: true`, the private context must satisfy the plugin channel restrictions.
 - Practical effect: hidden `/...` payloads that are not bot-addressed by connector or name will not execute private commands.
 - Plugins can require private invocation for selected commands with `RequiredPrivateCommands`, or for every command with `RequireAllCommandsPrivate`. The engine rejects non-private invocation with `This command is only available in a private context.` before plugin code runs.
 - Some admin inspection commands are private-required even though they are globally available by matcher location. For example, `dump robot`, `dump plugin`, `dump plugin default`, and `list plugins` are implemented by `builtin-admin` and configured through `RequiredPrivateCommands`.
+- Channel restrictions are primarily visibility, noise-control, and help-scoping policy:
+  - public commands remain available only in configured `Channels`, unless `AllChannels: true`
+  - private-capable commands are normally available from DMs and from hidden contexts in any channel where the robot is present, even when the plugin has configured `Channels`
+  - help output may still use channel restrictions to decide what to advertise in a public channel, so a private-capable command can be runnable privately even when it is not advertised in that public channel's normal help
+- `RestrictPrivateChannels: true` changes channel restrictions from visibility scoping into an access boundary for private-capable commands:
+  - DMs are rejected when the plugin has restricted channels, because a DM does not prove membership in any allowed channel
+  - hidden commands are allowed only when issued from one of the plugin's configured `Channels`
+  - plugins without configured `Channels` should not use this setting as an access-control mechanism; use `Users`, admin commands, authorizers, or elevation for user authorization
 - User-facing denial behavior is split cleanly:
   - if a hidden invocation uses a connector that does not support hidden/ephemeral transport, engine returns a single protocol-specific unsupported message
   - if the connector does support hidden transport but the user addressed it incorrectly, engine returns a single engine-authored guidance string built from the connector's concrete formatter (for example ``Use `/clu <command>` to address a private command.``)

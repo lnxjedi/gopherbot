@@ -67,6 +67,10 @@ ExternalPlugins:
     Path: plugins/admininspect.sh
   "admintimeout":
     Path: plugins/admintimeout.sh
+  "private-rules":
+    Path: plugins/private_rules.sh
+  "private-locked":
+    Path: plugins/private_rules.sh
 
 WorkSpace: workspace
 

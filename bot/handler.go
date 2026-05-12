@@ -220,7 +220,7 @@ type worker struct {
 	BotUser         bool                    // set for bots/programs that should never match ambient messages
 	listedUser      bool                    // set for users listed in global UserRoster
 	isCommand       bool                    // Was the message directed at the robot, dm or by mention
-	cmdMode         string                  // one of "alias", "name", "direct" - for disambiguation
+	cmdMode         string                  // one of "alias", "name", "direct" - for disambiguation; hidden catchalls use Incoming.HiddenMessage
 	msg, fmsg       string                  // the message text sent; without robot name/alias, and with for message matching
 	automaticTask   bool                    // set for scheduled & triggers jobs, where user security restrictions don't apply
 	*pipeContext                            // pointer to the pipeline context

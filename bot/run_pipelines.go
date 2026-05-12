@@ -421,9 +421,6 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 			}
 			if isPlugin && privateCommandContext(r.Incoming) {
 				if r.checkPrivateCommands(w, t, command) != robot.Success {
-					if (r.Incoming.DirectMessage && !r.Incoming.HiddenMessage) || hiddenMessageAddressedToRobot(w.Incoming.BotMessage, w.cmdMode) {
-						r.Reply("Sorry, '%s/%s' cannot be run as a private command", task.name, command)
-					}
 					ret = robot.Fail
 					deregisterWorker(r.tid)
 					break

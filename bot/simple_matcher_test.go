@@ -469,6 +469,18 @@ func TestSimpleMatcherInputMatchExactLabelledChoice(t *testing.T) {
 	assertInputMatchResult(t, result, inputExactMatch, []string{"debug"}, "")
 }
 
+func TestSimpleMatcherInputMatchRequiredPhraseSynonym(t *testing.T) {
+	matcher := mustCompileSimpleInputMatcher(t, "/set log level|set loglevel/ {to} (level:trace|debug|info|warn|error)")
+
+	for _, input := range []string{
+		"set log level to debug",
+		"set-loglevel to debug",
+	} {
+		result := matcher.matchInput(input)
+		assertInputMatchResult(t, result, inputExactMatch, []string{"debug"}, "")
+	}
+}
+
 func TestSimpleMatcherInputMatchSyntaxDiagnosticForLabelledChoice(t *testing.T) {
 	matcher := mustCompileSimpleInputMatcher(t, "set loglevel {to} (level:trace|debug|info|warn|error)")
 

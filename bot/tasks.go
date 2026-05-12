@@ -189,11 +189,12 @@ type Plugin struct {
 	RequiredPrivateCommands   []string       `yaml:"RequiredPrivateCommands"`   // Which commands must run in private contexts
 	AuthorizeAllCommands      bool           `yaml:"AuthorizeAllCommands"`      // When ALL commands need to be authorized
 	RequireAllCommandsPrivate bool           `yaml:"RequireAllCommandsPrivate"` // When ALL commands must run in private contexts
+	RestrictPrivateChannels   bool           `yaml:"RestrictPrivateChannels"`   // When private-capable commands must obey configured Channels
 	Commands                  []InputMatcher `yaml:"Commands"`                  // Input matchers for messages that need to be directed to the bot
 	MessageMatchers           []InputMatcher `yaml:"MessageMatchers"`           // Input matchers for messages the bot hears even when it’s not being spoken to
 	AmbientMatchCommand       bool           `yaml:"AmbientMatchCommand"`       // Whether message matchers should also match when isCommand is true
 	CatchAll                  bool           `yaml:"CatchAll"`                  // Plugins with CatchAll=true get called with command="catchall" and argument=<full message text to robot>
-	CatchAllModes             []string       `yaml:"CatchAllModes"`             // Optional command modes for catchall matching: alias, name, direct
+	CatchAllModes             []string       `yaml:"CatchAllModes"`             // Optional command modes for catchall matching: alias, name, direct, hidden
 	MatchUnlisted             bool           `yaml:"MatchUnlisted"`             // Set to true if ambient message matches should be checked for users not listed in the UserRoster
 	*Task                     `yaml:",inline"`
 }

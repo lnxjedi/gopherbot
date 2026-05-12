@@ -47,6 +47,7 @@ This file captures Slack connector behavior relevant to routing, private slash c
 - Slack slash commands are platform-routed to one bot app, so connector sets `BotMessage=true`.
 - Engine private-command policy then treats slash payload as addressed-to-robot without requiring an explicit robot name in text.
 - Command still must be explicitly allowed by plugin `AllowedPrivateCommands`, `RequiredPrivateCommands`, or `RequireAllCommandsPrivate`.
+- Plugin channel restrictions for private-capable commands are engine policy. By default, private-capable Slack slash commands are not limited by plugin `Channels`; `RestrictPrivateChannels: true` makes the engine require the slash command to originate from an allowed plugin channel.
 - Slack implements `robot.HiddenCommandFormatter`, so engine help/fallback can suggest concrete private slash commands such as `/clu help knock/knock` instead of placeholder `/(bot)` text.
 - Engine remains the owner of user-facing denial copy; when a private hidden invocation is matched but addressed incorrectly for the protocol, engine uses Slack's formatter to produce one concrete guidance message.
 
