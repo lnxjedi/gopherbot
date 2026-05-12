@@ -19,3 +19,33 @@ func TestStringDisplayWidthUsesEmojiSequences(t *testing.T) {
 		t.Fatalf("StringDisplayWidth() = %d, want %d", got, 9)
 	}
 }
+
+func TestStringDisplayWidthCountsTabsLikeReadline(t *testing.T) {
+	if got := StringDisplayWidth("a\tb"); got != 6 {
+		t.Fatalf("StringDisplayWidth() = %d, want %d", got, 6)
+	}
+}
+
+func TestExpandTabsUsesLineLocalTabStops(t *testing.T) {
+	in := "foo\nab\tcde\t\tfg"
+	want := "foo\nab  cde     fg"
+	if got := ExpandTabs(in, TerminalTabWidth); got != want {
+		t.Fatalf("ExpandTabs() = %q, want %q", got, want)
+	}
+}
+
+func TestExpandTabsIgnoresANSIWidth(t *testing.T) {
+	in := "\x1b[31mab\tc"
+	want := "\x1b[31mab  c"
+	if got := ExpandTabs(in, TerminalTabWidth); got != want {
+		t.Fatalf("ExpandTabs() = %q, want %q", got, want)
+	}
+}
+
+func TestExpandTabsUsesEmojiDisplayWidth(t *testing.T) {
+	in := "🚀\tx"
+	want := "🚀  x"
+	if got := ExpandTabs(in, TerminalTabWidth); got != want {
+		t.Fatalf("ExpandTabs() = %q, want %q", got, want)
+	}
+}

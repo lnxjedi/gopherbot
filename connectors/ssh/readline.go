@@ -120,6 +120,7 @@ func (c *sshClient) writeOutputLocked(s string) {
 	if c.rl != nil {
 		writer = c.rl
 	}
+	s = util.ExpandTabs(s, util.TerminalTabWidth)
 	_, _ = writer.Write([]byte(normalizeNewlines(s)))
 }
 
@@ -608,6 +609,7 @@ func (c *sshClient) getWidth() int {
 }
 
 func (c *sshClient) wrapLine(s string) string {
+	s = util.ExpandTabs(s, util.TerminalTabWidth)
 	c.bufMu.Lock()
 	width := c.width
 	c.bufMu.Unlock()

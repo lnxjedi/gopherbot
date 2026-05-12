@@ -2004,6 +2004,9 @@ func MatchEmojiPrefix(s string) (string, int) {
 // RuneDisplayWidth returns the terminal display width of a single rune.
 // Emoji sequences are handled separately by MatchEmojiPrefix.
 func RuneDisplayWidth(r rune) int {
+	if r == '\t' {
+		return TerminalTabWidth
+	}
 	if unicode.IsOneOf(zeroWidth, r) {
 		return 0
 	}
