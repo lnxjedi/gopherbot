@@ -6,25 +6,27 @@ This file tracks cross-cutting architecture/documentation TODO items that do not
 
 - [ ] Clear up Private interaction with Channel Restrictions and Direct
   Messages - document and enforce in code.
-  RULE: When a Channel Restriction Applies, a Direct Message isn't allowed
-  UNLESS "" (an empty channel name) is in the list of allowed channels;
-  channel restrictions may be used to restrict visibility of a command, but
-  may also be used by the Administrator to restrict availability of certain
-  commands and jobs to invited members of private channels.
+  DESIGN NOTES: Restricing channels is normally about restricting where
+  commands can be visible (to e.g. keep "meme" plugins from junking up
+  business-focused channels), and for help scoping to make help replies
+  specific to where help is requested.
+  When a command is allowed to be Private, the above matters less - since
+  private (hidden, DM) commands don't polute public channels, they're
+  available in a DM or in any channel where the robot is present.
+  HOWEVER, sometimes channel restrictions are meant to limit access to
+  certain commands to only members invited to private channels. In the
+  rare instance where channel restrictions apply, and a commmand is allowed
+  to be private (hidden/DM), BUT the administrator still wishes to restrict
+  access to the commands by channel, they can apply RestrictPrivateChannels
+  so that an allowed hidden command can't be issued via DM, and can only
+  be sent as a hidden command in the channels the command is restricted to.
+  RULE: When a Channel Restriction Applies to a command that's allowed to
+  be private, direct messages and hidden messages outside of the allowed
+  channels are prohibited if "RestrictPrivateChannels" is set. Otherwise
+  Private Allowed commands are available in a DM or any channel where the
+  robot is available.
 - [ ] Enforce non-empty job channel - jobs must use a real channel, not a
       direct message ("").
-- [ ] Convert "run job" into a REAL built-in plugin:
-  - One "special" thing about the builtin "runjob" plugin is that the
-    command matcher captures a valid job name in the first argument and uses
-    THAT as the "command" to the plugin. Otherwise, all plugin configuration
-    for Private, Authorized, Admin, etc. use the job name for these lists.
-  - The other "special" thing about "runjob" is that job channel visibility
-    is taken from the Job config, not the plugin.
-    - Taken with the Private security rule and job channel interpretation
-      above, this means run job is never available in a direct message.
-  - The rest of the command after job name should be processed as currently -
-    use "builtin" privileges to examine the job arguments and parse them from
-    the rest of the command, or prompt the user for them.
 - [x] Replace the `go test ./test` integration harness with a process-backed
   `gopherbot-integration` workflow:
   - Process-backed integration suites now live as readable YAML under
