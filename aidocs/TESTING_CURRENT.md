@@ -144,6 +144,8 @@ Notes:
 
 - `list` returns fully namespaced datum keys (for plugins this is typically `<plugin-name>:<datum-key>`).
 - `fetch` returns raw JSON payloads, which is useful for confirming actual stored shape versus expected struct shape.
+- CLI memory commands initialize the configured brain provider object directly
+  and do not start the normal serialized `runBrain()` loop.
 
 ## Test case structure
 

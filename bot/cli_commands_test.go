@@ -2,10 +2,13 @@ package bot
 
 import (
 	"bytes"
+	"encoding/base64"
 	"io"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/google/uuid"
 )
 
 func captureStdout(t *testing.T, fn func()) string {
@@ -66,6 +69,88 @@ func TestProcessCLIHelpEncryptShowsCommandDetails(t *testing.T) {
 		if !strings.Contains(output, needle) {
 			t.Fatalf("processCLI(help encrypt) missing %q in output:\n%s", needle, output)
 		}
+	}
+}
+
+func TestProcessCLIHelpUUIDShowsCommandDetails(t *testing.T) {
+	output := captureStdout(t, func() {
+		code := processCLI("help", []string{"uuid"})
+		if code != 0 {
+			t.Fatalf("processCLI(help uuid) = %d, want 0", code)
+		}
+	})
+	for _, needle := range []string{
+		"Usage: gopherbot uuid",
+		"Generates a random UUID",
+		"encrypted value suitable for custom/conf/variables/<environment>.yaml",
+	} {
+		if !strings.Contains(output, needle) {
+			t.Fatalf("processCLI(help uuid) missing %q in output:\n%s", needle, output)
+		}
+	}
+}
+
+func TestCLIUUIDRunsBeforeFullInit(t *testing.T) {
+	if !cliCommandRunsBeforeInit("uuid") {
+		t.Fatal("uuid command should run before full robot initialization")
+	}
+}
+
+func TestUserCLICommandsRunBeforeFullInit(t *testing.T) {
+	for _, command := range []string{
+		"delete",
+		"decrypt",
+		"dump",
+		"encrypt",
+		"fetch",
+		"genkey",
+		"gentotp",
+		"help",
+		"init",
+		"list",
+		"store",
+		"uuid",
+		"validate",
+		"version",
+	} {
+		if !cliCommandRunsBeforeInit(command) {
+			t.Fatalf("%s command should run before full robot initialization", command)
+		}
+	}
+}
+
+func TestGenerateEncryptedUUID(t *testing.T) {
+	oldKey := cryptKey.key
+	oldInitialized := cryptKey.initialized
+	testKey := []byte("0123456789abcdef0123456789abcdef")
+	cryptKey.Lock()
+	cryptKey.key = testKey
+	cryptKey.initialized = true
+	cryptKey.Unlock()
+	t.Cleanup(func() {
+		cryptKey.Lock()
+		cryptKey.key = oldKey
+		cryptKey.initialized = oldInitialized
+		cryptKey.Unlock()
+	})
+
+	plain, encrypted, err := generateEncryptedUUID()
+	if err != nil {
+		t.Fatalf("generateEncryptedUUID() error = %v", err)
+	}
+	if _, err := uuid.Parse(plain); err != nil {
+		t.Fatalf("generated plaintext is not a UUID: %v", err)
+	}
+	ct, err := base64.StdEncoding.DecodeString(encrypted)
+	if err != nil {
+		t.Fatalf("encrypted UUID is not base64: %v", err)
+	}
+	decrypted, err := decrypt(ct, testKey)
+	if err != nil {
+		t.Fatalf("decrypt(encrypted UUID) error = %v", err)
+	}
+	if string(decrypted) != plain {
+		t.Fatalf("decrypted UUID = %q, want %q", decrypted, plain)
 	}
 }
 

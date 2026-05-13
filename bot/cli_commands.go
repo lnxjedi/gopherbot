@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/pquerna/otp/totp"
 )
@@ -66,6 +67,7 @@ func cliCommands() []cliCommandSpec {
 				"  Requires robot encryption to be initialized from GOPHER_ENCRYPTION_KEY",
 				"  or a loaded .env/private environment file.",
 			},
+			RunsBeforeInit: true,
 		},
 		{
 			Name:         "decrypt",
@@ -84,6 +86,7 @@ func cliCommands() []cliCommandSpec {
 				"  Requires robot encryption to be initialized from GOPHER_ENCRYPTION_KEY",
 				"  or a loaded .env/private environment file.",
 			},
+			RunsBeforeInit: true,
 		},
 		{
 			Name:         "gentotp",
@@ -95,6 +98,7 @@ func cliCommands() []cliCommandSpec {
 				"Generates a TOTP secret for the named user, prints the secret plus an",
 				"encrypted config snippet, and writes <username>.png for QR enrollment.",
 			},
+			RunsBeforeInit: true,
 		},
 		{
 			Name:         "genkey",
@@ -118,6 +122,23 @@ func cliCommands() []cliCommandSpec {
 			RunsBeforeInit: true,
 		},
 		{
+			Name:         "uuid",
+			SummaryUsage: "uuid",
+			Summary:      "generate and encrypt a random UUID",
+			HelpLines: []string{
+				"Usage: gopherbot uuid",
+				"",
+				"Generates a random UUID and prints both the plaintext value and an",
+				"encrypted value suitable for custom/conf/variables/<environment>.yaml",
+				"Secrets entries.",
+				"",
+				"Notes:",
+				"  Requires robot encryption to be initialized from GOPHER_ENCRYPTION_KEY",
+				"  or a loaded .env/private environment file.",
+			},
+			RunsBeforeInit: true,
+		},
+		{
 			Name:         "delete",
 			SummaryUsage: "delete <key>",
 			Summary:      "delete a memory",
@@ -126,6 +147,7 @@ func cliCommands() []cliCommandSpec {
 				"",
 				"Deletes the named brain memory key.",
 			},
+			RunsBeforeInit: true,
 		},
 		{
 			Name:         "dump",
@@ -154,6 +176,7 @@ func cliCommands() []cliCommandSpec {
 				"Options:",
 				"  -b, -base64          encode the fetched value as base64",
 			},
+			RunsBeforeInit: true,
 		},
 		{
 			Name:         "init",
@@ -178,6 +201,7 @@ func cliCommands() []cliCommandSpec {
 				"",
 				"Lists all stored brain memory keys.",
 			},
+			RunsBeforeInit: true,
 		},
 		{
 			Name:         "run",
@@ -203,6 +227,7 @@ func cliCommands() []cliCommandSpec {
 				"Stores file contents in the named brain memory key.",
 				"If [file] is omitted, stdin is used.",
 			},
+			RunsBeforeInit: true,
 		},
 		{
 			Name:         "validate",
@@ -465,6 +490,17 @@ func processCLI(command string, args []string) int {
 			fmt.Printf("Error: %v\n", err)
 			return 1
 		}
+	case "uuid":
+		if len(args) > 0 {
+			fmt.Println("Error: uuid does not take arguments")
+			fmt.Println()
+			printCLICommandHelp(command)
+			return 2
+		}
+		if err := cliUUID(); err != nil {
+			fmt.Printf("Error: %v\n", err)
+			return 1
+		}
 	case "fetch":
 		if err := fetchFlags.Parse(args); err != nil {
 			if err == flag.ErrHelp {
@@ -481,6 +517,8 @@ func processCLI(command string, args []string) int {
 			printCLICommandHelp(command)
 			return 2
 		}
+		initCLIBrainProvider()
+		defer shutdownCLIBrainProvider()
 		cliFetch(fetchFlags.Arg(0), encodeBase64)
 	case "init":
 		if len(args) != 1 {
@@ -543,6 +581,8 @@ func processCLI(command string, args []string) int {
 		if len(args) == 2 {
 			file = args[1]
 		}
+		initCLIBrainProvider()
+		defer shutdownCLIBrainProvider()
 		cliStore(args[0], file)
 	case "list":
 		if len(args) > 0 {
@@ -551,6 +591,8 @@ func processCLI(command string, args []string) int {
 			printCLICommandHelp(command)
 			return 2
 		}
+		initCLIBrainProvider()
+		defer shutdownCLIBrainProvider()
 		cliList()
 	case "delete":
 		if len(args) != 1 {
@@ -559,6 +601,8 @@ func processCLI(command string, args []string) int {
 			printCLICommandHelp(command)
 			return 2
 		}
+		initCLIBrainProvider()
+		defer shutdownCLIBrainProvider()
 		cliDelete(args[0])
 	case "validate":
 		if len(args) != 1 {
@@ -595,13 +639,145 @@ func processCLI(command string, args []string) int {
 	return 0
 }
 
+var cliConfigInitialized bool
+
+func initCLIConfigDirectory() {
+	var err error
+	homePath, err = os.Getwd()
+	if err != nil {
+		Log(robot.Warn, "Unable to get cwd")
+	}
+	h := handler{}
+	if err := h.GetDirectory(configPath); err != nil {
+		Log(robot.Fatal, "Unable to get/create config path: %s", configPath)
+	}
+	if filepath.IsAbs(configPath) {
+		configFull = configPath
+	} else {
+		configFull = filepath.Join(homePath, configPath)
+	}
+}
+
+func initCLIConfigOnly() {
+	if cliConfigInitialized {
+		return
+	}
+	currentCfg.configuration = &configuration{}
+	initCLIConfigDirectory()
+
+	encryptionInitialized := initCrypt()
+	if encryptionInitialized {
+		setEnv("GOPHER_ENCRYPTION_INITIALIZED", "initialized")
+	} else {
+		mode := detectStartupMode()
+		switch mode {
+		case "cli", "bootstrap", "production":
+			Log(robot.Fatal, "unable to initialize encryption for startup mode '%s', no GOPHER_ENCRYPTION_KEY set in environment (or .env)", mode)
+		default:
+			cryptKey.Lock()
+			cryptKey.key = make([]byte, 32)
+			if _, err := crand.Read(cryptKey.key); err != nil {
+				cryptKey.Unlock()
+				Log(robot.Fatal, "Generating temporary encryption key: %v", err)
+			}
+			cryptKey.initialized = true
+			cryptKey.Unlock()
+			Log(robot.Info, "Initialized temporary encryption key for '%s' mode", mode)
+		}
+	}
+
+	if err := loadConfig(true); err != nil {
+		Log(robot.Fatal, "Loading initial configuration: %v", err)
+	}
+	if err := validatePrivsepStartupPolicy(currentCfg.privsepSupplementaryGroups); err != nil {
+		Log(robot.Fatal, "Privilege separation startup validation failed: %v", err)
+	}
+	cliConfigInitialized = true
+}
+
+func initCLIBrainProvider() {
+	initCLIConfigOnly()
+	if interfaces.brain != nil {
+		return
+	}
+	if len(currentCfg.brainProvider) > 0 {
+		registration, ok := brainProviderRegistration(currentCfg.brainProvider)
+		if !ok {
+			Log(robot.Fatal, "No provider registered for brain: \"%s\"", currentCfg.brainProvider)
+		}
+		interfaces.brain = registration.Provider(handle)
+		Log(robot.Info, "Initialized brain provider '%s'", currentCfg.brainProvider)
+		return
+	}
+	registration, ok := brainProviderRegistration("mem")
+	if !ok {
+		Log(robot.Fatal, "No provider registered for default brain: \"mem\"")
+	}
+	interfaces.brain = registration.Provider(handle)
+	Log(robot.Error, "No brain configured, falling back to default 'mem' brain - no memories will persist")
+}
+
+func shutdownCLIBrainProvider() {
+	if interfaces.brain != nil {
+		interfaces.brain.Shutdown()
+	}
+}
+
+func generateEncryptedUUID() (string, string, error) {
+	cryptKey.RLock()
+	initialized := cryptKey.initialized
+	key := cryptKey.key
+	cryptKey.RUnlock()
+	if !initialized {
+		return "", "", fmt.Errorf("encryption not initialized; set GOPHER_ENCRYPTION_KEY or load a .env file first")
+	}
+	plain := uuid.NewString()
+	ct, err := encrypt([]byte(plain), key)
+	if err != nil {
+		return "", "", fmt.Errorf("encrypting generated UUID: %w", err)
+	}
+	return plain, base64.StdEncoding.EncodeToString(ct), nil
+}
+
+func ensureCLIEncryptionInitialized() error {
+	cryptKey.RLock()
+	initialized := cryptKey.initialized
+	cryptKey.RUnlock()
+	if initialized {
+		return nil
+	}
+	initCLIConfigDirectory()
+	if initCrypt() {
+		return nil
+	}
+	return fmt.Errorf("encryption not initialized; set GOPHER_ENCRYPTION_KEY or load a .env file first")
+}
+
+func cliUUID() error {
+	if err := ensureCLIEncryptionInitialized(); err != nil {
+		return err
+	}
+	plain, encrypted, err := generateEncryptedUUID()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("UUID: %s\n", plain)
+	fmt.Printf("Encrypted: %s\n", encrypted)
+	return nil
+}
+
 func cliTOTPgen(user string) {
+	initCLIConfigOnly()
 	if !cryptKey.initialized {
 		fmt.Println("Error: encryption not initialized; set GOPHER_ENCRYPTION_KEY or load a .env file first")
 		os.Exit(1)
 	}
+	issuer := currentCfg.botinfo.FullName
+	if issuer == "" {
+		issuer = "Gopherbot"
+	}
 	key, err := totp.Generate(totp.GenerateOpts{
-		Issuer:      currentCfg.botinfo.FullName,
+		Issuer:      issuer,
 		AccountName: user,
 	})
 	if err != nil {
@@ -705,8 +881,8 @@ func cliGenKey(environment string, writeFile, force bool) error {
 }
 
 func cliEncrypt(item, file string, binary bool) {
-	if !cryptKey.initialized {
-		fmt.Println("Error: encryption not initialized; set GOPHER_ENCRYPTION_KEY or load a .env file first")
+	if err := ensureCLIEncryptionInitialized(); err != nil {
+		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
 	}
 	if len(file) > 0 {
@@ -751,8 +927,8 @@ func cliEncrypt(item, file string, binary bool) {
 }
 
 func cliDecrypt(item, file string) {
-	if !cryptKey.initialized {
-		fmt.Println("Error: encryption not initialized; set GOPHER_ENCRYPTION_KEY or load a .env file first")
+	if err := ensureCLIEncryptionInitialized(); err != nil {
+		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
 	}
 	if len(file) > 0 {
@@ -824,12 +1000,7 @@ func cliStore(key, file string) {
 		fmt.Printf("Error reading file: %v\n", err)
 		os.Exit(1)
 	}
-	tok, _, _, ret := checkout(key, true)
-	if ret != robot.Ok {
-		fmt.Printf("Getting token: %s\n", ret)
-		return
-	}
-	ret = update(key, tok, &fc)
+	ret := storeDatum(key, &fc)
 	if ret != robot.Ok {
 		fmt.Printf("Storing datum: %s\n", ret)
 		return
@@ -873,6 +1044,6 @@ func cliValidate(path string) {
 	}
 	botLogger.logger = log.New(os.Stdout, "", 0)
 	fmt.Println("Validating configuration")
-	initBot()
+	initCLIConfigOnly()
 	fmt.Println("Configuration valid")
 }

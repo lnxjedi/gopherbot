@@ -116,9 +116,11 @@ CLI handling is intentionally split so help and obvious usage failures do not fo
    - subcommand help (`gopherbot <command> -h`, `gopherbot help <command>`)
    - obvious no-init commands (`help`, `version`, `init`)
    - unknown commands / invalid explicit `run` arguments
-3. `dump` and `validate` still run before `initBot()`, but after private environment loading so template/env expansion stays accurate.
-4. Other CLI commands (`encrypt`, `decrypt`, `gentotp`, `fetch`, `store`, `list`, `delete`) still follow the normal CLI startup path through `initBot()` so encryption, config, and brain state are available.
-5. `genkey` is a no-init CLI command after private environment loading; it uses `GOPHER_ENCRYPTION_KEY` directly to generate an encrypted `binary-encrypted-key[.<environment>]` payload without starting brain, connectors, or plugins.
+3. All user-facing CLI subcommands run before full `initBot()` after private environment loading. They do not start connectors, queues, modules, the HTTP listener, or the serialized brain loop.
+4. Encryption-only commands (`encrypt`, `decrypt`, `uuid`) initialize encryption directly from `GOPHER_ENCRYPTION_KEY` plus `binary-encrypted-key[.<environment>]`.
+5. Config-only commands (`dump`, `validate`, `gentotp`) use a lightweight pre-connect config load when needed, but do not initialize a brain provider.
+6. Memory commands (`fetch`, `store`, `list`, `delete`) use the lightweight config load plus the configured brain provider object directly, then call provider shutdown. They do not start `runBrain()`.
+7. `genkey` is a no-init CLI command after private environment loading; it uses `GOPHER_ENCRYPTION_KEY` directly to generate an encrypted `binary-encrypted-key[.<environment>]` payload without starting brain, connectors, or plugins.
 
 Operational note:
 
