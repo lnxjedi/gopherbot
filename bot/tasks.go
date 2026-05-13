@@ -31,8 +31,9 @@ type taskList struct {
 	t []interface{}
 	// nameMap - map of every task, job, plugin and namespace to t[] index;
 	// namespaces are all idx==0
-	nameMap map[string]int
-	idMap   map[string]int // task ID to task number
+	nameMap      map[string]int
+	idMap        map[string]int // task ID to task number
+	uuidTriggers map[string]interface{}
 	// map of namespace name to NameSpace, updated on every load
 	nameSpaces map[string]ParameterSet
 	// map of parameterset name to NameSpace (re-using identical data structure)
@@ -171,11 +172,12 @@ type Task struct {
 
 // Job - configuration only applicable to jobs. Read in from conf/jobs/<job>.yaml, which can also include anything from a Task.
 type Job struct {
-	Quiet     bool           `yaml:"Quiet"`     // Whether to quash "job started/ended" messages
-	KeepLogs  int            `yaml:"KeepLogs"`  // How many runs of this job/plugin to keep history for
-	Triggers  []JobTrigger   `yaml:"Triggers"`  // User/regex that triggers a job, e.g., a git-activated webhook or integration
-	Arguments []InputMatcher `yaml:"Arguments"` // List of arguments to prompt the user for
-	*Task     `yaml:",inline"`
+	Quiet       bool           `yaml:"Quiet"`       // Whether to quash "job started/ended" messages
+	KeepLogs    int            `yaml:"KeepLogs"`    // How many runs of this job/plugin to keep history for
+	UUIDTrigger string         `yaml:"UUIDTrigger"` // Optional UUID for queue-triggered jobs
+	Triggers    []JobTrigger   `yaml:"Triggers"`    // User/regex that triggers a job, e.g., a git-activated webhook or integration
+	Arguments   []InputMatcher `yaml:"Arguments"`   // List of arguments to prompt the user for
+	*Task       `yaml:",inline"`
 }
 
 // Plugin specifies the structure of a plugin configuration. Plugins should include an example/default config.

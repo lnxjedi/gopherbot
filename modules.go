@@ -31,6 +31,9 @@ import (
 	// *** Default SSH connector
 	_ "github.com/lnxjedi/gopherbot/v2/connectors/ssh"
 
+	// *** Default queue providers
+	_ "github.com/lnxjedi/gopherbot/v2/queues/gcloud"
+
 	// *** Default file history
 	_ "github.com/lnxjedi/gopherbot/v2/history/file"
 

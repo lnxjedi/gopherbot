@@ -55,6 +55,12 @@ Practical note:
   creates Firestore, Pub/Sub, service-account, and IAM resources
 - [`scripts/create-service-account-key.sh`](/home/david/git/gopherbot-work/gopherbot/resources/gcloud/scripts/create-service-account-key.sh)
   creates the plaintext JSON key so you can immediately encrypt it
+- `scripts/create-queue-resources.sh` creates the Pub/Sub topic/subscription
+  used by the Gopherbot gcloud queue provider
+- `scripts/create-job-webhook-resources.sh` deploys the HTTP-to-Pub/Sub Cloud
+  Function used by simple external callers
+- `scripts/queue-job.sh` posts a UUID plus shell-escaped job arguments to the
+  webhook URL
 
 ## Step 1: Open Cloud Shell Editor
 
@@ -401,6 +407,53 @@ Expected behavior:
 - `@Bishop ping` works
 - mid-sentence mentions do not become commands
 - slash-command replies remain private
+
+## Optional: Queue-Triggered Jobs
+
+Gopherbot can start jobs from a Google Pub/Sub pull subscription through the
+`gcloud` queue provider.
+
+Create the queue resources:
+
+```bash
+./scripts/create-queue-resources.sh
+./scripts/create-job-webhook-resources.sh
+```
+
+Enable the provider in the robot's custom `conf/robot.yaml`:
+
+```yaml
+QueueProviders:
+- gcloud
+```
+
+The installed provider defaults use `job-triggers-pull` and the normal
+`gopherbot-key.json.enc` credential file. Override under
+`custom/conf/queues/gcloud.yaml` if needed:
+
+```yaml
+QueueConfig:
+  ProjectID: "your-gcp-project-id"
+  SubscriptionID: "job-triggers-pull"
+  CredentialsEncryptedFile: "gopherbot-key.json.enc"
+```
+
+Configure a job UUID with an environment-scoped secret:
+
+```yaml
+UUIDTrigger: {{ secret "MYFIRSTJOB_UUID" | printf "%q" }}
+```
+
+Then trigger the job:
+
+```bash
+WEBHOOK_URL="https://${REGION}-${PROJECT_ID}.cloudfunctions.net/job-queue-${QUEUE_WEBHOOK_UUID}" \
+JOB_UUID="${MYFIRSTJOB_UUID}" \
+./scripts/queue-job.sh "arg with spaces" second-arg
+```
+
+The queue body is acknowledged once the robot accepts the trigger. Job success
+or failure is handled by the normal Gopherbot pipeline/logging path.
 
 ## Troubleshooting
 

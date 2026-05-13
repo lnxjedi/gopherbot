@@ -153,6 +153,12 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 			c.environment["GOPHER_START_THREADED_MESSAGE"] = "true"
 			c.parameters["GOPHER_START_THREADED_MESSAGE"] = "true"
 		}
+		if ptype == queuedJob {
+			c.environment["GOPHER_QUEUE_PROVIDER"] = w.queueProvider
+			c.environment["GOPHER_QUEUE_MESSAGE_ID"] = w.queueMessageID
+			c.parameters["GOPHER_QUEUE_PROVIDER"] = w.queueProvider
+			c.parameters["GOPHER_QUEUE_MESSAGE_ID"] = w.queueMessageID
+		}
 		// To change the channel to the job channel, we need to clear the ProcotolChannel
 		w.Channel = task.Channel
 		w.ProtocolChannel = ""
@@ -212,6 +218,8 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 			r.Say("Starting scheduled job '%s', run %d%s", taskinfo, c.runIndex, logref)
 		case initJob:
 			r.Say("Starting init job '%s', run %d%s", taskinfo, c.runIndex, logref)
+		case queuedJob:
+			r.Say("Starting queued job '%s', run %d%s - triggered by queue provider '%s'", taskinfo, c.runIndex, logref, w.queueProvider)
 		default:
 			r.Say("Starting job '%s', run %d%s", taskinfo, c.runIndex, logref)
 		}

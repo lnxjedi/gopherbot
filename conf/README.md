@@ -10,3 +10,4 @@ Layout overview:
 - `*.yaml.sample`: inert owner/setup templates that are not loaded until copied or renamed to an active `*.yaml` path
 - `brains/<provider>.yaml`: brain-provider-specific settings (`BrainConfig`)
 - `history/<provider>.yaml`: history-provider-specific settings (`HistoryConfig`)
+- `queues/<provider>.yaml`: queue-provider-specific settings (`QueueConfig`)

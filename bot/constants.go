@@ -39,6 +39,7 @@ const (
 	scheduled
 	initJob    // scheduled job schedule: @init
 	jobCommand // i.e. run job xx
+	queuedJob  // job triggered by a queue provider
 )
 
 //go:generate stringer -type=pipeAddFlavor constants.go

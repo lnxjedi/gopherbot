@@ -40,3 +40,21 @@ func TestValidateYAMLHistoryConfigFileRejectsUnknownTopLevel(t *testing.T) {
 		t.Fatalf("validate_yaml() error %q did not reference unknown key", err)
 	}
 }
+
+func TestValidateYAMLQueueConfigFile(t *testing.T) {
+	yml := []byte("QueueConfig:\n  SubscriptionID: job-triggers-pull\n")
+	if err := validate_yaml("conf/queues/gcloud.yaml", yml); err != nil {
+		t.Fatalf("validate_yaml() rejected QueueConfig provider file: %v", err)
+	}
+}
+
+func TestValidateYAMLQueueConfigFileRejectsUnknownTopLevel(t *testing.T) {
+	yml := []byte("QueueConfig:\n  SubscriptionID: job-triggers-pull\nOther: bad\n")
+	err := validate_yaml("conf/queues/gcloud.yaml", yml)
+	if err == nil {
+		t.Fatalf("validate_yaml() accepted unknown top-level key in queues config")
+	}
+	if !strings.Contains(err.Error(), "Other") {
+		t.Fatalf("validate_yaml() error %q did not reference unknown key", err)
+	}
+}

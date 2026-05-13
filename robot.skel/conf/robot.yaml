@@ -43,6 +43,11 @@ Alias: '{{ $botalias }}'
 ## Configure a history provider
 {{ $history := "file" }}
 HistoryProvider: {{ $history }}
+## Optional queue providers for UUID-triggered jobs. Configure provider
+## settings under custom/conf/queues/<provider>.yaml, and set UUIDTrigger on
+## jobs that should be started from queue messages.
+# QueueProviders:
+# - gcloud
 
 ## Outgoing format when a plugin or job does not choose one explicitly.
 DefaultMessageFormat: BasicMarkdown

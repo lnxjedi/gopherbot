@@ -223,6 +223,8 @@ type worker struct {
 	cmdMode         string                  // one of "alias", "name", "direct" - for disambiguation; hidden catchalls use Incoming.HiddenMessage
 	msg, fmsg       string                  // the message text sent; without robot name/alias, and with for message matching
 	automaticTask   bool                    // set for scheduled & triggers jobs, where user security restrictions don't apply
+	queueProvider   string                  // queue provider that started a queued job
+	queueMessageID  string                  // provider-local queue message ID for a queued job
 	*pipeContext                            // pointer to the pipeline context
 	sync.Mutex                              // Lock to protect the bot context when pipeline running
 }
@@ -284,6 +286,8 @@ func (w *worker) clone() *worker {
 		Format:          w.Format,
 		msg:             w.msg,
 		fmsg:            w.fmsg,
+		queueProvider:   w.queueProvider,
+		queueMessageID:  w.queueMessageID,
 	}
 	if w.pipeContext != nil {
 		w.Lock()

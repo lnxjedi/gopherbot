@@ -7,6 +7,7 @@ Current shared surfaces here include:
 - connector registrations and capabilities (`robot/connectors.go`)
 - brain-provider registrations (`robot/brains.go`)
 - history-provider registrations (`robot/history_providers.go`)
+- queue-provider registrations and queue message contracts (`robot/queues.go`)
 - compiled Go plugin/job/task registrations (`robot/registrations.go`)
 - pure connector-safe helpers in `robot/util/` (`wrap.go`, `id.go`, `basic_markdown_plain.go`)
 

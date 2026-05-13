@@ -18,6 +18,7 @@ Startup proceeds through the following phases **in order**:
 10. **Connector runtime initialization** – Initialize primary + configured secondary connectors
 11. **Post-connect configuration load** – Full configuration with plugin initialization
 12. **Runtime git branch capture** – Best-effort detection of current/default startup branch for admin observability
+13. **Queue provider runtime startup** – Start configured queue providers after the robot runtime is ready
 
 Internal exception:
 - `pipeline-child-exec` is an internal command used by multiprocess task execution; it exits after one child-task run and bypasses normal robot startup phases.
@@ -226,6 +227,7 @@ The default `robot.yaml` uses Go templates to derive configuration values from s
 - `PrimaryProtocol` in `robot.yaml` (required)
 - `DefaultProtocol` in `robot.yaml` (optional; defaults to `PrimaryProtocol`)
 - `IdentityProviders` in `robot.yaml` (optional; engine-managed provider registry for user-linked identity refresh and storage)
+- `QueueProviders` in `robot.yaml` (optional; queue providers started after full robot initialization)
 
 If `DefaultProtocol` is set, it must be the primary protocol or one of `SecondaryProtocols`; otherwise startup logs a warning and falls back to `PrimaryProtocol`.
 
@@ -274,8 +276,9 @@ Provider-specific configuration is loaded by selected provider name:
 
 - brain settings: `conf/brains/<Brain>.yaml` with top-level `BrainConfig`
 - history settings: `conf/history/<HistoryProvider>.yaml` with top-level `HistoryConfig`
+- queue settings: `conf/queues/<provider>.yaml` with top-level `QueueConfig`
 
-`BrainConfig` and `HistoryConfig` are invalid top-level keys in `robot.yaml`.
+`BrainConfig`, `HistoryConfig`, and `QueueConfig` are invalid top-level keys in `robot.yaml`.
 
 If a selected provider file is missing, or missing its required top-level key, startup/reload config load fails.
 
@@ -563,10 +566,14 @@ run()
   │
   └─> loadConfig(false)    // Run full config load in the main thread
         │
-        └─> Log("Robot is initialized and running")
+        └─> initializeRuntimeGitState()
+              │
+              └─> startQueueProviderRuntimes()
+                    │
+                    └─> Log("Robot is initialized and running")
 ```
 
-On normal engine reload (`reload`, git-update reload follow-up, or branch-switch reload follow-up), `loadConfig(false)` parses and validates the new configuration, updates the active runtime configuration, reconciles secondary connector membership, then calls `Reload()` on all currently running connectors before refreshing regexes, schedules, and plugin init state.
+On normal engine reload (`reload`, git-update reload follow-up, or branch-switch reload follow-up), `loadConfig(false)` parses and validates the new configuration, updates the active runtime configuration, reconciles secondary connector membership and queue provider membership, then calls `Reload()` on all currently running connectors before refreshing regexes, schedules, and plugin init state.
 
 ## Runtime Protocol Controls
 
@@ -586,10 +593,11 @@ Shutdown can be triggered by admin commands, pipeline tasks, or process signals.
 1. Set `state.shuttingDown = true` (prevents new non-allowed pipelines).
 2. Call `stop()` in `bot/bot_process.go`.
 3. `stop()` first triggers prompt shutdown signaling so in-progress `Prompt*` waits return `Interrupted` immediately.
-4. `stop()` waits for running pipelines (`state.Wait()`).
-5. Stop brain loop (`brainQuit()`), then stop connector runtimes.
-6. Stop signal handler goroutine.
-7. Emit restart flag on `done` channel.
+4. Stop queue provider runtimes so external queues stop introducing new work.
+5. `stop()` waits for running pipelines (`state.Wait()`).
+6. Stop brain loop (`brainQuit()`), then stop connector runtimes.
+7. Stop signal handler goroutine.
+8. Emit restart flag on `done` channel.
 
 This keeps shutdown deterministic even when interactive prompts are using long timeout windows.
 
@@ -603,6 +611,7 @@ This keeps shutdown deterministic even when interactive prompts are using long t
 * `bot/config_load.go` – `detectStartupMode()`, config-file merge/template expansion
 * `bot/conf.go` – `loadConfig()` and reload reconciliation hooks for `SecondaryProtocols`
 * `bot/connector_runtime.go` – multi-connector runtime manager, routing, lifecycle controls
+* `bot/queue_runtime.go` – queue provider runtime manager and queue-triggered job start path
 * `conf/robot.yaml` – Default config with template logic
 
 Related execution model reference: `aidocs/EXECUTION_SECURITY_MODEL.md`.

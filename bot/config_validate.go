@@ -47,6 +47,10 @@ func validate_yaml(filePath string, yamldata []byte) error {
 		targetStruct = &struct {
 			HistoryConfig interface{} `yaml:"HistoryConfig"`
 		}{}
+	case "queue":
+		targetStruct = &struct {
+			QueueConfig interface{} `yaml:"QueueConfig"`
+		}{}
 	case "plugin":
 		targetStruct = &Plugin{}
 	case "job":
@@ -79,6 +83,8 @@ func getFileType(filePath string) string {
 		return "brain"
 	case "history":
 		return "history"
+	case "queues":
+		return "queue"
 	default:
 		return "robot"
 	}
@@ -91,6 +97,7 @@ func processNode(fileType string, node *yaml.Node) error {
 		"robot":   {"ProtocolConfig"},
 		"brain":   {"BrainConfig"},
 		"history": {"HistoryConfig"},
+		"queue":   {"QueueConfig"},
 		"plugin":  {"Config"},
 		"job":     {"Config"},
 	}

@@ -16,6 +16,34 @@ import (
 
 var protocolConfig, brainConfig, historyConfig json.RawMessage
 
+var queueConfigs = struct {
+	sync.RWMutex
+	m map[string]json.RawMessage
+}{
+	m: map[string]json.RawMessage{},
+}
+
+func setQueueConfigs(configs map[string]json.RawMessage) {
+	queueConfigs.Lock()
+	defer queueConfigs.Unlock()
+	queueConfigs.m = make(map[string]json.RawMessage, len(configs))
+	for provider, cfg := range configs {
+		p := normalizeProviderName(provider)
+		if p == "" || cfg == nil {
+			continue
+		}
+		queueConfigs.m[p] = cfg
+	}
+}
+
+func getQueueConfigFor(provider string) json.RawMessage {
+	p := normalizeProviderName(provider)
+	queueConfigs.RLock()
+	cfg := queueConfigs.m[p]
+	queueConfigs.RUnlock()
+	return cfg
+}
+
 var protocolConfigs = struct {
 	sync.RWMutex
 	m map[string]json.RawMessage
@@ -83,6 +111,7 @@ type ConfigLoader struct {
 	Brain                              string                            `yaml:"Brain"`                              // Type of Brain to use
 	EncryptionKey                      string                            `yaml:"EncryptionKey"`                      // Used to decrypt the "real" encryption key
 	HistoryProvider                    string                            `yaml:"HistoryProvider"`                    // Name of provider to use for storing and retrieving job/plugin histories
+	QueueProviders                     []string                          `yaml:"QueueProviders"`                     // Optional queue providers to initialize after startup
 	HttpDebug                          bool                              `yaml:"HttpDebug"`                          // Whether to turn on debug logging of local http API calls
 	WorkSpace                          string                            `yaml:"WorkSpace"`                          // Read/Write area the robot uses to do work
 	DefaultElevator                    string                            `yaml:"DefaultElevator"`                    // Elevator plugin for ElevatedCommands and ElevateImmediateCommands
@@ -160,6 +189,20 @@ func secondaryIncludesProtocol(protocol string, secondary []string) bool {
 	return false
 }
 
+func normalizeQueueProviders(providers []string) []string {
+	out := make([]string, 0, len(providers))
+	seen := make(map[string]bool)
+	for _, provider := range providers {
+		name := normalizeProviderName(provider)
+		if name == "" || seen[name] {
+			continue
+		}
+		seen[name] = true
+		out = append(out, name)
+	}
+	return out
+}
+
 func isValidRosterUserName(name string) bool {
 	if len(strings.TrimSpace(name)) == 0 {
 		return false
@@ -181,6 +224,8 @@ func providerConfigDirectoryForKey(key string) (string, bool) {
 		return "brains", true
 	case "HistoryConfig":
 		return "history", true
+	case "QueueConfig":
+		return "queues", true
 	default:
 		return "", false
 	}
@@ -205,6 +250,8 @@ func loadProviderFileData(providerType, providerName string, required bool) (jso
 		expectedKey = "BrainConfig"
 	case "history":
 		expectedKey = "HistoryConfig"
+	case "queues":
+		expectedKey = "QueueConfig"
 	default:
 		return nil, false, fmt.Errorf("invalid provider type: %q", providerType)
 	}
@@ -426,7 +473,7 @@ func loadConfig(preConnect bool) error {
 			val = &identityVal
 		case "ScheduledJobs":
 			val = &stval
-		case "DefaultChannels", "IgnoreUsers", "JoinChannels", "AdminUsers", "SecondaryProtocols":
+		case "DefaultChannels", "IgnoreUsers", "JoinChannels", "AdminUsers", "SecondaryProtocols", "QueueProviders":
 			val = &sarrval
 		case "PrivsepAllowedSupplementaryGroups":
 			val = &iarrval
@@ -434,7 +481,7 @@ func loadConfig(preConnect bool) error {
 			val = &mailval
 		case "TimeOuts":
 			val = &timeoutVal
-		case "BrainConfig", "HistoryConfig":
+		case "BrainConfig", "HistoryConfig", "QueueConfig":
 			targetDir, _ := providerConfigDirectoryForKey(key)
 			err := fmt.Errorf("invalid configuration key in %s: %s (move to conf/%s/<provider>.yaml)", robotConfigFileName, key, targetDir)
 			Log(robot.Error, err.Error())
@@ -470,6 +517,8 @@ func loadConfig(preConnect bool) error {
 			newconfig.EncryptionKey = *(val.(*string))
 		case "HistoryProvider":
 			newconfig.HistoryProvider = *(val.(*string))
+		case "QueueProviders":
+			newconfig.QueueProviders = *(val.(*[]string))
 		case "WorkSpace":
 			newconfig.WorkSpace = *(val.(*string))
 		case "DefaultJobChannel":
@@ -623,6 +672,16 @@ func loadConfig(preConnect bool) error {
 		}
 	}
 	setProtocolConfigs(perProtocolConfigs)
+	processed.queueProviders = normalizeQueueProviders(newconfig.QueueProviders)
+	queueProviderConfigs := make(map[string]json.RawMessage, len(processed.queueProviders))
+	for _, provider := range processed.queueProviders {
+		if cfg, loaded, err := loadProviderFileData("queues", provider, true); err != nil {
+			return err
+		} else if loaded {
+			queueProviderConfigs[provider] = cfg
+		}
+	}
+	setQueueConfigs(queueProviderConfigs)
 	if newconfig.Brain != "" {
 		processed.brainProvider = newconfig.Brain
 		if cfg, loaded, err := loadProviderFileData("brains", newconfig.Brain, true); err != nil {
@@ -998,6 +1057,7 @@ func loadConfig(preConnect bool) error {
 
 	if !preConnect {
 		reconcileSecondaryConnectorRuntimes(processed.secondaryProtocols)
+		reconcileQueueProviderRuntimes(processed.queueProviders)
 		if err := reloadActiveConnectorRuntimes(); err != nil {
 			Log(robot.Error, "Reloading active connectors: %v", err)
 		}

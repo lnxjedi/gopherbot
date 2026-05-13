@@ -10,6 +10,7 @@ func TestProviderConfigDirectoryForKey(t *testing.T) {
 	}{
 		{key: "BrainConfig", wantDir: "brains", wantBool: true},
 		{key: "HistoryConfig", wantDir: "history", wantBool: true},
+		{key: "QueueConfig", wantDir: "queues", wantBool: true},
 		{key: "ProtocolConfig", wantDir: "", wantBool: false},
 	}
 

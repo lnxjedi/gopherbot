@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/lnxjedi/gopherbot/robot"
 	"gopkg.in/yaml.v3"
 )
@@ -19,6 +20,7 @@ func loadTaskConfig(processed *configuration, preConnect bool) (*taskList, error
 		t:             []interface{}{struct{}{}}, // initialize 0 to "nothing", for namespaces & parametersets only
 		nameMap:       make(map[string]int),
 		idMap:         make(map[string]int),
+		uuidTriggers:  make(map[string]interface{}),
 		nameSpaces:    make(map[string]ParameterSet),
 		parameterSets: make(map[string]ParameterSet),
 	}
@@ -314,7 +316,7 @@ LoadLoop:
 			var val interface{}
 			skip := false
 			switch key {
-			case "Elevator", "Authorizer", "AuthRequire", "NameSpace", "Channel":
+			case "Elevator", "Authorizer", "AuthRequire", "NameSpace", "Channel", "UUIDTrigger":
 				val = &strval
 			case "KeepLogs":
 				val = &intval
@@ -401,6 +403,12 @@ LoadLoop:
 					mismatch = true
 				} else {
 					job.KeepLogs = *(val.(*int))
+				}
+			case "UUIDTrigger":
+				if isPlugin {
+					mismatch = true
+				} else {
+					job.UUIDTrigger = strings.TrimSpace(*(val.(*string)))
 				}
 			case "Authorizer":
 				task.Authorizer = *(val.(*string))
@@ -778,6 +786,28 @@ LoadLoop:
 				task.reason = msg
 				continue LoadLoop
 			}
+		}
+
+		if isJob && job.UUIDTrigger != "" {
+			parsed, err := uuid.Parse(job.UUIDTrigger)
+			if err != nil {
+				msg := fmt.Sprintf("Disabling '%s', invalid UUIDTrigger", task.name)
+				Log(robot.Error, "%s: %v", msg, err)
+				task.Disabled = true
+				task.reason = msg
+				continue
+			}
+			normalized := parsed.String()
+			if existing, ok := newList.uuidTriggers[normalized]; ok {
+				existingTask, _, _ := getTask(existing)
+				msg := fmt.Sprintf("Disabling '%s', duplicate UUIDTrigger also configured for job '%s'", task.name, existingTask.name)
+				Log(robot.Error, msg)
+				task.Disabled = true
+				task.reason = msg
+				continue
+			}
+			job.UUIDTrigger = normalized
+			newList.uuidTriggers[normalized] = job
 		}
 
 		Log(robot.Debug, "Configured task '%s'", task.name)

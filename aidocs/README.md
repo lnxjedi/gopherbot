@@ -20,6 +20,7 @@ Use these first for current behavior:
 - `aidocs/PIPELINE_LIFECYCLE.md`
 - `aidocs/SIMPLE_MATCHER_DIAGNOSTICS.md`
 - `aidocs/SCHEDULER_FLOW.md`
+- `aidocs/JobQueues.md`
 - `aidocs/EXECUTION_SECURITY_MODEL.md`
 - `aidocs/macos-privsep.md`
 - `aidocs/setup-style-guide.md`

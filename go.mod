@@ -13,6 +13,7 @@ replace gopherbot.internal/lib => ./lib
 // replace github.com/go-git/go-git/v5 => ./replacements/go-git
 
 require (
+	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be
 	github.com/aws/aws-sdk-go-v2 v1.41.1
 	github.com/aws/aws-sdk-go-v2/config v1.32.7
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.7

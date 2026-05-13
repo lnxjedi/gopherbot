@@ -161,6 +161,10 @@ UserRoster:
 ## Configure a history provider
 {{ $history := env "GOPHER_HISTORY_PROVIDER" | default "mem" }}
 HistoryProvider: {{ $history }}
+## Optional job queue providers. Provider-specific settings live under
+## conf/queues/<provider>.yaml and jobs opt in with UUIDTrigger.
+# QueueProviders:
+# - gcloud
 ## Outgoing message format for plugins/jobs that do not override format explicitly.
 ## BasicMarkdown is the v3 default portable format. Legacy robots that need
 ## protocol-native behavior can set this to Raw.

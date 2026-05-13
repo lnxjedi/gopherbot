@@ -94,6 +94,7 @@ type configuration struct {
 	brainProvider              string              // Type of Brain provider to use
 	encryptionKey              string              // Key for encrypting data (unlocks "real" key in brain)
 	historyProvider            string              // Name of the history provider to use
+	queueProviders             []string            // Queue providers to start after full robot initialization
 	workSpace                  string              // Read/Write directory where the robot does work
 	defaultElevator            string              // Plugin name for performing elevation
 	defaultAuthorizer          string              // Plugin name for performing authorization
@@ -126,6 +127,7 @@ var currentCfg = struct {
 		t:             []interface{}{struct{}{}}, // initialize 0 to "nothing", for namespaces only
 		nameMap:       make(map[string]int),
 		idMap:         make(map[string]int),
+		uuidTriggers:  make(map[string]interface{}),
 		nameSpaces:    make(map[string]ParameterSet),
 		parameterSets: make(map[string]ParameterSet),
 	},
@@ -158,6 +160,10 @@ func initBot() {
 	}
 
 	state.shuttingDown = false
+	runtimeQueueProviders.Lock()
+	runtimeQueueProviders.initialized = false
+	runtimeQueueProviders.runtimes = map[string]*managedQueueProvider{}
+	runtimeQueueProviders.Unlock()
 	resetPromptShutdownSignal()
 	resetRobotInitializedSignal()
 
@@ -459,6 +465,7 @@ func run() {
 		Log(robot.Fatal, "Loading full/post-connect configuration: %v", err)
 	}
 	initializeRuntimeGitState()
+	startQueueProviderRuntimes()
 	Log(robot.Info, "Robot is initialized and running")
 	signalRobotInitialized()
 	if hint := startupSSHHint(startMode, currentCfg.protocol, currentCfg.adminUsers); hint != "" {
@@ -496,6 +503,7 @@ func stop() {
 	state.RUnlock()
 	Log(robot.Info, "Stop called with %d pipelines running", pr)
 	triggerPromptShutdownSignal()
+	shutdownQueueProviderRuntimes()
 	state.Wait()
 	releaseBrainLock()
 	brainQuit()

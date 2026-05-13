@@ -21,6 +21,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
   `aidocs/INTEGRATION_HARNESS_PLAN.md`.
 - OAuth2 refresh registry, brain schema, and token lifecycle: `aidocs/OAUTH2_TOKEN_MANAGEMENT.md`.
 - Incoming message pipeline flow: `aidocs/PIPELINE_LIFECYCLE.md`.
+- Queue-triggered job design: `aidocs/JobQueues.md`.
 - SimpleMatcher diagnostic routing design: `aidocs/SIMPLE_MATCHER_DIAGNOSTICS.md`.
 - Scheduled job pipeline flow: `aidocs/SCHEDULER_FLOW.md`.
 - AI-maintained backlog: `aidocs/TODO.md`.
@@ -31,6 +32,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 - Engine entrypoints: `bot/start.go` (func `Start`), `bot/bot_process.go` (funcs `initBot`, `run`, `stop`), `bot/startup_ready.go` (startup readiness signal for integration harnesses).
 - Runtime connector orchestration: `bot/connector_runtime.go` (runtime manager, protocol routing, lifecycle controls).
+- Runtime queue provider orchestration: `bot/queue_runtime.go` (provider lifecycle, queue body parsing, UUID-to-job matching, and queued job pipeline start).
 - Bot-side connector capability/registration consumption: `bot/connector_capabilities.go` (shared registration lookup, runtime capability lookup, and test overrides).
 - Connector/brain/history handler implementation: `bot/handler.go` (implements shared `robot.Handler`, including `GetBotInfo()` for connector init).
 - Bot-side provider registration consumption: `bot/provider_registrations.go` (shared brain/history registration lookup + test overrides).
@@ -61,6 +63,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Installed connector defaults plus inert setup templates: `conf/protocols/googlechat.yaml`, `conf/protocols/slack.yaml.sample`, `conf/protocols/ssh.yaml`, `conf/protocols/terminal.yaml`, `conf/protocols/nullconn.yaml`. Active robot-specific changes belong under `custom/conf/`.
 - Brain provider defaults: `conf/brains/*.yaml` (`BrainConfig`).
 - History provider defaults: `conf/history/*.yaml` (`HistoryConfig`).
+- Queue provider defaults: `conf/queues/*.yaml` (`QueueConfig`).
 - Default job/plugin config examples live under `conf/jobs/` and `conf/plugins/` (e.g., `conf/jobs/pause-notifies.yaml`, `conf/plugins/builtin-help.yaml`).
 
 ## connectors/
@@ -125,6 +128,10 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Shipped OAuth2 onboarding plugin: `plugins/go-github-link/github_link.go`.
 - AI fallback plugin: `plugins/go-ai-fallback/ai.go` (func `PluginHandler`).
 
+## queues/
+
+- Google Cloud queue provider registration + runtime: `queues/gcloud/static.go` (calls `robot.RegisterQueueProvider("gcloud", Initialize)`), `queues/gcloud/gcloud.go` (func `Initialize`; Google Pub/Sub pull subscription runtime, encrypted service-account credential loading, and queue message ack/retry mapping).
+
 ## resources/
 
 - Deployment and service artifacts: `resources/deploy-gopherbot.yaml`, `resources/robot.service`, `resources/user-robot.service`.
@@ -136,6 +143,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Shared modular contract surface: `robot/README.md`.
 - Go extension registrations: `robot/registrations.go` (funcs `RegisterPlugin`, `RegisterJob`, `RegisterTask`).
 - Connector registrations + capabilities: `robot/connectors.go` (`RegisterConnector`, `InitializedConnector`, `ConnectorCapabilities`, `HiddenCommandFormatter`).
+- Queue provider registrations and queue handler contract: `robot/queues.go` (`RegisterQueueProvider`, `QueueProvider`, `QueueHandler`, `QueueMessage`, `QueueDisposition`).
 - Shared robot identity shape for connector/provider init: `robot/botinfo.go` (`BotInfo`).
 - Brain-provider registrations: `robot/brains.go` (`RegisterSimpleBrain`).
 - History-provider registrations: `robot/history_providers.go` (`RegisterHistoryProvider`).

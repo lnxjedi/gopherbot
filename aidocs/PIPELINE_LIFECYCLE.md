@@ -122,6 +122,9 @@ Catch-all mode scoping:
 
 - Plugin match → `startPipeline(..., plugCommand|plugMessage, ...)`: `bot/dispatch.go:checkPluginMatchersAndRun`, `bot/constants.go` `pipelineType`.
 - Job trigger / command → `startPipeline(..., jobTrigger|jobCommand, ...)`: `bot/jobrun.go:checkJobMatchersAndRun`, `bot/constants.go` `pipelineType`.
+- Queue trigger → `triggerJobFromQueue(...)` parses the queue body, matches a
+  job `UUIDTrigger`, and starts `startPipeline(..., queuedJob, ...)` without
+  entering connector message routing: `bot/queue_runtime.go`.
 - `startPipeline` now stamps each pipeline with `startedAt`, effective timeout settings, and operator-channel routing metadata before the primary task runs: `bot/run_pipelines.go`, `bot/pipecontext.go`.
 - A bounded live log buffer is attached to every pipeline through `newPipelineLiveLogger(...)`: `bot/history.go`, `bot/pipeline_monitoring.go`.
   - The live buffer tees normal history logging and keeps recent section markers, `Robot.Log(...)` / `worker.Log(...)`, and child stdout/stderr even when a job/plugin later discards persisted history (`KeepLogs: 0`).
@@ -175,6 +178,10 @@ For a full execution/security walkthrough, see `aidocs/EXECUTION_SECURITY_MODEL.
 - `AddJob` appends a job task to the current primary pipeline; when executed it runs as a child pipeline context (`bot/run_pipelines.go`, `worker.runPipeline` with `child.startPipeline(...)`).
 - Child job pipelines started via `AddJob` do not inherit parent pipeline `SetParameter` state; pass required data as explicit job args or use the built-in `GOPHER_START_*` environment metadata exposed by `startPipeline`.
 - Child job outbound protocol context is inherited from the parent pipeline context (not implicit default-protocol fallback), so command-origin protocol and `AddJob`-spawned status routing remain aligned.
+- Queue-triggered jobs use the job's configured channel, the runtime default
+  protocol, and `automaticTask=true`, like scheduled jobs. They expose
+  `GOPHER_QUEUE_PROVIDER` and `GOPHER_QUEUE_MESSAGE_ID` as queue-origin
+  metadata.
 - Tail-pipeline APIs: `robot/robot.go` methods `FinalTask`, `FailTask`, `FinalCommand`, `FailCommand`.
 - Runtime stage ordering: primary tasks run first, then `Final*` tasks always run, and `Fail*` tasks run only when primary pipeline status is non-normal (`bot/run_pipelines.go`, `worker.startPipeline` + `worker.runPipeline`).
 - `FinalTask` ordering is LIFO/FILO by design (cleanup stack behavior): `bot/robot_pipecmd.go`, `pipeTask` (`flavorFinal` prepends to `w.finalTasks`).
