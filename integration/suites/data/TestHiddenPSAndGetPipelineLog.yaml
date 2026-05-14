@@ -34,7 +34,7 @@ flow:
       text_pattern: '(?s:.*)'
       contains_upper:
         - PLUGINS
-        - ID
+        - WID
         - ADMININSPECT
       capture_pipeline_wid:
         name: wid
@@ -53,6 +53,18 @@ flow:
         - LIVE LOG FOR PIPELINE ${wid}
         - INSPECT STDOUT READY
         - INSPECT STDERR READY
+  - name: wid-log
+    send:
+      user: alice
+      channel: general
+      text: 'bender: wid-log ${wid}'
+      hidden: true
+    receive:
+      channel: general
+      text_pattern: '(?s:.*)'
+      contains_upper:
+        - LIVE LOG FOR PIPELINE ${wid}
+        - INSPECT STDOUT READY
   - name: admin-inspect-done
     receive:
       channel: general

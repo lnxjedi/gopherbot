@@ -164,9 +164,9 @@ For a full execution/security walkthrough, see `aidocs/EXECUTION_SECURITY_MODEL.
     - emits a manual-intervention alert instead of force-killing compiled-in Go work
 - Admin inspection commands for active pipelines:
   - `ps` is available only in direct/hidden message contexts because task arguments can contain sensitive operator data.
-  - `ps` defaults to sectioned `Plugins` / `Jobs` output with pipeline `ID`, compact `AGE`, `USER`, pipeline name, current task, command/source, args, and an explicit hint for `ps -v`.
+  - `ps` defaults to sectioned `Plugins` / `Jobs` output with worker ID (`WID`), compact `AGE`, `USER`, pipeline name, current task, command/source, args, and an explicit hint for `ps -v`.
   - `ps -v` includes `STARTED`, execution class, OS child PID (`OSPID`), and parent pipeline (`FROM`) details.
-  - `get-pipeline-log <id>` returns the current live buffer for an active pipeline.
+  - `get-pipeline-log <wid>` and `wid-log <wid>` return the current live buffer for an active pipeline.
 - Admin secret helper commands:
   - `encrypt-secret <secret>` returns base64 ciphertext using the robot encryption key, matching `gopherbot encrypt <string>` output.
   - `generate-uuid` returns the same plaintext/encrypted UUID pair as `gopherbot uuid`.

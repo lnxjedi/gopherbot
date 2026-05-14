@@ -49,7 +49,7 @@ func TestHiddenPSAndGetPipelineLog(t *testing.T) {
 
 	psMsg := mustGetBotMessage(t, conn)
 	upperPS := strings.ToUpper(psMsg.Message)
-	if !strings.Contains(upperPS, "PLUGINS") || !strings.Contains(upperPS, "ID") || !strings.Contains(upperPS, "ADMININSPECT") {
+	if !strings.Contains(upperPS, "PLUGINS") || !strings.Contains(upperPS, "WID") || !strings.Contains(upperPS, "ADMININSPECT") {
 		t.Fatalf("unexpected ps output: %q", psMsg.Message)
 	}
 	wid := findPipelineWID(psMsg.Message, "admininspect", "inspect")
@@ -68,6 +68,13 @@ func TestHiddenPSAndGetPipelineLog(t *testing.T) {
 	}
 	if !strings.Contains(upperLog, "INSPECT STDERR READY") {
 		t.Fatalf("live log missing stderr excerpt: %q", logMsg.Message)
+	}
+
+	conn.SendBotMessage(&testc.TestMessage{aliceID, general, "bender: wid-log " + wid, false, true})
+	aliasMsg := mustGetBotMessage(t, conn)
+	upperAliasLog := strings.ToUpper(aliasMsg.Message)
+	if !strings.Contains(upperAliasLog, "LIVE LOG FOR PIPELINE "+wid) {
+		t.Fatalf("unexpected wid-log heading: %q", aliasMsg.Message)
 	}
 
 	doneMsg := mustGetBotMessage(t, conn)

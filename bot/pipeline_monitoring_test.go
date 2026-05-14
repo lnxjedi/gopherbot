@@ -169,13 +169,13 @@ func TestAdminPSAndGetPipelineLog(t *testing.T) {
 	if fake.lastFormat != robot.Fixed {
 		t.Fatalf("ps format = %v, want %v", fake.lastFormat, robot.Fixed)
 	}
-	if !strings.Contains(fake.lastMessage, "Plugins\nID") {
+	if !strings.Contains(fake.lastMessage, "Plugins\nWID") {
 		t.Fatalf("ps output missing non-verbose header: %q", fake.lastMessage)
 	}
 	if !strings.Contains(fake.lastMessage, "adminwatchdog") {
 		t.Fatalf("ps output missing pipeline row: %q", fake.lastMessage)
 	}
-	if !strings.Contains(fake.lastMessage, "Jobs\nID") || !strings.Contains(fake.lastMessage, "nightly") || !strings.Contains(fake.lastMessage, "sched") {
+	if !strings.Contains(fake.lastMessage, "Jobs\nWID") || !strings.Contains(fake.lastMessage, "nightly") || !strings.Contains(fake.lastMessage, "sched") {
 		t.Fatalf("ps output missing job section: %q", fake.lastMessage)
 	}
 	if strings.Contains(fake.lastMessage, "4321") {

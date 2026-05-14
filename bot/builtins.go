@@ -1838,12 +1838,12 @@ func appendPsSection(lines []string, title string, entries psEntries, verbose bo
 	lines = append(lines, title)
 	if title == "Plugins" {
 		if verbose {
-			lines = append(lines, "ID     AGE      STARTED         USER           PLUGIN          CMD          TASK            CLASS OSPID FROM   ARGS")
+			lines = append(lines, "WID    AGE      STARTED         USER           PLUGIN          CMD          TASK            CLASS OSPID FROM   ARGS")
 			for _, e := range entries {
 				lines = append(lines, fmt.Sprintf("%-6d %-8.8s %-15.15s %-14.14s %-15.15s %-12.12s %-15.15s %-5.5s %-5.5s %-6.6s %s", e.id, e.age, e.started, e.user, e.pipeName, e.command, e.taskName, e.class, e.pid, e.parent, e.args))
 			}
 		} else {
-			lines = append(lines, "ID     AGE      USER           PLUGIN          CMD          TASK            ARGS")
+			lines = append(lines, "WID    AGE      USER           PLUGIN          CMD          TASK            ARGS")
 			for _, e := range entries {
 				lines = append(lines, fmt.Sprintf("%-6d %-8.8s %-14.14s %-15.15s %-12.12s %-15.15s %s", e.id, e.age, e.user, e.pipeName, e.command, e.taskName, e.args))
 			}
@@ -1851,12 +1851,12 @@ func appendPsSection(lines []string, title string, entries psEntries, verbose bo
 		return lines
 	}
 	if verbose {
-		lines = append(lines, "ID     AGE      STARTED         JOB             TASK            SOURCE   FROM   USER           CLASS OSPID ARGS")
+		lines = append(lines, "WID    AGE      STARTED         JOB             TASK            SOURCE   FROM   USER           CLASS OSPID ARGS")
 		for _, e := range entries {
 			lines = append(lines, fmt.Sprintf("%-6d %-8.8s %-15.15s %-15.15s %-15.15s %-8.8s %-6.6s %-14.14s %-5.5s %-5.5s %s", e.id, e.age, e.started, e.pipeName, e.taskName, e.source, e.parent, e.user, e.class, e.pid, e.args))
 		}
 	} else {
-		lines = append(lines, "ID     AGE      JOB             TASK            SOURCE   FROM   USER           ARGS")
+		lines = append(lines, "WID    AGE      JOB             TASK            SOURCE   FROM   USER           ARGS")
 		for _, e := range entries {
 			lines = append(lines, fmt.Sprintf("%-6d %-8.8s %-15.15s %-15.15s %-8.8s %-6.6s %-14.14s %s", e.id, e.age, e.pipeName, e.taskName, e.source, e.parent, e.user, e.args))
 		}

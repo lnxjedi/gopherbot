@@ -201,7 +201,7 @@ Notes:
 - Gopherbot shell full coverage: `integration/suites/data/TestShFull.yaml` plus `plugins/test/shfull.gsh`.
 - JavaScript full coverage: `integration/suites/data/TestJSFull.yaml` plus `plugins/test/jsfull.js`, including the OAuth2 link/get/unlink engine API cycle.
 - Admin/watchdog coverage: YAML files such as `integration/suites/data/TestHiddenPSAndGetPipelineLog.yaml`, using `test/membrain/plugins/admininspect.sh` and `test/membrain/plugins/admintimeout.sh` to exercise:
-  - hidden `ps` and `get-pipeline-log`
+  - hidden `ps`, `get-pipeline-log`, and `wid-log`
   - timeout warn/kill operator alerts for external pipelines
   - operator-facing failure alerts with stderr/traceback excerpts
 

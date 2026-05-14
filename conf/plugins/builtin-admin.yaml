@@ -129,9 +129,9 @@ Commands:
   Summary: "list running pipelines in a direct or hidden message, optionally with verbose process details"
 - Command: getpipelinelog
   # Regex: '(?i:get[- ]pipeline[- ]log ([\\d]+))'
-  SimpleMatcher: "get pipeline log <id:number>"
+  SimpleMatcher: "/get pipeline log|wid log/ <id:number>"
   Keywords: [ "pipeline", "log", "logs", "inspect", "debug", "process" ]
-  Usage: "get-pipeline-log <id>"
+  Usage: "get-pipeline-log <wid> | wid-log <wid>"
   Summary: "show the current buffered log for an active pipeline"
 - Command: "kill"
   # Regex: '(?i:kill(?:[- ](?:job|pipeline|process))? ([\d]+))'

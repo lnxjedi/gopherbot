@@ -239,7 +239,7 @@ Operator workflow changes:
 
 - `ps` now defaults to WID/PWID/type/start/age/task view and hides PID.
 - `ps -v` includes PID and execution class details.
-- `get-pipeline-log <wid>` shows the live in-memory log buffer for an active pipeline.
+- `get-pipeline-log <wid>` shows the live in-memory log buffer for an active pipeline; `wid-log <wid>` is accepted as a shorter synonym.
 - Crash/timeout alerts now prefer operator/job-channel notifications with recent log excerpts instead of relying only on `<plugin>-fail.log`.
 
 ## 2026-02-18 Provider Config Layout Update (Slice 1)

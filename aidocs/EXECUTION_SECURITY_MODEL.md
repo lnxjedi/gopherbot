@@ -111,9 +111,9 @@ Legacy thread-scoped helpers (`raiseThreadPriv`, `raiseThreadPrivExternal`, `dro
 - Admin/operator inspection surface:
   - `ps` is available only in direct/hidden message contexts because task arguments can contain sensitive operator data.
   - `ps` is the default low-risk view for active pipelines and intentionally omits OS PID.
-  - `ps` presents the kill/log handle as pipeline `ID`, groups active plugins and jobs into separate sections, and includes a compact age plus a `ps -v` hint.
+  - `ps` presents the kill/log handle as worker ID (`WID`), groups active plugins and jobs into separate sections, and includes a compact age plus a `ps -v` hint.
   - `ps -v` exposes OS child PID (`OSPID`) plus start time, parent pipeline, and execution-class details for operators who need kill/debug context.
-  - `get-pipeline-log <id>` exposes the current live ring buffer for an active pipeline.
+  - `get-pipeline-log <wid>` and `wid-log <wid>` expose the current live ring buffer for an active pipeline.
 - Timeout watchdog kill scope is intentionally narrower than alert scope:
   - external executable child pipelines can be killed by process group
   - RPC-backed interpreter/child-Go pipelines can be canceled and/or killed through parent-held child state
