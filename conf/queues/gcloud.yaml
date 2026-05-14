@@ -2,5 +2,6 @@ QueueConfig:
   ProjectID: ""
   SubscriptionID: job-triggers-pull
   CredentialsEncryptedFile: gopherbot-key.json.enc
+  MaxBodySize: 4096
   NumGoroutines: 1
   MaxOutstandingMessages: 1

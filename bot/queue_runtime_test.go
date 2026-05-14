@@ -2,6 +2,7 @@ package bot
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -33,15 +34,23 @@ func TestParseQueueBodyShellEscapedArgs(t *testing.T) {
 }
 
 func TestParseQueueBodyRejectsMalformedBody(t *testing.T) {
-	tests := [][]byte{
-		[]byte("short"),
-		[]byte("1104df4c-feeb-43ab-8c85-83663288cea9\targ"),
-		[]byte("xxxxxxxx-feeb-43ab-8c85-83663288cea9 arg"),
-		[]byte("1104df4c-feeb-43ab-8c85-83663288cea9 'unterminated"),
+	tests := []struct {
+		name    string
+		body    []byte
+		errPart string
+	}{
+		{name: "too short", body: []byte("short"), errPart: "too short"},
+		{name: "tab instead of space", body: []byte("1104df4c-feeb-43ab-8c85-83663288cea9\targ"), errPart: "not followed by a space"},
+		{name: "invalid uuid", body: []byte("xxxxxxxx-feeb-43ab-8c85-83663288cea9 arg"), errPart: "invalid queue UUID prefix"},
+		{name: "unterminated shell arg", body: []byte("1104df4c-feeb-43ab-8c85-83663288cea9 'unterminated"), errPart: "parsing shell-escaped queue arguments"},
 	}
 	for _, tc := range tests {
-		if _, _, err := parseQueueBody(tc); err == nil {
-			t.Fatalf("parseQueueBody(%q) returned nil error", string(tc))
+		_, _, err := parseQueueBody(tc.body)
+		if err == nil {
+			t.Fatalf("%s: parseQueueBody(%q) returned nil error", tc.name, string(tc.body))
+		}
+		if !strings.Contains(err.Error(), tc.errPart) {
+			t.Fatalf("%s: parseQueueBody(%q) error = %q, want substring %q", tc.name, string(tc.body), err, tc.errPart)
 		}
 	}
 }

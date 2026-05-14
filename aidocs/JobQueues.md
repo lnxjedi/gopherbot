@@ -112,6 +112,7 @@ QueueConfig:
   ProjectID: "my-gcp-project"
   SubscriptionID: "job-triggers-pull"
   CredentialsEncryptedFile: "gopherbot-key.json.enc"
+  MaxBodySize: 4096
   MaxOutstandingMessages: 1
   NumGoroutines: 1
 ```
@@ -126,6 +127,8 @@ Notes:
 - Queue provider config files are templated and layered like other provider
   files, so custom robots can use `{{ secret "NAME" }}` and
   `{{ variable "NAME" }}` in provider config.
+- For `gcloud`, `MaxBodySize` defaults to `4096` bytes when omitted or set to
+  `0`/negative, and oversized Pub/Sub messages are acknowledged and rejected.
 
 Jobs get an optional `UUIDTrigger`:
 
@@ -270,6 +273,7 @@ Rules:
 - Bodies shorter than 36 bytes are invalid.
 - Only bytes `[0:36]` are considered for job selection.
 - The UUID prefix must parse as a UUID.
+- UUID-only payloads are valid and mean the job has zero arguments.
 - If the body has more data, byte 36 must be a single ASCII space.
 - Argument text begins at byte 37.
 - Empty argument text means zero arguments.

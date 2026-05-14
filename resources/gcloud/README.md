@@ -436,7 +436,19 @@ QueueConfig:
   ProjectID: "your-gcp-project-id"
   SubscriptionID: "job-triggers-pull"
   CredentialsEncryptedFile: "gopherbot-key.json.enc"
+  MaxBodySize: 4096
 ```
+
+The deployed webhook and `gcloud` queue provider both enforce a strict payload
+contract for safety:
+
+- payload must begin with a canonical UUID (8-4-4-4-12 hex form)
+- payload may be UUID-only for zero-argument jobs, or `<uuid><space><args>`
+- payload body must be no larger than `4096` bytes by default
+
+In the webhook Cloud Function code, this limit is defined as a constant in
+`resources/gcloud/scripts/webhook/index.js` so robot owners can increase it if
+their workload needs larger argument payloads.
 
 Configure a job UUID with an environment-scoped secret:
 

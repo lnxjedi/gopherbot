@@ -14,6 +14,7 @@ import (
 const (
 	defaultCredentialsEncryptedFile = "gopherbot-key.json.enc"
 	defaultSubscriptionID           = "job-triggers-pull"
+	defaultMaxBodySize              = 4096
 )
 
 type config struct {
@@ -22,12 +23,14 @@ type config struct {
 	CredentialsEncryptedFile string
 	MaxOutstandingMessages   int
 	NumGoroutines            int
+	MaxBodySize              int
 }
 
 type queueProvider struct {
 	robot.QueueHandler
 	projectID      string
 	subscriptionID string
+	maxBodySize    int
 	client         *pubsub.Client
 	subscription   *pubsub.Subscription
 }
@@ -55,6 +58,8 @@ func Initialize(handler robot.QueueHandler, _ *log.Logger) (robot.InitializedQue
 		subscriptionID = defaultSubscriptionID
 	}
 
+	maxBodySize := normalizeMaxBodySize(c.MaxBodySize)
+
 	ctx := context.Background()
 	client, err := pubsub.NewClient(ctx, projectID, gcloudinternal.ServiceAccountClientOptions(creds)...)
 	if err != nil {
@@ -76,6 +81,7 @@ func Initialize(handler robot.QueueHandler, _ *log.Logger) (robot.InitializedQue
 		QueueHandler:   handler,
 		projectID:      projectID,
 		subscriptionID: subscriptionID,
+		maxBodySize:    maxBodySize,
 		client:         client,
 		subscription:   subscription,
 	}
@@ -94,6 +100,13 @@ func normalizeSubscriptionID(in string) string {
 		return strings.TrimSpace(in[idx+len("subscriptions/"):])
 	}
 	return in
+}
+
+func normalizeMaxBodySize(in int) int {
+	if in > 0 {
+		return in
+	}
+	return defaultMaxBodySize
 }
 
 func (q *queueProvider) Run(stop <-chan struct{}) {
@@ -117,6 +130,11 @@ func (q *queueProvider) Run(stop <-chan struct{}) {
 
 	q.Log(robot.Info, "Google Pub/Sub queue provider receiving from projects/%s/subscriptions/%s", q.projectID, q.subscriptionID)
 	err := q.subscription.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
+		if len(msg.Data) > q.maxBodySize {
+			q.Log(robot.Error, "Google Pub/Sub queue message '%s' exceeded MaxBodySize: %d > %d", msg.ID, len(msg.Data), q.maxBodySize)
+			msg.Ack()
+			return
+		}
 		disposition := q.HandleQueueMessage(robot.QueueMessage{
 			ID:         msg.ID,
 			Body:       msg.Data,
