@@ -1,0 +1,2 @@
+bucket = "your-terraform-state-bucket"
+prefix = "robots/your-robot-name"
