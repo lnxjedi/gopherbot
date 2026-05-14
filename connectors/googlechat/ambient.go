@@ -286,6 +286,7 @@ func (gc *googleChatConnector) handleWorkspaceSubscriptionLifecycle(data []byte,
 	if payload.Subscription == nil || strings.TrimSpace(payload.Subscription.Name) == "" {
 		return nil
 	}
+	summary := summarizeWorkspaceSubscription(payload.Subscription)
 	ctx, cancel := context.WithTimeout(context.Background(), ambientSyncTimeout)
 	defer cancel()
 	switch {
@@ -295,11 +296,27 @@ func (gc *googleChatConnector) handleWorkspaceSubscriptionLifecycle(data []byte,
 			Etag: payload.Subscription.Etag,
 			Ttl:  durationString(4 * time.Hour),
 		}
-		_, err := gc.workspaceEvents.updateSubscription(ctx, &updated, "ttl")
-		return err
-	case strings.HasSuffix(eventType, ".expired"), strings.HasSuffix(eventType, ".suspended"):
-		_, err := gc.workspaceEvents.reactivateSubscription(ctx, payload.Subscription.Name)
-		return err
+		if _, err := gc.workspaceEvents.updateSubscription(ctx, &updated, "ttl"); err != nil {
+			return fmt.Errorf("workspace subscription lifecycle %q for %s update ttl failed: %w", eventType, summary, err)
+		}
+		gc.Log(robot.Debug, "Google Chat ambient subscription renewed from lifecycle event: %s", summary)
+		return nil
+	case strings.HasSuffix(eventType, ".expired"):
+		spaceName := spaceNameFromTargetResource(payload.Subscription.TargetResource)
+		if spaceName == "" {
+			return fmt.Errorf("workspace subscription lifecycle %q for %s cannot create replacement: target resource is not a Chat space", eventType, summary)
+		}
+		if err := gc.ensureAmbientSubscriptionForSpace(ctx, &chatapi.Space{Name: spaceName, SpaceType: "SPACE"}); err != nil {
+			return fmt.Errorf("workspace subscription lifecycle %q for %s create replacement failed: %w", eventType, summary, err)
+		}
+		gc.Log(robot.Warn, "Google Chat ambient subscription expired; ensured replacement for %s (%s)", spaceName, summary)
+		return nil
+	case strings.HasSuffix(eventType, ".suspended"):
+		if _, err := gc.workspaceEvents.reactivateSubscription(ctx, payload.Subscription.Name); err != nil {
+			return fmt.Errorf("workspace subscription lifecycle %q for %s reactivation failed; ambient messages for that Chat space may be unavailable until the suspension cause is fixed: %w", eventType, summary, err)
+		}
+		gc.Log(robot.Warn, "Google Chat ambient subscription suspended and reactivated: %s", summary)
+		return nil
 	default:
 		return nil
 	}
@@ -428,6 +445,16 @@ func targetResourceForSpace(spaceName string) string {
 		return spaceName
 	}
 	return "//chat.googleapis.com/" + strings.TrimPrefix(spaceName, "/")
+}
+
+func spaceNameFromTargetResource(target string) string {
+	target = strings.TrimSpace(target)
+	target = strings.TrimPrefix(target, "//chat.googleapis.com/")
+	target = strings.TrimPrefix(target, "/")
+	if !strings.HasPrefix(target, "spaces/") {
+		return ""
+	}
+	return target
 }
 
 func mergeEventTypes(existing, desired []string) []string {

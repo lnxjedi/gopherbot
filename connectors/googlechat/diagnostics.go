@@ -51,6 +51,34 @@ func summarizePubSubAttributes(attrs map[string]string) string {
 	return strings.Join(parts, ", ")
 }
 
+func summarizeWorkspaceSubscription(subscription *workspaceSubscription) string {
+	if subscription == nil {
+		return "subscription=<nil>"
+	}
+	parts := []string{
+		fmt.Sprintf("subscription=%q", strings.TrimSpace(subscription.Name)),
+	}
+	if target := strings.TrimSpace(subscription.TargetResource); target != "" {
+		parts = append(parts, fmt.Sprintf("target=%q", target))
+	}
+	if state := strings.TrimSpace(subscription.State); state != "" {
+		parts = append(parts, fmt.Sprintf("state=%q", state))
+	}
+	if reason := strings.TrimSpace(subscription.SuspensionReason); reason != "" {
+		parts = append(parts, fmt.Sprintf("suspensionReason=%q", reason))
+	}
+	if endpoint := topicName(subscription.NotificationEndpoint); endpoint != "" {
+		parts = append(parts, fmt.Sprintf("endpoint=%q", endpoint))
+	}
+	if expireTime := strings.TrimSpace(subscription.ExpireTime); expireTime != "" {
+		parts = append(parts, fmt.Sprintf("expireTime=%q", expireTime))
+	}
+	if authority := strings.TrimSpace(subscription.ServiceAccountAuthority); authority != "" {
+		parts = append(parts, fmt.Sprintf("serviceAccountAuthority=%q", authority))
+	}
+	return strings.Join(parts, " ")
+}
+
 func summarizeChatEvent(event *chatEvent) string {
 	if event == nil {
 		return "nil"

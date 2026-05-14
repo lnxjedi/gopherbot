@@ -739,6 +739,21 @@ func generateEncryptedUUID() (string, string, error) {
 	return plain, base64.StdEncoding.EncodeToString(ct), nil
 }
 
+func encryptPlaintextBase64(plaintext string) (string, error) {
+	cryptKey.RLock()
+	initialized := cryptKey.initialized
+	key := cryptKey.key
+	cryptKey.RUnlock()
+	if !initialized {
+		return "", fmt.Errorf("encryption not initialized; set GOPHER_ENCRYPTION_KEY or load a .env file first")
+	}
+	ct, err := encrypt([]byte(plaintext), key)
+	if err != nil {
+		return "", fmt.Errorf("encrypting secret: %w", err)
+	}
+	return base64.StdEncoding.EncodeToString(ct), nil
+}
+
 func ensureCLIEncryptionInitialized() error {
 	cryptKey.RLock()
 	initialized := cryptKey.initialized
@@ -910,15 +925,20 @@ func cliEncrypt(item, file string, binary bool) {
 		return
 	}
 	if len(item) > 0 {
-		ct, err := encrypt([]byte(item), cryptKey.key)
+		encrypted, err := encryptPlaintextBase64(item)
 		if err != nil {
 			fmt.Printf("Error encrypting: %v\n", err)
 			os.Exit(1)
 		}
 		if binary {
+			ct, err := base64.StdEncoding.DecodeString(encrypted)
+			if err != nil {
+				fmt.Printf("Error encoding ciphertext: %v\n", err)
+				os.Exit(1)
+			}
 			os.Stdout.Write(ct)
 		} else {
-			fmt.Println(base64.StdEncoding.EncodeToString(ct))
+			fmt.Println(encrypted)
 		}
 		return
 	}

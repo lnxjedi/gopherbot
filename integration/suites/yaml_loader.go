@@ -2,9 +2,9 @@ package suites
 
 import (
 	"context"
-	"embed"
 	"fmt"
-	"io/fs"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -14,9 +14,6 @@ import (
 	"github.com/lnxjedi/gopherbot/v2/bot"
 	"gopkg.in/yaml.v3"
 )
-
-//go:embed data/*.yaml
-var yamlSuiteFS embed.FS
 
 type yamlSuite struct {
 	Name         string                      `yaml:"name"`
@@ -93,15 +90,75 @@ type yamlPipelineWIDCapture struct {
 }
 
 func init() {
-	if err := loadEmbeddedYAMLSuites(); err != nil {
+	if err := loadYAMLSuites(); err != nil {
 		panic(err)
 	}
 }
 
-func loadEmbeddedYAMLSuites() error {
-	entries, err := fs.ReadDir(yamlSuiteFS, "data")
+func loadYAMLSuites() error {
+	if dir, ok := findYAMLSuiteDir(); ok {
+		return loadYAMLSuitesFromDir(dir)
+	}
+	return fmt.Errorf("could not find YAML integration suite directory; set GOPHERBOT_INTEGRATION_SUITE_DIR or run from the repository")
+}
+
+func findYAMLSuiteDir() (string, bool) {
+	candidates := []string{}
+	if dir := strings.TrimSpace(os.Getenv("GOPHERBOT_INTEGRATION_SUITE_DIR")); dir != "" {
+		candidates = append(candidates, dir)
+	}
+	if cwd, err := os.Getwd(); err == nil {
+		candidates = append(candidates, yamlSuiteDirCandidates(cwd)...)
+	}
+	if exe, err := os.Executable(); err == nil {
+		candidates = append(candidates, yamlSuiteDirCandidates(filepath.Dir(exe))...)
+	}
+	seen := make(map[string]struct{}, len(candidates))
+	for _, candidate := range candidates {
+		candidate = filepath.Clean(candidate)
+		if _, ok := seen[candidate]; ok {
+			continue
+		}
+		seen[candidate] = struct{}{}
+		if dirHasYAMLSuites(candidate) {
+			return candidate, true
+		}
+	}
+	return "", false
+}
+
+func yamlSuiteDirCandidates(start string) []string {
+	candidates := []string{
+		filepath.Join(start, "integration", "suites", "data"),
+		filepath.Join(start, "data"),
+	}
+	for dir := filepath.Clean(start); ; dir = filepath.Dir(dir) {
+		candidates = append(candidates, filepath.Join(dir, "integration", "suites", "data"))
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+	}
+	return candidates
+}
+
+func dirHasYAMLSuites(dir string) bool {
+	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return fmt.Errorf("read YAML integration suites: %w", err)
+		return false
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".yaml") {
+			return true
+		}
+	}
+	return false
+}
+
+func loadYAMLSuitesFromDir(dir string) error {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return fmt.Errorf("read YAML integration suites from %s: %w", dir, err)
 	}
 	sort.Slice(entries, func(i, j int) bool {
 		return entries[i].Name() < entries[j].Name()
@@ -110,21 +167,28 @@ func loadEmbeddedYAMLSuites() error {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".yaml") {
 			continue
 		}
-		path := "data/" + entry.Name()
-		data, err := yamlSuiteFS.ReadFile(path)
+		path := filepath.Join(dir, entry.Name())
+		data, err := os.ReadFile(path)
 		if err != nil {
 			return fmt.Errorf("%s: read: %w", path, err)
 		}
-		var ys yamlSuite
-		if err := yaml.Unmarshal(data, &ys); err != nil {
-			return fmt.Errorf("%s: decode: %w", path, err)
+		if err := registerYAMLSuite(path, data); err != nil {
+			return err
 		}
-		suite, err := ys.toSuite()
-		if err != nil {
-			return fmt.Errorf("%s: %w", path, err)
-		}
-		Register(suite)
 	}
+	return nil
+}
+
+func registerYAMLSuite(path string, data []byte) error {
+	var ys yamlSuite
+	if err := yaml.Unmarshal(data, &ys); err != nil {
+		return fmt.Errorf("%s: decode: %w", path, err)
+	}
+	suite, err := ys.toSuite()
+	if err != nil {
+		return fmt.Errorf("%s: %w", path, err)
+	}
+	Register(suite)
 	return nil
 }
 

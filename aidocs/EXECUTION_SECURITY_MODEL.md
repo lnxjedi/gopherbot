@@ -182,9 +182,10 @@ These apply to `bot/handler.go`, `bot/available.go`, `bot/authorize.go`, `bot/el
 - The broadened private admin surface does not weaken underlying auth/elevation checks:
   - `builtin-admin` exposes selected admin commands as private-capable through explicit command lists.
   - Legacy `builtin-dmadmin` inspection commands (`dump robot`, `dump plugin`, `dump plugin default`, `list plugins`) now live on `builtin-admin` as globally available private-required commands; public channel invocation is rejected by the engine before plugin code returns configuration data.
+  - Admin secret helper commands (`encrypt-secret`, `generate-uuid`) also live on `builtin-admin` as private-required commands; public channel invocation is rejected before plaintext arguments reach plugin code.
   - `builtin-history` and `builtin-jobcmd` can expose their allowed private commands.
   - job/history security checks still authorize against the target job/task and preserve normal admin/authorization/elevation ordering.
-- Practical implication: private `ps`, `get-pipeline-log`, config inspection, `jobs`, and history lookups are a transport/privacy convenience, not a policy bypass.
+- Practical implication: private `ps`, `get-pipeline-log`, config inspection, secret helpers, `jobs`, and history lookups are a transport/privacy convenience, not a policy bypass.
 
 ## Message Context and Privacy Invariants
 

@@ -2088,6 +2088,26 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			return
 		}
 		r.Reply("Validation code for '%s': %s (expires in about 42 seconds); instruct %s to send this exact code to me from the account you want to validate, using a private app message to the robot", userName, code, userName)
+	case "encryptsecret":
+		if len(args) == 0 || args[0] == "" {
+			r.Say("Usage: encrypt-secret <secret>")
+			return
+		}
+		encrypted, err := encryptPlaintextBase64(args[0])
+		if err != nil {
+			w.Log(robot.Error, "encrypt-secret admin command failed: %v", err)
+			r.Say("Error: %v", err)
+			return
+		}
+		r.MessageFormat(robot.Raw).Say("%s", encrypted)
+	case "generateuuid":
+		plain, encrypted, err := generateEncryptedUUID()
+		if err != nil {
+			w.Log(robot.Error, "generate-uuid admin command failed: %v", err)
+			r.Say("Error: %v", err)
+			return
+		}
+		r.MessageFormat(robot.Raw).Say("UUID: %s\nEncrypted: %s", plain, encrypted)
 	case "abort":
 		buf := make([]byte, 32768)
 		runtime.Stack(buf, true)

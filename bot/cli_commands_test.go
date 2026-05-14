@@ -154,6 +154,42 @@ func TestGenerateEncryptedUUID(t *testing.T) {
 	}
 }
 
+func TestEncryptPlaintextBase64(t *testing.T) {
+	oldKey := cryptKey.key
+	oldInitialized := cryptKey.initialized
+	testKey := []byte("0123456789abcdef0123456789abcdef")
+	cryptKey.Lock()
+	cryptKey.key = testKey
+	cryptKey.initialized = true
+	cryptKey.Unlock()
+	t.Cleanup(func() {
+		cryptKey.Lock()
+		cryptKey.key = oldKey
+		cryptKey.initialized = oldInitialized
+		cryptKey.Unlock()
+	})
+
+	const plaintext = "hunter2"
+	encrypted, err := encryptPlaintextBase64(plaintext)
+	if err != nil {
+		t.Fatalf("encryptPlaintextBase64() error = %v", err)
+	}
+	if strings.Contains(encrypted, plaintext) {
+		t.Fatalf("encrypted value contains plaintext: %q", encrypted)
+	}
+	ct, err := base64.StdEncoding.DecodeString(encrypted)
+	if err != nil {
+		t.Fatalf("encrypted value is not base64: %v", err)
+	}
+	decrypted, err := decrypt(ct, testKey)
+	if err != nil {
+		t.Fatalf("decrypt(encrypted secret) error = %v", err)
+	}
+	if string(decrypted) != plaintext {
+		t.Fatalf("decrypted secret = %q, want %q", decrypted, plaintext)
+	}
+}
+
 func TestProcessCLIEncryptHelpFlagShowsHelp(t *testing.T) {
 	output := captureStdout(t, func() {
 		code := processCLI("encrypt", []string{"-h"})

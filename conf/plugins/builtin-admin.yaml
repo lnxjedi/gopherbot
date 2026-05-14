@@ -21,6 +21,8 @@ AllowedPrivateCommands:
 - chanlog
 - stopchanlog
 RequiredPrivateCommands:
+- encryptsecret
+- generateuuid
 - listplugins
 - dumpplugdefault
 - dumpplugin
@@ -86,6 +88,21 @@ Commands:
   Keywords: [ "validate", "user", "identity", "protocol", "id" ]
   Usage: "validate user <username>"
   Summary: "issue a short-lived validation code so a user can prove a protocol account and reveal its internal ID"
+- Command: encryptsecret
+  Regex: '(?i:encrypt[- ]secret (.+))'
+  Keywords: [ "encrypt", "secret", "secrets", "config", "variables" ]
+  Usage: "encrypt-secret <secret>"
+  Summary: "encrypt a secret value using the robot encryption key; private command only"
+  Examples:
+  - "(private) encrypt-secret <secret>"
+- Command: generateuuid
+  # Regex: '(?i:generate[- ]uuid)'
+  SimpleMatcher: "generate uuid"
+  Keywords: [ "generate", "uuid", "secret", "secrets", "config", "variables" ]
+  Usage: "generate-uuid"
+  Summary: "generate a random UUID and encrypted value; private command only"
+  Examples:
+  - "(private) generate-uuid"
 - Command: quit
   # Regex: '(?i:quit|exit)'
   SimpleMatcher: "/quit|exit/"

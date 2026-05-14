@@ -35,6 +35,10 @@ This file captures Google Chat connector behavior relevant to routing, private s
   - refreshes those subscriptions periodically before expiration
   - creates a new subscription when Chat reports `ADDED_TO_SPACE`
   - deletes the subscription when Chat reports `REMOVED_FROM_SPACE`
+- Workspace Events subscription lifecycle deliveries are handled connector-locally:
+  - expiration warnings renew the subscription TTL
+  - expired subscriptions are treated as deleted and the connector ensures a replacement per-space subscription when the lifecycle payload includes the target Chat space
+  - suspended subscriptions are reactivated once, but failures are logged with the Workspace event type, subscription name, target resource, state, suspension reason, endpoint topic, and parsed Google API error reason
 - Ambient delivery currently subscribes to Chat message-created events and normalizes them into the same `ConnectorMessage` flow as interaction events.
 - This path requires administrator-approved `chat.app.*` scopes and the Google Workspace Events API. Terraform remains project-level only; the connector owns per-space subscription lifecycle.
 - Because Chat app ambient subscriptions currently use payload data, subscription TTL is short-lived and the connector renews them automatically.

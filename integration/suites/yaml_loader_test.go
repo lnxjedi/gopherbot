@@ -4,8 +4,8 @@ import "testing"
 
 func TestYAMLSuitesLoaded(t *testing.T) {
 	suites := List()
-	if len(suites) != 44 {
-		t.Fatalf("suite count = %d, want 44", len(suites))
+	if len(suites) != 45 {
+		t.Fatalf("suite count = %d, want 45", len(suites))
 	}
 	for _, suite := range suites {
 		if suite.Name == "" {
