@@ -33,7 +33,14 @@ The VM startup script installs Gopherbot from a release tarball, retrieves secre
 
 ## Prepare Terraform backend
 
-Create the state bucket once:
+Create the state bucket once using the `gcloud storage` CLI (recommended by Google over `gsutil`):
+
+```bash
+gcloud storage buckets create gs://$PROJECT_ID-terraform-state --location=$REGION
+gcloud storage buckets update gs://$PROJECT_ID-terraform-state --versioning
+```
+
+Alternatively, using the older `gsutil` CLI:
 
 ```bash
 gsutil mb -p "$PROJECT_ID" -l "$REGION" "gs://$PROJECT_ID-terraform-state"
