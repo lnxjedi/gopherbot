@@ -160,7 +160,6 @@ func Start(v VersionInfo) {
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		raiseThreadPrivExternal("exec child process for container")
 		err := cmd.Start()
 		if err != nil {
 			log.Fatal(err)
@@ -337,7 +336,6 @@ func Start(v VersionInfo) {
 	Log(robot.Info, "robot quit/exit/restart")
 	time.Sleep(time.Second)
 	if restart {
-		raiseThreadPrivExternal("restart is set, re-exec'ing")
 		// Make sure all the GOPHER_* env vars are present for the
 		// new process.
 		restoreGopherEnvironment()

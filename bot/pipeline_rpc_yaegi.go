@@ -346,10 +346,6 @@ func (c *pipelineRPCGoRobotClient) EmailAddress(address, subject string, message
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
-func (c *pipelineRPCGoRobotClient) RaisePriv(reason string) {
-	_, _ = c.call("RaisePriv", reason)
-}
-
 func (c *pipelineRPCGoRobotClient) SetWorkingDirectory(path string) bool {
 	res, err := c.call("SetWorkingDirectory", path)
 	if err != nil {

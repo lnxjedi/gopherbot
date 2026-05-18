@@ -5,7 +5,6 @@ package bot
 import (
 	"fmt"
 	"os"
-	"runtime"
 	"syscall"
 
 	"github.com/lnxjedi/gopherbot/robot"
@@ -101,56 +100,7 @@ func init() {
 	}
 }
 
-func raiseThreadPriv(reason string) {
-	if privSep && syscall.Geteuid() != privUID {
-		if err := syscall.Seteuid(privUID); err != nil {
-			Log(robot.Error, "PRIVSEP - error raising effective uid for %s: %v", reason, err)
-			return
-		}
-		Log(robot.Warn, "PRIVSEP - raised effective uid for %s", reason)
-	}
-}
-
-func raiseThreadPrivExternal(reason string) {
-	if privSep {
-		runtime.LockOSThread()
-		if err := syscall.Setregid(privGID, privGID); err != nil {
-			Log(robot.Error, "PRIVSEP - error calling setregid(%d, %d) in raiseThreadPrivExternal for %s: %v", privGID, privGID, reason, err)
-			return
-		}
-		if err := syscall.Setreuid(privUID, privUID); err != nil {
-			Log(robot.Error, "PRIVSEP - error calling setreuid(%d, %d) in raiseThreadPrivExternal for %s: %v", privUID, privUID, reason, err)
-			return
-		}
-		Log(robot.Debug, "PRIVSEP - permanently raised privilege for '%s'; new r/euid: %d/%d", reason, privUID, privUID)
-	}
-}
-
-func dropThreadPriv(reason string) {
-	if privSep {
-		runtime.LockOSThread()
-		if err := syscall.Setegid(unprivGID); err != nil {
-			botStdOutLogger.Printf("PRIVSEP - error calling setegid(%d) in dropThreadPriv: %v", unprivGID, err)
-			return
-		}
-		if err := syscall.Seteuid(unprivUID); err != nil {
-			botStdOutLogger.Printf("PRIVSEP - error calling seteuid(%d) in dropThreadPriv: %v", unprivUID, err)
-			return
-		}
-		if err := syscall.Setregid(unprivGID, unprivGID); err != nil {
-			botStdOutLogger.Printf("PRIVSEP - error calling setregid(%d, %d) in dropThreadPriv: %v", unprivGID, unprivGID, err)
-			return
-		}
-		if err := syscall.Setreuid(unprivUID, unprivUID); err != nil {
-			botStdOutLogger.Printf("PRIVSEP - error calling setreuid(%d, %d) in dropThreadPriv: %v", unprivUID, unprivUID, err)
-			return
-		}
-		Log(robot.Debug, "PRIVSEP - successfully dropped privileges for '%s'; new r/euid: %d/%d", reason, unprivUID, unprivUID)
-	}
-}
-
 func commitPrivsepChildRole(role privsepChildRole) error {
-	runtime.LockOSThread()
 	switch role {
 	case privsepRolePrivileged:
 		if err := syscall.Setregid(privGID, privGID); err != nil {

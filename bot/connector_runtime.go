@@ -344,7 +344,6 @@ func startConnectorRuntime(protocol string, required bool) error {
 	runtimeConnectors.Unlock()
 
 	go func(protocol string, connector robot.Connector, stop <-chan struct{}, done chan struct{}) {
-		raiseThreadPriv("connector loop (" + protocol + ")")
 		connector.Run(stop)
 
 		var shouldLogError bool

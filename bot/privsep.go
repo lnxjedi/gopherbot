@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/user"
-	"runtime"
 	"strconv"
 	"syscall"
 
@@ -32,34 +31,12 @@ preserving the setuid/setgid nobody saved IDs. File-backed extensions then run
 in one-shot child processes that permanently commit to either the invoking user
 or the unprivileged account before extension code starts.
 
-Some legacy thread-scoped helpers remain for parent-owned privileged operations
-and for migration compatibility. Calls that permanently drop or raise a thread
-must still use runtime.LockOSThread() and never unlock that thread.
-
-See: https://pkg.go.dev/runtime#LockOSThread
+There are no mid-process privilege transitions in the process-oriented model.
+The parent engine runs as the invoking user. File-backed extension children
+commit once, before extension code starts, to either the invoking user or the
+setuid/setgid unprivileged account.
 
 */
-
-// setReuid performs the setreuid syscall to change the real and effective user IDs
-// of the *CURRENT OS THREAD ONLY*. This confines the privilege changes to the thread
-// locked by runtime.LockOSThread().
-func setReuid(ruid, euid int) error {
-	// Perform the setreuid syscall using syscall.Syscall with predefined constants.
-	// syscall.SYS_SETREUID is the syscall number for setreuid on AMD64 architectures.
-	_, _, errno := syscall.Syscall(syscall.SYS_SETREUID, uintptr(ruid), uintptr(euid), 0)
-	if errno != 0 {
-		return errno
-	}
-	return nil
-}
-
-func setRegid(rgid, egid int) error {
-	_, _, errno := syscall.Syscall(syscall.SYS_SETREGID, uintptr(rgid), uintptr(egid), 0)
-	if errno != 0 {
-		return errno
-	}
-	return nil
-}
 
 func nobodyAccountIDs() (int, int, error) {
 	nobody, err := user.Lookup("nobody")
@@ -175,80 +152,26 @@ func init() {
 	}
 }
 
-func raiseThreadPriv(reason string) {
-	if privSep {
-		ruid := unix.Getuid()
-		euid := unix.Geteuid()
-		tid := unix.Gettid()
-		if euid == privUID {
-			Log(robot.Debug, "PRIVSEP - successful privilege check for '%s'; r/e for thread %d: %d/%d", reason, tid, ruid, euid)
-		} else {
-			tid := unix.Gettid()
-			err := setReuid(unprivUID, privUID)
-			if err != nil {
-				Log(robot.Error, "PRIVSEP - error calling setReuid(%d, %d) from thread %d, r/euid: %d/%d in raiseThreadPriv for %s: %v", unprivUID, privUID, tid, ruid, euid, reason, err)
-				return
-			}
-			// Most of the time, new threads should already have euid == privUID
-			Log(robot.Warn, "PRIVSEP - successfully raised privilege for '%s' thread %d; old r/euid %d/%d; new r/euid: %d/%d", reason, tid, ruid, euid, unprivUID, privUID)
-		}
-	}
-}
-
-// raiseThreadPrivExternal permanently raises privilege for external scripts by
-// setting both real and effective UIDs to the privileged UID. This prevents Go
-// from spawning child threads with unprivileged UIDs.
-func raiseThreadPrivExternal(reason string) {
-	if privSep {
-		ruid := unix.Getuid()
-		euid := unix.Geteuid()
-		tid := unix.Gettid()
-		runtime.LockOSThread()
-		if err := setRegid(privGID, privGID); err != nil {
-			Log(robot.Error, "PRIVSEP - error calling setRegid(%d, %d) from thread %d in raiseThreadPrivExternal for %s: %v", privGID, privGID, tid, reason, err)
-			return
-		}
-		if err := setReuid(privUID, privUID); err != nil {
-			Log(robot.Error, "PRIVSEP - error calling setReuid(%d, %d) from thread %d, r/euid: %d/%d in raiseThreadPrivExternal for %s: %v", privUID, privUID, tid, ruid, euid, reason, err)
-			return
-		}
-		Log(robot.Debug, "PRIVSEP - successfully raised privilege permanently for '%s' thread %d; new r/euid: %d/%d", reason, tid, privUID, privUID)
-	}
-}
-
-// dropThreadPriv drops privileges by setting both real and effective UIDs to the
-// unprivileged UID. This confines the privilege drop to the current OS thread.
-func dropThreadPriv(reason string) {
-	if privSep {
-		runtime.LockOSThread()
-		tid := unix.Gettid()
-		if err := setRegid(unprivGID, unprivGID); err != nil {
-			botStdOutLogger.Printf("PRIVSEP - error calling setRegid(%d, %d) in dropThreadPriv: %v", unprivGID, unprivGID, err)
-			return
-		}
-		if err := setReuid(unprivUID, unprivUID); err != nil {
-			botStdOutLogger.Printf("PRIVSEP - error calling setReuid(%d, %d) in dropThreadPriv: %v", unprivUID, unprivUID, err)
-			return
-		}
-		Log(robot.Debug, "PRIVSEP - successfully dropped privileges for '%s' in thread %d; new r/euid: %d/%d", reason, tid, unprivUID, unprivUID)
-	}
-}
-
 func commitPrivsepChildRole(role privsepChildRole) error {
-	runtime.LockOSThread()
 	switch role {
 	case privsepRolePrivileged:
-		if err := setRegid(privGID, privGID); err != nil {
+		if err := syscall.Setregid(privGID, privGID); err != nil {
 			return fmt.Errorf("setregid privileged: %w", err)
 		}
-		if err := setReuid(privUID, privUID); err != nil {
+		if err := syscall.Setreuid(privUID, privUID); err != nil {
 			return fmt.Errorf("setreuid privileged: %w", err)
 		}
 	case privsepRoleUnprivileged:
-		if err := setRegid(unprivGID, unprivGID); err != nil {
+		if err := syscall.Setegid(unprivGID); err != nil {
+			return fmt.Errorf("setegid unprivileged: %w", err)
+		}
+		if err := syscall.Seteuid(unprivUID); err != nil {
+			return fmt.Errorf("seteuid unprivileged: %w", err)
+		}
+		if err := syscall.Setregid(unprivGID, unprivGID); err != nil {
 			return fmt.Errorf("setregid unprivileged: %w", err)
 		}
-		if err := setReuid(unprivUID, unprivUID); err != nil {
+		if err := syscall.Setreuid(unprivUID, unprivUID); err != nil {
 			return fmt.Errorf("setreuid unprivileged: %w", err)
 		}
 	default:

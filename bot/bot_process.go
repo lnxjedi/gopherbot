@@ -260,7 +260,6 @@ func initBot() {
 			Log(robot.Error, "Writing .aiport for aidev mode: %v", err)
 		}
 		go func() {
-			raiseThreadPriv("http handler")
 			apiServer := http.NewServeMux()
 			apiServer.Handle("/json", handle)
 			apiServer.HandleFunc("/aidev/send_message", serveAIDevSendMessage)
@@ -303,7 +302,6 @@ func enforceEncryptedKeyFilePermissions(keyFile string) error {
 	if info.Mode().Perm() == encryptedKeyFileMode {
 		return nil
 	}
-	raiseThreadPriv("securing encrypted key file permissions")
 	if err := os.Chmod(keyFile, encryptedKeyFileMode); err != nil {
 		return err
 	}
@@ -399,7 +397,6 @@ func initCrypt() bool {
 					return false
 				}
 				beks := base64.StdEncoding.EncodeToString(bek)
-				raiseThreadPriv("writing generated encrypted key")
 				err = os.WriteFile(createKeyFile, []byte(beks), encryptedKeyFileMode)
 				if err != nil {
 					Log(robot.Error, "Writing out generated key: %v", err)

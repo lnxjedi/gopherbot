@@ -310,9 +310,6 @@ type Robot interface {
 	// Only available in privileged pipelines; returns Failed with a log entry
 	// on any encryption error.
 	EncryptSecret(plaintext string) (string, RetVal)
-	// RaisePriv lets go plugins raise privilege for a thread, allowing filesystem
-	// access in GOPHER_HOME.
-	RaisePriv(string)
 	// SetParameter sets a parameter for the current pipeline, useful only for
 	// passing parameters (as environment variables) to tasks later in the pipeline.
 	SetParameter(string, string) bool

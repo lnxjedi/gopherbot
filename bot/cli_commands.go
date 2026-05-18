@@ -883,7 +883,6 @@ func cliGenKey(environment string, writeFile, force bool) error {
 	if err := tmp.Close(); err != nil {
 		return fmt.Errorf("closing temporary key file: %w", err)
 	}
-	raiseThreadPriv("writing generated encrypted key")
 	if err := os.Rename(tmpName, target); err != nil {
 		return fmt.Errorf("installing generated key file: %w", err)
 	}

@@ -251,7 +251,6 @@ func (r *onboardingTestRobot) AddCommand(string, string) robot.RetVal      { ret
 func (r *onboardingTestRobot) FinalCommand(string, string) robot.RetVal    { return robot.Ok }
 func (r *onboardingTestRobot) FailCommand(string, string) robot.RetVal     { return robot.Ok }
 func (r *onboardingTestRobot) EncryptSecret(string) (string, robot.RetVal) { return "", robot.Failed }
-func (r *onboardingTestRobot) RaisePriv(string)                            {}
 func (r *onboardingTestRobot) SetParameter(string, string) bool            { return true }
 func (r *onboardingTestRobot) SetWorkingDirectory(string) bool             { return true }
 

@@ -7,6 +7,7 @@ This document defines compatibility priorities for v3 work.
 1. Extension runtime compatibility is required across v2 -> v3.
    - Existing plugin/job/task scripts should continue to run without API-signature churn.
    - Robot extension API method signatures and behavior are the compatibility boundary.
+   - Security exception: APIs that imply a privilege boundary the engine no longer provides may be removed instead of retained as no-ops. Removed APIs must fail clearly and be documented in `UPGRADING-v3.md`.
 2. Username-based security behavior is required.
    - Admin users, groups, authorization, and policy checks stay username-authoritative.
 3. Brain compatibility is prioritized.

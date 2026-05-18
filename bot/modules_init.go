@@ -36,8 +36,6 @@ func initializeModules(handler robot.Handler) error {
 		}) {
 			defer wg.Done() // Signal that this goroutine is done
 
-			handler.RaisePriv(fmt.Sprintf("initializing %s", module.name))
-
 			// Attempt to initialize the module
 			if err := module.initialize(handler); err != nil {
 				// Lock the mutex before accessing firstErr

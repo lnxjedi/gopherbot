@@ -129,7 +129,6 @@ Pipeline behavior notes:
 - `Log(l LogLevel, m string, v ...interface{}) bool`
 - `RandomInt(n int) int`, `RandomString(s []string) string`, `Pause(s float64)`
 - `Email(...)`, `EmailUser(...)`, `EmailAddress(...)` (see `robot/robot.go`)
-- `RaisePriv(path string)` (Go-only)
 - `SetParameter(name, value string) bool`
 - `SetWorkingDirectory(path string) bool`
 
@@ -204,7 +203,7 @@ EncryptSecret return-shape note for external libraries:
 - `GetHelpMetadata` is available to compiled Go, Yaegi Go, and the HTTP-backed Bash/Python/Ruby libraries. It is not yet surfaced in the in-process Lua/JS helper libraries.
 - `SetWorkingDirectory` exists in the Go interface and external libraries (`lib/gopherbot_v1.sh`, `lib/gopherbot_v2.py`, `lib/gopherbot_v1.rb`), but it is not present in the Lua/JS wrappers as of `lib/gopherbot_v1.lua` / `lib/gopherbot_v1.js`.
 - `.gsh` implements `SetWorkingDirectory` plus a BusyBox-style builtin utility surface in-process inside the child interpreter.
-- `RaisePriv` is Go-only (`robot/robot.go`); there is no wrapper in external language libraries.
+- `RaisePriv` was removed from the extension API. Privilege separation is process-scoped: compiled-in Go runs in-process as the invoking user, and file-backed extensions commit once in a child process before extension code starts.
 - Yaegi caveat: interpreted Go plugins can diverge from compiled Go when values cross reflective boundaries. A focused local repro in `modules/yaegi-dynamic-go/yaegi_dynamic_test.go` shows that a helper chain returning a mixed multi-value tuple such as `(conversationState, []conversationExchange)` can panic under `RunPluginHandler` with `reflect.Set ... not assignable`, even though the same pattern succeeds in compiled Go.
 - For external Go plugins running under Yaegi, prefer returning a single wrapper struct when state must carry multiple logically-related values across helper boundaries. The `plugins/go-ai-fallback` compaction path now uses `compactionResult{State, Older}` for this reason.
 - As of March 11, 2026, no exact upstream Yaegi issue was identified for this specific panic. The behavior is consistent with Yaegi's documented limitation that `reflect` type representation can differ between compiled and interpreted execution.

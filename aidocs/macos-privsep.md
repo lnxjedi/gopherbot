@@ -1,6 +1,6 @@
-# macOS Privilege Separation Plan
+# Process Privilege Separation Plan
 
-Status: implementation started. macOS native builds are supported, and a Darwin child-role implementation exists, but manual setuid validation is still required before macOS privilege separation is considered production-ready.
+Status: implementation started. Linux/BSD and macOS use the same process-oriented child role contract, but manual setuid validation is still required before privilege separation is considered production-ready on a specific host/OS deployment.
 
 ## Problem
 
@@ -8,11 +8,11 @@ The legacy privilege-separation implementation in `bot/privsep.go` was compiled 
 
 That model is intentionally delicate:
 
-- `dropThreadPriv` and `raiseThreadPrivExternal` must never unlock their OS thread.
-- A permanently raised external-task thread must never execute unprivileged work afterward.
+- parent code must know which goroutines may run on credential-mutated threads
+- permanently changed threads must never run work for the wrong privilege class
 - Correctness depends on Go runtime thread lifetime behavior, not on an explicit process boundary.
 
-Darwin has enough UID syscall surface to make parts of this compile, but extending the thread-scoped model to macOS would not prove that credential changes remain safe under the Go runtime and Darwin process model.
+The current model removes normal thread-scoped credential switching. Parent code runs as the invoking robot user; file-backed children commit once to their selected role before extension code starts.
 
 ## Goal
 
@@ -240,11 +240,11 @@ The low-level Linux/BSD credential sequence may differ from macOS and should be 
 ## Migration Plan
 
 1. Add a small shared child credential preamble that can commit a just-execed child to either invoking-user or unprivileged role. (Implemented)
-2. Keep limited thread-scoped helpers only for parent-owned operations and migration compatibility. (Implemented)
+2. Remove thread-scoped raise/drop helpers and the `RaisePriv` extension API. (Implemented)
 3. Route external executable execution through the credential preamble before `pipeline-child-exec` runs the target command. (Implemented)
 4. Route interpreter-backed RPC execution through the credential preamble before `pipeline-child-rpc` starts Yaegi/Go, JavaScript, Lua, or Gopherbot shell runtime work. (Implemented)
 5. Route external plugin default-config retrieval through the same child boundary. (Implemented)
-6. Remove normal task execution calls to `dropThreadPriv`, `raiseThreadPriv`, and `raiseThreadPrivExternal` after all file-backed execution paths use committed child processes. (Implemented for file-backed extension execution)
+6. Remove normal task execution calls to legacy raise/drop helpers after all file-backed execution paths use committed child processes. (Implemented)
 7. Retain only minimal startup/child-creation privilege setup code.
 8. Add `robot.yaml` supplementary-group policy parsing and startup self-check failure behavior. (Implemented)
 9. Enable macOS only after manual validation covers UID, primary GID, supplementary groups, process-group cleanup, and setuid binary lifecycle.

@@ -330,4 +330,3 @@ func (h *recordingHandler) GetInstallPath() string                   { return ""
 func (h *recordingHandler) GetConfigPath() string                    { return "" }
 func (h *recordingHandler) ReadEncryptedFile(string) ([]byte, error) { return nil, nil }
 func (h *recordingHandler) GetDirectory(string) error                { return nil }
-func (h *recordingHandler) RaisePriv(string)                         {}

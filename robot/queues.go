@@ -37,7 +37,6 @@ type QueueHandler interface {
 	Log(l LogLevel, m string, v ...interface{})
 	GetInstallPath() string
 	GetConfigPath() string
-	RaisePriv(reason string)
 }
 
 var queueProviderRegistry = struct {

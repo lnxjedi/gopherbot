@@ -235,7 +235,7 @@ Design direction:
 - Exec external Ruby, Python, Bash, and similar interpreters/scripts only after the child has committed to its selected privilege class.
 - Keep compiled-in Go extensions in-process as trusted engine code.
 - Do not support running compiled-in Go extensions as unprivileged code.
-- Keep `runtime.LockOSThread()` only in low-level privilege setup/commit helpers; normal file-backed task execution should use committed child processes.
+- Do not use thread-pinned credential switching. Privilege separation is process-scoped: parent work runs as the invoking robot user, and file-backed children permanently commit before extension code starts.
 - Treat supplementary group handling as a release-blocking security detail: default startup should fail closed unless retained groups are explicitly allowed through `PrivsepAllowAllSupplementaryGroups` or `PrivsepAllowedSupplementaryGroups`.
 - Document that privileged host access should be granted directly to the invoking robot user, not through broad groups that unprivileged children may retain.
 - On Linux EC2 deployments, document UID-scoped firewall hardening for instance metadata endpoints so unprivileged children cannot fetch instance role credentials.

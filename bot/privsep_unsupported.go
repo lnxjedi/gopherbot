@@ -4,17 +4,10 @@ package bot
 
 import "github.com/lnxjedi/gopherbot/robot"
 
-// privSep is always disabled on platforms without the setreuid-based
-// thread-scoped privilege separation implementation.
+// privSep is always disabled on platforms without privilege separation support.
 var privSep bool
 var privUID, unprivUID int
 var privGID, unprivGID int
-
-func raiseThreadPriv(reason string) {}
-
-func raiseThreadPrivExternal(reason string) {}
-
-func dropThreadPriv(reason string) {}
 
 func commitPrivsepChildRole(role privsepChildRole) error {
 	return nil

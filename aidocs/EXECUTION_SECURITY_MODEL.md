@@ -75,16 +75,15 @@ The parent chooses the role from engine policy. The child must not decide whethe
 
 Platform mechanics differ:
 
-- Linux/BSD use the saved setuid/setgid state to commit the child directly to the selected real/effective IDs.
-- macOS uses the Darwin-compatible two-step for the unprivileged role (`seteuid`/`setegid`, then `setreuid`/`setregid`) before extension code starts.
-
-Legacy thread-scoped helpers (`raiseThreadPriv`, `raiseThreadPrivExternal`, `dropThreadPriv`) remain for parent-owned privileged operations and migration compatibility, but normal file-backed extension execution is process-oriented.
+- Linux/BSD and macOS both use process-level credential changes in the child role preamble.
+- The unprivileged role first switches effective UID/GID to the saved setuid/setgid account, then permanently sets real/effective UID/GID to that account before extension code starts.
+- There are no normal mid-process raise/drop operations. Parent-owned work runs as the invoking robot user; unprivileged work belongs in a committed child process.
 
 ## Task-Type Execution Behavior
 
 - Compiled-in Go tasks/plugins:
   - handler runs in-process as trusted engine code
-  - compiled-in extensions are not treated as unprivileged sandboxed code
+  - compiled-in extensions are not treated as unprivileged sandboxed code and always run as the invoking robot user
 - External interpreted tasks (`.go` via yaegi, `.lua`, `.js`, `.gsh`) now execute in child RPC processes.
   - The child commits to the parent-selected privsep role before the RPC loop starts.
   - Parent keeps policy/routing/identity authority and services Robot API calls over RPC.
@@ -213,4 +212,4 @@ The concern is not command visibility (hard to hide) but message routing confide
 - Privsep does not drop supplementary groups on platforms that cannot do so without root; startup fails closed unless retained groups are explicitly allowed.
 - Compiled-in Go extensions are trusted engine code and are not supported as unprivileged sandboxed extensions.
 - Privilege separation is implemented on Linux/BSD (`bot/privsep.go`) and macOS/Darwin (`bot/privsep_darwin.go`).
-- Other platforms use `bot/privsep_unsupported.go`: `privSep` remains false, privilege-switch helpers are no-ops, and startup logs that privilege separation is not available on that platform.
+- Other platforms use `bot/privsep_unsupported.go`: `privSep` remains false, child role commitment is unavailable, and startup logs that privilege separation is not available on that platform.

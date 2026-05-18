@@ -32,7 +32,6 @@ func (t *testHandler) ReadEncryptedFile(_ string) ([]byte, error) { return nil, 
 func (t *testHandler) Log(_ robot.LogLevel, _ string, _ ...interface{}) {
 }
 func (t *testHandler) GetDirectory(_ string) error { return nil }
-func (t *testHandler) RaisePriv(_ string)          {}
 
 func TestNormalizeConfiguredUserMap(t *testing.T) {
 	h := &testHandler{}

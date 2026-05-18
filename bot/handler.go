@@ -181,7 +181,6 @@ func (h handler) ReadEncryptedFile(path string) ([]byte, error) {
 		return nil, errors.New("encryption not initialized")
 	}
 
-	h.RaisePriv(fmt.Sprintf("reading encrypted file '%s'", path))
 	resolved, err := resolveEncryptedFilePath(path)
 	if err != nil {
 		return nil, err
@@ -195,11 +194,6 @@ func (h handler) ReadEncryptedFile(path string) ([]byte, error) {
 		return nil, fmt.Errorf("decrypting encrypted file '%s': %w", resolved, err)
 	}
 	return plaintext, nil
-}
-
-// RaisePriv raises privilege for connectors, brains, etc.
-func (h handler) RaisePriv(reason string) {
-	raiseThreadPriv(reason)
 }
 
 // A new worker is created for every incoming message, and may or may not end
@@ -556,7 +550,6 @@ func (h handler) GetDirectory(p string) error {
 		}
 		return nil
 	}
-	raiseThreadPriv(fmt.Sprintf("getting directory: %s", p))
 	if err := os.MkdirAll(p, dperm); err != nil {
 		return err
 	}

@@ -1099,13 +1099,6 @@ func handlePipelineRPCRobotCall(paramsRaw json.RawMessage, base robot.Robot) (ma
 			return nil, fmt.Errorf("Unsubscribe unsupported by current robot implementation")
 		}
 		return map[string]interface{}{"bool": subscriber.Unsubscribe()}, nil
-	case "RaisePriv":
-		reason, err := pipelineRPCArgString(args, 0)
-		if err != nil {
-			return nil, err
-		}
-		r.RaisePriv(reason)
-		return map[string]interface{}{"ok": true}, nil
 	case "SetWorkingDirectory":
 		path, err := pipelineRPCArgString(args, 0)
 		if err != nil {

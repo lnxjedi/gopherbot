@@ -76,7 +76,6 @@ Sources:
 - [x] `SetParameter(name, value)`
 - [x] `EncryptSecret(plaintext)`
 - [ ] `SetWorkingDirectory(path)`
-- [ ] `RaisePriv(path)` (if Lua should expose it)
 
 ### Thread subscription (engine support)
 - [x] `Subscribe()`

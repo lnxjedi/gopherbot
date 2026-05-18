@@ -186,7 +186,6 @@ type QueueHandler interface {
     Log(level LogLevel, msg string, args ...interface{})
     GetInstallPath() string
     GetConfigPath() string
-    RaisePriv(reason string)
 }
 
 func RegisterQueueProvider(name string, initialize func(QueueHandler, *log.Logger) (InitializedQueueProvider, error))

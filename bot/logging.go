@@ -72,7 +72,6 @@ func logRotate(extension string) robot.TaskRetVal {
 	if len(logFileName) == 0 {
 		return robot.Normal
 	}
-	raiseThreadPriv("rotating log")
 	if len(extension) > 0 {
 		oldext := filepath.Ext(logFileName)
 		barename := strings.TrimSuffix(logFileName, oldext)

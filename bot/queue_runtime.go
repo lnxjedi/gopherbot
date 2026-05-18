@@ -137,7 +137,6 @@ func startQueueProviderRuntime(provider string, logger *log.Logger) error {
 	runtimeQueueProviders.Unlock()
 
 	go func(provider string, qp robot.QueueProvider, stop <-chan struct{}, done chan struct{}) {
-		raiseThreadPriv("queue provider loop (" + provider + ")")
 		qp.Run(stop)
 
 		var shouldLogError bool

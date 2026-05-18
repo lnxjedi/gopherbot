@@ -113,6 +113,24 @@ gopherbot genkey -environment development -write
 `GOPHER_ENCRYPTION_KEY`. It writes `binary-encrypted-key` for production and
 `binary-encrypted-key.<environment>` for non-production environments.
 
+## 2026-05-18 RaisePriv API Removed
+
+`RaisePriv` has been removed from the Go/Yaegi Robot API and from provider
+handler interfaces.
+
+The old method was tied to thread-scoped privilege switching. Gopherbot v3
+privilege separation is process-scoped instead:
+
+- the parent engine and compiled-in Go extensions run as the invoking robot user
+- file-backed extensions commit once in a child process before extension code starts
+- unprivileged children cannot switch back to the invoking user
+
+Custom Go or Yaegi extensions that call `RaisePriv` must remove those calls. If
+an operation needs invoking-user file or network authority, run it in a
+privileged file-backed extension or trusted compiled-in code. If it needs
+unprivileged `nobody` authority, it must run as an unprivileged file-backed
+extension child.
+
 ## 2026-04-28 Privsep Child Process And Supplementary Groups
 
 Privilege separation for file-backed extensions now uses one-shot child processes. The parent engine selects a child role, and `pipeline-child-exec` / `pipeline-child-rpc` commit to that role before running external scripts or built-in interpreters.

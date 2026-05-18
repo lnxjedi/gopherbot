@@ -234,7 +234,6 @@ func interruptPipelineForTimeOut(worker *worker) timeoutInterruptResult {
 	if pid == 0 {
 		return timeoutInterruptResult{manual: true}
 	}
-	raiseThreadPriv(fmt.Sprintf("timeout kill for pipeline %d", worker.id))
 	if err := unix.Kill(-pid, unix.SIGKILL); err != nil && err != unix.ESRCH {
 		return timeoutInterruptResult{pid: pid, err: err}
 	}

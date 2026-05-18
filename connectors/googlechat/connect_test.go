@@ -42,7 +42,6 @@ func (h *logOnlyHandler) Log(_ robot.LogLevel, m string, v ...interface{}) {
 	h.logs = append(h.logs, m)
 }
 func (h *logOnlyHandler) GetDirectory(string) error { return nil }
-func (h *logOnlyHandler) RaisePriv(string)          {}
 
 func TestNormalizeConfiguredUserMap(t *testing.T) {
 	h := &logOnlyHandler{}

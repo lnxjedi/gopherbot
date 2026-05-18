@@ -100,12 +100,8 @@ type Handler interface {
 	// bot/logging.go
 	Log(l LogLevel, m string, v ...interface{})
 	// GetDirectory lets infrastructure plugins create directories, for e.g.
-	// file-based history and brain providers. When privilege separation is in
-	// use, the directory is created with the privileged uid.
+	// file-based history and brain providers.
 	GetDirectory(path string) error
-	// RaisePriv raises the privilege of the current thread, allowing
-	// filesystem access in GOPHER_HOME. Reason is informational.
-	RaisePriv(reason string)
 }
 
 // Connector is the interface defining methods that should be provided by

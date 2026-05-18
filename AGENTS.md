@@ -94,9 +94,10 @@ Unless explicitly updated in canonical docs, these must hold:
 
 These apply to `bot/privsep.go`, `bot/calltask.go`, `bot/task_execution.go`, `bot/run_pipelines.go`, and `bot/robot_pipecmd.go`. All are hard escalation triggers.
 
-**Thread-pinning invariants — the most dangerous to break silently:**
-- `dropThreadPriv` and `raiseThreadPrivExternal` both call `runtime.LockOSThread()` and intentionally **never** call `runtime.UnlockOSThread()`. This ensures the thread is destroyed rather than recycled. Never add `runtime.UnlockOSThread()` after these calls.
-- `raiseThreadPrivExternal` permanently sets r/euid to `privUID/privUID`. That thread must never execute unprivileged work afterward.
+**Process privilege invariants:**
+- There are no normal mid-process privilege transitions. Do not reintroduce `raiseThreadPriv`, `raiseThreadPrivExternal`, `dropThreadPriv`, or thread-pinned credential switching.
+- The parent engine runs as the invoking robot user after privsep startup initialization. If it does not, startup/privsep initialization is broken.
+- File-backed extension children commit once, before extension code starts, to either the invoking robot user or the setuid/setgid unprivileged account. An unprivileged child must never regain the invoking user's UID/GID.
 
 **Pipeline privilege invariants:**
 - `pipeContext.privileged` is set once at pipeline start from the starter task (`Plugin.Privileged` or `Job.Privileged`) in `startPipeline`. It must not be changed mid-pipeline.
@@ -105,7 +106,7 @@ These apply to `bot/privsep.go`, `bot/calltask.go`, `bot/task_execution.go`, `bo
 **Child process boundary:**
 - Interpreter-backed tasks (Lua/JS/Gsh/Yaegi Go) run in child RPC processes. The parent engine retains all policy, identity, and authorization authority. The child must never receive raw config objects, shared secret values, or privilege tokens it was not explicitly given through the task's configured parameters.
 
-**Testing note:** `privSep` only activates on a setuid binary. There is no automated test for this path. Changes to `bot/privsep.go` or to privilege callsites in `bot/calltask.go` require manual testing: build the binary, `sudo chown nobody gopherbot && sudo chmod u+s gopherbot`, run as a non-root user, and verify `robot.log` contains `PRIVSEP - privilege separation initialized; daemon UID <uid>, unprivileged UID 65534`. Restore with `sudo chown $(whoami) gopherbot && sudo chmod u-s gopherbot` when done.
+**Testing note:** `privSep` only activates on a setuid/setgid binary. There is no automated test for this path. Changes to `bot/privsep.go` or to privilege callsites in `bot/calltask.go` require manual testing: build the binary, install it as `nobody:nogroup` or the platform equivalent with setuid and setgid bits, run as a non-root user, and verify `robot.log` contains `PRIVSEP - privilege separation initialized; daemon UID/GID <uid>/<gid>, unprivileged UID/GID <uid>/<gid>`. Restore normal ownership and clear setuid/setgid bits when done.
 
 ## Security Model Invariants — User Permission Model
 
