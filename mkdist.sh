@@ -27,7 +27,7 @@ fi
 eval `go env`
 
 CONTENTS="conf/ jobs/ lib/ licenses/ plugins/ resources/ robot/ robot.skel/ helpers/ \
-	tasks/ AUTHORS.txt changelog.txt LICENSE README.md gb-*"
+	tasks/ AUTHORS.txt changelog.txt LICENSE README.md gb-* bot-ssh setuid-nobody.sh"
 
 ADIR="build-archive"
 
