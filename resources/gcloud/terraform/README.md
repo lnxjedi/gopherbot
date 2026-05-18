@@ -50,6 +50,12 @@ Edit backend.hcl with your bucket name and a per-robot prefix.
 
 ## Prepare robot secrets
 
+First, install WireGuard tools in Cloud Shell if you plan to use VPN:
+
+```bash
+sudo apt-get update && sudo apt-get install -y wireguard-tools
+```
+
 Create the robot environment secret from your local .env file:
 
 ```bash
@@ -57,12 +63,20 @@ gcloud secrets create bishop-env --replication-policy=automatic
 gcloud secrets versions add bishop-env --data-file=/path/to/.env
 ```
 
-If using WireGuard:
+If using WireGuard, generate a key pair locally:
+
+```bash
+wg genkey | tee wg-private.txt | wg pubkey > wg-public.txt
+```
+
+Then store the private key in Secret Manager:
 
 ```bash
 gcloud secrets create bishop-wireguard-private-key --replication-policy=automatic
-printf '%s' 'YOUR_WIREGUARD_PRIVATE_KEY' | gcloud secrets versions add bishop-wireguard-private-key --data-file=-
+gcloud secrets versions add bishop-wireguard-private-key --data-file=wg-private.txt
 ```
+
+Save the public key (`wg-public.txt`) for use in peer configuration elsewhere.
 
 ## Configure Terraform variables
 
