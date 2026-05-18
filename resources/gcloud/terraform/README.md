@@ -38,6 +38,7 @@ Enable the APIs required by this module:
 ```bash
 gcloud services enable \
   compute.googleapis.com \
+  iam.googleapis.com \
   secretmanager.googleapis.com \
   storage.googleapis.com
 ```
