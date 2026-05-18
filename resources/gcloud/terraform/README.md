@@ -4,6 +4,17 @@ This directory is a copy-friendly Terraform deployment scaffold for running a si
 
 It is designed for running in Google Cloud Shell after you already created project-level Chat and Firestore resources with scripts under resources/gcloud/scripts.
 
+## Overview
+
+This module codifies the infrastructure and runtime setup for a single Gopherbot instance on GCE. The workflow is:
+
+1. **Prepare project-level resources** — Chat integration, Firestore brain, service accounts, etc. (via `resources/gcloud/scripts`)
+2. **Create deployment infrastructure** — VPC, firewall rules, static IP, service account for the robot VM
+3. **Prepare secrets** — Store robot .env and optional WireGuard key in Google Secret Manager
+4. **Configure and deploy** — Use Terraform variables, then apply to instantiate the VM with bootstrap
+
+The VM startup script installs Gopherbot from a release tarball, retrieves secrets, configures optional VPN, and starts the robot service. No manual SSH or post-deployment configuration is needed.
+
 ## What this creates
 
 - a dedicated VPC and subnet
@@ -19,9 +30,6 @@ It is designed for running in Google Cloud Shell after you already created proje
 
 1. Existing GCP project and enabled APIs.
 2. Existing robot integration resources created from resources/gcloud/scripts.
-3. A GCS bucket for Terraform state.
-4. A Secret Manager secret containing the robot .env content.
-5. If VPN is enabled: a Secret Manager secret containing WireGuard private key text.
 
 ## Prepare Terraform backend
 
