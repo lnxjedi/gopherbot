@@ -64,6 +64,7 @@ fi
 curl -fsSL -o "$${GBDL}" "https://github.com/lnxjedi/gopherbot/releases/download/$${GB_VERSION}/gopherbot-linux-amd64.tar.gz"
 mkdir -p /opt
 cd /opt
+rm -rf gopherbot
 tar xzf "$${GBDL}"
 rm -f "$${GBDL}"
 
