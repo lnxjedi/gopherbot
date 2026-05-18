@@ -301,7 +301,9 @@ Root `robot.yaml` accepts:
 - `PrivsepAllowAllSupplementaryGroups` (bool, default `false` in installed `conf/robot.yaml`)
 - `PrivsepAllowedSupplementaryGroups` (list of numeric group IDs, default `[]` in installed `conf/robot.yaml`)
 
-During startup, after pre-connect configuration load and before brain/connectors/workloads, `initBot()` validates active privilege separation with an internal `privsep-self-check` child. The child commits to the unprivileged role and reports real/effective UID, primary GID, and supplementary groups.
+During robot startup, after pre-connect configuration load and before brain/connectors/workloads, `initBot()` validates active privilege separation with an internal `privsep-self-check` child. The child commits to the unprivileged role and reports real/effective UID, primary GID, and supplementary groups.
+
+Non-robot CLI commands skip this self-check. CLI operations run as the invoking user and do not start connectors, queues, or file-backed extension children, so a broken unprivileged child role must not block local administrative commands such as lock cleanup or config inspection. Internal child commands (`pipeline-child-exec`, `pipeline-child-rpc`, and `privsep-self-check`) still require explicit child role commitment when privilege separation is active.
 
 Startup fails closed when:
 

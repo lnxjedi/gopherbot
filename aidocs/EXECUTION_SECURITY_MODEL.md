@@ -62,6 +62,11 @@ After pre-connect config load, startup validates the unprivileged child role wit
 - the child reports UID/GID/supplementary groups as JSON
 - startup fails closed if UID/GID are wrong or retained supplementary groups are outside `PrivsepAllowAllSupplementaryGroups` / `PrivsepAllowedSupplementaryGroups`
 
+Non-robot CLI commands skip this startup self-check because they run as the
+invoking user and do not start connector runtimes or file-backed extension
+children. Internal child commands still commit to the requested role before
+running child work.
+
 Installed `conf/robot.yaml` defaults to `PrivsepAllowAllSupplementaryGroups: false` and `PrivsepAllowedSupplementaryGroups: []`.
 
 ## Child Role Commitment

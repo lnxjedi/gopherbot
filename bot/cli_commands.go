@@ -689,9 +689,6 @@ func initCLIConfigOnly() {
 	if err := loadConfig(true); err != nil {
 		Log(robot.Fatal, "Loading initial configuration: %v", err)
 	}
-	if err := validatePrivsepStartupPolicy(currentCfg.privsepSupplementaryGroups); err != nil {
-		Log(robot.Fatal, "Privilege separation startup validation failed: %v", err)
-	}
 	cliConfigInitialized = true
 }
 

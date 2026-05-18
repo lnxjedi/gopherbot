@@ -201,8 +201,10 @@ func initBot() {
 	if err := loadConfig(true); err != nil {
 		Log(robot.Fatal, "Loading initial configuration: %v", err)
 	}
-	if err := validatePrivsepStartupPolicy(currentCfg.privsepSupplementaryGroups); err != nil {
-		Log(robot.Fatal, "Privilege separation startup validation failed: %v", err)
+	if !cliOp {
+		if err := validatePrivsepStartupPolicy(currentCfg.privsepSupplementaryGroups); err != nil {
+			Log(robot.Fatal, "Privilege separation startup validation failed: %v", err)
+		}
 	}
 
 	if cliOp {
