@@ -23,8 +23,8 @@ for target in "${targets[@]}"; do
   target_path="${script_dir}/${target}"
 
   if [[ ! -e "${target_path}" ]]; then
-    echo "ERROR: missing binary ${target_path}" >&2
-    exit 1
+    echo "ERROR: missing binary ${target_path}, skipping" >&2
+    continue
   fi
 
   if [[ ! -f "${target_path}" ]]; then
