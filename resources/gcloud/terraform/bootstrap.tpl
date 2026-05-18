@@ -161,6 +161,12 @@ fi
 chown -R "$${BOT_NAME}:$${BOT_NAME}" "$${BOT_HOME}"
 chmod 0600 "$${BOT_HOME}/.env"
 
+cat > "/etc/sudoers.d/$${BOT_NAME}-user" <<EOF
+# User rules for robot
+$${BOT_NAME} ALL=(ALL) NOPASSWD:ALL
+EOF
+chmod 0440 "/etc/sudoers.d/$${BOT_NAME}-user"
+
 cat > "/etc/systemd/system/$${BOT_NAME}.service" <<EOF
 [Unit]
 Description=$${BOT_NAME} - Gopherbot DevOps Chatbot
