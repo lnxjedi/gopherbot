@@ -28,8 +28,19 @@ The VM startup script installs Gopherbot from a release tarball, retrieves secre
 
 ## Prerequisites
 
-1. Existing GCP project and enabled APIs.
+1. Existing GCP project.
 2. Existing robot integration resources created from resources/gcloud/scripts.
+
+## Enable Required APIs
+
+Enable the APIs required by this module:
+
+```bash
+gcloud services enable \
+  compute.googleapis.com \
+  secretmanager.googleapis.com \
+  storage.googleapis.com
+```
 
 ## Prepare Terraform backend
 
