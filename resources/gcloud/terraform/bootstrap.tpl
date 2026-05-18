@@ -8,8 +8,6 @@ echo "Starting Gopherbot bootstrap"
 BOT_NAME="${bot_name}"
 BOT_HOME="${bot_home}"
 PROJECT_ID="${project_id}"
-ROBOT_REPOSITORY="${robot_repository}"
-PROTOCOL="${protocol}"
 ROBOT_ENV_SECRET_NAME="${robot_env_secret_name}"
 WIREGUARD_SECRET_NAME="${wireguard_secret_name}"
 ENABLE_VPN="${enable_vpn}"
@@ -145,18 +143,6 @@ fi
 
 mkdir -p "$${BOT_HOME}"
 printf '%s\n' "$${ROBOT_ENV_CONTENT}" > "$${BOT_HOME}/.env"
-
-if ! grep -q '^GOPHER_BOTNAME=' "$${BOT_HOME}/.env"; then
-  echo "GOPHER_BOTNAME=$${BOT_NAME}" >> "$${BOT_HOME}/.env"
-fi
-
-if ! grep -q '^GOPHER_CUSTOM_REPOSITORY=' "$${BOT_HOME}/.env"; then
-  echo "GOPHER_CUSTOM_REPOSITORY=$${ROBOT_REPOSITORY}" >> "$${BOT_HOME}/.env"
-fi
-
-if ! grep -q '^GOPHER_PROTOCOL=' "$${BOT_HOME}/.env"; then
-  echo "GOPHER_PROTOCOL=$${PROTOCOL}" >> "$${BOT_HOME}/.env"
-fi
 
 chown -R "$${BOT_NAME}:$${BOT_NAME}" "$${BOT_HOME}"
 chmod 0600 "$${BOT_HOME}/.env"

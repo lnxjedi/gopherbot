@@ -12,8 +12,6 @@ locals {
     bot_name                 = var.bot_name
     bot_home                 = local.robot_home
     project_id               = var.project_id
-    robot_repository         = var.robot_repository
-    protocol                 = var.protocol
     gopherbot_version        = var.gopherbot_version
     gopherbot_nobody         = var.gopherbot_nobody
     robot_env_secret_name    = var.robot_env_secret_name

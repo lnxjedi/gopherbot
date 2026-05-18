@@ -114,8 +114,6 @@ Example minimum .env content:
 
 ```dotenv
 GOPHER_CUSTOM_REPOSITORY=git@github.com:your-org/your-robot-repo.git
-GOPHER_DEPLOY_KEY=-----BEGIN OPENSSH PRIVATE KEY-----...-----END OPENSSH PRIVATE KEY-----
-GOPHER_ENCRYPTION_KEY=...encrypted key material...
-GOPHER_PROTOCOL=googlechat
-GOPHER_BOTNAME=bishop
+GOPHER_DEPLOY_KEY=-----BEGIN_OPENSSH_PRIVATE_KEY-----...-----END_OPENSSH_PRIVATE_KEY-----
+GOPHER_ENCRYPTION_KEY=<encryption_key>
 ```

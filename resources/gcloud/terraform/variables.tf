@@ -20,16 +20,7 @@ variable "bot_name" {
   type        = string
 }
 
-variable "robot_repository" {
-  description = "Git URL for the robot custom repository"
-  type        = string
-}
 
-variable "protocol" {
-  description = "Primary protocol used by the robot"
-  type        = string
-  default     = "googlechat"
-}
 
 variable "gopherbot_version" {
   description = "Gopherbot release tag, or latest"

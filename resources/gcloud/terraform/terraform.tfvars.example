@@ -1,9 +1,8 @@
+
 project_id       = "your-project-id"
 region           = "us-central1"
 zone             = "us-central1-a"
 bot_name         = "bishop"
-robot_repository = "git@github.com:your-org/your-robot-repo.git"
-protocol         = "googlechat"
 
 gopherbot_version = "latest"
 gopherbot_nobody  = true
@@ -17,7 +16,7 @@ subnetwork_cidr = "10.42.0.0/24"
 
 enable_ssh_ingress = false
 
-# Used only when enable_ssh_ingress = true.
+
 allow_ssh_cidrs = [
   "35.235.240.0/20"
 ]
