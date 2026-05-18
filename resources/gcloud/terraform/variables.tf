@@ -29,7 +29,7 @@ variable "gopherbot_version" {
 }
 
 variable "gopherbot_nobody" {
-  description = "Whether to configure setuid nobody mode"
+  description = "Whether to configure setuid/setgid nobody mode and clear robot supplementary groups before startup"
   type        = bool
   default     = false
 }

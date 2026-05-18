@@ -24,6 +24,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
   jq \
   python3-pip \
   ruby-full \
+  util-linux \
   wireguard
 
 get_access_token() {
@@ -154,6 +155,16 @@ $${BOT_NAME} ALL=(ALL) NOPASSWD:ALL
 EOF
 chmod 0440 "/etc/sudoers.d/$${BOT_NAME}-user"
 
+if [[ "${gopherbot_nobody}" == "true" ]]; then
+  SERVICE_IDENTITY=""
+  SERVICE_ENVIRONMENT="Environment=USER=$${BOT_NAME} HOME=$${BOT_HOME} LOGNAME=$${BOT_NAME} HOSTNAME=%H"
+  SERVICE_EXEC="ExecStart=/usr/bin/setpriv --clear-groups --reuid=$${BOT_NAME} --regid=$${BOT_NAME} /opt/gopherbot/gopherbot -plainlog"
+else
+  SERVICE_IDENTITY=$'User='"$${BOT_NAME}"$'\nGroup='"$${BOT_NAME}"
+  SERVICE_ENVIRONMENT="Environment=HOSTNAME=%H"
+  SERVICE_EXEC="ExecStart=/opt/gopherbot/gopherbot -plainlog"
+fi
+
 cat > "/etc/systemd/system/$${BOT_NAME}.service" <<EOF
 [Unit]
 Description=$${BOT_NAME} - Gopherbot DevOps Chatbot
@@ -163,12 +174,11 @@ After=network.target
 
 [Service]
 Type=simple
-User=$${BOT_NAME}
-Group=$${BOT_NAME}
+$${SERVICE_IDENTITY}
 WorkingDirectory=$${BOT_HOME}
-ExecStart=/opt/gopherbot/gopherbot -plainlog
+$${SERVICE_ENVIRONMENT}
+$${SERVICE_EXEC}
 Restart=on-failure
-Environment=HOSTNAME=%H
 KillMode=process
 TimeoutStopSec=${systemd_timeout_stop_sec}
 

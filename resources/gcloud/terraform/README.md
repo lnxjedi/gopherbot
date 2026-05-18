@@ -178,6 +178,7 @@ Behavior notes:
 - The startup script installs Gopherbot from GitHub release tarballs.
 - Set gopherbot_version to a release tag (for example v2.9.0) to pin version.
 - robot_env_secret_name should contain the full .env content expected by your robot.
+- gopherbot_nobody = true installs the binary setuid/setgid nobody and starts the service through `setpriv --clear-groups --reuid=<bot_name> --regid=<bot_name>`. This keeps the parent running as the robot user while preventing unprivileged children from retaining the robot user's supplementary groups.
 - enable_firewall = true configures host iptables to default-deny WireGuard and require explicit ALLOW_VPN entries.
 - enable_ssh_ingress = false means no inbound tcp/22 rule is created in GCP.
 
