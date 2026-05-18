@@ -14,8 +14,10 @@ network_name    = "gopherbot-net"
 subnetwork_name = "gopherbot-subnet"
 subnetwork_cidr = "10.42.0.0/24"
 
-enable_ssh_ingress = false
-
+# For GCP, it's handy to enable ssh,
+# but ONLY from Google's IAP proxy
+# subnet.
+enable_ssh_ingress = true
 
 allow_ssh_cidrs = [
   "35.235.240.0/20"

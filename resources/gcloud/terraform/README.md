@@ -39,6 +39,7 @@ Enable the APIs required by this module:
 gcloud services enable \
   cloudresourcemanager.googleapis.com \
   compute.googleapis.com \
+  iap.googleapis.com \
   iam.googleapis.com \
   secretmanager.googleapis.com \
   storage.googleapis.com
@@ -112,6 +113,49 @@ Edit terraform.tfvars values.
 terraform init -backend-config=backend.hcl
 terraform plan
 terraform apply
+```
+
+## Connect with IAP (SSH)
+
+If you want SSH access without opening the VM directly to the internet, use IAP tunneling.
+
+1. Make sure the IAP API is enabled (included above):
+
+```bash
+gcloud services enable iap.googleapis.com
+```
+
+2. Grant a user access to open IAP tunnels and manage SSH access for Compute Engine:
+
+```bash
+USER_EMAIL="user@example.com"
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="user:${USER_EMAIL}" \
+  --role="roles/iap.tunnelResourceAccessor"
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="user:${USER_EMAIL}" \
+  --role="roles/compute.instanceAdmin.v1"
+```
+
+3. Ensure SSH ingress is enabled in Terraform for the IAP source range (`35.235.240.0/20`):
+
+```hcl
+enable_ssh_ingress = true
+allow_ssh_cidrs    = ["35.235.240.0/20"]
+```
+
+4. Connect through IAP:
+
+```bash
+BOT_NAME="bishop"
+ZONE="us-central1-a"
+
+gcloud compute ssh "${BOT_NAME}-robot" \
+  --project="$PROJECT_ID" \
+  --zone="$ZONE" \
+  --tunnel-through-iap
 ```
 
 ## Notes
