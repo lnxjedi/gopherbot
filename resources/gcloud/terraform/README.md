@@ -158,6 +158,12 @@ gcloud compute ssh "${BOT_NAME}-robot" \
   --tunnel-through-iap
 ```
 
+Once connected, you can monitor bootstrap progress or troubleshoot startup with:
+
+```bash
+sudo journalctl -u google-startup-scripts.service -f
+```
+
 ## Upgrade by resetting the instance
 
 Because bootstrap replaces `/opt/gopherbot` on boot, you can trigger a reinstall or upgrade by resetting the VM:

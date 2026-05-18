@@ -22,8 +22,6 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
   git \
   iptables \
   jq \
-  python3-pip \
-  ruby-full \
   util-linux \
   wireguard
 
