@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Appendix - Gopherbot DevOps Chatbot</title>
+        <title>Security and Access Control - Gopherbot DevOps Chatbot</title>
 
 
         <!-- Custom HTML head -->
@@ -12,33 +12,33 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="../favicon-de23e50b.svg">
-        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
-        <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-0392ca55.css">
-        <link rel="stylesheet" href="../css/chrome-fc474251.css">
-        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-0392ca55.css">
+        <link rel="stylesheet" href="css/chrome-fc474251.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
-        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
-        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
-        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
 
 
         <!-- Provide site root and default themes to javascript -->
         <script>
-            const path_to_root = "../";
+            const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a66cf0b5.js";
+            window.path_to_searchindex_js = "searchindex-a66cf0b5.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-c6a2b80c.js"></script>
+        <script src="toc-c6a2b80c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -105,7 +105,7 @@
             <!-- populated by js -->
             <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
             <noscript>
-                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
             </noscript>
             <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -140,7 +140,7 @@
                     <h1 class="menu-title">Gopherbot DevOps Chatbot</h1>
 
                     <div class="right-buttons">
-                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
                             <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
                         </a>
 
@@ -174,18 +174,46 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="appendix"><a class="header" href="#appendix">Appendix</a></h1>
-<p>Reference material for <strong>Gopherbot</strong> administrators and developers.</p>
+                        <h1 id="general-concepts"><a class="header" href="#general-concepts">General Concepts</a></h1>
+<p>Since Gopherbot is designed for ChatOps with the idea of being an ‘Enterprise Sudo’, it is important to discuss security-related issues. It is expected that as team chat services and therefore ChatOps becomes more prevalent in mainstream IT, understanding of ChatOps security issues will improve and mature. Laid out here are a few general considerations along with some of Gopherbot’s specific security-related features.</p>
+<h2 id="plugin-non-separation"><a class="header" href="#plugin-non-separation">Plugin (non-)Separation</a></h2>
+<p>Gopherbot’s design is intended to allow <em>eventual</em> support for a strong separation between external plugins, so that e.g. internally developed plugins can (more) safely coexist with 3rd-party external plugins. This is not yet fully implemented, however the API design should accommodate it. Currently the robot and all external plugins run as the robot user; mainly this means that all external plugins can read whatever files the main gopherbot process can read, including the file-based brain.</p>
+<h3 id="trusted-internally-developed-and-untrusted-third-party-plugins"><a class="header" href="#trusted-internally-developed-and-untrusted-third-party-plugins">Trusted (internally-developed) and Untrusted (third party) Plugins</a></h3>
+<p>Gopherbot is designed with an eye towards future proliferation of third party plugins - from managing cloud provider infrastructure, to ordering pizza, to generating memes or spitting out random facts about cats and Chuck Norris. Currently there are only a small number of plugins available, but it’s still important to discuss and consider these aspects of ChatOps security.</p>
+<p>When running Gopherbot for doing real, privileged, security-sensitive work, best practices would dictate:</p>
+<ul>
+<li>Never run both trusted and untrusted plugins in the same instance of Gopherbot</li>
+<li>Never invite a bot running untrusted plugins into a channel where a bot with trusted plugins is running</li>
+</ul>
+<p>The reasoning here is that plugins have the ability to listen and respond to everything said, and a user might not always be certain of what plugin they’re interacting with. That being said, many plugins (such as <code>weather</code>) are very short and easy to read/audit for malicious code.</p>
+<h3 id="communication-between-robots"><a class="header" href="#communication-between-robots">Communication between robots</a></h3>
+<h2 id="visibility"><a class="header" href="#visibility">Visibility</a></h2>
+<p>Each plugin can specify one or more of <code>Users</code>, <code>Channels</code>, <code>AllChannels</code>, <code>RequireAdmin</code>, <code>AllowDirect</code> and <code>DirectOnly</code> that will limit who a plugin is visible to, and whether it can be accessed in a given channel or via direct message. For instance, you could allow certain security-sensitive plugins to be visible only in a few invite-only private channels. Note that if a given plugin is available to a user only in certain channels, <code>help &lt;keyword&gt;</code> will list the channels where a plugin is available.</p>
+<p>Additionally, being able to restrict based on channels means that potentially security-sensitive operations will always be performed in the view of other members of the team, adding another level of protection.</p>
+<h2 id="authorization"><a class="header" href="#authorization">Authorization</a></h2>
+<p>If a plugin is available to the user, the robot will then check authorization, if configured. Instead of creating a pluggable interface for e.g. group membership, or other authorization primitives, Gopherbot uses the notion of an “Authorizer” plugin that gets called with the command <code>authorize</code>, and these arguments:
+the name of the plugin being authorized, an optional group/role name, followed by the command and any arguments to the command. The plugin can perform look-ups or optionally interact with the user, and is expected to exit with <code>bot.Success</code> if the user is authorized, <code>bot.Fail</code> if the user isn’t authorized, or <code>bot.MechanismFail</code> / <code>bot.ConfigurationError</code> if e.g. LDAP or some other central service couldn’t be reached or is misconfigured. Note that the libraries define constants for these values.</p>
+<p>Authorization is useful for all kinds of cases where a given plugin may be available in several channels, but uses different resources based on the channel and simply limiting visibility isn’t sufficient. It’s also useful for implementing e.g. group security. The main upside is that it gives the bot administrator the ability to implement arbitrary logic for determining authorization, but that’s also the main downside - it may require scripting to configure certain types of authorization.</p>
+<h2 id="elevation"><a class="header" href="#elevation">Elevation</a></h2>
+<p>Finally, if the user passes the authorization check, the robot will then check for elevation if a given command is listed in <code>ElevatedCommands</code> or <code>ElevateImmediateCommands</code>. Elevation behaves similarly to <code>sudo</code>, in that the user may be required to supply a second form of authentication (mfa / 2fa) before an action is allowed. Individual elevation plugins may be configurable with a timeout for <code>ElevatedCommands</code>, such that a user can continue to perform elevated operations for a period of time before re-authentication is required. As the name suggests, <code>ElevateImmediateCommands</code> will <em>always</em> require mfa, and should therefore be used sparingly, especially if the mfa method is onerous (e.g. <code>totp</code>).</p>
+<p>Some elevators use a human approval flow instead of personal MFA. The built-in <a href="security/userapproval.html"><code>builtin-userapproval</code></a> elevator lets a configured approver approve or deny a sensitive command.</p>
+<h1 id="hardened-design"><a class="header" href="#hardened-design">Hardened Design</a></h1>
+<h2 id="privilege-separation"><a class="header" href="#privilege-separation">Privilege Separation</a></h2>
+<p>Gopherbot 2.0 introduced the ability to use privilege separation where the robot executable is installed setuid, and run by the robot ‘user’. Thus, the main process will run as another user; in the Docker containers and Ansible role, this defaults to ‘bin’. The starting environment file <code>.env</code> should only be readable by this privileged user, as this is where the robot obtains e.g. it’s encryption key or Slack token. Externally executed plugin, job and task scripts (but not Go plugins) all run as the non-privileged user that started the process.</p>
+<h2 id="encryption"><a class="header" href="#encryption">Encryption</a></h2>
+<p>Gopherbot 2.0 also adds AES-256 / GCM encryption at it’s core, which is required for storing secrets and parameters in the robot’s brain, and can optionally be used to fully encrypt the contents of the brain.</p>
+<h2 id="memory-protection"><a class="header" href="#memory-protection">Memory Protection</a></h2>
+<p>Preliminary / incomplete has been added for storing the robot’s internal encryption key in protected memory. The current implementation provides minimal additional hardening, and needs further thought and development.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../Upgrading.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="usage/logging.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../appendices/Protocols.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="security/userapproval.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -195,11 +223,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../Upgrading.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="usage/logging.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../appendices/Protocols.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="security/userapproval.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
@@ -219,13 +247,13 @@
         </script>
 
 
-        <script src="../elasticlunr-ef4e11c1.min.js"></script>
-        <script src="../mark-09e88c2c.min.js"></script>
-        <script src="../searcher-09f2665d.js"></script>
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
-        <script src="../clipboard-1626706a.min.js"></script>
-        <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-c22b7243.js"></script>
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
 

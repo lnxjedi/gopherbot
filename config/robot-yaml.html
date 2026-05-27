@@ -1,0 +1,908 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>robot.yaml Reference - Gopherbot DevOps Chatbot</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-a66cf0b5.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-c6a2b80c.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Gopherbot DevOps Chatbot</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="robotyaml-reference"><a class="header" href="#robotyaml-reference">robot.yaml Reference</a></h1>
+<p><code>robot.yaml</code> is the top-level configuration file for a robot. It chooses the robot’s global runtime behavior: which connectors start, which brain and history providers are used, who the robot knows about, who can administer it, and which plugins, jobs, tasks, namespaces, and parameter sets are available.</p>
+<p>Most detailed configuration does <strong>not</strong> belong in <code>robot.yaml</code>. In v3, <code>robot.yaml</code> normally contains selectors and robot-wide policy, while detailed provider and extension settings live in dedicated files:</p>
+<ul>
+<li>connector settings: <code>conf/protocols/&lt;protocol&gt;.yaml</code></li>
+<li>brain settings: <code>conf/brains/&lt;provider&gt;.yaml</code></li>
+<li>history settings: <code>conf/history/&lt;provider&gt;.yaml</code></li>
+<li>queue settings: <code>conf/queues/&lt;provider&gt;.yaml</code></li>
+<li>plugin settings: <code>conf/plugins/&lt;plugin&gt;.yaml</code></li>
+<li>job settings: <code>conf/jobs/&lt;job&gt;.yaml</code></li>
+</ul>
+<p>For a custom robot, the file is usually <code>custom/conf/robot.yaml</code> inside the robot repository. Gopherbot first loads the installed defaults from the engine’s <code>conf/robot.yaml</code>, then merges the custom robot’s <code>conf/robot.yaml</code> over those defaults.</p>
+<h2 id="quick-example"><a class="header" href="#quick-example">Quick Example</a></h2>
+<p>This is the shape of a small custom <code>robot.yaml</code>:</p>
+<pre><code class="language-yaml">IgnoreUnlistedUsers: true
+SecureParameters: true
+
+{{ $environment := env "GOPHER_ENVIRONMENT" | default "production" }}
+{{ printf "environments/%s.yaml" $environment | .Include }}
+
+BotInfo:
+  UserName: floyd
+  Email: floyd@example.com
+  FullName: Floyd Gopherbot
+  FirstName: Floyd
+  LastName: Gopherbot
+
+Alias: ";"
+
+DefaultMessageFormat: BasicMarkdown
+DefaultJobChannel: general
+HistoryProvider: file
+
+TimeOuts:
+  Plugin:
+    Warn: 7m
+    Kill: 14m
+  Job:
+    Warn: 1h
+    Kill: 2h
+
+AdminUsers:
+- alice
+
+UserRoster:
+- UserName: alice
+  Email: alice@example.com
+  FullName: Alice Admin
+
+ScheduledJobs:
+- Name: pause-notifies
+  Schedule: "0 0 8 * * *"
+</code></pre>
+<p>The included environment file commonly sets <code>PrimaryProtocol</code>, <code>DefaultProtocol</code>, <code>Brain</code>, and logging for a specific environment.</p>
+<h2 id="loading-and-merge-rules"><a class="header" href="#loading-and-merge-rules">Loading and Merge Rules</a></h2>
+<p>Like other Gopherbot config files, <code>robot.yaml</code> is expanded as a template before it is parsed as YAML. See <a href="templates.html">Config Templates</a> for the common helper reference, include behavior, and secret/variable guidance.</p>
+<p>See <a href="file.html">Configuration Overview</a> for the full loading, merge, override, and <code>Append*</code> behavior.</p>
+<p>Unknown top-level keys are startup errors. <code>BrainConfig</code>, <code>HistoryConfig</code>, and <code>QueueConfig</code> are also rejected in <code>robot.yaml</code>; put those in their dedicated provider files.</p>
+<h2 id="protocols-and-routing"><a class="header" href="#protocols-and-routing">Protocols and Routing</a></h2>
+<h3 id="primaryprotocol"><a class="header" href="#primaryprotocol">PrimaryProtocol</a></h3>
+<p>Required.</p>
+<p><code>PrimaryProtocol</code> is the main connector protocol for the robot.</p>
+<pre><code class="language-yaml">PrimaryProtocol: ssh
+</code></pre>
+<p>The engine normalizes protocol names by trimming whitespace and lowercasing them. The primary protocol must have a matching connector config file at <code>conf/protocols/&lt;protocol&gt;.yaml</code>, and that file must contain a <code>ProtocolConfig</code> section.</p>
+<p>Common values include:</p>
+<ul>
+<li><code>ssh</code></li>
+<li><code>slack</code></li>
+<li><code>googlechat</code></li>
+<li><code>terminal</code></li>
+<li><code>test</code></li>
+<li><code>nullconn</code></li>
+</ul>
+<p>The <code>terminal</code> connector is useful for local work, but it is not supported as a secondary protocol.</p>
+<p>During reload, changing <code>PrimaryProtocol</code> is ignored once a connector runtime is already active. Restart the robot to change the primary protocol.</p>
+<h3 id="defaultprotocol"><a class="header" href="#defaultprotocol">DefaultProtocol</a></h3>
+<p>Optional. Defaults to <code>PrimaryProtocol</code>.</p>
+<p><code>DefaultProtocol</code> is used when the robot sends an outbound message without an incoming message context, such as plugin initialization or scheduled work.</p>
+<pre><code class="language-yaml">DefaultProtocol: ssh
+</code></pre>
+<p>If set, it must be either the primary protocol or one of <code>SecondaryProtocols</code>. If it is not, Gopherbot logs a warning and falls back to the primary protocol.</p>
+<h3 id="secondaryprotocols"><a class="header" href="#secondaryprotocols">SecondaryProtocols</a></h3>
+<p>Optional.</p>
+<p><code>SecondaryProtocols</code> lists additional connector protocols to initialize and run alongside the primary protocol.</p>
+<pre><code class="language-yaml">SecondaryProtocols:
+- slack
+- googlechat
+</code></pre>
+<p>Each secondary protocol should have <code>conf/protocols/&lt;protocol&gt;.yaml</code>. Secondary connector startup failures are logged, but they do not stop the primary connector from running.</p>
+<p>Rules:</p>
+<ul>
+<li>duplicates are ignored</li>
+<li>the primary protocol is ignored if repeated here</li>
+<li><code>terminal</code> is ignored as a secondary protocol</li>
+<li>protocol names are normalized internally</li>
+</ul>
+<h3 id="channelroster"><a class="header" href="#channelroster">ChannelRoster</a></h3>
+<p>Optional.</p>
+<p><code>ChannelRoster</code> maps channel names to protocol channel IDs when a connector cannot provide a stable human-readable name, or when you want configuration to refer to a friendly channel name.</p>
+<pre><code class="language-yaml">ChannelRoster:
+- ChannelName: general
+  ChannelID: C123456
+</code></pre>
+<p>Fields:</p>
+<ul>
+<li><code>ChannelName</code>: name used in robot config</li>
+<li><code>ChannelID</code>: connector’s internal channel ID</li>
+</ul>
+<p>Top-level <code>ChannelRoster</code> entries apply to the primary protocol. Protocol files can also provide <code>ChannelRoster</code>; those entries are tagged with that protocol as they load. Primary-protocol entries from <code>robot.yaml</code> are appended after the primary protocol file so robot-specific channel mappings can override protocol-specific lookup maps.</p>
+<h3 id="joinchannels"><a class="header" href="#joinchannels">JoinChannels</a></h3>
+<p>Optional.</p>
+<p><code>JoinChannels</code> lists channels the robot should try to join during startup.</p>
+<pre><code class="language-yaml">JoinChannels:
+- general
+- operations
+</code></pre>
+<p>Gopherbot also tries to join channels from <code>DefaultChannels</code> and <code>DefaultJobChannel</code>. Not every connector supports joining channels programmatically.</p>
+<h3 id="defaultchannels"><a class="header" href="#defaultchannels">DefaultChannels</a></h3>
+<p>Optional.</p>
+<p><code>DefaultChannels</code> defines the channels where plugins are available when the plugin’s own config does not specify <code>Channels</code> and does not set <code>AllChannels</code>.</p>
+<pre><code class="language-yaml">DefaultChannels:
+- general
+- random
+</code></pre>
+<p>Plugin-specific channel configuration belongs in <code>conf/plugins/&lt;plugin&gt;.yaml</code>.</p>
+<h2 id="robot-identity-and-addressing"><a class="header" href="#robot-identity-and-addressing">Robot Identity and Addressing</a></h2>
+<h3 id="botinfo"><a class="header" href="#botinfo">BotInfo</a></h3>
+<p>Recommended.</p>
+<p><code>BotInfo</code> defines the robot’s canonical identity. Connectors receive this information during initialization, and plugin APIs use it for bot attributes.</p>
+<pre><code class="language-yaml">BotInfo:
+  UserName: floyd
+  Email: floyd@example.com
+  FullName: Floyd Gopherbot
+  FirstName: Floyd
+  LastName: Gopherbot
+</code></pre>
+<p>Fields:</p>
+<ul>
+<li><code>UserName</code>: the name users type when addressing the robot, such as <code>floyd, ping</code></li>
+<li><code>Email</code>: used by email-sending APIs as the sender address</li>
+<li><code>FullName</code>: human-readable robot name</li>
+<li><code>FirstName</code>: optional first name attribute</li>
+<li><code>LastName</code>: optional last name attribute</li>
+</ul>
+<p><code>GetBotAttribute("name")</code> returns <code>BotInfo.UserName</code>. <code>GetBotAttribute("email")</code> returns <code>BotInfo.Email</code>. <code>GetBotAttribute("fullName")</code> returns <code>BotInfo.FullName</code>.</p>
+<h3 id="alias"><a class="header" href="#alias">Alias</a></h3>
+<p>Optional.</p>
+<p><code>Alias</code> is a one-character shortcut for addressing the robot.</p>
+<pre><code class="language-yaml">Alias: ";"
+</code></pre>
+<p>With this example, users can say <code>;ping</code> instead of <code>floyd, ping</code>.</p>
+<p>Allowed alias characters are:</p>
+<pre><code class="language-text">* + ^ $ ? \ [ ] { } &amp; ! ; : - % # @ ~ &lt; &gt;
+</code></pre>
+<p>Only the first rune of the string is used. If the alias is invalid, startup fails.</p>
+<h3 id="hearself"><a class="header" href="#hearself">HearSelf</a></h3>
+<p>Optional. Defaults to <code>true</code>.</p>
+<p><code>HearSelf</code> controls whether the engine processes messages that a connector marks as originating from the robot itself.</p>
+<pre><code class="language-yaml">HearSelf: false
+</code></pre>
+<p>Connectors still own the decision to mark a message as a self-message. This option only controls whether the engine ignores those marked messages.</p>
+<h2 id="users-and-access-policy"><a class="header" href="#users-and-access-policy">Users and Access Policy</a></h2>
+<h3 id="userroster"><a class="header" href="#userroster">UserRoster</a></h3>
+<p>Optional, but strongly recommended.</p>
+<p><code>UserRoster</code> is the global user directory. Gopherbot’s authorization and policy decisions are based on canonical usernames from this directory, not on connector-specific transport IDs.</p>
+<pre><code class="language-yaml">UserRoster:
+- UserName: alice
+  Email: alice@example.com
+  FullName: Alice Admin
+  FirstName: Alice
+  LastName: Admin
+  Phone: "+1-555-0100"
+- UserName: buildbot
+  BotUser: true
+</code></pre>
+<p>Fields:</p>
+<ul>
+<li><code>UserName</code>: canonical username used in config, authorization, memory ownership, and policy checks</li>
+<li><code>Email</code>: user email returned by attribute APIs</li>
+<li><code>Phone</code>: user phone returned by attribute APIs</li>
+<li><code>FullName</code>: full display name returned by attribute APIs</li>
+<li><code>FirstName</code>: first name returned by attribute APIs</li>
+<li><code>LastName</code>: last name returned by attribute APIs</li>
+<li><code>BotUser</code>: marks an automated user; bot users are not checked against ambient message matchers and do not fall through to catch-all plugins</li>
+<li><code>UserID</code>: legacy parse-only field; accepted so older configs can load, but ignored by the engine</li>
+</ul>
+<p><code>UserName</code> must be lowercase. Entries with an empty username or uppercase letters are ignored.</p>
+<p>Connector-specific user IDs do <strong>not</strong> belong in top-level <code>UserRoster</code>. Put protocol-local identity mapping in the connector’s config file, such as <code>conf/protocols/slack.yaml</code>, <code>conf/protocols/googlechat.yaml</code>, or <code>conf/protocols/ssh.yaml</code>.</p>
+<h3 id="ignoreunlistedusers"><a class="header" href="#ignoreunlistedusers">IgnoreUnlistedUsers</a></h3>
+<p>Optional. Defaults to <code>false</code> unless set by custom config.</p>
+<p>When <code>IgnoreUnlistedUsers</code> is true, Gopherbot drops incoming messages unless the connector has validated the transport user and resolved it to a canonical username listed in <code>UserRoster</code>.</p>
+<pre><code class="language-yaml">IgnoreUnlistedUsers: true
+</code></pre>
+<p>This is the large security switch for roster-based deployments. It is enforced before any worker or pipeline is created.</p>
+<h3 id="ignoreusers"><a class="header" href="#ignoreusers">IgnoreUsers</a></h3>
+<p>Optional.</p>
+<p><code>IgnoreUsers</code> lists canonical usernames the robot should never respond to.</p>
+<pre><code class="language-yaml">IgnoreUsers:
+- otherbot
+- slackbot
+</code></pre>
+<p>The comparison is case-insensitive and happens before any pipeline is created.</p>
+<h3 id="adminusers"><a class="header" href="#adminusers">AdminUsers</a></h3>
+<p>Optional. Defaults to an empty list if not configured.</p>
+<p><code>AdminUsers</code> lists canonical usernames with access to built-in administrative commands.</p>
+<pre><code class="language-yaml">AdminUsers:
+- alice
+- david
+</code></pre>
+<p>Admin checks are username-based. Connector-provided flags, message content, and user-modifiable runtime state do not make a user an admin.</p>
+<p>Scheduled jobs run as automatic tasks and are treated as admin by design because they are scheduled by configuration.</p>
+<h3 id="defaultauthorizer"><a class="header" href="#defaultauthorizer">DefaultAuthorizer</a></h3>
+<p>Optional.</p>
+<p><code>DefaultAuthorizer</code> names the authorizer plugin used when a plugin or job requires authorization but does not specify its own <code>Authorizer</code>.</p>
+<pre><code class="language-yaml">DefaultAuthorizer: groups
+</code></pre>
+<p>Plugin and job authorization rules live in <code>conf/plugins/&lt;plugin&gt;.yaml</code> and <code>conf/jobs/&lt;job&gt;.yaml</code>.</p>
+<h3 id="defaultelevator"><a class="header" href="#defaultelevator">DefaultElevator</a></h3>
+<p>Optional.</p>
+<p><code>DefaultElevator</code> names the elevation plugin used when a plugin command requires elevation but does not specify its own <code>Elevator</code>.</p>
+<pre><code class="language-yaml">DefaultElevator: builtin-userapproval
+</code></pre>
+<p>Elevation is checked after base authorization succeeds. For the built-in human approval elevator, see <a href="../security/userapproval.html">User Approval Elevation</a>.</p>
+<h2 id="brain-history-and-queues"><a class="header" href="#brain-history-and-queues">Brain, History, and Queues</a></h2>
+<h3 id="brain"><a class="header" href="#brain">Brain</a></h3>
+<p>Optional. Defaults to <code>mem</code> if unset at brain initialization, though installed defaults normally set a value.</p>
+<p><code>Brain</code> selects the provider used for long-term robot memory.</p>
+<pre><code class="language-yaml">Brain: file
+</code></pre>
+<p>Common values:</p>
+<ul>
+<li><code>mem</code>: in-memory brain</li>
+<li><code>file</code>: local cached file brain</li>
+<li><code>dynamo</code>: DynamoDB-backed remote brain</li>
+<li><code>cloudflare</code>: Cloudflare KV-backed remote brain</li>
+<li><code>firestore</code>: Firestore-backed remote brain</li>
+</ul>
+<p>Provider-specific settings belong in <code>conf/brains/&lt;provider&gt;.yaml</code> under <code>BrainConfig</code>.</p>
+<p>For <code>file</code>, Gopherbot uses the v3 local brain cache. If legacy file-brain data is present in the old brain directory and the v3 cache has not been initialized, startup asks you to run <code>gopherbot pull-brain</code>.</p>
+<h3 id="braincache"><a class="header" href="#braincache">BrainCache</a></h3>
+<p>Optional.</p>
+<p><code>BrainCache</code> configures the engine-owned local cache used by the v3 brain system.</p>
+<pre><code class="language-yaml">BrainCache:
+  Directory: state/brain-cache
+</code></pre>
+<p>Fields:</p>
+<ul>
+<li><code>Directory</code>: directory for local brain cache state</li>
+</ul>
+<p>If omitted, the directory defaults to <code>state/brain-cache</code>. Installed defaults normally derive this from <code>GOPHER_STATE_DIRECTORY</code>.</p>
+<h3 id="historyprovider"><a class="header" href="#historyprovider">HistoryProvider</a></h3>
+<p>Optional. Defaults to <code>mem</code>.</p>
+<p><code>HistoryProvider</code> selects where plugin and job run logs are stored.</p>
+<pre><code class="language-yaml">HistoryProvider: file
+</code></pre>
+<p>Common values:</p>
+<ul>
+<li><code>mem</code>: in-memory history</li>
+<li><code>file</code>: file-backed history</li>
+</ul>
+<p>Provider-specific settings belong in <code>conf/history/&lt;provider&gt;.yaml</code> under <code>HistoryConfig</code>.</p>
+<p>If the configured provider is not registered or returns nil during startup, Gopherbot logs an error and falls back to <code>mem</code>.</p>
+<h3 id="queueproviders"><a class="header" href="#queueproviders">QueueProviders</a></h3>
+<p>Optional.</p>
+<p><code>QueueProviders</code> lists queue providers that should start after full robot initialization.</p>
+<pre><code class="language-yaml">QueueProviders:
+- gcloud
+</code></pre>
+<p>Provider names are trimmed, lowercased, and deduplicated. Provider-specific settings belong in <code>conf/queues/&lt;provider&gt;.yaml</code> under <code>QueueConfig</code>.</p>
+<p>Queue provider startup failures are logged per provider and do not stop the robot from running. Jobs opt in to queue triggering with job-level <code>UUIDTrigger</code> in <code>conf/jobs/&lt;job&gt;.yaml</code>.</p>
+<h2 id="messages-and-formatting"><a class="header" href="#messages-and-formatting">Messages and Formatting</a></h2>
+<h3 id="defaultmessageformat"><a class="header" href="#defaultmessageformat">DefaultMessageFormat</a></h3>
+<p>Optional. Defaults to <code>BasicMarkdown</code>.</p>
+<p><code>DefaultMessageFormat</code> controls how outgoing messages are formatted when a plugin, job, or built-in send path does not choose a format explicitly.</p>
+<pre><code class="language-yaml">DefaultMessageFormat: BasicMarkdown
+</code></pre>
+<p>Supported values:</p>
+<ul>
+<li><code>BasicMarkdown</code></li>
+<li><code>Raw</code></li>
+<li><code>Fixed</code></li>
+<li><code>Variable</code></li>
+</ul>
+<p><code>BasicMarkdown</code> is the v3 default portable format. <code>Raw</code> preserves protocol-native behavior for older robots that need it. Unknown values log an error and fall back to <code>BasicMarkdown</code>.</p>
+<h3 id="defaultjobchannel"><a class="header" href="#defaultjobchannel">DefaultJobChannel</a></h3>
+<p>Optional, but recommended.</p>
+<p><code>DefaultJobChannel</code> is the default channel for job status messages and other operator-facing output when a job or alert does not specify a channel.</p>
+<pre><code class="language-yaml">DefaultJobChannel: general
+</code></pre>
+<p>Jobs without their own <code>Channel</code> and without a <code>DefaultJobChannel</code> can be disabled during config loading because Gopherbot has nowhere to report their activity.</p>
+<h3 id="readymessage"><a class="header" href="#readymessage">ReadyMessage</a></h3>
+<p>Optional.</p>
+<p><code>ReadyMessage</code> sends a channel message after startup readiness opens.</p>
+<pre><code class="language-yaml">ReadyMessage: "floyd is ready"
+</code></pre>
+<p>If unset or blank, no ready message is sent.</p>
+<h3 id="readychannel"><a class="header" href="#readychannel">ReadyChannel</a></h3>
+<p>Optional. Defaults to <code>DefaultJobChannel</code>.</p>
+<p><code>ReadyChannel</code> chooses where <code>ReadyMessage</code> is sent.</p>
+<pre><code class="language-yaml">ReadyChannel: general
+</code></pre>
+<p>If <code>ReadyMessage</code> is configured but neither <code>ReadyChannel</code> nor <code>DefaultJobChannel</code> is available, Gopherbot logs an error and skips the message.</p>
+<h2 id="scheduling-and-time"><a class="header" href="#scheduling-and-time">Scheduling and Time</a></h2>
+<h3 id="scheduledjobs"><a class="header" href="#scheduledjobs">ScheduledJobs</a></h3>
+<p>Optional.</p>
+<p><code>ScheduledJobs</code> schedules configured jobs.</p>
+<pre><code class="language-yaml">ScheduledJobs:
+- Name: pause-notifies
+  Schedule: "0 0 8 * * *"
+- Name: install-libs
+  Schedule: "@init"
+- Name: hello
+  Schedule: "@every 30s"
+  Arguments:
+  - "Hello"
+  - "World"
+</code></pre>
+<p>Fields:</p>
+<ul>
+<li><code>Name</code>: name of the job to run</li>
+<li><code>Schedule</code>: cron expression or descriptor</li>
+<li><code>Arguments</code>: optional arguments passed to the job</li>
+<li><code>Command</code>: accepted by the shared task spec, mainly useful for plugin-like task specs</li>
+</ul>
+<p>Schedules use <code>github.com/robfig/cron/v3</code>. Gopherbot accepts seconds as an optional first field, so both five-field and six-field cron expressions can be used. Descriptors such as <code>@every 30s</code> and <code>@init</code> are supported.</p>
+<p><code>@init</code> jobs run during startup before normal plugin initialization. Scheduled jobs run as automatic tasks and bypass normal user authorization/elevation checks because they are controlled by robot configuration.</p>
+<p>Only jobs can be scheduled. Disabled jobs are skipped.</p>
+<h3 id="timezone"><a class="header" href="#timezone">TimeZone</a></h3>
+<p>Optional.</p>
+<p><code>TimeZone</code> sets the time zone used for scheduled jobs.</p>
+<pre><code class="language-yaml">TimeZone: America/New_York
+</code></pre>
+<p>Use an IANA time zone name. If the value cannot be loaded, Gopherbot logs an error and uses the system default time zone.</p>
+<h3 id="timeouts"><a class="header" href="#timeouts">TimeOuts</a></h3>
+<p>Optional.</p>
+<p><code>TimeOuts</code> sets default warning and kill thresholds for plugin and job pipelines.</p>
+<pre><code class="language-yaml">TimeOuts:
+  Plugin:
+    Warn: 7m
+    Kill: 14m
+  Job:
+    Warn: 1h
+    Kill: 2h
+</code></pre>
+<p>Fields:</p>
+<ul>
+<li><code>Plugin.Warn</code>: how long a plugin can run before an operator warning</li>
+<li><code>Plugin.Kill</code>: how long a plugin can run before termination</li>
+<li><code>Job.Warn</code>: how long a job can run before an operator warning</li>
+<li><code>Job.Kill</code>: how long a job can run before termination</li>
+</ul>
+<p>Durations should normally be quoted or unquoted Go duration strings such as <code>30s</code>, <code>7m</code>, or <code>1h</code>. Integer values are accepted as nanoseconds.</p>
+<p>Rules:</p>
+<ul>
+<li>negative durations are invalid</li>
+<li>if both <code>Warn</code> and <code>Kill</code> are set, <code>Kill</code> must be greater than <code>Warn</code></li>
+<li>zero disables that threshold</li>
+</ul>
+<p>Plugin, job, and task configs can override these defaults with their own <code>TimeOuts</code> block.</p>
+<h2 id="plugins-jobs-tasks-namespaces-and-parameters"><a class="header" href="#plugins-jobs-tasks-namespaces-and-parameters">Plugins, Jobs, Tasks, Namespaces, and Parameters</a></h2>
+<p><code>robot.yaml</code> declares which extensions exist. Detailed plugin and job behavior should usually live in <code>conf/plugins/&lt;plugin&gt;.yaml</code> and <code>conf/jobs/&lt;job&gt;.yaml</code>.</p>
+<p>The root maps in this section all use the map key as the extension or set name:</p>
+<pre><code class="language-yaml">ExternalPlugins:
+  "my-plugin":
+    Path: plugins/my-plugin.gsh
+    Description: My custom command
+</code></pre>
+<h3 id="common-declaration-fields"><a class="header" href="#common-declaration-fields">Common Declaration Fields</a></h3>
+<p>These fields are used in <code>ExternalPlugins</code>, <code>ExternalJobs</code>, <code>ExternalTasks</code>, <code>GoPlugins</code>, <code>GoJobs</code>, <code>GoTasks</code>, <code>NameSpaces</code>, and <code>ParameterSets</code>. Not every field is meaningful for every map.</p>
+<ul>
+<li><code>Path</code>: executable or source path for external extensions</li>
+<li><code>Description</code>: human-readable description</li>
+<li><code>NameSpace</code>: namespace for shared memory and parameters</li>
+<li><code>ParameterSets</code>: list of named parameter sets to attach</li>
+<li><code>Disabled</code>: disables the entry</li>
+<li><code>Homed</code>: runs with the robot home as the working context</li>
+<li><code>Privileged</code>: privilege setting for the extension</li>
+<li><code>Parameters</code>: fixed parameters made available to the extension</li>
+</ul>
+<p>Parameter item shape:</p>
+<pre><code class="language-yaml">Parameters:
+- Name: WEATHER_API_KEY
+  Value: '{{ secret "WEATHER_API_KEY" }}'
+</code></pre>
+<p>Security note: with <code>SecureParameters: true</code>, extensions must retrieve parameters through the Robot API instead of receiving them as environment variables.</p>
+<h3 id="externalplugins"><a class="header" href="#externalplugins">ExternalPlugins</a></h3>
+<p>Optional.</p>
+<p><code>ExternalPlugins</code> declares executable or interpreted plugins that can respond to user commands.</p>
+<pre><code class="language-yaml">ExternalPlugins:
+  "admin":
+    Path: plugins/admin.gsh
+    Description: Administrative plugin
+    Privileged: true
+</code></pre>
+<p>External plugins default to <code>Privileged: false</code> when <code>Privileged</code> is omitted.</p>
+<p>Plugin command matchers, channel restrictions, help metadata, authorization, elevation, and plugin-specific config usually belong in <code>conf/plugins/&lt;plugin&gt;.yaml</code>.</p>
+<h3 id="goplugins"><a class="header" href="#goplugins">GoPlugins</a></h3>
+<p>Optional.</p>
+<p><code>GoPlugins</code> declares compiled Go plugins registered with the engine.</p>
+<pre><code class="language-yaml">GoPlugins:
+  "help":
+    Description: Help plugin
+</code></pre>
+<p>Go plugins default to <code>Privileged: false</code> when <code>Privileged</code> is omitted.</p>
+<h3 id="externaljobs"><a class="header" href="#externaljobs">ExternalJobs</a></h3>
+<p>Optional.</p>
+<p><code>ExternalJobs</code> declares executable or interpreted jobs.</p>
+<pre><code class="language-yaml">ExternalJobs:
+  "nightly-report":
+    Path: jobs/nightly-report.gsh
+    Description: Build the nightly report
+</code></pre>
+<p>External jobs default to <code>Privileged: true</code> when <code>Privileged</code> is omitted.</p>
+<p>Job triggers, channel, arguments, quiet/log settings, and job-specific config usually belong in <code>conf/jobs/&lt;job&gt;.yaml</code>.</p>
+<h3 id="gojobs"><a class="header" href="#gojobs">GoJobs</a></h3>
+<p>Optional.</p>
+<p><code>GoJobs</code> declares compiled Go jobs registered with the engine.</p>
+<pre><code class="language-yaml">GoJobs:
+  "go-bootstrap":
+    Description: Bootstrap a custom robot repository
+</code></pre>
+<p>Go jobs default to <code>Privileged: true</code> when <code>Privileged</code> is omitted.</p>
+<h3 id="externaltasks"><a class="header" href="#externaltasks">ExternalTasks</a></h3>
+<p>Optional.</p>
+<p><code>ExternalTasks</code> declares reusable pipeline tasks. Tasks are not command starters by themselves; plugins and jobs can add them to a pipeline.</p>
+<pre><code class="language-yaml">ExternalTasks:
+  "render-report":
+    Path: tasks/render-report.gsh
+    Description: Render a report artifact
+</code></pre>
+<p>External tasks default to <code>Privileged: false</code> when <code>Privileged</code> is omitted. A privileged task cannot be added to an unprivileged pipeline.</p>
+<h3 id="gotasks"><a class="header" href="#gotasks">GoTasks</a></h3>
+<p>Optional.</p>
+<p><code>GoTasks</code> declares compiled Go tasks registered with the engine.</p>
+<pre><code class="language-yaml">GoTasks:
+  "ssh-agent":
+    Description: Prepare SSH agent state
+</code></pre>
+<p>Go task entries pass through even when disabled because compiled tasks are enabled by default and may need an explicit <code>Disabled: true</code>.</p>
+<h3 id="namespaces"><a class="header" href="#namespaces">NameSpaces</a></h3>
+<p>Optional.</p>
+<p><code>NameSpaces</code> declares shared namespaces for memory and parameters.</p>
+<pre><code class="language-yaml">NameSpaces:
+  "deploy":
+    Description: Shared deployment parameters
+    Parameters:
+    - Name: DEPLOY_ENV
+      Value: production
+</code></pre>
+<p>An extension can use <code>NameSpace: deploy</code> to share long-term memories and parameters with other extensions using the same namespace.</p>
+<h3 id="parametersets"><a class="header" href="#parametersets">ParameterSets</a></h3>
+<p>Optional.</p>
+<p><code>ParameterSets</code> declares named sets of parameters that can be attached to plugins, jobs, tasks, or identity providers.</p>
+<pre><code class="language-yaml">ParameterSets:
+  "github_oauth":
+    Description: GitHub OAuth client credentials
+    Parameters:
+    - Name: CLIENT_ID
+      Value: '{{ variable "GITHUB_CLIENT_ID" }}'
+    - Name: CLIENT_SECRET
+      Value: '{{ secret "GITHUB_CLIENT_SECRET" }}'
+</code></pre>
+<p>Attach a set to an extension with <code>ParameterSets</code>:</p>
+<pre><code class="language-yaml">ExternalPlugins:
+  "github-link":
+    ParameterSets:
+    - github_oauth
+</code></pre>
+<h2 id="identity-providers"><a class="header" href="#identity-providers">Identity Providers</a></h2>
+<h3 id="identityproviders"><a class="header" href="#identityproviders">IdentityProviders</a></h3>
+<p>Optional.</p>
+<p><code>IdentityProviders</code> configures providers used by the <code>GetIdentityCredential</code> Robot API for user-linked credentials and refresh behavior.</p>
+<pre><code class="language-yaml">IdentityProviders:
+  github:
+    Type: oauth2
+    CredentialParameterSet: github_oauth
+    OAuth2:
+      TokenEndpointAuthMethod: client_secret_post
+      Token:
+        URL: https://github.com/login/oauth/access_token
+        Headers:
+          Accept: application/json
+</code></pre>
+<p>Provider keys are trimmed and lowercased.</p>
+<p>Fields:</p>
+<ul>
+<li><code>Type</code>: provider type. Current user-linked refresh support is OAuth2-oriented.</li>
+<li><code>CredentialParameterSet</code>: name of a <code>ParameterSets</code> entry containing provider credentials such as <code>CLIENT_ID</code> and <code>CLIENT_SECRET</code></li>
+<li><code>OAuth2</code>: OAuth2 refresh configuration</li>
+</ul>
+<p><code>OAuth2</code> fields:</p>
+<ul>
+<li><code>TokenEndpointAuthMethod</code>: token endpoint auth method, such as <code>client_secret_post</code></li>
+<li><code>Token.URL</code>: token endpoint URL</li>
+<li><code>Token.Headers</code>: headers sent to the token endpoint</li>
+<li><code>Token.Parameters</code>: parameters sent to the token endpoint</li>
+<li><code>Token.RefreshParameters</code>: additional parameters used during refresh</li>
+</ul>
+<p>If an identity provider references a missing parameter set, Gopherbot logs an error. The provider is still loaded into the registry, but API calls can fail later if required settings are missing.</p>
+<p>Secret boundary: identity-provider secrets should be supplied through the referenced <code>ParameterSets</code>. Unprivileged extensions do not get broad access to provider registries or shared secret-bearing configuration.</p>
+<h2 id="logging-http-and-runtime-directories"><a class="header" href="#logging-http-and-runtime-directories">Logging, HTTP, and Runtime Directories</a></h2>
+<h3 id="localport"><a class="header" href="#localport">LocalPort</a></h3>
+<p>Optional. Defaults to <code>0</code>.</p>
+<p><code>LocalPort</code> controls the localhost HTTP/JSON API listener used by external plugins.</p>
+<pre><code class="language-yaml">LocalPort: 0
+</code></pre>
+<p><code>0</code> means choose the first available port. The listener binds to <code>127.0.0.1:&lt;LocalPort&gt;</code>. CLI-only operations do not start this listener.</p>
+<h3 id="httpdebug"><a class="header" href="#httpdebug">HttpDebug</a></h3>
+<p>Optional. Defaults to <code>false</code>.</p>
+<p><code>HttpDebug</code> enables debug logging for local HTTP JSON API requests and replies.</p>
+<pre><code class="language-yaml">HttpDebug: true
+</code></pre>
+<p>Use this only for low-level debugging. It does not scrub secrets. Installed defaults also force debug-friendly logging when <code>GOPHER_HTTP_DEBUG=true</code>.</p>
+<h3 id="logdest"><a class="header" href="#logdest">LogDest</a></h3>
+<p>Optional.</p>
+<p><code>LogDest</code> chooses where the robot log is written.</p>
+<pre><code class="language-yaml">LogDest: robot.log
+</code></pre>
+<p>Common values:</p>
+<ul>
+<li><code>stdout</code></li>
+<li><code>stderr</code></li>
+<li>a filename such as <code>robot.log</code></li>
+</ul>
+<p>Installed defaults avoid logging terminal-connector UI output to stdout.</p>
+<h3 id="loglevel"><a class="header" href="#loglevel">LogLevel</a></h3>
+<p>Optional.</p>
+<p><code>LogLevel</code> sets the initial log level.</p>
+<pre><code class="language-yaml">LogLevel: info
+</code></pre>
+<p>Recognized values:</p>
+<ul>
+<li><code>trace</code></li>
+<li><code>debug</code></li>
+<li><code>info</code></li>
+<li><code>audit</code></li>
+<li><code>warn</code></li>
+<li><code>error</code></li>
+</ul>
+<p>Unknown values resolve to <code>error</code>. Runtime admin commands can change the log level after startup.</p>
+<h3 id="workspace"><a class="header" href="#workspace">WorkSpace</a></h3>
+<p>Optional.</p>
+<p><code>WorkSpace</code> is the read/write directory the robot uses for work.</p>
+<pre><code class="language-yaml">WorkSpace: workspace
+</code></pre>
+<p>If the directory can be created or opened, Gopherbot uses it as the workspace. If it cannot, Gopherbot logs an error and uses the robot config directory instead.</p>
+<h2 id="email"><a class="header" href="#email">Email</a></h2>
+<h3 id="mailconfig"><a class="header" href="#mailconfig">MailConfig</a></h3>
+<p>Optional.</p>
+<p><code>MailConfig</code> configures SMTP delivery for the Robot email APIs.</p>
+<pre><code class="language-yaml">MailConfig:
+  Mailhost: smtp.example.com:25
+  Authtype: plain
+  User: floyd
+  Password: '{{ secret "SMTP_PASSWORD" }}'
+</code></pre>
+<p>Fields:</p>
+<ul>
+<li><code>Mailhost</code>: SMTP host, normally with port</li>
+<li><code>Authtype</code>: <code>plain</code> for SMTP plain auth; any other value sends without auth</li>
+<li><code>User</code>: SMTP username for <code>plain</code></li>
+<li><code>Password</code>: SMTP password for <code>plain</code></li>
+</ul>
+<p>The robot’s sender address comes from <code>BotInfo.Email</code>. User recipient addresses come from <code>UserRoster</code>, protocol-provided attributes, or explicit email addresses supplied by the caller.</p>
+<h3 id="admincontact"><a class="header" href="#admincontact">AdminContact</a></h3>
+<p>Optional.</p>
+<p><code>AdminContact</code> is informational contact text exposed through bot attributes and status/help paths.</p>
+<pre><code class="language-yaml">AdminContact: "Ops Team &lt;ops@example.com&gt;"
+</code></pre>
+<h3 id="legacy-email-and-name-keys"><a class="header" href="#legacy-email-and-name-keys">Legacy Email and Name Keys</a></h3>
+<p><code>Email</code> and <code>Name</code> are accepted as top-level keys by the v3 loader for compatibility, but they are not applied to runtime robot identity. Use <code>BotInfo.Email</code> and <code>BotInfo.UserName</code> instead.</p>
+<h2 id="security-and-secrets"><a class="header" href="#security-and-secrets">Security and Secrets</a></h2>
+<h3 id="secureparameters"><a class="header" href="#secureparameters">SecureParameters</a></h3>
+<p>Optional. Defaults to <code>false</code> unless set by custom config.</p>
+<p>When <code>SecureParameters</code> is true, Gopherbot does not publish configured parameters as environment variables to jobs, plugins, and tasks. Extensions must use the Robot API to retrieve parameters explicitly.</p>
+<pre><code class="language-yaml">SecureParameters: true
+</code></pre>
+<p>This is recommended for robots that handle secrets.</p>
+<h3 id="encryptionkey"><a class="header" href="#encryptionkey">EncryptionKey</a></h3>
+<p>Legacy/compatibility option.</p>
+<p><code>EncryptionKey</code> is an older config path for unlocking the real encryption key from the brain.</p>
+<pre><code class="language-yaml">EncryptionKey: "a-string-at-least-32-bytes-long"
+</code></pre>
+<p>Modern v3 robots should prefer <code>GOPHER_ENCRYPTION_KEY</code> plus the binary encrypted key file generated by <code>gopherbot genkey</code> or startup initialization. During config dumps, Gopherbot masks this value as <code>XXXXXX</code>.</p>
+<h3 id="variables-and-secrets-files"><a class="header" href="#variables-and-secrets-files">Variables and Secrets Files</a></h3>
+<p>Do not put raw shared secrets directly in <code>robot.yaml</code>. Put encrypted secrets and plaintext variables in:</p>
+<ul>
+<li><code>custom/conf/variables/common.yaml</code></li>
+<li><code>custom/conf/variables/&lt;environment&gt;.yaml</code></li>
+</ul>
+<p>Example:</p>
+<pre><code class="language-yaml">Secrets:
+  SMTP_PASSWORD: "&lt;encrypted-base64-value&gt;"
+Variables:
+  GITHUB_CLIENT_ID: "client-id"
+</code></pre>
+<p>Then reference them from config templates:</p>
+<pre><code class="language-yaml">Password: '{{ secret "SMTP_PASSWORD" }}'
+Value: '{{ variable "GITHUB_CLIENT_ID" }}'
+</code></pre>
+<p>Environment-specific values override common values.</p>
+<h2 id="provider-and-connector-config-that-must-not-be-in-robotyaml"><a class="header" href="#provider-and-connector-config-that-must-not-be-in-robotyaml">Provider and Connector Config That Must Not Be in robot.yaml</a></h2>
+<p>These top-level keys are invalid in <code>robot.yaml</code>:</p>
+<ul>
+<li><code>BrainConfig</code></li>
+<li><code>HistoryConfig</code></li>
+<li><code>QueueConfig</code></li>
+</ul>
+<p>Put them in:</p>
+<ul>
+<li><code>conf/brains/&lt;provider&gt;.yaml</code></li>
+<li><code>conf/history/&lt;provider&gt;.yaml</code></li>
+<li><code>conf/queues/&lt;provider&gt;.yaml</code></li>
+</ul>
+<p>Connector <code>ProtocolConfig</code> also belongs in <code>conf/protocols/&lt;protocol&gt;.yaml</code>, not in <code>robot.yaml</code>.</p>
+<p>Top-level <code>UserMap</code> is specifically rejected from protocol files in v3. Connector-local identity mapping must live under that connector’s <code>ProtocolConfig</code>, using the fields documented for that connector, such as Slack and Google Chat <code>ProtocolConfig.UserMap</code> or SSH <code>ProtocolConfig.UserKeys</code>.</p>
+<h2 id="complete-top-level-key-index"><a class="header" href="#complete-top-level-key-index">Complete Top-Level Key Index</a></h2>
+<p>This index lists the top-level keys accepted by the v3 <code>robot.yaml</code> loader.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Key</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td><code>AdminContact</code></td><td>Informational robot administrator contact</td></tr>
+<tr><td><code>AdminUsers</code></td><td>Canonical usernames with admin access</td></tr>
+<tr><td><code>Alias</code></td><td>One-character command-addressing shortcut</td></tr>
+<tr><td><code>BotInfo</code></td><td>Robot identity</td></tr>
+<tr><td><code>Brain</code></td><td>Brain provider selector</td></tr>
+<tr><td><code>BrainCache</code></td><td>Local v3 brain cache settings</td></tr>
+<tr><td><code>ChannelRoster</code></td><td>Channel name/ID mappings</td></tr>
+<tr><td><code>DefaultAuthorizer</code></td><td>Default authorization plugin</td></tr>
+<tr><td><code>DefaultChannels</code></td><td>Default plugin channels</td></tr>
+<tr><td><code>DefaultElevator</code></td><td>Default elevation plugin</td></tr>
+<tr><td><code>DefaultJobChannel</code></td><td>Default channel for job/operator output</td></tr>
+<tr><td><code>DefaultMessageFormat</code></td><td>Default outgoing message format</td></tr>
+<tr><td><code>DefaultProtocol</code></td><td>Protocol for context-free outbound messages</td></tr>
+<tr><td><code>Email</code></td><td>Legacy accepted key; use <code>BotInfo.Email</code></td></tr>
+<tr><td><code>EncryptionKey</code></td><td>Legacy encryption unlock setting</td></tr>
+<tr><td><code>ExternalJobs</code></td><td>External job declarations</td></tr>
+<tr><td><code>ExternalPlugins</code></td><td>External plugin declarations</td></tr>
+<tr><td><code>ExternalTasks</code></td><td>External pipeline task declarations</td></tr>
+<tr><td><code>GoJobs</code></td><td>Compiled Go job declarations</td></tr>
+<tr><td><code>GoPlugins</code></td><td>Compiled Go plugin declarations</td></tr>
+<tr><td><code>GoTasks</code></td><td>Compiled Go task declarations</td></tr>
+<tr><td><code>HearSelf</code></td><td>Process or ignore connector-marked self messages</td></tr>
+<tr><td><code>HistoryProvider</code></td><td>History provider selector</td></tr>
+<tr><td><code>HttpDebug</code></td><td>Debug local HTTP API traffic</td></tr>
+<tr><td><code>IdentityProviders</code></td><td>User-linked identity provider registry</td></tr>
+<tr><td><code>IgnoreUnlistedUsers</code></td><td>Drop unvalidated/unlisted users before pipelines</td></tr>
+<tr><td><code>IgnoreUsers</code></td><td>Users the robot never responds to</td></tr>
+<tr><td><code>JoinChannels</code></td><td>Channels to join during startup</td></tr>
+<tr><td><code>LocalPort</code></td><td>Local HTTP/JSON API port</td></tr>
+<tr><td><code>LogDest</code></td><td>Log destination</td></tr>
+<tr><td><code>LogLevel</code></td><td>Initial log level</td></tr>
+<tr><td><code>MailConfig</code></td><td>SMTP settings</td></tr>
+<tr><td><code>Name</code></td><td>Legacy accepted key; use <code>BotInfo.UserName</code></td></tr>
+<tr><td><code>NameSpaces</code></td><td>Shared memory/parameter namespaces</td></tr>
+<tr><td><code>ParameterSets</code></td><td>Reusable named parameter sets</td></tr>
+<tr><td><code>PrimaryProtocol</code></td><td>Required primary connector protocol</td></tr>
+<tr><td><code>QueueProviders</code></td><td>Queue provider selectors</td></tr>
+<tr><td><code>ReadyChannel</code></td><td>Channel for startup ready message</td></tr>
+<tr><td><code>ReadyMessage</code></td><td>Optional message after startup readiness</td></tr>
+<tr><td><code>ScheduledJobs</code></td><td>Job schedules</td></tr>
+<tr><td><code>SecondaryProtocols</code></td><td>Additional connector protocols</td></tr>
+<tr><td><code>SecureParameters</code></td><td>Require API parameter retrieval instead of env vars</td></tr>
+<tr><td><code>TimeOuts</code></td><td>Default plugin/job timeout thresholds</td></tr>
+<tr><td><code>TimeZone</code></td><td>Time zone for scheduled jobs</td></tr>
+<tr><td><code>UserRoster</code></td><td>Canonical user directory</td></tr>
+<tr><td><code>WorkSpace</code></td><td>Robot working directory</td></tr>
+</tbody>
+</table>
+</div>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../config/file.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../config/plugin-yaml.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../config/file.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../config/plugin-yaml.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

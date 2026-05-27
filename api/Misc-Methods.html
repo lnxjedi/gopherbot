@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Appendix - Gopherbot DevOps Chatbot</title>
+        <title>Miscellaneous Methods - Gopherbot DevOps Chatbot</title>
 
 
         <!-- Custom HTML head -->
@@ -174,18 +174,105 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="appendix"><a class="header" href="#appendix">Appendix</a></h1>
-<p>Reference material for <strong>Gopherbot</strong> administrators and developers.</p>
+                        <h1 id="miscellaneous-methods"><a class="header" href="#miscellaneous-methods">Miscellaneous Methods</a></h1>
+<p>This page covers public Robot methods that do not fit cleanly into the main attribute, messaging, memory, pipeline, or utility chapters.</p>
+<h2 id="thread-subscriptions"><a class="header" href="#thread-subscriptions">Thread subscriptions</a></h2>
+<p>These methods let a plugin stay attached to an active thread so later messages in that thread continue to route back to the same plugin logic.</p>
+<ul>
+<li><code>Subscribe()</code></li>
+<li><code>Unsubscribe()</code></li>
+</ul>
+<h3 id="go"><a class="header" href="#go">Go</a></h3>
+<pre><code class="language-go">func handler(r robot.Robot, args ...string) robot.TaskRetVal {
+    if r.Subscribe() {
+        r.Say("I will keep watching this thread.")
+    }
+    return robot.Normal
+}
+</code></pre>
+<h3 id="lua"><a class="header" href="#lua">Lua</a></h3>
+<pre><code class="language-lua">local gopherbot = require("gopherbot_v1")
+local Robot = gopherbot.Robot
+
+local bot = Robot:new()
+if bot:Subscribe() then
+  bot:Say("I will keep watching this thread.")
+end
+</code></pre>
+<h3 id="javascript"><a class="header" href="#javascript">JavaScript</a></h3>
+<pre><code class="language-javascript">const { Robot } = require("gopherbot_v1")();
+
+const bot = new Robot();
+if (bot.Subscribe()) {
+  bot.Say("I will keep watching this thread.");
+}
+</code></pre>
+<h3 id="bash"><a class="header" href="#bash">Bash</a></h3>
+<pre><code class="language-bash">if Subscribe
+then
+  Say "I will keep watching this thread."
+fi
+</code></pre>
+<h3 id="python"><a class="header" href="#python">Python</a></h3>
+<pre><code class="language-python">if bot.Subscribe():
+    bot.Say("I will keep watching this thread.")
+</code></pre>
+<h3 id="ruby"><a class="header" href="#ruby">Ruby</a></h3>
+<pre><code class="language-ruby">if bot.Subscribe()
+  bot.Say("I will keep watching this thread.")
+end
+</code></pre>
+<h2 id="random-helpers"><a class="header" href="#random-helpers">Random helpers</a></h2>
+<p>These are convenience methods for lightweight reply variation.</p>
+<ul>
+<li><code>RandomString(...)</code></li>
+<li><code>RandomInt(...)</code></li>
+</ul>
+<p><code>RandomInt(...)</code> is not exposed consistently in every older scripting binding, so check the binding you are using.</p>
+<h3 id="go-1"><a class="header" href="#go-1">Go</a></h3>
+<pre><code class="language-go">choice := r.RandomString([]string{"Working on it.", "Still running.", "Almost done."})
+r.Say(choice)
+</code></pre>
+<h3 id="lua-1"><a class="header" href="#lua-1">Lua</a></h3>
+<pre><code class="language-lua">local gopherbot = require("gopherbot_v1")
+local Robot = gopherbot.Robot
+
+local bot = Robot:new()
+local choice = bot:RandomString({"Working on it.", "Still running.", "Almost done."})
+bot:Say(choice)
+</code></pre>
+<h3 id="javascript-1"><a class="header" href="#javascript-1">JavaScript</a></h3>
+<pre><code class="language-javascript">const { Robot } = require("gopherbot_v1")();
+
+const bot = new Robot();
+const choice = bot.RandomString(["Working on it.", "Still running.", "Almost done."]);
+bot.Say(choice);
+</code></pre>
+<h3 id="python-1"><a class="header" href="#python-1">Python</a></h3>
+<pre><code class="language-python">choice = bot.RandomString(["Working on it.", "Still running.", "Almost done."])
+bot.Say(choice)
+</code></pre>
+<h3 id="ruby-1"><a class="header" href="#ruby-1">Ruby</a></h3>
+<pre><code class="language-ruby">choice = bot.RandomString(["Working on it.", "Still running.", "Almost done."])
+bot.Say(choice)
+</code></pre>
+<h2 id="compiled-go-notes"><a class="header" href="#compiled-go-notes">Compiled Go notes</a></h2>
+<p>Two public methods are mostly relevant to compiled Go extensions:</p>
+<ul>
+<li><code>GetMessage()</code></li>
+<li><code>RaisePriv(reason)</code></li>
+</ul>
+<p>They are intentionally not expanded into large user-facing chapters here. If you are writing a compiled Go extension and need direct access to message internals or privileged filesystem behavior, read the engine source and current developer docs alongside this manual.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../Upgrading.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../api/Utility-API.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../appendices/Protocols.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../Upgrading.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -195,11 +282,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../Upgrading.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../api/Utility-API.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../appendices/Protocols.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../Upgrading.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

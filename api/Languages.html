@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Language Templates - Gopherbot DevOps Chatbot</title>
+        <title>Language Choices - Gopherbot DevOps Chatbot</title>
 
 
         <!-- Custom HTML head -->
@@ -12,40 +12,52 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="../favicon.svg">
-        <link rel="shortcut icon" href="../favicon.png">
-        <link rel="stylesheet" href="../css/variables.css">
-        <link rel="stylesheet" href="../css/general.css">
-        <link rel="stylesheet" href="../css/chrome.css">
-        <link rel="stylesheet" href="../css/print.css" media="print">
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
-        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
-        <link rel="stylesheet" href="../fonts/fonts.css">
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="../highlight.css">
-        <link rel="stylesheet" href="../tomorrow-night.css">
-        <link rel="stylesheet" href="../ayu-highlight.css">
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-a66cf0b5.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc.js"></script>
+        <script src="../toc-c6a2b80c.js"></script>
     </head>
     <body>
-    <div id="body-container">
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -59,7 +71,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -68,55 +81,59 @@
             html.classList.add("js");
         </script>
 
-        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
+                sidebar_toggle.checked = false;
             }
-            sidebar_toggle.checked = sidebar === 'visible';
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
         </script>
 
-        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
             <!-- populated by js -->
             <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
             <noscript>
                 <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
             </noscript>
-            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
             </div>
         </nav>
 
-        <div id="page-wrapper" class="page-wrapper">
+        <div id="mdbook-page-wrapper" class="page-wrapper">
 
             <div class="page">
-                <div id="menu-bar-hover-placeholder"></div>
-                <div id="menu-bar" class="menu-bar sticky">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
                     <div class="left-buttons">
-                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
-                            <i class="fa fa-bars"></i>
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
                         </label>
-                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
-                            <i class="fa fa-paint-brush"></i>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
                         </button>
-                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
-                            <i class="fa fa-search"></i>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
                         </button>
                     </div>
 
@@ -124,365 +141,83 @@
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
-                            <i id="print-button" class="fa fa-print"></i>
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
                         </a>
 
                     </div>
                 </div>
 
-                <div id="search-wrapper" class="hidden">
-                    <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
                     </form>
-                    <div id="searchresults-outer" class="searchresults-outer hidden">
-                        <div id="searchresults-header" class="searchresults-header"></div>
-                        <ul id="searchresults">
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
                         </ul>
                     </div>
                 </div>
 
                 <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
                 <script>
-                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
-                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
-                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
                         link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
                     });
                 </script>
 
-                <div id="content" class="content">
+                <div id="mdbook-content" class="content">
                     <main>
-                        <p>Gopherbot's functionality can be easily extended by writing plugins in one of several different languages. A single plugin can provide:</p>
+                        <h1 id="language-choices"><a class="header" href="#language-choices">Language Choices</a></h1>
+<p>Gopherbot supports several extension languages, but they are not all equally recommended for new work.</p>
+<h2 id="recommended-order-for-new-v3-work"><a class="header" href="#recommended-order-for-new-v3-work">Recommended order for new v3 work</a></h2>
+<ol>
+<li><strong>Lua</strong>
 <ul>
-<li>One or more new commands the robot will understand</li>
-<li>Elevation logic for providing extra assurance of user identity</li>
-<li>Authorization logic for determining a user's rights to issue various commands</li>
-</ul>
-<p>This article deals mainly with writing plugins in one of the scripting languages supported by Gopherbot, the most popular means for writing new command plugins. For writing native compiled-in plugins in Go, see <code>gopherbot/main.go</code> and the sample plugins in <code>goplugins/</code>. API documentation for Robot methods is available at:</p>
-<p>https://godoc.org/github.com/lnxjedi/gopherbot/bot#Robot</p>
-<p>Note that the script plugin API is implemented on top of the native Go API, so that document may also be of use for scripting plugin authors. The file <code>bot/http.go</code>, and the scripting libraries in <code>lib/</code> will illuminate the mapping from the script APIs to the native Go API.</p>
-<h1 id="table-of-contents"><a class="header" href="#table-of-contents">Table of Contents</a></h1>
-<ul>
-<li><a href="#plugin-loading-and-precedence">Plugin Loading and Precedence</a></li>
-<li><a href="#default-configuration">Default Configuration</a></li>
-<li><a href="#calling-convention">Calling Convention</a>
-<ul>
-<li><a href="#environment-variables">Environment Variables</a></li>
-<li><a href="#reserved-commands">Reserved Commands</a></li>
+<li>built in</li>
+<li>fast local loop</li>
+<li>good fit for readable operational automation</li>
 </ul>
 </li>
-<li><a href="#plugin-types-and-calling-events">Plugin Types and Calling Events</a>
+<li><strong>Go</strong>
 <ul>
-<li><a href="#command-plugins">Command Plugins</a></li>
-<li><a href="#authorization-plugins">Authorization Plugins</a></li>
-<li><a href="#elevation-plugins">Elevation Plugins</a></li>
+<li>strongest type safety</li>
+<li>best for heavier logic and long-lived maintained plugins</li>
 </ul>
 </li>
-<li><a href="#using-the-terminal-connector">Using the Terminal Connector</a></li>
-<li><a href="#plugin-debugging">Plugin Debugging</a>
+<li><strong>JavaScript</strong>
 <ul>
-<li><a href="#debug-plugin-command">Debug Plugin Command</a></li>
-<li><a href="#dump-plugin-command">Dump Plugin Command</a></li>
+<li>built in</li>
+<li>useful when your team already thinks in JS</li>
 </ul>
 </li>
-<li><a href="#getting-started">Getting Started</a>
+</ol>
+<h2 id="still-supported"><a class="header" href="#still-supported">Still supported</a></h2>
 <ul>
-<li><a href="#starting-from-a-sample-plugin">Starting from a Sample Plugin</a></li>
-<li><a href="#using-boilerplate-code">Using Boilerplate Code</a>
-<ul>
-<li><a href="#bash-boilerplate">Bash Boilerplate</a></li>
-<li><a href="#python-boilerplate">Python Boilerplate</a></li>
-<li><a href="#ruby-boilerplate">Ruby Boilerplate</a></li>
+<li>Bash</li>
+<li>Python</li>
+<li>Ruby</li>
 </ul>
-</li>
-</ul>
-</li>
-<li><a href="#the-plugin-api">The Plugin API</a></li>
-</ul>
-<h1 id="plugin-loading-and-precedence"><a class="header" href="#plugin-loading-and-precedence">Plugin Loading and Precedence</a></h1>
-<p>Gopherbot ships with a number of external script plugins in the <code>install</code> directory. These can be overridden by placing a plugin with the same filename in the optional configuration directory.</p>
-<h1 id="default-configuration"><a class="header" href="#default-configuration">Default Configuration</a></h1>
-<p>Plugin configuration is fully documented in the <a href="Configuration.html">configuration</a> article; you should be familiar with that document before beginning to write your own plugins.</p>
-<p>On start-up and during a reload, the robot will run each external script plugin with an argument of <code>configure</code>. The plugin should respond by writing the plugin default configuration to standard out and exiting with exit code 0. When responding to <code>configure</code>, the plugin shouldn't initialize a robot object or make any API calls, as <code>configure</code> is called without setting robot environment variables.</p>
-<h1 id="calling-convention"><a class="header" href="#calling-convention">Calling Convention</a></h1>
-<p>The robot calls external plugins by creating a goroutine and exec'ing the external script with a set of environment variables. The external script uses the appropriate library for the scripting language to create a robot object from the environment. The script then examines it's command-line arguments to determine the type of action to take (normally a command followed by arguments to the command), and uses the library to make JSON-over-http calls for executing and returning results from methods. Depending on how the plugin is used, different kinds of events can cause external plugins to be called with a variety of commands and arguments. The most common means of calling an external plugin is for one of it's commands to be matched, or by matching a pattern in an ambient message (one not specifically directed to the robot).</p>
-<p>There are two sources of information for an external plugin being called:</p>
-<ul>
-<li>Environment Variables - these should generally only be referenced by the scripting library</li>
-<li>Command Line Arguments - these should be used by the plugin to determine what to do</li>
-</ul>
-<h2 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h2>
-<p>Gopherbot sets two primary environment variables of use to the plugin developer:</p>
-<ul>
-<li>GOPHER_CONFIGDIR - the directory where Gopherbot looks for it's configuration</li>
-<li>GOPHER_INSTALLDIR - the directory where the Gopherbot executable resides</li>
-</ul>
-<p>In addition, the following two environment variables are set for every script plugin:</p>
-<ul>
-<li>GOPHER_USER - the username of the user who spoke to the robot</li>
-<li>GOPHER_CHANNEL - the channel the user spoke in (empty string indicates a direct message)</li>
-</ul>
-<h2 id="reserved-commands"><a class="header" href="#reserved-commands">Reserved Commands</a></h2>
-<p>The first argument to a plugin script is the <strong>command</strong>. In addition to the <code>configure</code> command, which instructs a plugin to dump it's default configuration to standard out, the following commands are reserved:</p>
-<ul>
-<li><code>init</code> - After starting the connector and on reload, the robot will call external plugins with a command argument of <code>init</code>. Since all environment variables for the robot are set at that point, it would be possible to e.g. save a robot data structure that could be loaded and used in a cron job.</li>
-<li><code>authorize</code> - The plugin should check authorization for the user and return <code>Success</code> or <code>Fail</code></li>
-<li><code>elevate</code> - The plugin should perform additional authentication for the user and return <code>Success</code> or <code>Fail</code></li>
-<li><code>event</code> - This command is reserved for future use with e.g. user presence change &amp; channel join/leave events</li>
-<li><code>catchall</code> - Plugins with <code>CatchAll: true</code> will be called for commands directed at the robot that don't match a command plugin. Normally these are handled by the compiled-in <code>help</code> plugin, but administrators could override that setting and provide their own plugin with <code>CatchAll: true</code>. Note that having multiple such plugins is probably a bad idea.</li>
-</ul>
-<h1 id="plugin-types-and-calling-events"><a class="header" href="#plugin-types-and-calling-events">Plugin Types and Calling Events</a></h1>
-<p>There are (currently) three different kinds of external plugin:</p>
-<ul>
-<li>Command / Message Plugins - these are called by the robot in respond to messages the user sends</li>
-<li>Authorization Plugins - these plugins encapsulate the logic for authorizing specific users to use specific commands, and are called by the robot during authorization processing</li>
-<li>Elevation Plugins - these plugins perform some variety of multi-factor authentication for higher assurance of user identity, and are called by the robot during elevation processing</li>
-</ul>
-<h2 id="command-plugins"><a class="header" href="#command-plugins">Command Plugins</a></h2>
-<p>A command plugin's configuration specifies <code>CommandMatchers</code> and <code>MessageMatchers</code> that associate regular expressions with plugin commands:</p>
-<pre><code class="language-yaml">MessageMatchers:
-- Command: help
-  Regex: '^(?i:help)$'
-CommandMatchers:
-- Regex: (?i:remember ([-\w .,!?:\/]+))
-  Command: remember
-  Contexts: [ "item" ]
-</code></pre>
-<p>Whenever a <code>CommandMatcher</code> regex matches a command given to the robot, or a <code>MessageMatcher</code> matches an ambient message, the robot calls the plugin script with the first argument being the matched <code>Command</code>, and subsequent arguments corresponding to the regex capture groups (which may in some cases be an empty string). Command plugins should normally exit with status 0 (bot.Normal), or non-zero for unusual error conditions that may require an administrator to investigate. The robot will notify the user whenever a command plugin exits non-zero, or when it emits output to STDERR.</p>
-<h2 id="authorization-plugins"><a class="header" href="#authorization-plugins">Authorization Plugins</a></h2>
-<p>To separate command logic from user authorization logic, Gopherbot supports the concept of an <strong>authorization plugin</strong>. The main <code>robot.yaml</code> can define a specific plugin as the <code>DefaultAuthorizer</code>, and individual plugins can be configured to override this value by specifying their own <code>Authorizer</code> plugin. If a plugin lists any commands in it's <code>AuthorizedCommands</code> config item, or specifies <code>AuthorizeAllCommands: true</code>, then the robot will call the authorizer plugin with a command of <code>authorize</code>, followed by the following arguments:</p>
-<ul>
-<li>The name of the plugin for which authorization is being requested</li>
-<li>The optional value of <code>AuthRequire</code>, which may be interpreted as a group or role</li>
-<li>The plugin command being called followed by any arguments passed to the command</li>
-</ul>
-<p>Based on these values and the <code>User</code> and <code>Channel</code> values from the robot, the authorization plugin should evaluate whether a user/plugin is authorized for the given command and exit with one of:</p>
-<ul>
-<li>bot.Succeed (1) - authorized</li>
-<li>bot.Fail (2) - not authorized</li>
-<li>bot.MechanismFail (3) - a technical issue prevented the robot from determining authorization</li>
-</ul>
-<p>Note that exiting with <code>bot.Normal</code> (0) or other values will result in an error and failed authentication.</p>
-<p>Additionally, authorization plugins may provide extra feedback to the user on <code>Fail</code> or <code>MechanismFail</code> so they can have the issue addressed, e.g. "Authorization failed: user not a member of group 'foo'". In some cases, however, authorization plugins may not have a full Gopherbot API library; they could be written in C, and thus not be able to interact with the user.</p>
-<h2 id="elevation-plugins"><a class="header" href="#elevation-plugins">Elevation Plugins</a></h2>
-<p>Elevation plugins provide the means to request additional authentication from the user for commands where higher assurance of identity is desired. The main <code>robot.yaml</code> can specify an elevation plugin as the <code>DefaultElevator</code>, which can be overridden by a given plugin specifying an <code>Elevator</code>. When the plugin lists commands as <code>ElevatedCommands</code> or <code>ElevateImmediateCommands</code>, the robot will call the appropriate elevator plugin with a command of <code>elevate</code> and a first argument of <code>true</code> or <code>false</code> for <code>immediate</code>. The elevator plugin should interpret <code>immediate == true</code> to mean MFA is required every time; when <code>immediate != true</code>, successful elevation may persist for a configured timeout period.</p>
-<p>Based on the result of the elevation determination, the plugin should have an exit status one of:</p>
-<ul>
-<li>bot.Succeed (1) - elevation succeeded</li>
-<li>bot.Fail (2) - elevation failed</li>
-<li>bot.MechanismFail (3) - a technical issue prevented the robot from processing the elevation request</li>
-</ul>
-<p>Note that exiting with <code>bot.Normal</code> (0) or other value will result in an error being logged and elevation failing.</p>
-<p>Additionally, the elevation plugin may provide extra feedback to the user when elevation isn't successful to indicate the nature of the failure.</p>
-<h1 id="using-the-terminal-connector"><a class="header" href="#using-the-terminal-connector">Using the Terminal Connector</a></h1>
-<p>Interacting with your bot in a chat app might not always be convenient or fast; to simplify
-testing and plugin development, <strong>Gopherbot</strong> includes a terminal connector that emulates
-a chat service with multiple users and channels, with a sample
-configuration in the <code>cfg/term/</code> directory. You'll probably want to copy the directory and modify
-it for your own use (mainly configuring the plugins you're developing), but it can be used
-by using the <code>-c &lt;configpath&gt;</code> option:</p>
-<pre><code>[gopherbot]$ ./gopherbot -c cfg/term/
-2018/04/13 18:07:52 Initialized logging ...
-2018/04/13 18:07:52 Starting up with config dir: cfg/term/, and install dir: /home/user/go/src/github.com/lnxjedi/gopherbot
-2018/04/13 18:07:52 Debug: Loaded installed conf/robot.yaml
-2018/04/13 18:07:52 Debug: Loaded configured conf/robot.yaml
-Terminal connector running; Type '|c?' to list channels, '|u?' to list users
-c:general/u:alice -&gt; |ubob
-Changed current user to: bob
-c:general/u:bob -&gt; ;ping
-general: @bob PONG
-c:general/u:bob -&gt; |ualice
-Changed current user to: alice
-c:general/u:alice -&gt; |crandom
-Changed current channel to: random
-c:random/u:alice -&gt; ;quit
-random: @alice Adios
-[gopherbot]$
-</code></pre>
-<h1 id="plugin-debugging"><a class="header" href="#plugin-debugging">Plugin Debugging</a></h1>
-<p>The most common problem for plugin authors is the robot does nothing after sending it a message,
-or the robot just says <code>Sorry, that didn't match any commands I know, ...</code>.</p>
-<p>This can be due to a number of issues:</p>
-<ul>
-<li>The plugin didn't load because of various configuration problems</li>
-<li>The robot isn't in the channel, and doesn't hear the message</li>
-<li>The plugin isn't visible because of channel, user, or other restrictions</li>
-<li>The user message doesn't match a regex for the plugin</li>
-<li>The plugin runs, but does nothing</li>
-</ul>
-<p>To track down these issues easily, <strong>Gopherbot</strong> has the builtin administrator commands <code>debug plugin</code> and <code>dump plugin</code>. Make sure your username / handle is listed in the
-<code>AdminUsers</code> list in <code>robot.yaml</code> for your development environment.</p>
-<h2 id="debug-plugin-command"><a class="header" href="#debug-plugin-command">Debug Plugin Command</a></h2>
-<p><strong>Gopherbot</strong> has a builtin command for plugin debugging that can help quickly pinpoint
-most problems. Turning on plugin debugging will initiate a reload, then send debugging
-information about a plugin in direct messages. If <code>verbose</code> is enabled, you will get debugging
-information for every message you send, or every command sent to the robot by another user.
-You can see an example of plugin debugging here with the terminal connector:</p>
-<pre><code>[gopherbot]$ ./gopherbot
-2018/04/18 15:43:01 Initialized logging ...
-2018/04/18 15:43:01 Starting up with config dir: /home/user/.gopherbot, and install dir: /home/user/go/src/github.com/lnxjedi/gopherbot
-2018/04/18 15:43:01 Debug: Loaded installed conf/robot.yaml
-2018/04/18 15:43:01 Debug: Loaded configured conf/robot.yaml
-Terminal connector running; Type '|c?' to list channels, '|u?' to list users
-c:general/u:alice -&gt; ;ruby me!
-general: @alice Sorry, that didn't match any commands I know, or may refer to a command that's not available in this channel; try 'floyd, help &lt;keyword&gt;'
-c:general/u:alice -&gt; ;help debug
-general: Command(s) matching keyword: debug
-floyd, debug plugin &lt;pluginname&gt; (verbose) - turn on debugging for the named plugin, optionally verbose
-
-floyd, stop debugging - turn off debugging
-c:general/u:alice -&gt; ;debug plugin rubydemo
-general: Debugging enabled for rubydemo (verbose: false)
-c:general/u:alice -&gt; ;ruby me!
-(dm:alice): 2018/04/18 03:43:15 DEBUG rubydemo: plugin is NOT visible to user alice in channel general; channel 'general' is not on the list of allowed channels: random
-general: @alice Sorry, that didn't match any commands I know, or may refer to a command that's not available in this channel; try 'floyd, help &lt;keyword&gt;'
-c:general/u:alice -&gt; |crandom
-Changed current channel to: random
-c:random/u:alice -&gt; ;ruby me to the max!
-(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: plugin is visible to user alice in channel random
-(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Checking 7 command matchers against message: "ruby me to the max!"
-(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:bashecho ([.;!\d\w-, ]+))
-(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:ruby( me)?!?)
-(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:listen( to me)?!?)
-(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:remember(?: (slowly))? ([-\w .,!?:\/]+))
-(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:recall ?([\d]+)?)
-(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:forget ([\d]{1,2}))
-(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:check me)
-random: @alice Sorry, that didn't match any commands I know, or may refer to a command that's not available in this channel; try 'floyd, help &lt;keyword&gt;'
-c:random/u:alice -&gt; ;ruby me!
-(dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: plugin is visible to user alice in channel random
-(dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: Checking 7 command matchers against message: "ruby me!"
-(dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: Not matched: (?i:bashecho ([.;!\d\w-, ]+))
-(dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: Matched command regex '(?i:ruby( me)?!?)', command: ruby
-(dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: Running plugin with command 'ruby' and arguments: [ me]
-random: Sure, Alice!
-random: I'll ruby you, but not right now - I'll wait 'til you're least expecting it...
-(dm:alice): 2018/04/18 03:43:51 DEBUG rubydemo: Plugin finished with return value: Normal
-</code></pre>
-<p><strong>NOTE:</strong> If your plugin is disabled with a mysterious <code>File not found</code> error, be sure you've got the
-appropriate scripting language installed. If the first line in your plugin is e.g.:</p>
-<pre><code>#!/usr/bin/ruby
-</code></pre>
-<p>... you'll get <code>File not found</code> if <code>/usr/bin/ruby</code> isn't present on the system.</p>
-<h2 id="dump-plugin-command"><a class="header" href="#dump-plugin-command">Dump Plugin Command</a></h2>
-<p>To view a plugin's default or final configuration, you can use the <code>dump plugin</code> command:</p>
-<pre><code>c:general/u:alice -&gt; ;help dump
-general: Command(s) matching keyword: dump
-floyd, dump plugin (default) &lt;plugname&gt; - dump the current or default configuration for the plugin (direct message only)
-
-floyd, dump robot - dump the current configuration for the robot (direct message only)
-c:general/u:alice -&gt; |c
-Changed current channel to: direct message
-c:(direct)/u:alice -&gt; dump plugin rubydemo
-(dm:alice): AdminCommands: null
-AllChannels: false
-AllowDirect: true
-AuthRequire: ""
-AuthorizeAllCommands: false
-AuthorizedCommands: null
-Authorizer: ""
-CatchAll: false
-... (MUCH more)
-</code></pre>
-<h1 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h1>
-<h2 id="starting-from-a-sample-plugin"><a class="header" href="#starting-from-a-sample-plugin">Starting from a Sample Plugin</a></h2>
-<p>The simplest way for a new plugin author to get started is to:</p>
-<ul>
-<li>Disable the demo plugin for your chosen scripting language (if enabled) in <code>&lt;config dir&gt;/conf/robot.yaml</code></li>
-<li>Copy the demo plugin to <code>&lt;config dir&gt;/plugins/&lt;newname&gt;(.extension)</code></li>
-<li>Enable your new plugin in <code>robot.yaml</code> and give it a descriptive <code>Name</code></li>
-</ul>
-<h2 id="using-boilerplate-code"><a class="header" href="#using-boilerplate-code">Using Boilerplate Code</a></h2>
-<p>Each supported scripting language has a certain amount of "boilerplate" code required in every command plugin; generally, the boilerplate code is responsible for:</p>
-<ul>
-<li>Loading the appropriate version of the Gopherbot library from <code>$GOPHER_INSTALLDIR/lib</code></li>
-<li>Defining and providing the default config</li>
-<li>Instantiating a Robot object with a library call
-Normally this is followed by some form of case / switch statement that performs different functions based on the contents of the first argument, a.k.a. the "command".</li>
-</ul>
-<h3 id="bash-boilerplate"><a class="header" href="#bash-boilerplate">Bash Boilerplate</a></h3>
-<pre><code class="language-bash">#!/bin/bash -e
-
-source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
-
-COMMAND=$1
-shift
-
-configure(){
-  cat &lt;&lt;"EOF"
-&lt;yaml config document&gt;
-EOF
-}
-
-case "$COMMAND" in
-	"configure")
-		configure
-		;;
-...
-esac
-</code></pre>
-<p><strong>NOTE:</strong> Bash doesn't have an object-oriented API</p>
-<h3 id="python-boilerplate"><a class="header" href="#python-boilerplate">Python Boilerplate</a></h3>
-<pre><code class="language-python">#!/usr/bin/python3
-
-import os
-import sys
-from gopherbot_v2 import Robot # use _v1 for python2
-
-bot = Robot()
-
-default_config = '''
-&lt;yaml config document&gt;
-'''
-
-executable = sys.argv.pop(0)
-command = sys.argv.pop(0)
-
-if command == "configure":
-    print default_config
-...
-</code></pre>
-<h3 id="ruby-boilerplate"><a class="header" href="#ruby-boilerplate">Ruby Boilerplate</a></h3>
-<pre><code class="language-ruby">#!/usr/bin/ruby
-
-# boilerplate
-require 'gopherbot_v1'
-
-bot = Robot.new()
-
-defaultConfig = &lt;&lt;'DEFCONFIG'
-&lt;yaml config document&gt;
-DEFCONFIG
-
-command = ARGV.shift()
-
-case command
-when "configure"
-	puts defaultConfig
-	exit
-...
-end
-</code></pre>
-<h1 id="the-plugin-api"><a class="header" href="#the-plugin-api">The Plugin API</a></h1>
-<p>Gopherbot has a rich set of methods (functions) for interacting with the robot / user. Here we break down the API into sets of related functions:</p>
-<ul>
-<li><a href="Attribute-Retrieval-API.html">Attribute Lookup Methods</a> - for retrieving names, email addresses, etc.</li>
-<li><a href="Message-Sending-API.html">Sending Messages and Replies</a> - for sending messages to the users</li>
-<li><a href="Response-Request-API.html">Prompting for Input</a> - for getting replies from the user</li>
-<li><a href="Brain-API.html">Brain Methods and Memories</a> - for storing and retrieving long- and short-term memories</li>
-<li><a href="Utility-API.html">Utility Methods</a> - a collection of miscellaneous useful functions, like Pause() and Log()</li>
-</ul>
+<p>These are valuable for existing robots and for quick integrations, but they depend more on external tooling and are not the main design direction for v3.</p>
+<h2 id="one-practical-rule"><a class="header" href="#one-practical-rule">One practical rule</a></h2>
+<p>If you can write the extension cleanly in a built-in interpreter or Go, do that first. Reach for external runtimes when they are clearly the right fit, not by habit.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../Environment-Variables.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
-                                <i class="fa fa-angle-left"></i>
+                            <a rel="prev" href="../api/API-Introduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
                             <a rel="next prefetch" href="../api/Attribute-Retrieval-API.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                                <i class="fa fa-angle-right"></i>
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
                         <div style="clear: both"></div>
@@ -491,17 +226,22 @@ end
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../Environment-Variables.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
-                        <i class="fa fa-angle-left"></i>
+                    <a rel="prev" href="../api/API-Introduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
                     <a rel="next prefetch" href="../api/Attribute-Retrieval-API.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                        <i class="fa fa-angle-right"></i>
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
 
         </div>
 
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
 
 
 
@@ -510,15 +250,16 @@ end
         </script>
 
 
-        <script src="../elasticlunr.min.js"></script>
-        <script src="../mark.min.js"></script>
-        <script src="../searcher.js"></script>
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
-        <script src="../clipboard.min.js"></script>
-        <script src="../highlight.js"></script>
-        <script src="../book.js"></script>
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
+
 
 
     </div>

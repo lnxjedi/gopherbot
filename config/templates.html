@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Appendix - Gopherbot DevOps Chatbot</title>
+        <title>Config Templates - Gopherbot DevOps Chatbot</title>
 
 
         <!-- Custom HTML head -->
@@ -174,18 +174,118 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="appendix"><a class="header" href="#appendix">Appendix</a></h1>
-<p>Reference material for <strong>Gopherbot</strong> administrators and developers.</p>
+                        <h1 id="config-templates"><a class="header" href="#config-templates">Config Templates</a></h1>
+<p>Gopherbot configuration files are Go text templates before they are parsed as YAML. This applies across the config tree, including <code>robot.yaml</code>, environment files, protocol files, provider files, plugin files, and job files.</p>
+<p>Templates are most often used to:</p>
+<ul>
+<li>select environment-specific config</li>
+<li>read deployment environment variables</li>
+<li>include another config file</li>
+<li>reference shared variables and encrypted secrets</li>
+<li>keep custom robot config small while still supporting development, staging, and production differences</li>
+</ul>
+<h2 id="common-pattern"><a class="header" href="#common-pattern">Common Pattern</a></h2>
+<p>A scaffolded robot usually selects an environment file from <code>robot.yaml</code>:</p>
+<pre><code class="language-yaml">{{ $environment := env "GOPHER_ENVIRONMENT" | default "production" }}
+{{ printf "environments/%s.yaml" $environment | .Include }}
+</code></pre>
+<p>With this pattern, <code>GOPHER_ENVIRONMENT=development</code> loads <code>conf/environments/development.yaml</code>; when the variable is unset, the robot loads <code>conf/environments/production.yaml</code>.</p>
+<h2 id="template-helpers"><a class="header" href="#template-helpers">Template Helpers</a></h2>
+<h3 id="env"><a class="header" href="#env">env</a></h3>
+<p><code>env</code> reads an environment variable.</p>
+<pre><code class="language-yaml">PrimaryProtocol: {{ env "GOPHER_PROTOCOL" | default "ssh" }}
+</code></pre>
+<p>If the variable is unset or empty, <code>env</code> returns an empty string.</p>
+<h3 id="default"><a class="header" href="#default">default</a></h3>
+<p><code>default</code> returns a fallback value when the piped input is empty.</p>
+<pre><code class="language-yaml">LogLevel: {{ env "GOPHER_LOGLEVEL" | default "info" }}
+</code></pre>
+<h3 id="include"><a class="header" href="#include">.Include</a></h3>
+<p><code>.Include</code> includes another config file from the same config tree.</p>
+<pre><code class="language-yaml">{{ printf "environments/%s.yaml" $environment | .Include }}
+</code></pre>
+<p>When used from installed defaults, includes are resolved from the installed config tree. When used from custom config, includes are resolved from the custom robot config tree.</p>
+<h3 id="secret"><a class="header" href="#secret">secret</a></h3>
+<p><code>secret</code> decrypts a named encrypted secret from the custom variables files.</p>
+<pre><code class="language-yaml">Password: '{{ secret "SMTP_PASSWORD" }}'
+</code></pre>
+<p>Secrets are loaded from:</p>
+<ul>
+<li><code>custom/conf/variables/common.yaml</code></li>
+<li><code>custom/conf/variables/&lt;environment&gt;.yaml</code></li>
+</ul>
+<p>Environment-specific secrets override common secrets.</p>
+<p>Example variables file:</p>
+<pre><code class="language-yaml">Secrets:
+  SMTP_PASSWORD: "&lt;encrypted-base64-value&gt;"
+</code></pre>
+<h3 id="variable"><a class="header" href="#variable">variable</a></h3>
+<p><code>variable</code> reads a named plaintext value from the custom variables files.</p>
+<pre><code class="language-yaml">Value: '{{ variable "GITHUB_CLIENT_ID" }}'
+</code></pre>
+<p>Variables are loaded from:</p>
+<ul>
+<li><code>custom/conf/variables/common.yaml</code></li>
+<li><code>custom/conf/variables/&lt;environment&gt;.yaml</code></li>
+</ul>
+<p>Environment-specific variables override common variables.</p>
+<p>Example variables file:</p>
+<pre><code class="language-yaml">Variables:
+  GITHUB_CLIENT_ID: "client-id"
+</code></pre>
+<h3 id="getstartupmode"><a class="header" href="#getstartupmode">GetStartupMode</a></h3>
+<p><code>GetStartupMode</code> returns the current startup mode.</p>
+<p>Possible values:</p>
+<ul>
+<li><code>demo</code>: no custom robot repository is configured</li>
+<li><code>bootstrap</code>: a custom repository is configured but local config is not present yet</li>
+<li><code>test-dev</code>: local development or integration-test config is being used</li>
+<li><code>cli</code>: a CLI command is running instead of a full robot</li>
+<li><code>production</code>: normal configured robot startup</li>
+</ul>
+<p>Installed defaults use this helper to choose safe demo, bootstrap, test, and production behavior. Custom robot config usually does not need it; prefer <code>GOPHER_ENVIRONMENT</code> and environment files for normal robot differences.</p>
+<h3 id="setenv"><a class="header" href="#setenv">SetEnv</a></h3>
+<p><code>SetEnv</code> overrides an environment variable during template expansion.</p>
+<pre><code class="language-yaml">{{ SetEnv "GOPHER_PROTOCOL" "ssh" }}
+</code></pre>
+<p>This is mainly useful in installed defaults because defaults load before custom config. Use it sparingly in custom robot config; ordinary variables and environment files are usually clearer.</p>
+<h3 id="istestbuild"><a class="header" href="#istestbuild">IsTestBuild</a></h3>
+<p><code>IsTestBuild</code> is true when Gopherbot was compiled with the test build tag.</p>
+<p>This helper is intended for Gopherbot’s own test and default configuration. Most custom robots should not need it.</p>
+<h2 id="secrets-and-the-removed-decrypt-helper"><a class="header" href="#secrets-and-the-removed-decrypt-helper">Secrets and the Removed decrypt Helper</a></h2>
+<p>The old <code>decrypt</code> helper has been removed in v3. If a legacy config uses:</p>
+<pre><code class="language-yaml">Token: '{{ decrypt "..." }}'
+</code></pre>
+<p>move the encrypted value into a variables file:</p>
+<pre><code class="language-yaml">Secrets:
+  TOKEN: "&lt;encrypted-base64-value&gt;"
+</code></pre>
+<p>then reference it with:</p>
+<pre><code class="language-yaml">Token: '{{ secret "TOKEN" }}'
+</code></pre>
+<p>This keeps encrypted values in one predictable place and makes it easier to separate development, staging, and production secrets.</p>
+<h2 id="quoting-template-values"><a class="header" href="#quoting-template-values">Quoting Template Values</a></h2>
+<p>YAML parsing happens after template expansion. Quote template expressions when the expanded value may contain punctuation, spaces, colons, braces, or other YAML-sensitive characters.</p>
+<p>Recommended:</p>
+<pre><code class="language-yaml">Password: '{{ secret "SMTP_PASSWORD" }}'
+</code></pre>
+<p>Usually fine for simple values:</p>
+<pre><code class="language-yaml">PrimaryProtocol: {{ env "GOPHER_PROTOCOL" | default "ssh" }}
+</code></pre>
+<p>When in doubt, quote the template expression.</p>
+<h2 id="merge-timing"><a class="header" href="#merge-timing">Merge Timing</a></h2>
+<p>Each config file is expanded before it is merged. Installed defaults are expanded and loaded first. Custom robot config is expanded and merged afterward.</p>
+<p>That means custom templates can use custom variables files, and custom scalar values replace installed defaults after expansion.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../Upgrading.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../config/plugin-yaml.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../appendices/Protocols.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../Environment-Variables.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -195,11 +295,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../Upgrading.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../config/plugin-yaml.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../appendices/Protocols.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../Environment-Variables.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

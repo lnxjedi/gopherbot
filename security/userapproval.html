@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Appendix - Gopherbot DevOps Chatbot</title>
+        <title>User Approval Elevation - Gopherbot DevOps Chatbot</title>
 
 
         <!-- Custom HTML head -->
@@ -174,18 +174,117 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="appendix"><a class="header" href="#appendix">Appendix</a></h1>
-<p>Reference material for <strong>Gopherbot</strong> administrators and developers.</p>
+                        <h1 id="user-approval-elevation"><a class="header" href="#user-approval-elevation">User Approval Elevation</a></h1>
+<p><code>builtin-userapproval</code> is an elevation plugin for commands that should require a human approval step instead of a personal MFA challenge. It is useful when a sensitive action should be approved by another trusted operator, such as a deploy, account change, firewall update, or credential rotation.</p>
+<p>Use it when the question is:</p>
+<ul>
+<li>“Is this action important enough that another person should approve it?”</li>
+</ul>
+<p>Do not use it as a substitute for base authorization. Authorization still decides whether the requester is allowed to ask for the action. Elevation adds a second confirmation step after that authorization succeeds.</p>
+<h2 id="how-the-flow-works"><a class="header" href="#how-the-flow-works">How the Flow Works</a></h2>
+<p>When a command requires elevation and uses <code>builtin-userapproval</code>:</p>
+<ol>
+<li>Gopherbot finds the effective approver list for the current plugin.</li>
+<li>In strict mode, the requester is removed from that list.</li>
+<li>The requester chooses one remaining approver from a short lettered menu.</li>
+<li>The selected approver receives a direct yes/no prompt.</li>
+<li>If the approver replies <code>yes</code> or <code>y</code>, the protected command runs.</li>
+</ol>
+<p>If the selected approver replies <code>no</code>, does not reply before the prompt times out, or there are no eligible approvers, elevation fails and the protected command does not run.</p>
+<h2 id="strict-mode"><a class="header" href="#strict-mode">Strict Mode</a></h2>
+<p>Strict mode prevents self-approval. It is enabled by default.</p>
+<p>With strict mode enabled, this configuration:</p>
+<pre><code class="language-yaml">Config:
+  FallbackApprovers: [ alice, bob ]
+</code></pre>
+<p>means:</p>
+<ul>
+<li>if <code>alice</code> requests elevation, only <code>bob</code> can approve</li>
+<li>if <code>bob</code> requests elevation, only <code>alice</code> can approve</li>
+<li>if <code>alice</code> is the only listed approver, Alice cannot approve herself and elevation fails</li>
+</ul>
+<p>This is the safest default for most production robots.</p>
+<h2 id="non-strict-mode"><a class="header" href="#non-strict-mode">Non-Strict Mode</a></h2>
+<p>Non-strict mode allows a listed approver to approve their own elevation automatically. This can be useful for small teams, break-glass commands, personal robots, development environments, or actions where the approver list is being used as a lightweight operator allow-list.</p>
+<p>To disable strict mode globally for this elevator:</p>
+<pre><code class="language-yaml">Config:
+  DefaultStrict: false
+  FallbackApprovers: [ alice, bob ]
+</code></pre>
+<p>With that configuration, if <code>alice</code> requests an elevated command and <code>alice</code> is in the effective approver list, Gopherbot approves the elevation immediately.</p>
+<p>If the requester is not in the effective approver list, the normal choose-an-approver flow still runs.</p>
+<h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
+<p>Enable the elevator by setting it as the robot default:</p>
+<pre><code class="language-yaml">DefaultElevator: builtin-userapproval
+</code></pre>
+<p>Then configure the built-in plugin in <code>conf/plugins/builtin-userapproval.yaml</code>:</p>
+<pre><code class="language-yaml">ReplyMatchers:
+- Label: approvalChoice
+  Regex: '[a-z]'
+
+Config:
+  DefaultStrict: true
+  FallbackApprovers: [ david ]
+  PluginApprovers:
+    deploy:
+      Approvers: [ alice, bob, david ]
+      Strict: false
+    wireguard: [ alice, bob ]
+</code></pre>
+<p><code>FallbackApprovers</code> is used when the current plugin is not listed under <code>PluginApprovers</code>.</p>
+<p><code>PluginApprovers</code> can use either form:</p>
+<ul>
+<li>list form: <code>wireguard: [ alice, bob ]</code></li>
+<li>object form with a strict-mode override:</li>
+</ul>
+<pre><code class="language-yaml">PluginApprovers:
+  deploy:
+    Approvers: [ alice, bob, david ]
+    Strict: false
+</code></pre>
+<p>The list form uses <code>DefaultStrict</code>. The object form can override strict mode for that plugin.</p>
+<h2 id="protecting-commands"><a class="header" href="#protecting-commands">Protecting Commands</a></h2>
+<p>In the target plugin’s config, list the commands that require elevation:</p>
+<pre><code class="language-yaml">ElevatedCommands:
+- deploy
+- rollback
+
+Commands:
+- Command: deploy
+  SimpleMatcher: "deploy &lt;service:ident&gt;"
+- Command: rollback
+  SimpleMatcher: "rollback &lt;service:ident&gt;"
+</code></pre>
+<p>If the robot has <code>DefaultElevator: builtin-userapproval</code>, those commands use user approval automatically.</p>
+<p>To use this elevator for one plugin only, set <code>Elevator</code> in that plugin config:</p>
+<pre><code class="language-yaml">Elevator: builtin-userapproval
+ElevatedCommands:
+- rotate-key
+</code></pre>
+<h2 id="choosing-approvers"><a class="header" href="#choosing-approvers">Choosing Approvers</a></h2>
+<p>Approvers are canonical Gopherbot usernames, not Slack IDs, email addresses, SSH usernames, or connector-local IDs. The connector maps transport identity to the canonical username before authorization and elevation run.</p>
+<p>Use names from <code>UserRoster</code> and <code>AdminUsers</code>, such as:</p>
+<pre><code class="language-yaml">UserRoster:
+- UserName: alice
+  UserID: U123
+- UserName: bob
+  UserID: U456
+</code></pre>
+<p>Approver names are normalized by trimming whitespace and lowercasing before comparison.</p>
+<h2 id="operational-notes"><a class="header" href="#operational-notes">Operational Notes</a></h2>
+<p>Keep approver lists small and intentional. The requester sees a single-letter menu, and the implementation supports up to 26 eligible approvers.</p>
+<p>Prefer strict mode for production operations where a second person should really be involved. Use non-strict mode only when self-approval is an intentional policy choice.</p>
+<p>For commands that return sensitive data, combine elevation with private-command policy. User approval controls whether the command may run; it does not automatically move the response into a direct message.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../Upgrading.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../Security-Overview.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../appendices/Protocols.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../customizing.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -195,11 +294,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../Upgrading.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../Security-Overview.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../appendices/Protocols.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../customizing.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
