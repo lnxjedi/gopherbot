@@ -34,7 +34,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 ## bot/
 
-- Engine entrypoints: `bot/start.go` (func `Start`), `bot/bot_process.go` (funcs `initBot`, `run`, `stop`), `bot/startup_ready.go` (startup readiness signal for integration harnesses), `bot/startup_gate.go` (command gating before startup readiness).
+- Engine entrypoints: `bot/start.go` (func `Start`), `bot/startup_env_handoff.go` (direct `GOPHER_*` environment re-exec/fd handoff helpers), `bot/bot_process.go` (funcs `initBot`, `run`, `stop`), `bot/startup_ready.go` (startup readiness signal for integration harnesses), `bot/startup_gate.go` (command gating before startup readiness).
 - Runtime connector orchestration: `bot/connector_runtime.go` (runtime manager, protocol routing, lifecycle controls).
 - Runtime queue provider orchestration: `bot/queue_runtime.go` (provider lifecycle, queue body parsing, UUID-to-job matching, and queued job pipeline start).
 - Bot-side connector capability/registration consumption: `bot/connector_capabilities.go` (shared registration lookup, runtime capability lookup, and test overrides).

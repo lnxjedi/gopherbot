@@ -6,11 +6,12 @@ This document is intended as a **control-flow trace**, not a conceptual or tutor
 
 Startup proceeds through the following phases **in order**:
 
+0. **Direct environment hardening** – Capture any direct launcher `GOPHER_*` environment variables, re-exec with those variables removed from the process environment, and hand them to the new process over an inherited fd.
 1. **CLI parsing** – Process command-line flags
 2. **Early CLI help/dispatch** – Handle root help, subcommand help, internal child commands, and obvious no-init CLI commands
 3. **Initial mode probe** – Evaluate startup mode for early IDE working-directory behavior
-4. **Private environment load** – Load `private/environment` or `.env` when present, preserving already-set process environment values
-5. **Effective mode detection** – Re-evaluate startup mode using process env plus loaded private env
+4. **Private environment load** – Load `private/environment` or `.env` when present, preserving already-set process/internal environment values
+5. **Effective mode detection** – Re-evaluate startup mode using process/internal env plus loaded private env
 6. **Encryption initialization** – Set up brain encryption
 7. **Pre-connect configuration load** – Load basic configuration without running scripts
 8. **Brain initialization** – Start the brain provider
@@ -63,10 +64,12 @@ CLI note:
 
 Private environment precedence note:
 
-- `private/environment` or `.env` supplies missing process environment values.
-- Values already present in the launching process environment take precedence over the private env file.
+- Direct `GOPHER_*` values from the launching process are captured before CLI parsing and removed from the real process environment through a re-exec handoff. They remain available through the engine-owned environment helpers.
+- `private/environment` or `.env` supplies missing process/internal environment values.
+- Values already present in the launching process environment take precedence over the private env file, even after direct `GOPHER_*` values have moved into the internal environment store.
 - This means an invocation such as `GOPHER_ENVIRONMENT=development gopherbot ...` overrides `GOPHER_ENVIRONMENT` from `.env` for that process.
 - The private env file is still loaded before effective startup-mode detection, encryption initialization, and config template expansion.
+- `GOPHER_*` values loaded from `private/environment` or `.env` are also stored internally rather than being published into the real process environment.
 
 Internal child-runner note:
 
@@ -74,6 +77,7 @@ Internal child-runner note:
 - `gopherbot pipeline-child-rpc` is parsed in the same early dispatch block in `Start(...)`.
 - `gopherbot privsep-self-check` is parsed in the same internal child-command block.
 - When any internal child command is detected, startup applies the requested `GOPHER_PRIVSEP_CHILD_ROLE` when privilege separation is active, calls the internal child path, and returns without loading config, brain, connectors, or HTTP listeners.
+- Internal child command environments strip inherited `GOPHER_*` entries at parent command construction time. The internal child startup path does not perform the direct-environment re-exec handoff; it receives only explicit `GOPHER_*` control values supplied by the parent for that child, such as runtime directories, the child-exec request, or the privsep role.
 
 ## Mode Detection
 
@@ -733,9 +737,15 @@ pipeline completion and `SimpleBrain.Flush()` completion before lock release;
 the local brain cache will keep retrying pending cloud writes and emit periodic
 warnings until the outbox is empty.
 
+When the robot restarts itself, it reuses the same direct-environment hardening
+handoff used at initial startup. `GOPHER_*` values saved from the launcher are
+passed to the replacement process over an inherited fd, not restored into the
+replacement process environment.
+
 ## Key Files
 
-* `bot/start.go` – Entry point, CLI parsing, log setup
+* `bot/start.go` – Entry point, startup environment handoff trigger, CLI parsing, log setup
+* `bot/startup_env_handoff.go` – Direct `GOPHER_*` environment capture, fd handoff, re-exec, and restart handoff helpers
 * `bot/bot_process.go` – `initBot()`, `run()`, encryption initialization
 * `bot/privsep.go`, `bot/privsep_darwin.go`, `bot/privsep_process.go` – privilege-separation bootstrap, child role commitment, and supplementary-group startup validation
 * `bot/aidev.go` – AI-dev startup state (`--aidev`) and `.aiport` write helper

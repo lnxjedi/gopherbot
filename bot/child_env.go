@@ -5,12 +5,6 @@ import (
 	"strings"
 )
 
-var sensitiveChildEnv = map[string]struct{}{
-	"GOPHER_ENCRYPTION_KEY": {},
-	"GOPHER_DEPLOY_KEY":     {},
-	"GOPHER_HOST_KEYS":      {},
-}
-
 func sanitizedChildEnvironment(extra ...string) []string {
 	out := make([]string, 0, len(os.Environ())+len(extra))
 	for _, envVar := range os.Environ() {
@@ -18,7 +12,7 @@ func sanitizedChildEnvironment(extra ...string) []string {
 		if len(parts) == 0 {
 			continue
 		}
-		if _, sensitive := sensitiveChildEnv[parts[0]]; sensitive {
+		if strings.HasPrefix(parts[0], "GOPHER_") || parts[0] == gopherEnvHandoffFDEnv {
 			continue
 		}
 		out = append(out, envVar)

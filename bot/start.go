@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -47,6 +46,9 @@ func init() {
 // SEE ALSO: start_t.go for "make test"
 func Start(v VersionInfo) {
 	botVersion = v
+	if err := initializeGopherEnvironmentHandoff(); err != nil {
+		log.Fatalf("GOPHER environment startup handoff failed: %v", err)
+	}
 
 	var err error
 	// Installpath is where the default config and stock external
@@ -153,14 +155,17 @@ func Start(v VersionInfo) {
 		Log(robot.Info, "PID == 1, spawning child")
 		bin, _ := os.Executable()
 		// Available to startup/bootstrap flows running in container mode
-		os.Setenv("GOPHER_CONTAINER", "iscontainer")
-		env := os.Environ()
-		cmd := exec.Command(bin, args...)
-		cmd.Env = env
+		setEnv("GOPHER_CONTAINER", "iscontainer")
+		setStartupEnvValue("GOPHER_CONTAINER", "iscontainer")
+		cmd, cleanup, err := newSelfCommandWithGopherEnvironment(bin, args)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer cleanup()
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		err := cmd.Start()
+		err = cmd.Start()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -342,13 +347,8 @@ func Start(v VersionInfo) {
 	Log(robot.Info, "robot quit/exit/restart")
 	time.Sleep(time.Second)
 	if restart {
-		// Make sure all the GOPHER_* env vars are present for the
-		// new process.
-		restoreGopherEnvironment()
-		bin, _ := os.Executable()
-		env := os.Environ()
 		defer func() {
-			err := unix.Exec(bin, os.Args, env)
+			err := restartWithGopherEnvironment()
 			if err != nil {
 				fmt.Printf("Error re-exec'ing: %v", err)
 			}
@@ -357,7 +357,29 @@ func Start(v VersionInfo) {
 }
 
 func loadPrivateEnvironment(envFile string) error {
-	return godotenv.Load(envFile)
+	if strings.TrimSpace(envFile) == "" {
+		return os.ErrNotExist
+	}
+	values, err := godotenv.Read(envFile)
+	if err != nil {
+		return err
+	}
+	for key, value := range values {
+		if strings.HasPrefix(key, "GOPHER_") {
+			if _, exists := lookupEnv(key); exists {
+				continue
+			}
+			setGopherEnvValue(key, value)
+			continue
+		}
+		if _, exists := os.LookupEnv(key); exists {
+			continue
+		}
+		if err := os.Setenv(key, value); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func resolveInstallPath(executable string) (string, error) {

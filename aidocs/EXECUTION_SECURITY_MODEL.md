@@ -62,6 +62,35 @@ On supported Unix platforms (`bot/privsep.go` for Linux/BSD and `bot/privsep_dar
 
 Runtime visibility is logged through `checkprivsep()` in startup (`bot/start.go`).
 
+## Direct Environment Hardening
+
+Launcher-supplied `GOPHER_*` variables may include secrets such as
+`GOPHER_ENCRYPTION_KEY` and `GOPHER_DEPLOY_KEY`. A long-running process that
+keeps those values in its direct environment exposes them through ordinary
+same-UID reads of `/proc/<pid>/environ` on platforms that provide procfs
+environment files.
+
+At the very beginning of `Start(...)`, before CLI parsing and before normal
+robot startup, `bot/startup_env_handoff.go` captures all direct launcher
+`GOPHER_*` values and immediately re-execs the current binary with those
+variables removed from the real process environment. The replacement process
+receives the captured values over an inherited file descriptor identified by a
+non-secret internal fd marker, then closes the fd and stores the values only in
+the engine-owned environment map used by `getEnv`, `lookupEnv`, and `setEnv`.
+
+`private/environment` and `.env` loading follows the same boundary for
+`GOPHER_*` values: they are added to the internal environment map instead of
+being published into `os.Environ`. Existing direct launcher values retain
+precedence over private-env file values.
+
+Robot restart uses the same fd handoff. The saved launcher `GOPHER_*` values
+are not restored into the replacement process environment before `exec`.
+
+This mitigates direct `/proc/<pid>/environ` disclosure of `GOPHER_*` secrets.
+It is not a replacement for host hardening against broader same-UID process
+memory inspection; production deployments should still use standard ptrace
+restrictions and disabled core dumps.
+
 After pre-connect config load, startup validates the unprivileged child role with `privsep-self-check`:
 
 - the self-check child commits to the unprivileged role
@@ -116,6 +145,7 @@ Platform mechanics differ:
   - parent starts an internal child runner process (`gopherbot pipeline-child-exec`) with separate process group (`Setpgid: true`).
   - The child commits to the parent-selected privsep role before execing the target script/interpreter.
   - child runner executes exactly one external command, streams stdout/stderr, exits with command status.
+  - internal child-runner environments strip inherited `GOPHER_*` values at parent command construction time. Internal child startup does not perform the direct-environment re-exec handoff; it receives only the explicit `GOPHER_*` entries the parent provides for that child.
   - external task environments preserve parent `HOME` and `PATH` when present;
     robot-owned paths remain explicit through `GOPHER_HOME`,
     `GOPHER_CONFIGDIR`, `GOPHER_INSTALLDIR`, and `GOPHER_WORKSPACE`.
