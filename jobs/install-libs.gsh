@@ -31,10 +31,13 @@ then
 	mkdir -p "${GEM_HOME}"
 	chmod 0755 "${GEM_HOME}"
 
-	gem install --no-user-install --no-document \
-		--install-dir "${GEM_HOME}" \
-		--bindir "${HOME}/bin" \
-		bundler
+	if ! "${HOME}/bin/bundle" --version >/dev/null 2>&1
+	then
+		gem install --no-user-install --no-document \
+			--install-dir "${GEM_HOME}" \
+			--bindir "${HOME}/bin" \
+			bundler
+	fi
 
 	export BUNDLE_PATH__SYSTEM=true
 	"${HOME}/bin/bundle" install
