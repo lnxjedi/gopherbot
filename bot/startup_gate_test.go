@@ -9,11 +9,13 @@ import (
 
 type startupGateCaptureConnector struct {
 	user     string
+	username string
 	channel  string
 	thread   string
 	msg      string
 	format   robot.MessageFormat
 	protocol string
+	sends    int
 }
 
 func (c *startupGateCaptureConnector) GetProtocolUserAttribute(user, attr string) (string, robot.RetVal) {
@@ -27,6 +29,7 @@ func (c *startupGateCaptureConnector) SendProtocolChannelThreadMessage(channel, 
 	c.thread = thread
 	c.msg = msg
 	c.format = format
+	c.sends++
 	if msgObject != nil {
 		c.protocol = msgObject.Protocol
 	}
@@ -34,7 +37,15 @@ func (c *startupGateCaptureConnector) SendProtocolChannelThreadMessage(channel, 
 }
 func (c *startupGateCaptureConnector) SendProtocolUserChannelThreadMessage(user, username, channel, thread, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {
 	c.user = user
+	c.username = username
+	c.channel = channel
+	c.thread = thread
 	c.msg = msg
+	c.format = format
+	c.sends++
+	if msgObject != nil {
+		c.protocol = msgObject.Protocol
+	}
 	return robot.Ok
 }
 
@@ -137,6 +148,11 @@ func TestReadyMessageUsesConfiguredChannel(t *testing.T) {
 func (c *startupGateCaptureConnector) SendProtocolUserMessage(user, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {
 	c.user = user
 	c.msg = msg
+	c.format = format
+	c.sends++
+	if msgObject != nil {
+		c.protocol = msgObject.Protocol
+	}
 	return robot.Ok
 }
 func (c *startupGateCaptureConnector) Reload() error                   { return nil }

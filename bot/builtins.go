@@ -2326,6 +2326,17 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		chanLoggers.Unlock()
 		r.Say("Ok, I've stopped all channel logs")
 	case "quit", "restart":
+		restart := command == "restart"
+		farewell := ""
+		if restart {
+			farewell = r.RandomString(rightback)
+		} else {
+			farewell = r.RandomString(byebye)
+		}
+		pendingFarewell := (*shutdownFarewellMessage)(nil)
+		if r.cfg.protocol != "test" {
+			pendingFarewell = newShutdownFarewell(r, farewell)
+		}
 		state.Lock()
 		if state.shuttingDown {
 			state.Unlock()
@@ -2333,7 +2344,6 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			return
 		}
 		state.shuttingDown = true
-		restart := command == "restart"
 		if restart {
 			state.restart = true
 		}
@@ -2341,6 +2351,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		// NOTE: THIS plugin is definitely running, but will end soon!
 		if state.pipelinesRunning > 1 {
 			runningCount := state.pipelinesRunning - 1
+			state.pendingShutdownFarewell = pendingFarewell
 			state.Unlock()
 			if proto != "test" {
 				r.Say("There are still %d pipelines running; I'll %s when they all complete, or you can issue an \"abort\" command", runningCount, command)
@@ -2349,9 +2360,9 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			state.Unlock()
 			if proto != "test" {
 				if restart {
-					r.Reply(r.RandomString(rightback))
+					r.Reply(farewell)
 				} else {
-					r.Reply(r.RandomString(byebye))
+					r.Reply(farewell)
 				}
 				// How long does it _actually_ take for the message to go out?
 				time.Sleep(time.Second)

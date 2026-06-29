@@ -722,14 +722,17 @@ Shutdown can be triggered by admin commands, pipeline tasks, or process signals.
 3. `stop()` first triggers prompt shutdown signaling so in-progress `Prompt*` waits return `Interrupted` immediately.
 4. Stop queue provider runtimes so external queues stop introducing new work.
 5. `stop()` waits for running pipelines (`state.Wait()`).
-6. Flush the brain provider until all delayed normal writes reach the backing
+6. If an admin `quit` or `restart` command had to wait for other active
+   pipelines, send its queued farewell/restart notice now, before connector
+   runtimes are stopped.
+7. Flush the brain provider until all delayed normal writes reach the backing
    store.
-7. Write `bot:instance-lock` as `released` with the local cache database
+8. Write `bot:instance-lock` as `released` with the local cache database
    version, then stop the brain loop (`brainQuit()`), which performs a final
    flush for the release record.
-8. Stop connector runtimes.
-9. Stop signal handler goroutine.
-10. Emit restart flag on `done` channel.
+9. Stop connector runtimes.
+10. Stop signal handler goroutine.
+11. Emit restart flag on `done` channel.
 
 This keeps shutdown deterministic even when interactive prompts are using long
 timeout windows. For cloud-backed brains, shutdown and restart are gated on both

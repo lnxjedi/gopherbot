@@ -57,12 +57,25 @@ var signalBreak = struct {
 
 // internal state tracking
 var state struct {
-	shuttingDown     bool // to prevent new plugins from starting
-	startingUp       bool // to prevent commands before startup readiness
-	restart          bool // indicate stop and restart vs. stop only, for bootstrapping
-	pipelinesRunning int  // a count of how many plugins are currently running
-	sync.WaitGroup        // for keeping track of running plugins
-	sync.RWMutex          // for safe updating of bot data structures
+	shuttingDown            bool // to prevent new plugins from starting
+	startingUp              bool // to prevent commands before startup readiness
+	restart                 bool // indicate stop and restart vs. stop only, for bootstrapping
+	pendingShutdownFarewell *shutdownFarewellMessage
+	pipelinesRunning        int // a count of how many plugins are currently running
+	sync.WaitGroup              // for keeping track of running plugins
+	sync.RWMutex                // for safe updating of bot data structures
+}
+
+type shutdownFarewellMessage struct {
+	user     string
+	username string
+	channel  string
+	thread   string
+	message  string
+	format   robot.MessageFormat
+	incoming *robot.ConnectorMessage
+	direct   bool
+	botUser  bool
 }
 
 // regexes the bot uses to determine if it's being spoken to
@@ -165,6 +178,7 @@ func initBot() {
 
 	state.shuttingDown = false
 	state.startingUp = true
+	state.pendingShutdownFarewell = nil
 	runtimeQueueProviders.Lock()
 	runtimeQueueProviders.initialized = false
 	runtimeQueueProviders.runtimes = map[string]*managedQueueProvider{}
@@ -502,6 +516,9 @@ func stop() {
 	triggerPromptShutdownSignal()
 	shutdownQueueProviderRuntimes()
 	state.Wait()
+	if sendPendingShutdownFarewell() {
+		time.Sleep(time.Second)
+	}
 	brainFlushed := false
 	if interfaces.brain != nil {
 		if err := interfaces.brain.Flush(); err != nil {
