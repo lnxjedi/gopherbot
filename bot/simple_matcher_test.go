@@ -518,6 +518,72 @@ func TestSimpleMatcherInputMatchRequiredPhraseSynonym(t *testing.T) {
 	}
 }
 
+func TestSimpleMatcherRequiresWhitespaceBeforeTypedCapture(t *testing.T) {
+	matcher := mustCompileSimpleInputMatcher(t, "(type:bigrails|rails|ember|devops|config) up [<branch:token>]")
+
+	tests := []struct {
+		input string
+		args  []string
+	}{
+		{"rails up", []string{"rails", ""}},
+		{"rails-up", []string{"rails", ""}},
+		{"rails up dev", []string{"rails", "dev"}},
+		{"rails-up dev", []string{"rails", "dev"}},
+		{"rails up -spot", []string{"rails", "-spot"}},
+		{"rails-up -branch:dev", []string{"rails", "-branch:dev"}},
+	}
+	for _, tc := range tests {
+		result := matcher.matchInput(tc.input)
+		assertInputMatchResult(t, result, inputExactMatch, tc.args, "")
+	}
+
+	for _, input := range []string{
+		"rails-up-dev",
+		"rails-up-spot",
+		"rails-up-branch:dev",
+	} {
+		result := matcher.matchInput(input)
+		assertInputMatchResult(t, result, inputNoMatch, nil, "")
+	}
+}
+
+func TestSimpleMatcherHyphenatedCommandStillMatchesSeparateLiteralCommand(t *testing.T) {
+	baseMatcher := mustCompileSimpleInputMatcher(t, "(type:bigrails|rails|ember|devops|config) up [<branch:token>]")
+	devMatcher := mustCompileSimpleInputMatcher(t, "(type:bigrails|rails|ember|devops|config) up dev")
+
+	result := baseMatcher.matchInput("rails-up-dev")
+	assertInputMatchResult(t, result, inputNoMatch, nil, "")
+
+	result = devMatcher.matchInput("rails-up-dev")
+	assertInputMatchResult(t, result, inputExactMatch, []string{"rails"}, "")
+}
+
+func TestSimpleMatcherRequiresWhitespaceBeforeCapturingChoice(t *testing.T) {
+	matcher := mustCompileSimpleInputMatcher(t, "set loglevel {to} (level:trace|debug|info|warn|error)")
+
+	result := matcher.matchInput("set-loglevel debug")
+	assertInputMatchResult(t, result, inputExactMatch, []string{"debug"}, "")
+
+	result = matcher.matchInput("set-loglevel-debug")
+	assertInputMatchResult(t, result, inputNoMatch, nil, "")
+
+	result = matcher.matchInput("set-loglevel fine")
+	assertInputMatchResult(t, result, inputSyntaxMatch, nil, "Invalid value: \"fine\" for: \"level\"; valid values: trace, debug, info, warn, error.")
+
+	result = matcher.matchInput("set-loglevel-fine")
+	assertInputMatchResult(t, result, inputNoMatch, nil, "")
+}
+
+func TestSimpleMatcherRequiresWhitespaceBeforeOptionalCapture(t *testing.T) {
+	matcher := mustCompileSimpleInputMatcher(t, "ps [<mode:token>]")
+
+	result := matcher.matchInput("ps -v")
+	assertInputMatchResult(t, result, inputExactMatch, []string{"-v"}, "")
+
+	result = matcher.matchInput("ps-v")
+	assertInputMatchResult(t, result, inputNoMatch, nil, "")
+}
+
 func TestSimpleMatcherInputMatchSyntaxDiagnosticForLabelledChoice(t *testing.T) {
 	matcher := mustCompileSimpleInputMatcher(t, "set loglevel {to} (level:trace|debug|info|warn|error)")
 

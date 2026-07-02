@@ -6,7 +6,10 @@ import (
 	"strings"
 )
 
-const simpleMatcherSeparatorRegex = `(?:\s+|-+)`
+const (
+	simpleMatcherFlexibleSeparatorRegex   = `(?:\s+|-+)`
+	simpleMatcherWhitespaceSeparatorRegex = `\s+`
+)
 
 var simpleMatcherIdentifierRe = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_-]*$`)
 
@@ -82,10 +85,26 @@ type simpleMatcherSequence struct {
 
 type simpleMatcherTerm interface {
 	compileBare() (string, error)
+	separatorBefore() simpleMatcherSeparatorKind
 	isOptional() bool
 	containsSlot() bool
 	matchTokens([]simpleMatcherToken, simpleMatcherMatchState) []simpleMatcherMatchState
 }
+
+type simpleMatcherSeparatorKind int
+
+const (
+	simpleMatcherFlexibleSeparator simpleMatcherSeparatorKind = iota
+	simpleMatcherWhitespaceSeparator
+)
+
+type simpleMatcherTokenSeparator int
+
+const (
+	simpleMatcherNoTokenSeparator simpleMatcherTokenSeparator = iota
+	simpleMatcherWhitespaceTokenSeparator
+	simpleMatcherDashTokenSeparator
+)
 
 type simpleMatcherLiteral struct {
 	value string
@@ -432,7 +451,7 @@ func (s simpleMatcherSequence) compileBare() (string, error) {
 		if i < len(s.terms)-1 {
 			out.WriteString(`(?:`)
 			out.WriteString(bare)
-			out.WriteString(simpleMatcherSeparatorRegex)
+			out.WriteString(separatorRegexBefore(s.terms[i+1]))
 			out.WriteString(`)?`)
 		} else {
 			out.WriteString(`(?:`)
@@ -450,13 +469,13 @@ func (s simpleMatcherSequence) compileBare() (string, error) {
 		}
 		if s.terms[i].isOptional() {
 			out.WriteString(`(?:`)
-			out.WriteString(simpleMatcherSeparatorRegex)
+			out.WriteString(separatorRegexBefore(s.terms[i]))
 			out.WriteString(bare)
 			out.WriteString(`)?`)
 			continue
 		}
 		if i > firstRequiredIdx {
-			out.WriteString(simpleMatcherSeparatorRegex)
+			out.WriteString(separatorRegexBefore(s.terms[i]))
 		}
 		out.WriteString(bare)
 	}
@@ -482,7 +501,7 @@ func (l simpleMatcherLiteral) compileBare() (string, error) {
 			for _, part := range parts {
 				escaped = append(escaped, regexp.QuoteMeta(part))
 			}
-			return strings.Join(escaped, simpleMatcherSeparatorRegex), nil
+			return strings.Join(escaped, simpleMatcherFlexibleSeparatorRegex), nil
 		}
 	}
 	return regexp.QuoteMeta(l.value), nil
@@ -490,6 +509,10 @@ func (l simpleMatcherLiteral) compileBare() (string, error) {
 
 func (l simpleMatcherLiteral) isOptional() bool {
 	return false
+}
+
+func (l simpleMatcherLiteral) separatorBefore() simpleMatcherSeparatorKind {
+	return simpleMatcherFlexibleSeparator
 }
 
 func (l simpleMatcherLiteral) containsSlot() bool {
@@ -506,6 +529,10 @@ func (s simpleMatcherSlot) compileBare() (string, error) {
 
 func (s simpleMatcherSlot) isOptional() bool {
 	return false
+}
+
+func (s simpleMatcherSlot) separatorBefore() simpleMatcherSeparatorKind {
+	return simpleMatcherWhitespaceSeparator
 }
 
 func (s simpleMatcherSlot) containsSlot() bool {
@@ -527,8 +554,38 @@ func (g simpleMatcherGroup) isOptional() bool {
 	return g.optional
 }
 
+func (g simpleMatcherGroup) separatorBefore() simpleMatcherSeparatorKind {
+	if g.capturing {
+		return simpleMatcherWhitespaceSeparator
+	}
+	return g.expr.leadingSeparatorBefore()
+}
+
 func (g simpleMatcherGroup) containsSlot() bool {
 	return g.expr.containsSlot()
+}
+
+func separatorRegexBefore(term simpleMatcherTerm) string {
+	if term.separatorBefore() == simpleMatcherWhitespaceSeparator {
+		return simpleMatcherWhitespaceSeparatorRegex
+	}
+	return simpleMatcherFlexibleSeparatorRegex
+}
+
+func (e simpleMatcherExpr) leadingSeparatorBefore() simpleMatcherSeparatorKind {
+	for _, alt := range e.alternatives {
+		if alt.leadingSeparatorBefore() == simpleMatcherWhitespaceSeparator {
+			return simpleMatcherWhitespaceSeparator
+		}
+	}
+	return simpleMatcherFlexibleSeparator
+}
+
+func (s simpleMatcherSequence) leadingSeparatorBefore() simpleMatcherSeparatorKind {
+	for _, term := range s.terms {
+		return term.separatorBefore()
+	}
+	return simpleMatcherFlexibleSeparator
 }
 
 func (e simpleMatcherExpr) containsSlot() bool {
@@ -690,7 +747,8 @@ func matcherInputCandidates(input string, allowTrailingDot bool) ([]string, []st
 }
 
 type simpleMatcherToken struct {
-	value string
+	value     string
+	sepBefore simpleMatcherTokenSeparator
 }
 
 type simpleMatcherMatchState struct {
@@ -722,15 +780,29 @@ func (s *simpleMatcher) syntaxMatch(input string) inputMatchResult {
 }
 
 func simpleMatcherTokenize(input string) []simpleMatcherToken {
-	parts := strings.FieldsFunc(strings.TrimSpace(input), func(ch rune) bool {
-		return isSimpleMatcherSpace(ch) || ch == '-'
-	})
-	tokens := make([]simpleMatcherToken, 0, len(parts))
-	for _, part := range parts {
-		if part == "" {
+	fields := strings.Fields(strings.TrimSpace(input))
+	tokens := make([]simpleMatcherToken, 0, len(fields))
+	nextSep := simpleMatcherNoTokenSeparator
+	for _, field := range fields {
+		if field == "" {
 			continue
 		}
-		tokens = append(tokens, simpleMatcherToken{value: part})
+		if strings.HasPrefix(field, "-") {
+			tokens = append(tokens, simpleMatcherToken{value: field, sepBefore: nextSep})
+			nextSep = simpleMatcherWhitespaceTokenSeparator
+			continue
+		}
+		parts := strings.FieldsFunc(field, func(ch rune) bool {
+			return ch == '-'
+		})
+		for _, part := range parts {
+			if part == "" {
+				continue
+			}
+			tokens = append(tokens, simpleMatcherToken{value: part, sepBefore: nextSep})
+			nextSep = simpleMatcherDashTokenSeparator
+		}
+		nextSep = simpleMatcherWhitespaceTokenSeparator
 	}
 	return tokens
 }
@@ -748,6 +820,9 @@ func (s simpleMatcherSequence) matchTokens(tokens []simpleMatcherToken, initial 
 	for _, term := range s.terms {
 		var next []simpleMatcherMatchState
 		for _, state := range states {
+			if state.pos > 0 && state.pos < len(tokens) && !term.separatorBefore().matchesTokenSeparator(tokens[state.pos].sepBefore) {
+				continue
+			}
 			next = append(next, term.matchTokens(tokens, state)...)
 		}
 		states = next
@@ -756,6 +831,15 @@ func (s simpleMatcherSequence) matchTokens(tokens []simpleMatcherToken, initial 
 		}
 	}
 	return states
+}
+
+func (k simpleMatcherSeparatorKind) matchesTokenSeparator(sep simpleMatcherTokenSeparator) bool {
+	switch k {
+	case simpleMatcherWhitespaceSeparator:
+		return sep == simpleMatcherWhitespaceTokenSeparator
+	default:
+		return sep == simpleMatcherWhitespaceTokenSeparator || sep == simpleMatcherDashTokenSeparator
+	}
 }
 
 func (l simpleMatcherLiteral) matchTokens(tokens []simpleMatcherToken, state simpleMatcherMatchState) []simpleMatcherMatchState {

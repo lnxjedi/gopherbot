@@ -59,9 +59,9 @@ Exact matches return positional args exactly as plugin handlers receive them tod
 False positives are controlled by an exact command-skeleton rule.
 
 A `SyntaxMatch` is allowed only when:
-- required literal and synonym terms match exactly, using normal SimpleMatcher case and separator forgiveness
+- required literal and synonym terms match exactly, using normal SimpleMatcher case and command-word separator forgiveness
 - optional noise/capturing groups are either absent or present in a grammar-valid position
-- all separators and token boundaries line up with the grammar
+- all separators and token boundaries line up with the grammar, including the whitespace boundary required before typed captures and labelled capturing choices
 - there is one invalid captured value that explains the failure
 - there are no extra unmatched terms before or after the command
 
