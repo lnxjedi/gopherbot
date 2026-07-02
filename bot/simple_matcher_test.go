@@ -584,6 +584,67 @@ func TestSimpleMatcherRequiresWhitespaceBeforeOptionalCapture(t *testing.T) {
 	assertInputMatchResult(t, result, inputNoMatch, nil, "")
 }
 
+func TestSimpleMatcherOptionsBlockPassesArgvStyleOptions(t *testing.T) {
+	matcher := mustCompileSimpleInputMatcher(t, "get console [-options:-spot|-branch:<token>] [<environment:token>]")
+
+	tests := []struct {
+		input string
+		args  []string
+	}{
+		{"get console qa", []string{"qa"}},
+		{"get-console -spot qa", []string{"-spot", "qa"}},
+		{"get console -branch:feature/foo qa", []string{"-branch:feature/foo", "qa"}},
+		{"get-console -branch:feature/foo -spot qa", []string{"-branch:feature/foo", "-spot", "qa"}},
+		{"get console -spot -branch:feature/foo qa", []string{"-spot", "-branch:feature/foo", "qa"}},
+		{"get console -spot -spot qa", []string{"-spot", "-spot", "qa"}},
+		{"get console -spot", []string{"-spot", ""}},
+		{"get console", []string{""}},
+	}
+	for _, tc := range tests {
+		result := matcher.matchInput(tc.input)
+		assertInputMatchResult(t, result, inputExactMatch, tc.args, "")
+	}
+}
+
+func TestSimpleMatcherOptionsBlockPlacementAndWhitespace(t *testing.T) {
+	matcher := mustCompileSimpleInputMatcher(t, "get console [-options:-spot|-branch:<token>] [<environment:token>]")
+
+	for _, input := range []string{
+		"get-console-spot qa",
+		"get console qa -spot",
+	} {
+		result := matcher.matchInput(input)
+		assertInputMatchResult(t, result, inputNoMatch, nil, "")
+	}
+
+	result := matcher.matchInput("get console -spot-branch:feature/foo qa")
+	assertInputMatchResult(t, result, inputSyntaxMatch, nil, "Invalid option: \"-spot-branch:feature/foo\" for: \"options\"; valid options: -spot, -branch:<token>.")
+}
+
+func TestSimpleMatcherOptionsBlockDiagnostics(t *testing.T) {
+	matcher := mustCompileSimpleInputMatcher(t, "get console [-options:-spot|-count:<number>] [<environment:token>]")
+
+	result := matcher.matchInput("get console -bad qa")
+	assertInputMatchResult(t, result, inputSyntaxMatch, nil, "Invalid option: \"-bad\" for: \"options\"; valid options: -spot, -count:<number>.")
+
+	result = matcher.matchInput("get console -count:nope qa")
+	assertInputMatchResult(t, result, inputSyntaxMatch, nil, "Invalid value: \"nope\" for: \"count\"; expected: an integer.")
+}
+
+func TestCompileSimpleMatcherRejectsInvalidOptionsBlocks(t *testing.T) {
+	tests := []string{
+		"get console [-options]",
+		"get console [-options:]",
+		"get console [-options:spot]",
+		"get console [-options:-branch:<token>-suffix]",
+	}
+	for _, spec := range tests {
+		if _, err := compileSimpleMatcher(spec); err == nil {
+			t.Fatalf("compileSimpleMatcher(%q) succeeded, want options block error", spec)
+		}
+	}
+}
+
 func TestSimpleMatcherInputMatchSyntaxDiagnosticForLabelledChoice(t *testing.T) {
 	matcher := mustCompileSimpleInputMatcher(t, "set loglevel {to} (level:trace|debug|info|warn|error)")
 

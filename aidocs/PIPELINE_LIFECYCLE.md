@@ -126,8 +126,10 @@ Catch-all mode scoping:
   - `(:a|b|c)` is a required capturing choice with no diagnostic label
   - `[label:a|b|c]` is an optional labelled capturing choice/phrase; omitted values arrive as `""`
   - `[:a|b|c]` is an optional capturing choice with no diagnostic label
+  - `[-label:-flag|-name:<type>]` is an optional argv-style options block; each matched option arrives as its own plugin arg, in input order, and an omitted options block adds no empty arg
   - `{a|b|c}` is optional non-capturing noise text
   - typed captures use `<name:type>` or `<type>` and arrive positionally in the task handler
+  - captures after an options block are variable-position; plugins using options blocks should parse leading `-` args before interpreting remaining positional args
   - when a bracketed group contains a typed capture slot, the slot is the semantic capture; the wrapper should not create a second positional arg
   - bare `foo|bar` is intentionally not part of the grammar; use `/foo|bar/`, `(:foo|bar)`, `[:foo|bar]`, or `{foo|bar}`
   - a `SimpleMatcher` exact match starts the normal pipeline path; a unique syntax match may produce targeted feedback when the command skeleton matches exactly but one captured value is invalid

@@ -61,6 +61,7 @@ False positives are controlled by an exact command-skeleton rule.
 A `SyntaxMatch` is allowed only when:
 - required literal and synonym terms match exactly, using normal SimpleMatcher case and command-word separator forgiveness
 - optional noise/capturing groups are either absent or present in a grammar-valid position
+- argv-style options blocks consume only allowed dash-starting option tokens at their configured position
 - all separators and token boundaries line up with the grammar, including the whitespace boundary required before typed captures and labelled capturing choices
 - there is one invalid captured value that explains the failure
 - there are no extra unmatched terms before or after the command
@@ -135,6 +136,16 @@ Invalid value: "9round" for: "siding"; expected: an identifier starting with a l
 ```
 
 Types should have short human descriptions alongside their regex patterns. These descriptions must be stable enough for tests.
+
+## Options Blocks
+
+Options blocks are optional SimpleMatcher terms shaped like:
+
+```text
+[-options:-spot|-branch:<token>]
+```
+
+Each matched option is passed as an individual plugin argument in the order the user supplied it. The block itself emits no empty argument when omitted, so captures after an options block are variable-position and should be parsed after leading `-` arguments. Unknown options or invalid typed option values may produce `SyntaxMatch` diagnostics when the rest of the command skeleton is exact.
 
 ## Dispatch Behavior
 

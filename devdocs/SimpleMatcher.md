@@ -20,6 +20,7 @@ Use `SimpleMatcher` for the common 99% of command matchers. If a command needs e
 | `(:a|b)` | Required capturing choice with no diagnostic label. Use only when the value itself is self-explanatory. | Yes | `(:trace|debug|info|warn|error)` |
 | `[label:a|b]` | Optional labelled capturing choice or phrase. If omitted, the argument is `""`. | Yes | `[mode:verbose|quiet]` |
 | `[:a|b]` | Optional capturing choice with no diagnostic label. If omitted, the argument is `""`. | Yes | `[:disabled]` |
+| `[-label:-flag|-name:<type>]` | Optional argv-style options block. Matched options are passed as individual args in input order. | Yes, variable | `[-options:-spot|-branch:<token>]` |
 | `{a|b}` | Optional non-capturing noise text. Use only to widen accepted wording. | No | `{please|kindly}` |
 | `<type>` | Required typed capture slot. | Yes | `<ident>` |
 | `<label:type>` | Required typed capture slot with a human-readable label. | Yes | `<siding:ident>` |
@@ -79,6 +80,20 @@ SimpleMatcher: "ps [<mode:token>]"
 ps -v -> args[0] = "-v"
 ps    -> args[0] = ""
 ```
+
+Options blocks support CLI-like command shapes. The block label starts with `-` to distinguish it from normal optional captures, and every option listed inside the block must start with `-`. Options must be single whitespace-delimited tokens, may appear in any order, and may be repeated. Each matched option is passed as its own positional argument exactly as typed:
+
+```yaml
+SimpleMatcher: "get console [-options:-spot|-branch:<token>] [<environment:token>]"
+```
+
+```text
+get console qa                         -> args[0] = "qa"
+get console -spot qa                   -> args[0] = "-spot", args[1] = "qa"
+get console -branch:feature/foo -spot qa -> args[0] = "-branch:feature/foo", args[1] = "-spot", args[2] = "qa"
+```
+
+An omitted options block adds no empty argument. Captures after an options block are therefore variable-position; plugins using options blocks should parse leading `-` arguments first, then interpret the remaining positional arguments. Ordinary optional captures still add `""` when omitted.
 
 Use non-capturing noise for words that should not affect plugin behavior:
 
@@ -177,6 +192,7 @@ Exact matches always win over syntax diagnostics. If more than one visible comma
 
 - Use `(label:...)` when the selected required choice changes what the plugin should do.
 - Use `[label:...]` when the optional value itself is meaningful to the plugin.
+- Use `[-label:-flag|-name:<type>]` for CLI-like dash options that should be passed through as individual args.
 - Use `{...}` when optional words only make the command easier to say.
 - Use `/.../` when required words are synonyms and should not become plugin arguments.
 - Use `<label:type>` for typed values supplied by the user.

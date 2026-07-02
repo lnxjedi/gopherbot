@@ -70,9 +70,10 @@ type inputMatchResult struct {
 }
 
 type simpleMatcher struct {
-	spec  string
-	expr  simpleMatcherExpr
-	regex string
+	spec            string
+	expr            simpleMatcherExpr
+	regex           string
+	hasVariableArgs bool
 }
 
 type simpleMatcherExpr struct {
@@ -88,6 +89,8 @@ type simpleMatcherTerm interface {
 	separatorBefore() simpleMatcherSeparatorKind
 	isOptional() bool
 	containsSlot() bool
+	hasVariableArgs() bool
+	captureCount() int
 	matchTokens([]simpleMatcherToken, simpleMatcherMatchState) []simpleMatcherMatchState
 }
 
@@ -120,6 +123,18 @@ type simpleMatcherGroup struct {
 	label     string
 	optional  bool
 	capturing bool
+}
+
+type simpleMatcherOptionsBlock struct {
+	label   string
+	options []simpleMatcherOption
+}
+
+type simpleMatcherOption struct {
+	display string
+	literal string
+	prefix  string
+	slot    *simpleMatcherSlot
 }
 
 func compileInputMatcher(matcher *InputMatcher, allowSimple bool) error {
@@ -187,9 +202,10 @@ func compileSimpleMatcherObject(spec string) (*simpleMatcher, error) {
 		return nil, fmt.Errorf("SimpleMatcher cannot compile to an empty pattern")
 	}
 	return &simpleMatcher{
-		spec:  spec,
-		expr:  expr,
-		regex: `(?i:` + regex + `)`,
+		spec:            spec,
+		expr:            expr,
+		regex:           `(?i:` + regex + `)`,
+		hasVariableArgs: expr.hasVariableArgs(),
 	}, nil
 }
 
@@ -256,6 +272,13 @@ func (p *simpleMatcherParser) parseTerm() (simpleMatcherTerm, error) {
 		body, err := p.readDelimitedBody(']')
 		if err != nil {
 			return nil, err
+		}
+		options, ok, err := parseSimpleMatcherOptionsBlock(body)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			return options, nil
 		}
 		expr, label, err := parseSimpleMatcherBracketBody(body, true)
 		if err != nil {
@@ -358,6 +381,75 @@ func parseSimpleMatcherBracketBody(body string, optional bool) (simpleMatcherExp
 		return simpleMatcherExpr{}, "", err
 	}
 	return expr, label, nil
+}
+
+func parseSimpleMatcherOptionsBlock(body string) (simpleMatcherOptionsBlock, bool, error) {
+	body = strings.TrimSpace(body)
+	if !strings.HasPrefix(body, "-") {
+		return simpleMatcherOptionsBlock{}, false, nil
+	}
+	colon := strings.IndexRune(body, ':')
+	if colon < 0 {
+		return simpleMatcherOptionsBlock{}, true, fmt.Errorf("SimpleMatcher options block must use [-label:...] syntax")
+	}
+	label := strings.TrimSpace(strings.TrimPrefix(body[:colon], "-"))
+	if !simpleMatcherIdentifierRe.MatchString(label) {
+		return simpleMatcherOptionsBlock{}, true, fmt.Errorf("invalid SimpleMatcher options label %q", label)
+	}
+	rawOptions := strings.TrimSpace(body[colon+1:])
+	if rawOptions == "" {
+		return simpleMatcherOptionsBlock{}, true, fmt.Errorf("SimpleMatcher options block must include at least one option")
+	}
+	parts := strings.Split(rawOptions, "|")
+	options := make([]simpleMatcherOption, 0, len(parts))
+	for _, part := range parts {
+		option, err := parseSimpleMatcherOption(strings.TrimSpace(part))
+		if err != nil {
+			return simpleMatcherOptionsBlock{}, true, err
+		}
+		options = append(options, option)
+	}
+	return simpleMatcherOptionsBlock{label: label, options: options}, true, nil
+}
+
+func parseSimpleMatcherOption(raw string) (simpleMatcherOption, error) {
+	if raw == "" {
+		return simpleMatcherOption{}, fmt.Errorf("SimpleMatcher option cannot be empty")
+	}
+	if !strings.HasPrefix(raw, "-") {
+		return simpleMatcherOption{}, fmt.Errorf("SimpleMatcher option %q must start with '-'", raw)
+	}
+	if strings.ContainsAny(raw, " \t\n\r") {
+		return simpleMatcherOption{}, fmt.Errorf("SimpleMatcher option %q cannot contain whitespace", raw)
+	}
+	slotStart := strings.IndexRune(raw, '<')
+	if slotStart < 0 {
+		if strings.ContainsRune(raw, '>') {
+			return simpleMatcherOption{}, fmt.Errorf("invalid SimpleMatcher option %q", raw)
+		}
+		return simpleMatcherOption{display: raw, literal: raw}, nil
+	}
+	slotEnd := strings.IndexRune(raw[slotStart:], '>')
+	if slotEnd < 0 {
+		return simpleMatcherOption{}, fmt.Errorf("unterminated capture in SimpleMatcher option %q", raw)
+	}
+	slotEnd += slotStart
+	if slotEnd != len(raw)-1 || strings.ContainsRune(raw[slotEnd+1:], '<') {
+		return simpleMatcherOption{}, fmt.Errorf("SimpleMatcher option %q must contain a single typed capture at the end", raw)
+	}
+	prefix := raw[:slotStart]
+	if prefix == "" || !strings.HasPrefix(prefix, "-") {
+		return simpleMatcherOption{}, fmt.Errorf("SimpleMatcher option %q must start with '-'", raw)
+	}
+	term, err := parseSimpleMatcherSlot(strings.TrimSpace(raw[slotStart+1 : slotEnd]))
+	if err != nil {
+		return simpleMatcherOption{}, err
+	}
+	slot, ok := term.(simpleMatcherSlot)
+	if !ok {
+		return simpleMatcherOption{}, fmt.Errorf("invalid SimpleMatcher option capture %q", raw)
+	}
+	return simpleMatcherOption{display: raw, prefix: prefix, slot: &slot}, nil
 }
 
 func parseSimpleMatcherInnerExpr(spec string) (simpleMatcherExpr, error) {
@@ -519,6 +611,14 @@ func (l simpleMatcherLiteral) containsSlot() bool {
 	return false
 }
 
+func (l simpleMatcherLiteral) hasVariableArgs() bool {
+	return false
+}
+
+func (l simpleMatcherLiteral) captureCount() int {
+	return 0
+}
+
 func (s simpleMatcherSlot) compileBare() (string, error) {
 	pattern, ok := simpleMatcherTypePatterns[s.kind]
 	if !ok {
@@ -537,6 +637,14 @@ func (s simpleMatcherSlot) separatorBefore() simpleMatcherSeparatorKind {
 
 func (s simpleMatcherSlot) containsSlot() bool {
 	return true
+}
+
+func (s simpleMatcherSlot) hasVariableArgs() bool {
+	return false
+}
+
+func (s simpleMatcherSlot) captureCount() int {
+	return 1
 }
 
 func (g simpleMatcherGroup) compileBare() (string, error) {
@@ -563,6 +671,66 @@ func (g simpleMatcherGroup) separatorBefore() simpleMatcherSeparatorKind {
 
 func (g simpleMatcherGroup) containsSlot() bool {
 	return g.expr.containsSlot()
+}
+
+func (g simpleMatcherGroup) hasVariableArgs() bool {
+	return g.expr.hasVariableArgs()
+}
+
+func (g simpleMatcherGroup) captureCount() int {
+	if g.capturing && !g.containsSlot() {
+		return 1
+	}
+	return g.expr.captureCount()
+}
+
+func (o simpleMatcherOptionsBlock) compileBare() (string, error) {
+	parts := make([]string, 0, len(o.options))
+	for _, option := range o.options {
+		part, err := option.compileBare()
+		if err != nil {
+			return "", err
+		}
+		parts = append(parts, part)
+	}
+	option := `(?:` + strings.Join(parts, `|`) + `)`
+	return option + `(?:` + simpleMatcherWhitespaceSeparatorRegex + option + `)*`, nil
+}
+
+func (o simpleMatcherOptionsBlock) separatorBefore() simpleMatcherSeparatorKind {
+	return simpleMatcherWhitespaceSeparator
+}
+
+func (o simpleMatcherOptionsBlock) isOptional() bool {
+	return true
+}
+
+func (o simpleMatcherOptionsBlock) containsSlot() bool {
+	for _, option := range o.options {
+		if option.slot != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func (o simpleMatcherOptionsBlock) hasVariableArgs() bool {
+	return true
+}
+
+func (o simpleMatcherOptionsBlock) captureCount() int {
+	return 0
+}
+
+func (o simpleMatcherOption) compileBare() (string, error) {
+	if o.slot == nil {
+		return regexp.QuoteMeta(o.literal), nil
+	}
+	pattern, ok := simpleMatcherTypePatterns[o.slot.kind]
+	if !ok {
+		return "", fmt.Errorf("unknown SimpleMatcher capture type %q", o.slot.kind)
+	}
+	return regexp.QuoteMeta(o.prefix) + `(?:` + pattern + `)`, nil
 }
 
 func separatorRegexBefore(term simpleMatcherTerm) string {
@@ -597,9 +765,45 @@ func (e simpleMatcherExpr) containsSlot() bool {
 	return false
 }
 
+func (e simpleMatcherExpr) hasVariableArgs() bool {
+	for _, alt := range e.alternatives {
+		if alt.hasVariableArgs() {
+			return true
+		}
+	}
+	return false
+}
+
+func (e simpleMatcherExpr) captureCount() int {
+	maxCount := 0
+	for _, alt := range e.alternatives {
+		if count := alt.captureCount(); count > maxCount {
+			maxCount = count
+		}
+	}
+	return maxCount
+}
+
 func (s simpleMatcherSequence) containsSlot() bool {
 	for _, term := range s.terms {
 		if term.containsSlot() {
+			return true
+		}
+	}
+	return false
+}
+
+func (s simpleMatcherSequence) captureCount() int {
+	count := 0
+	for _, term := range s.terms {
+		count += term.captureCount()
+	}
+	return count
+}
+
+func (s simpleMatcherSequence) hasVariableArgs() bool {
+	for _, term := range s.terms {
+		if term.hasVariableArgs() {
 			return true
 		}
 	}
@@ -675,6 +879,22 @@ func (m InputMatcher) matchCommandInput(input string) inputMatchResult {
 }
 
 func (m InputMatcher) matchInputCandidates(input string, allowTrailingDot bool) inputMatchResult {
+	exactCandidates, syntaxCandidates := matcherInputCandidates(input, allowTrailingDot)
+	if m.simple != nil && m.simple.hasVariableArgs {
+		for _, candidate := range exactCandidates {
+			if exact := m.simple.syntaxMatch(candidate); exact.kind == inputExactMatch {
+				return exact
+			}
+		}
+		for _, candidate := range syntaxCandidates {
+			result := m.simple.syntaxMatch(candidate)
+			if result.kind != inputNoMatch {
+				return result
+			}
+		}
+		return inputMatchResult{kind: inputNoMatch}
+	}
+
 	tryExact := func(candidate string) inputMatchResult {
 		if m.re == nil {
 			return inputMatchResult{kind: inputNoMatch}
@@ -686,7 +906,6 @@ func (m InputMatcher) matchInputCandidates(input string, allowTrailingDot bool) 
 		return inputMatchResult{kind: inputExactMatch, args: matches[1:]}
 	}
 
-	exactCandidates, syntaxCandidates := matcherInputCandidates(input, allowTrailingDot)
 	for _, candidate := range exactCandidates {
 		if exact := tryExact(candidate); exact.kind == inputExactMatch {
 			return exact
@@ -883,7 +1102,11 @@ func (s simpleMatcherSlot) matchTokens(tokens []simpleMatcherToken, state simple
 func (g simpleMatcherGroup) matchTokens(tokens []simpleMatcherToken, state simpleMatcherMatchState) []simpleMatcherMatchState {
 	var out []simpleMatcherMatchState
 	if g.optional {
-		out = append(out, state)
+		skipped := state
+		for i := 0; i < g.captureCount(); i++ {
+			skipped.args = append(skipped.args, "")
+		}
+		out = append(out, skipped)
 	}
 	if g.capturing && !g.containsSlot() {
 		out = append(out, g.matchChoiceTokens(tokens, state)...)
@@ -909,6 +1132,73 @@ func (g simpleMatcherGroup) matchChoiceTokens(tokens []simpleMatcherToken, state
 	invalid.pos++
 	invalid.diagnostic = invalidSimpleMatcherChoiceDiagnostic(g.label, tokens[state.pos].value, g.choiceValues())
 	return append(out, invalid)
+}
+
+func (o simpleMatcherOptionsBlock) matchTokens(tokens []simpleMatcherToken, state simpleMatcherMatchState) []simpleMatcherMatchState {
+	if state.pos >= len(tokens) || !strings.HasPrefix(tokens[state.pos].value, "-") {
+		return []simpleMatcherMatchState{state}
+	}
+	matched := state
+	for matched.pos < len(tokens) && strings.HasPrefix(tokens[matched.pos].value, "-") {
+		if matched.pos > state.pos && tokens[matched.pos].sepBefore != simpleMatcherWhitespaceTokenSeparator {
+			break
+		}
+		ok, diagnostic := o.matchOption(tokens[matched.pos].value)
+		if !ok {
+			if matched.diagnostic != "" {
+				return nil
+			}
+			matched.diagnostic = diagnostic
+			matched.pos++
+			return []simpleMatcherMatchState{matched}
+		}
+		matched.args = append(matched.args, tokens[matched.pos].value)
+		matched.pos++
+	}
+	return []simpleMatcherMatchState{matched}
+}
+
+func (o simpleMatcherOptionsBlock) matchOption(value string) (bool, string) {
+	var diagnostics []string
+	for _, option := range o.options {
+		ok, diagnostic := option.match(value)
+		if ok {
+			return true, ""
+		}
+		if diagnostic != "" {
+			diagnostics = appendUniquePreserveOrder(diagnostics, diagnostic)
+		}
+	}
+	if len(diagnostics) == 1 {
+		return false, diagnostics[0]
+	}
+	return false, invalidSimpleMatcherOptionDiagnostic(o.label, value, o.optionDisplays())
+}
+
+func (o simpleMatcherOption) match(value string) (bool, string) {
+	if o.slot == nil {
+		return strings.EqualFold(value, o.literal), ""
+	}
+	if !strings.HasPrefix(strings.ToLower(value), strings.ToLower(o.prefix)) {
+		return false, ""
+	}
+	raw := value[len(o.prefix):]
+	if simpleMatcherTypeMatches(o.slot.kind, raw) {
+		return true, ""
+	}
+	label := o.slot.name
+	if label == "" {
+		label = inferSimpleMatcherOptionLabel(o.prefix)
+	}
+	return false, invalidSimpleMatcherTypeDiagnostic(label, o.slot.kind, raw)
+}
+
+func (o simpleMatcherOptionsBlock) optionDisplays() []string {
+	values := make([]string, 0, len(o.options))
+	for _, option := range o.options {
+		values = append(values, option.display)
+	}
+	return values
 }
 
 func (s simpleMatcherSequence) literalValueAt(tokens []simpleMatcherToken, pos int) (string, bool) {
@@ -1001,6 +1291,23 @@ func invalidSimpleMatcherChoiceDiagnostic(label, value string, choices []string)
 		return fmt.Sprintf("Invalid value: %q; valid values: %s.", value, strings.Join(choices, ", "))
 	}
 	return fmt.Sprintf("Invalid value: %q for: %q; valid values: %s.", value, label, strings.Join(choices, ", "))
+}
+
+func invalidSimpleMatcherOptionDiagnostic(label, value string, options []string) string {
+	name := strings.TrimSpace(label)
+	if name == "" {
+		name = "options"
+	}
+	return fmt.Sprintf("Invalid option: %q for: %q; valid options: %s.", value, name, strings.Join(options, ", "))
+}
+
+func inferSimpleMatcherOptionLabel(prefix string) string {
+	trimmed := strings.TrimLeft(prefix, "-")
+	trimmed = strings.TrimRight(trimmed, ":= ")
+	if trimmed == "" {
+		return "option"
+	}
+	return trimmed
 }
 
 func (p *simpleMatcherParser) skipSpaces() {
