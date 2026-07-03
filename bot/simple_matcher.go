@@ -663,9 +663,6 @@ func (g simpleMatcherGroup) isOptional() bool {
 }
 
 func (g simpleMatcherGroup) separatorBefore() simpleMatcherSeparatorKind {
-	if g.capturing {
-		return simpleMatcherWhitespaceSeparator
-	}
 	return g.expr.leadingSeparatorBefore()
 }
 

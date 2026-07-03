@@ -119,7 +119,8 @@ Catch-all mode scoping:
   - directed command matching tries the original input first, then normalized candidates; if the original input does not match and ends with a single sentence-final `.`, command matchers may retry without that final dot
   - terminal-dot fallback applies only to directed `Commands`; ambient `MessageMatchers`, reply matchers, and job argument matchers do not get this sentence-punctuation retry
   - spaces between command words in the spec act as forgiving command separators and match either spaces or dashes in input
-  - spaces before typed captures or labelled capturing choices require whitespace in input, so `rails up [<branch:token>]` matches `rails-up dev` but not `rails-up-dev`
+  - literal command words and literal capturing choices use the same forgiving command separators, so `spot (type:rails|devops) up` matches `spot-devops-up`
+  - spaces before typed captures or options blocks require whitespace in input, so `rails up [<branch:token>]` matches `rails-up dev` but not `rails-up-dev`
   - plain literal text is required and non-capturing
   - `/a|b|c/` is required non-capturing synonym text for choices the plugin does not need to know
   - `(label:a|b|c)` is a required labelled capturing choice; the selected value arrives as a positional plugin arg

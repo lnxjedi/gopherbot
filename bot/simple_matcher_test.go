@@ -558,20 +558,54 @@ func TestSimpleMatcherHyphenatedCommandStillMatchesSeparateLiteralCommand(t *tes
 	assertInputMatchResult(t, result, inputExactMatch, []string{"rails"}, "")
 }
 
-func TestSimpleMatcherRequiresWhitespaceBeforeCapturingChoice(t *testing.T) {
+func TestSimpleMatcherCapturingChoiceUsesCommandWordSeparators(t *testing.T) {
 	matcher := mustCompileSimpleInputMatcher(t, "set loglevel {to} (level:trace|debug|info|warn|error)")
 
 	result := matcher.matchInput("set-loglevel debug")
 	assertInputMatchResult(t, result, inputExactMatch, []string{"debug"}, "")
 
 	result = matcher.matchInput("set-loglevel-debug")
-	assertInputMatchResult(t, result, inputNoMatch, nil, "")
+	assertInputMatchResult(t, result, inputExactMatch, []string{"debug"}, "")
 
 	result = matcher.matchInput("set-loglevel fine")
 	assertInputMatchResult(t, result, inputSyntaxMatch, nil, "Invalid value: \"fine\" for: \"level\"; valid values: trace, debug, info, warn, error.")
 
 	result = matcher.matchInput("set-loglevel-fine")
-	assertInputMatchResult(t, result, inputNoMatch, nil, "")
+	assertInputMatchResult(t, result, inputSyntaxMatch, nil, "Invalid value: \"fine\" for: \"level\"; valid values: trace, debug, info, warn, error.")
+}
+
+func TestSimpleMatcherCapturingChoiceSupportsHyphenatedCommandPhrases(t *testing.T) {
+	tests := []struct {
+		spec  string
+		input string
+		args  []string
+	}{
+		{
+			spec:  "spot (type:bigrails|rails|ember|devops|config) up [<branch:token>]",
+			input: "spot-devops-up",
+			args:  []string{"devops", ""},
+		},
+		{
+			spec:  "spot (type:bigrails|rails|ember|devops|config) up [<branch:token>]",
+			input: "spot-devops-up qa",
+			args:  []string{"devops", "qa"},
+		},
+		{
+			spec:  "get (kind:console|tconsole) [<environment:ident>]",
+			input: "get-console qa",
+			args:  []string{"console", "qa"},
+		},
+		{
+			spec:  "(mode:ping|prod) status",
+			input: "ping-status",
+			args:  []string{"ping"},
+		},
+	}
+	for _, tc := range tests {
+		matcher := mustCompileSimpleInputMatcher(t, tc.spec)
+		result := matcher.matchInput(tc.input)
+		assertInputMatchResult(t, result, inputExactMatch, tc.args, "")
+	}
 }
 
 func TestSimpleMatcherRequiresWhitespaceBeforeOptionalCapture(t *testing.T) {

@@ -27,7 +27,7 @@ Use `SimpleMatcher` for the common 99% of command matchers. If a command needs e
 
 The delimiter characters are part of the SimpleMatcher grammar, not regex syntax. Do not rely on regex escaping inside a `SimpleMatcher`; switch to `Regex` when the simple grammar is not enough.
 
-Dash forgiveness is for command wording, not for introducing captured values. A space before a typed capture or labelled capturing choice requires whitespace in user input. For example, `rails up [<branch:token>]` matches `rails-up dev`, but not `rails-up-dev`; use a real space before option-like values such as `rails up -branch:dev` or `rails up -spot`.
+Dash forgiveness is for command wording, including literal capturing choices. A space before a typed capture or options block requires whitespace in user input. For example, `spot (type:bigrails|rails|ember|devops|config) up` matches `spot-devops-up`, and `rails up [<branch:token>]` matches `rails-up dev`, but not `rails-up-dev`; use a real space before option-like values such as `rails up -branch:dev` or `rails up -spot`.
 
 Capturing choice groups require a label prefix before the first top-level colon. The label may be empty. This keeps values containing `:` unambiguous:
 
@@ -146,7 +146,7 @@ The label in `<label:type>` is used for diagnostics and documentation. `<siding:
 
 When a directed command does not exactly match, the engine may still recognize a `SyntaxMatch`. A syntax match means the command skeleton matched exactly, but one captured field did not satisfy its labelled choice or typed capture.
 
-The command skeleton is the literal structure of the `SimpleMatcher`: required literal words, required synonym groups, optional noise groups that are present, optional capturing groups that are present, separators, and capture positions. It uses the same separator rules as exact matching: command-word separators are whitespace/dash forgiving, while captured values require whitespace before the captured term. It does not use fuzzy matching.
+The command skeleton is the literal structure of the `SimpleMatcher`: required literal words, required synonym groups, optional noise groups that are present, optional capturing groups that are present, separators, and capture positions. It uses the same separator rules as exact matching: command-word separators, including literal capturing choices, are whitespace/dash forgiving, while typed captured values and options require whitespace before the captured term. It does not use fuzzy matching.
 
 If the skeleton does not match exactly, the matcher reports `NoMatch` and the normal help/fallback system provides the best suggestion it can. For example, `set logging to fine` should not claim a bad `level` value for `set log level {to} (level:trace|debug|info|warn|error)` because the command skeleton is different.
 
