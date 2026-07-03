@@ -138,16 +138,19 @@ CLI handling is intentionally split so help and obvious usage failures do not fo
    - obvious no-init commands (`help`, `version`, `init`)
    - unknown commands / invalid explicit `run` arguments
 3. All user-facing CLI subcommands run before full `initBot()` after private environment loading. They do not start connectors, queues, modules, the HTTP listener, or the serialized brain loop.
-4. Encryption-only commands (`encrypt`, `decrypt`, `uuid`) initialize encryption directly from `GOPHER_ENCRYPTION_KEY` plus `binary-encrypted-key[.<environment>]`.
-5. Config-only commands (`dump`, `validate`, `gentotp`) use a lightweight pre-connect config load when needed, but do not initialize a brain provider.
-6. Memory commands use the lightweight config load plus the configured brain provider object or local cache directly. They do not start `runBrain()`. `fetch` and `list` read the local cache by default and close without flushing pending cloud work; `fetch -validate-cloud`, `fetch -cloud`, and `list -cloud` are explicit cloud inspection paths that report local cache sync status to stderr. `store` and `delete` update the local cache and flush cloud sync before reporting success.
-7. Brain migration commands (`pull-brain`, `restore-brain`) and `flush-brain` use the lightweight config load and remote brain backend directly. `pull-brain` / `restore-brain` are the only v2 brain import/export compatibility paths.
-8. `genkey` is a no-init CLI command after private environment loading; it uses `GOPHER_ENCRYPTION_KEY` directly to generate an encrypted `binary-encrypted-key[.<environment>]` payload without starting brain, connectors, or plugins.
+4. Pure matcher-development commands (`check`) do not load robot configuration; they compile only the supplied SimpleMatcher and example command text.
+5. Encryption-only commands (`encrypt`, `decrypt`, `uuid`) initialize encryption directly from `GOPHER_ENCRYPTION_KEY` plus `binary-encrypted-key[.<environment>]`.
+6. Config-only commands (`dump`, `validate`, `gentotp`) use a lightweight pre-connect config load when needed, but do not initialize a brain provider. `dump` expands `{{ secret "NAME" }}` as redacted placeholders by default and requires `--unredacted-secrets` to print decrypted secret values.
+7. Command-inspection commands (`match`) load plugin command configuration and compile matchers, but suppress `@init` jobs, connector reload/reconciliation, scheduling, and plugin initialization. `match` decrypts template secrets when encryption is available and otherwise substitutes redacted placeholders so command metadata remains inspectable without exposing or requiring the robot encryption key. `match -interactive` reuses that single loaded command inventory while prompting for command text until EOF; terminal sessions use the vendored readline with per-session command history.
+8. Memory commands use the lightweight config load plus the configured brain provider object or local cache directly. They do not start `runBrain()`. `fetch` and `list` read the local cache by default and close without flushing pending cloud work; `fetch -validate-cloud`, `fetch -cloud`, and `list -cloud` are explicit cloud inspection paths that report local cache sync status to stderr. `store` and `delete` update the local cache and flush cloud sync before reporting success.
+9. Brain migration commands (`pull-brain`, `restore-brain`) and `flush-brain` use the lightweight config load and remote brain backend directly. `pull-brain` / `restore-brain` are the only v2 brain import/export compatibility paths.
+10. `genkey` is a no-init CLI command after private environment loading; it uses `GOPHER_ENCRYPTION_KEY` directly to generate an encrypted `binary-encrypted-key[.<environment>]` payload without starting brain, connectors, or plugins.
 
 Operational note:
 
 - CLI mode now defaults startup logging to `stderr` instead of silently writing early failures to `robot.log`, unless the operator explicitly overrides logging with `-log`.
 - CLI mode forces log level `Warn` for routine command execution, so users see warnings/errors instead of normal startup chatter.
+- CLI commands that substitute redacted template secrets report that fact on `stderr`; structured command output remains on `stdout`.
 
 ## Robot Identity and Bootstrap Model
 

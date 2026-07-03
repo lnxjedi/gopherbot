@@ -113,11 +113,62 @@ var activeConfigVariables = struct {
 	},
 }
 
+type configSecretResolutionMode int
+
+const (
+	configSecretRequire configSecretResolutionMode = iota
+	configSecretPrefer
+	configSecretRedact
+)
+
+const redactedTemplateSecret = "XXXXXX"
+
+var configSecretResolution = struct {
+	sync.Mutex
+	mode     configSecretResolutionMode
+	redacted bool
+}{
+	mode: configSecretRequire,
+}
+
 func newConfigVariableSet() *configVariableSet {
 	return &configVariableSet{
 		Secrets:   make(map[string]string),
 		Variables: make(map[string]string),
 	}
+}
+
+func beginConfigSecretResolution(mode configSecretResolutionMode) func() {
+	configSecretResolution.Lock()
+	oldMode := configSecretResolution.mode
+	oldRedacted := configSecretResolution.redacted
+	configSecretResolution.mode = mode
+	configSecretResolution.redacted = false
+	configSecretResolution.Unlock()
+	return func() {
+		configSecretResolution.Lock()
+		configSecretResolution.mode = oldMode
+		configSecretResolution.redacted = oldRedacted
+		configSecretResolution.Unlock()
+	}
+}
+
+func currentConfigSecretResolutionMode() configSecretResolutionMode {
+	configSecretResolution.Lock()
+	defer configSecretResolution.Unlock()
+	return configSecretResolution.mode
+}
+
+func markConfigSecretRedacted() {
+	configSecretResolution.Lock()
+	configSecretResolution.redacted = true
+	configSecretResolution.Unlock()
+}
+
+func configSecretRedactionUsed() bool {
+	configSecretResolution.Lock()
+	defer configSecretResolution.Unlock()
+	return configSecretResolution.redacted
 }
 
 func currentConfigTemplateEnvironment() string {
@@ -212,18 +263,27 @@ func decryptTpl(encval string) (string, error) {
 
 // secretTpl resolves a named encrypted secret from custom conf/variables files.
 func secretTpl(name string) (string, error) {
-	cryptKey.RLock()
-	initialized := cryptKey.initialized
-	key := cryptKey.key
-	cryptKey.RUnlock()
-	if !initialized {
-		return "", fmt.Errorf("template secret %q requested but encryption is not initialized", name)
-	}
 	activeConfigVariables.RLock()
 	encval, ok := activeConfigVariables.values.Secrets[name]
 	activeConfigVariables.RUnlock()
 	if !ok {
 		return "", fmt.Errorf("template secret %q is not defined in custom conf/variables/common.yaml or custom conf/variables/%s.yaml", name, currentConfigTemplateEnvironment())
+	}
+	mode := currentConfigSecretResolutionMode()
+	if mode == configSecretRedact {
+		markConfigSecretRedacted()
+		return redactedTemplateSecret, nil
+	}
+	cryptKey.RLock()
+	initialized := cryptKey.initialized
+	key := append([]byte(nil), cryptKey.key...)
+	cryptKey.RUnlock()
+	if !initialized {
+		if mode == configSecretPrefer {
+			markConfigSecretRedacted()
+			return redactedTemplateSecret, nil
+		}
+		return "", fmt.Errorf("template secret %q requested but encryption is not initialized", name)
 	}
 	encbytes, err := base64.StdEncoding.DecodeString(encval)
 	if err != nil {

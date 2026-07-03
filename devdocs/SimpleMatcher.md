@@ -6,6 +6,10 @@ Status note: this document is the v3 authoring contract. Parser, dispatcher, tes
 
 `SimpleMatcher` is only for directed plugin `Commands`, such as `bot, do something` or alias-prefixed hidden commands. Ambient `MessageMatchers`, reply matchers, and job argument matchers remain regex-based.
 
+Use `gopherbot check '<simple matcher>' <example command>` while authoring. It compiles one SimpleMatcher without loading robot configuration and prints captures as a bracketed list, syntax diagnostics, or `NO MATCH`. Add `-json` for structured output.
+
+Use `gopherbot match <example command>` from a robot directory to inspect the configured plugin commands. `match` decrypts template secrets when encryption is available; if the robot encryption key is unavailable, it substitutes redacted placeholders and reports that on stderr so command metadata can still be inspected. Use `gopherbot match -interactive` to load configuration once, then test command text at the `Command?: ` prompt until EOF.
+
 ## Design Rule
 
 Use `SimpleMatcher` for the common 99% of command matchers. If a command needs escaping rules, lookarounds, unusual punctuation handling, or subtle regex precedence, use `Regex` instead.
@@ -14,7 +18,7 @@ Use `SimpleMatcher` for the common 99% of command matchers. If a command needs e
 
 | Syntax | Meaning | Captures? | Example |
 |---|---|---:|---|
-| `literal words` | Required literal text. Spaces between command words in the spec match spaces or dashes in input. | No | `show log` matches `show log` and `show-log` |
+| `literal words` | Required literal text. Spaces between command words in one command phrase match spaces or dashes in input, but the phrase must use one separator style consistently. | No | `show log` matches `show log` and `show-log` |
 | `/a|b/` | Required non-capturing synonyms. Use when choices are equivalent to the plugin. | No | `/remove|delete/ <user:token>` |
 | `(label:a|b)` | Required labelled capturing choice. Use when the plugin needs the selected value. | Yes | `(level:trace|debug|info|warn|error)` |
 | `(:a|b)` | Required capturing choice with no diagnostic label. Use only when the value itself is self-explanatory. | Yes | `(:trace|debug|info|warn|error)` |
@@ -27,7 +31,11 @@ Use `SimpleMatcher` for the common 99% of command matchers. If a command needs e
 
 The delimiter characters are part of the SimpleMatcher grammar, not regex syntax. Do not rely on regex escaping inside a `SimpleMatcher`; switch to `Regex` when the simple grammar is not enough.
 
-Dash forgiveness is for command wording, including literal capturing choices. A space before a typed capture or options block requires whitespace in user input. For example, `spot (type:bigrails|rails|ember|devops|config) up` matches `spot-devops-up`, and `rails up [<branch:token>]` matches `rails-up dev`, but not `rails-up-dev`; use a real space before option-like values such as `rails up -branch:dev` or `rails up -spot`.
+Dash forgiveness is for command wording. Within one contiguous command phrase, the user must pick one separator style: `spot devops up` and `spot-devops-up` both match `spot (type:bigrails|rails|ember|devops|config) up`, but `spot devops-up` and `spot-devops up` do not. This lets a hyphenated command phrase disambiguate command words from following arguments.
+
+Typed captures and option blocks are value boundaries. A space before a typed capture or options block requires real whitespace in user input, and a hyphen inside the value remains part of that value. For example, `rails up [<branch:token>]` matches `rails-up dev` and captures `dev`, but does not match `rails-up-dev`; `show <service:ident>` matches `show slack-prod` and captures `slack-prod`. Use a real space before option-like values such as `rails up -branch:dev` or `rails up -spot`.
+
+Labelled literal choices follow their position. A choice embedded in the command phrase participates in the command phrase separator rule, as in `spot (type:rails|devops) up`. A terminal choice can be typed either as the last dash segment or as a separate value, so `set-loglevel-info` and `set-loglevel info` can both match `set loglevel (level:trace|debug|info)`.
 
 Capturing choice groups require a label prefix before the first top-level colon. The label may be empty. This keeps values containing `:` unambiguous:
 
@@ -146,7 +154,7 @@ The label in `<label:type>` is used for diagnostics and documentation. `<siding:
 
 When a directed command does not exactly match, the engine may still recognize a `SyntaxMatch`. A syntax match means the command skeleton matched exactly, but one captured field did not satisfy its labelled choice or typed capture.
 
-The command skeleton is the literal structure of the `SimpleMatcher`: required literal words, required synonym groups, optional noise groups that are present, optional capturing groups that are present, separators, and capture positions. It uses the same separator rules as exact matching: command-word separators, including literal capturing choices, are whitespace/dash forgiving, while typed captured values and options require whitespace before the captured term. It does not use fuzzy matching.
+The command skeleton is the literal structure of the `SimpleMatcher`: required literal words, required synonym groups, optional noise groups that are present, optional capturing groups that are present, separators, and capture positions. It uses the same separator rules as exact matching: command phrases are whitespace/dash forgiving only when the phrase uses one separator style consistently, while typed captured values and options require whitespace before the captured term. It does not use fuzzy matching.
 
 If the skeleton does not match exactly, the matcher reports `NoMatch` and the normal help/fallback system provides the best suggestion it can. For example, `set logging to fine` should not claim a bad `level` value for `set log level {to} (level:trace|debug|info|warn|error)` because the command skeleton is different.
 

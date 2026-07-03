@@ -70,12 +70,12 @@ func (r Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, a
 		matched := false
 		for _, matcher := range plugin.Commands {
 			Log(robot.Trace, "Checking '%s' against '%s'", cmsg, matcher.Regex)
-			matches := matcher.re.FindAllStringSubmatch(cmsg, -1)
-			if matches != nil {
+			result := matcher.matchCommandInput(cmsg)
+			if result.kind == inputExactMatch {
 				matched = true
 				Log(robot.Trace, "Pipeline command '%s' matches '%s'", cmsg, matcher.Command)
 				command = matcher.Command
-				cmdargs = matches[0][1:]
+				cmdargs = result.args
 				break
 			}
 		}

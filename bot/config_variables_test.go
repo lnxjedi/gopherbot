@@ -16,11 +16,17 @@ func resetConfigVariableTestState(t *testing.T) {
 	oldInitialized := cryptKey.initialized
 	oldInitializing := cryptKey.initializing
 	oldKey := append([]byte(nil), cryptKey.key...)
+	oldSecretMode := configSecretResolution.mode
+	oldSecretRedacted := configSecretResolution.redacted
 
 	cryptKey.Lock()
 	cryptKey.key = []byte("0123456789abcdef0123456789abcdef")
 	cryptKey.initialized = true
 	cryptKey.Unlock()
+	configSecretResolution.Lock()
+	configSecretResolution.mode = configSecretRequire
+	configSecretResolution.redacted = false
+	configSecretResolution.Unlock()
 	setActiveConfigVariables(newConfigVariableSet())
 
 	t.Cleanup(func() {
@@ -32,6 +38,10 @@ func resetConfigVariableTestState(t *testing.T) {
 		cryptKey.initialized = oldInitialized
 		cryptKey.initializing = oldInitializing
 		cryptKey.Unlock()
+		configSecretResolution.Lock()
+		configSecretResolution.mode = oldSecretMode
+		configSecretResolution.redacted = oldSecretRedacted
+		configSecretResolution.Unlock()
 	})
 }
 
@@ -153,6 +163,103 @@ Variables:
 	}
 	if got := string(out); got != "token=secret-value channel=dev-jobs" {
 		t.Fatalf("expanded = %q", got)
+	}
+}
+
+func TestSecretTemplateRequireFailsWithoutEncryption(t *testing.T) {
+	resetConfigVariableTestState(t)
+	setActiveConfigVariables(&configVariableSet{
+		Secrets: map[string]string{
+			"API_TOKEN": encryptedConfigSecretForTest(t, "secret-value"),
+		},
+		Variables: map[string]string{},
+	})
+	cryptKey.Lock()
+	cryptKey.key = nil
+	cryptKey.initialized = false
+	cryptKey.Unlock()
+
+	restore := beginConfigSecretResolution(configSecretRequire)
+	defer restore()
+	_, err := expand("conf", true, []byte(`token={{ secret "API_TOKEN" }}`))
+	if err == nil {
+		t.Fatal("expand succeeded without encryption in require mode")
+	}
+	if !strings.Contains(err.Error(), "encryption is not initialized") {
+		t.Fatalf("expand error = %v, want encryption error", err)
+	}
+}
+
+func TestSecretTemplatePreferRedactsWithoutEncryption(t *testing.T) {
+	resetConfigVariableTestState(t)
+	setActiveConfigVariables(&configVariableSet{
+		Secrets: map[string]string{
+			"API_TOKEN": encryptedConfigSecretForTest(t, "secret-value"),
+		},
+		Variables: map[string]string{},
+	})
+	cryptKey.Lock()
+	cryptKey.key = nil
+	cryptKey.initialized = false
+	cryptKey.Unlock()
+
+	restore := beginConfigSecretResolution(configSecretPrefer)
+	defer restore()
+	out, err := expand("conf", true, []byte(`token={{ secret "API_TOKEN" }}`))
+	if err != nil {
+		t.Fatalf("expand(): %v", err)
+	}
+	if got, want := string(out), "token="+redactedTemplateSecret; got != want {
+		t.Fatalf("expanded = %q, want %q", got, want)
+	}
+	if !configSecretRedactionUsed() {
+		t.Fatal("redaction flag was not set")
+	}
+}
+
+func TestSecretTemplatePreferDecryptsWhenEncryptionAvailable(t *testing.T) {
+	resetConfigVariableTestState(t)
+	setActiveConfigVariables(&configVariableSet{
+		Secrets: map[string]string{
+			"API_TOKEN": encryptedConfigSecretForTest(t, "secret-value"),
+		},
+		Variables: map[string]string{},
+	})
+
+	restore := beginConfigSecretResolution(configSecretPrefer)
+	defer restore()
+	out, err := expand("conf", true, []byte(`token={{ secret "API_TOKEN" }}`))
+	if err != nil {
+		t.Fatalf("expand(): %v", err)
+	}
+	if got, want := string(out), "token=secret-value"; got != want {
+		t.Fatalf("expanded = %q, want %q", got, want)
+	}
+	if configSecretRedactionUsed() {
+		t.Fatal("redaction flag set despite decrypting real secret")
+	}
+}
+
+func TestSecretTemplateRedactAlwaysUsesPlaceholder(t *testing.T) {
+	resetConfigVariableTestState(t)
+	setActiveConfigVariables(&configVariableSet{
+		Secrets: map[string]string{
+			"API_TOKEN": encryptedConfigSecretForTest(t, "secret-value"),
+		},
+		Variables: map[string]string{},
+	})
+
+	restore := beginConfigSecretResolution(configSecretRedact)
+	defer restore()
+	out, err := expand("conf", true, []byte(`token={{ secret "API_TOKEN" }}`))
+	if err != nil {
+		t.Fatalf("expand(): %v", err)
+	}
+	if got, want := string(out), "token="+redactedTemplateSecret; got != want {
+		t.Fatalf("expanded = %q, want %q", got, want)
+	}
+	if !configSecretRedactionUsed() {
+		t.Fatal("redaction flag was not set")
 	}
 }
 

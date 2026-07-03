@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 )
 
-// Dump and expanded, but not parsed, configuration file - for troubleshooting yaml errors
-func cliDump(which, file string) {
+// Dump an expanded, but not parsed, configuration file for troubleshooting yaml errors.
+func cliDump(which, file string, unredactedSecrets bool) {
 	var base string
 	var custom bool
 	switch which {
@@ -17,6 +17,13 @@ func cliDump(which, file string) {
 		custom = true
 		base = configPath
 	}
+	secretMode := configSecretRedact
+	if unredactedSecrets {
+		secretMode = configSecretRequire
+	}
+	restoreSecretMode := beginConfigSecretResolution(secretMode)
+	defer restoreSecretMode()
+
 	cfgfile := filepath.Join(base, "conf", file)
 	raw, err := os.ReadFile(cfgfile)
 	if err != nil {
@@ -38,6 +45,9 @@ func cliDump(which, file string) {
 	if err != nil {
 		fmt.Printf("Expanding '%s': %v\n", cfgfile, err)
 		os.Exit(1)
+	}
+	if configSecretRedactionUsed() {
+		fmt.Fprintln(os.Stderr, `Info: secret template values redacted; use --unredacted-secrets to print decrypted secrets`)
 	}
 	fmt.Println(string(expanded))
 }

@@ -1037,8 +1037,10 @@ func loadConfig(preConnect bool) error {
 	} else {
 		// We should never dump the brain key
 		newconfig.EncryptionKey = "XXXXXX"
-		// initJobs need to run before post-connect loadTaskConfig
-		initJobs()
+		if !cliMatcherConfigLoad {
+			// initJobs need to run before post-connect loadTaskConfig
+			initJobs()
+		}
 	}
 
 	newList, err := loadTaskConfig(processed, preConnect)
@@ -1064,7 +1066,7 @@ func loadConfig(preConnect bool) error {
 	currentCfg.taskList = newList
 	currentCfg.Unlock()
 
-	if !preConnect {
+	if !preConnect && !cliMatcherConfigLoad {
 		reconcileSecondaryConnectorRuntimes(processed.secondaryProtocols)
 		reconcileQueueProviderRuntimes(processed.queueProviders)
 		if err := reloadActiveConnectorRuntimes(); err != nil {

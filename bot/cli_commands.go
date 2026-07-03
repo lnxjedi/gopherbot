@@ -72,6 +72,26 @@ func cliCommands() []cliCommandSpec {
 			RunsBeforeInit: true,
 		},
 		{
+			Name:         "check",
+			SummaryUsage: "check [options] <simple matcher> <command text>",
+			Summary:      "test one SimpleMatcher against example command text",
+			HelpLines: []string{
+				"Usage: gopherbot check [options] <simple matcher> <command text>",
+				"",
+				"Compiles one SimpleMatcher and tests it against the command text.",
+				"This command does not load robot configuration and can run outside",
+				"a configured robot repository.",
+				"",
+				"Options:",
+				"  -json, -j   write structured JSON output",
+				"",
+				"Examples:",
+				"  gopherbot check 'spot (type:rails|devops) up [<branch:token>]' spot-devops-up",
+				"  gopherbot check -json 'set loglevel {to} (level:trace|debug|info|warn|error)' set-loglevel-info",
+			},
+			RunsBeforeInit: true,
+		},
+		{
 			Name:         "decrypt",
 			SummaryUsage: "decrypt [options] <base64>",
 			Summary:      "decrypt a base64 string or file",
@@ -99,6 +119,29 @@ func cliCommands() []cliCommandSpec {
 				"",
 				"Generates a TOTP secret for the named user, prints the secret plus an",
 				"encrypted config snippet, and writes <username>.png for QR enrollment.",
+			},
+			RunsBeforeInit: true,
+		},
+		{
+			Name:         "match",
+			SummaryUsage: "match [options] <command text>",
+			Summary:      "match command text against configured plugin commands",
+			HelpLines: []string{
+				"Usage: gopherbot match [options] <command text>",
+				"   or: gopherbot match -interactive [options]",
+				"",
+				"Loads robot configuration, inspects directed plugin Commands, and",
+				"reports exact matches or SimpleMatcher syntax diagnostics. It does",
+				"not start connectors or execute matching pipelines.",
+				"",
+				"Options:",
+				"  -interactive   prompt for command text until EOF",
+				"  -json, -j      write structured JSON output",
+				"",
+				"Examples:",
+				"  gopherbot match spot-devops-up",
+				"  gopherbot match -interactive",
+				"  gopherbot match -json get-console qa",
 			},
 			RunsBeforeInit: true,
 		},
@@ -166,12 +209,16 @@ func cliCommands() []cliCommandSpec {
 		},
 		{
 			Name:         "dump",
-			SummaryUsage: "dump <installed|configured> <path>",
+			SummaryUsage: "dump [options] <installed|configured> <path>",
 			Summary:      "expand and print a raw config file",
 			HelpLines: []string{
-				"Usage: gopherbot dump <installed|configured> <path>",
+				"Usage: gopherbot dump [options] <installed|configured> <path>",
 				"",
 				"Reads conf/<path>, expands templates/includes, and prints the raw YAML.",
+				"Secret template values are redacted by default.",
+				"",
+				"Options:",
+				"  -unredacted-secrets   print decrypted secret template values",
 				"",
 				"Examples:",
 				"  gopherbot dump installed robot.yaml",
@@ -419,6 +466,10 @@ func processCLI(command string, args []string) int {
 	var genkeyForce bool
 	var fetchOpts cliFetchOptions
 	var listCloud bool
+	var checkJSON bool
+	var matchJSON bool
+	var matchInteractive bool
+	var dumpUnredactedSecrets bool
 
 	encFlags := newCLIFlagSet("encrypt")
 	encFlags.StringVar(&fileName, "file", "", "file to encrypt (or - for stdin)")
@@ -426,11 +477,18 @@ func processCLI(command string, args []string) int {
 	encFlags.BoolVar(&encodeBinary, "binary", false, "binary dump (defauts to base64 encoded)")
 	encFlags.BoolVar(&encodeBinary, "b", false, "")
 
+	checkFlags := newCLIFlagSet("check")
+	checkFlags.BoolVar(&checkJSON, "json", false, "write structured JSON output")
+	checkFlags.BoolVar(&checkJSON, "j", false, "")
+
 	decFlags := newCLIFlagSet("decrypt")
 	decFlags.StringVar(&fileName, "file", "", "file to decrypt (or - for stdin)")
 	decFlags.StringVar(&fileName, "f", "", "")
 	decFlags.BoolVar(&encodeBinary, "binary", false, "")
 	decFlags.BoolVar(&encodeBinary, "b", false, "")
+
+	dumpFlags := newCLIFlagSet("dump")
+	dumpFlags.BoolVar(&dumpUnredactedSecrets, "unredacted-secrets", false, "print decrypted secret template values")
 
 	totpFlags := newCLIFlagSet("gentotp")
 
@@ -450,6 +508,11 @@ func processCLI(command string, args []string) int {
 
 	listFlags := newCLIFlagSet("list")
 	listFlags.BoolVar(&listCloud, "cloud", false, "list remote cloud keys")
+
+	matchFlags := newCLIFlagSet("match")
+	matchFlags.BoolVar(&matchInteractive, "interactive", false, "prompt for command text until EOF")
+	matchFlags.BoolVar(&matchJSON, "json", false, "write structured JSON output")
+	matchFlags.BoolVar(&matchJSON, "j", false, "")
 
 	pullBrainFlags := newCLIFlagSet("pull-brain")
 	var pullBrainOpts brainPullOptions
@@ -500,6 +563,17 @@ func processCLI(command string, args []string) int {
 			return 2
 		}
 		cliEncrypt(encFlags.Arg(0), fileName, encodeBinary)
+	case "check":
+		if err := checkFlags.Parse(args); err != nil {
+			if err == flag.ErrHelp {
+				printCLICommandHelp(command)
+				return 0
+			}
+			fmt.Printf("Error: %v\n\n", err)
+			printCLICommandHelp(command)
+			return 2
+		}
+		return processCLICheckCommand(checkFlags.Args(), checkJSON)
 	case "decrypt":
 		if err := decFlags.Parse(args); err != nil {
 			if err == flag.ErrHelp {
@@ -519,19 +593,31 @@ func processCLI(command string, args []string) int {
 		cliDecrypt(decFlags.Arg(0), fileName)
 	case "dump":
 		setLogLevel(robot.Warn)
-		if len(args) != 2 {
+		if err := dumpFlags.Parse(args); err != nil {
+			if err == flag.ErrHelp {
+				printCLICommandHelp(command)
+				return 0
+			}
+			fmt.Printf("Error: %v\n\n", err)
+			printCLICommandHelp(command)
+			return 2
+		}
+		dumpArgs := dumpFlags.Args()
+		if len(dumpArgs) != 2 {
 			fmt.Println("Error: dump requires a source and a path")
 			fmt.Println()
 			printCLICommandHelp(command)
 			return 2
 		}
-		switch args[0] {
+		switch dumpArgs[0] {
 		case "installed", "configured":
-			initCrypt()
-			cliDump(args[0], args[1])
+			if dumpUnredactedSecrets {
+				initCrypt()
+			}
+			cliDump(dumpArgs[0], dumpArgs[1], dumpUnredactedSecrets)
 			return 0
 		default:
-			fmt.Printf("Error: dump source must be \"installed\" or \"configured\", got %q\n\n", args[0])
+			fmt.Printf("Error: dump source must be \"installed\" or \"configured\", got %q\n\n", dumpArgs[0])
 			printCLICommandHelp(command)
 			return 2
 		}
@@ -712,6 +798,17 @@ func processCLI(command string, args []string) int {
 			fmt.Printf("Error: %v\n", err)
 			return 1
 		}
+	case "match":
+		if err := matchFlags.Parse(args); err != nil {
+			if err == flag.ErrHelp {
+				printCLICommandHelp(command)
+				return 0
+			}
+			fmt.Printf("Error: %v\n\n", err)
+			printCLICommandHelp(command)
+			return 2
+		}
+		return processCLIMatchCommand(matchFlags.Args(), matchJSON, matchInteractive)
 	case "delete":
 		if len(args) != 1 {
 			fmt.Println("Error: delete requires exactly one memory key")
@@ -820,6 +917,9 @@ func processCLI(command string, args []string) int {
 }
 
 var cliConfigInitialized bool
+var cliMatcherConfigLoad bool
+var cliMatcherConfigInitialized bool
+var cliMatcherConfigRedacted bool
 
 func initCLIConfigDirectory() {
 	var err error
@@ -870,6 +970,30 @@ func initCLIConfigOnly() {
 		Log(robot.Fatal, "Loading initial configuration: %v", err)
 	}
 	cliConfigInitialized = true
+}
+
+func initCLICommandMatcherConfig() {
+	if cliMatcherConfigInitialized {
+		return
+	}
+	currentCfg.configuration = &configuration{}
+	initCLIConfigDirectory()
+
+	encryptionInitialized := initCrypt()
+	if encryptionInitialized {
+		setEnv("GOPHER_ENCRYPTION_INITIALIZED", "initialized")
+	}
+
+	restoreSecretMode := beginConfigSecretResolution(configSecretPrefer)
+	cliMatcherConfigLoad = true
+	err := loadConfig(false)
+	cliMatcherConfigLoad = false
+	cliMatcherConfigRedacted = configSecretRedactionUsed()
+	restoreSecretMode()
+	if err != nil {
+		Log(robot.Fatal, "Loading command matcher configuration: %v", err)
+	}
+	cliMatcherConfigInitialized = true
 }
 
 func initCLIBrainProvider() {

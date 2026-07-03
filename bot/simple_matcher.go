@@ -877,7 +877,7 @@ func (m InputMatcher) matchCommandInput(input string) inputMatchResult {
 
 func (m InputMatcher) matchInputCandidates(input string, allowTrailingDot bool) inputMatchResult {
 	exactCandidates, syntaxCandidates := matcherInputCandidates(input, allowTrailingDot)
-	if m.simple != nil && m.simple.hasVariableArgs {
+	if m.simple != nil {
 		for _, candidate := range exactCandidates {
 			if exact := m.simple.syntaxMatch(candidate); exact.kind == inputExactMatch {
 				return exact
@@ -964,6 +964,7 @@ func matcherInputCandidates(input string, allowTrailingDot bool) ([]string, []st
 
 type simpleMatcherToken struct {
 	value     string
+	field     string
 	sepBefore simpleMatcherTokenSeparator
 }
 
@@ -971,7 +972,16 @@ type simpleMatcherMatchState struct {
 	pos        int
 	args       []string
 	diagnostic string
+	commandSep simpleMatcherTokenSeparator
 }
+
+type simpleMatcherBoundaryMode int
+
+const (
+	simpleMatcherCommandBoundary simpleMatcherBoundaryMode = iota
+	simpleMatcherValueBoundary
+	simpleMatcherWhitespaceArgumentBoundary
+)
 
 func (s *simpleMatcher) syntaxMatch(input string) inputMatchResult {
 	tokens := simpleMatcherTokenize(input)
@@ -1004,7 +1014,7 @@ func simpleMatcherTokenize(input string) []simpleMatcherToken {
 			continue
 		}
 		if strings.HasPrefix(field, "-") {
-			tokens = append(tokens, simpleMatcherToken{value: field, sepBefore: nextSep})
+			tokens = append(tokens, simpleMatcherToken{value: field, field: field, sepBefore: nextSep})
 			nextSep = simpleMatcherWhitespaceTokenSeparator
 			continue
 		}
@@ -1015,7 +1025,7 @@ func simpleMatcherTokenize(input string) []simpleMatcherToken {
 			if part == "" {
 				continue
 			}
-			tokens = append(tokens, simpleMatcherToken{value: part, sepBefore: nextSep})
+			tokens = append(tokens, simpleMatcherToken{value: part, field: field, sepBefore: nextSep})
 			nextSep = simpleMatcherDashTokenSeparator
 		}
 		nextSep = simpleMatcherWhitespaceTokenSeparator
@@ -1033,10 +1043,16 @@ func (e simpleMatcherExpr) matchTokens(tokens []simpleMatcherToken, state simple
 
 func (s simpleMatcherSequence) matchTokens(tokens []simpleMatcherToken, initial simpleMatcherMatchState) []simpleMatcherMatchState {
 	states := []simpleMatcherMatchState{initial}
-	for _, term := range s.terms {
+	for i, term := range s.terms {
 		var next []simpleMatcherMatchState
 		for _, state := range states {
-			if state.pos > 0 && state.pos < len(tokens) && !term.separatorBefore().matchesTokenSeparator(tokens[state.pos].sepBefore) {
+			if state.pos < len(tokens) {
+				matchedState, ok := state.matchSeparator(term.separatorBefore(), tokens[state.pos].sepBefore, s.boundaryModeAt(i))
+				if !ok {
+					continue
+				}
+				state = matchedState
+			} else if state.pos > 0 && !term.isOptional() {
 				continue
 			}
 			next = append(next, term.matchTokens(tokens, state)...)
@@ -1049,8 +1065,76 @@ func (s simpleMatcherSequence) matchTokens(tokens []simpleMatcherToken, initial 
 	return states
 }
 
-func (k simpleMatcherSeparatorKind) matchesTokenSeparator(sep simpleMatcherTokenSeparator) bool {
-	switch k {
+func (s simpleMatcherSequence) boundaryModeAt(index int) simpleMatcherBoundaryMode {
+	switch s.terms[index].(type) {
+	case simpleMatcherSlot, simpleMatcherOptionsBlock:
+		return simpleMatcherWhitespaceArgumentBoundary
+	}
+	if s.suffixIsValueTail(index) {
+		return simpleMatcherValueBoundary
+	}
+	return simpleMatcherCommandBoundary
+}
+
+func (s simpleMatcherSequence) suffixIsValueTail(start int) bool {
+	hasValue := false
+	for i := start; i < len(s.terms); i++ {
+		switch term := s.terms[i].(type) {
+		case simpleMatcherSlot, simpleMatcherOptionsBlock:
+			hasValue = true
+		case simpleMatcherGroup:
+			switch {
+			case term.capturing && !term.containsSlot():
+				hasValue = true
+			case term.optional && !term.capturing:
+				if term.containsSlot() {
+					hasValue = true
+				}
+			default:
+				return false
+			}
+		default:
+			return false
+		}
+	}
+	return hasValue
+}
+
+func (state simpleMatcherMatchState) matchSeparator(kind simpleMatcherSeparatorKind, sep simpleMatcherTokenSeparator, mode simpleMatcherBoundaryMode) (simpleMatcherMatchState, bool) {
+	if state.pos == 0 {
+		return state, true
+	}
+	switch mode {
+	case simpleMatcherWhitespaceArgumentBoundary:
+		if sep != simpleMatcherWhitespaceTokenSeparator {
+			return state, false
+		}
+		state.commandSep = simpleMatcherNoTokenSeparator
+		return state, true
+	case simpleMatcherValueBoundary:
+		if !kind.matchesTokenSeparator(sep) {
+			return state, false
+		}
+		state.commandSep = simpleMatcherNoTokenSeparator
+		return state, true
+	default:
+		if !kind.matchesTokenSeparator(sep) {
+			return state, false
+		}
+		if kind == simpleMatcherWhitespaceSeparator {
+			state.commandSep = simpleMatcherNoTokenSeparator
+			return state, true
+		}
+		if state.commandSep == simpleMatcherNoTokenSeparator {
+			state.commandSep = sep
+			return state, true
+		}
+		return state, state.commandSep == sep
+	}
+}
+
+func (kind simpleMatcherSeparatorKind) matchesTokenSeparator(sep simpleMatcherTokenSeparator) bool {
+	switch kind {
 	case simpleMatcherWhitespaceSeparator:
 		return sep == simpleMatcherWhitespaceTokenSeparator
 	default:
@@ -1060,64 +1144,66 @@ func (k simpleMatcherSeparatorKind) matchesTokenSeparator(sep simpleMatcherToken
 
 func (l simpleMatcherLiteral) matchTokens(tokens []simpleMatcherToken, state simpleMatcherMatchState) []simpleMatcherMatchState {
 	parts := simpleMatcherLiteralParts(l.value)
-	if len(parts) == 0 || state.pos+len(parts) > len(tokens) {
+	matched, _, ok := matchSimpleMatcherLiteralParts(tokens, state, parts)
+	if !ok {
 		return nil
 	}
-	for i, part := range parts {
-		if !strings.EqualFold(tokens[state.pos+i].value, part) {
-			return nil
-		}
-	}
-	state.pos += len(parts)
-	return []simpleMatcherMatchState{state}
+	return []simpleMatcherMatchState{matched}
 }
 
 func (s simpleMatcherSlot) matchTokens(tokens []simpleMatcherToken, state simpleMatcherMatchState) []simpleMatcherMatchState {
 	if state.pos >= len(tokens) {
 		return nil
 	}
-	value := tokens[state.pos].value
+	value, nextPos := simpleMatcherTokenFieldAt(tokens, state.pos)
 	if s.kind == "rest" {
-		value = joinSimpleMatcherTokens(tokens[state.pos:])
-		state.pos = len(tokens)
-		state.args = append(state.args, value)
-		return []simpleMatcherMatchState{state}
+		var out []simpleMatcherMatchState
+		for _, end := range simpleMatcherRestEndPositions(tokens, state.pos) {
+			matched := state
+			matched.pos = end
+			matched.args = append(matched.args, joinSimpleMatcherTokenFields(tokens[state.pos:end]))
+			matched.commandSep = simpleMatcherNoTokenSeparator
+			out = append(out, matched)
+		}
+		return out
 	}
 	if simpleMatcherTypeMatches(s.kind, value) {
-		state.pos++
+		state.pos = nextPos
 		state.args = append(state.args, value)
+		state.commandSep = simpleMatcherNoTokenSeparator
 		return []simpleMatcherMatchState{state}
 	}
 	if state.diagnostic != "" {
 		return nil
 	}
-	state.pos++
+	state.pos = nextPos
 	state.diagnostic = invalidSimpleMatcherTypeDiagnostic(s.name, s.kind, value)
+	state.commandSep = simpleMatcherNoTokenSeparator
 	return []simpleMatcherMatchState{state}
 }
 
 func (g simpleMatcherGroup) matchTokens(tokens []simpleMatcherToken, state simpleMatcherMatchState) []simpleMatcherMatchState {
 	var out []simpleMatcherMatchState
+	var skipped []simpleMatcherMatchState
 	if g.optional {
-		skipped := state
+		omitted := state
 		for i := 0; i < g.captureCount(); i++ {
-			skipped.args = append(skipped.args, "")
+			omitted.args = append(omitted.args, "")
 		}
-		out = append(out, skipped)
+		skipped = append(skipped, omitted)
 	}
 	if g.capturing && !g.containsSlot() {
 		out = append(out, g.matchChoiceTokens(tokens, state)...)
-		return out
+		return append(out, skipped...)
 	}
-	return append(out, g.expr.matchTokens(tokens, state)...)
+	out = append(out, g.expr.matchTokens(tokens, state)...)
+	return append(out, skipped...)
 }
 
 func (g simpleMatcherGroup) matchChoiceTokens(tokens []simpleMatcherToken, state simpleMatcherMatchState) []simpleMatcherMatchState {
 	var out []simpleMatcherMatchState
 	for _, alt := range g.expr.alternatives {
-		if value, ok := alt.literalValueAt(tokens, state.pos); ok {
-			matched := state
-			matched.pos += len(simpleMatcherSequenceLiteralParts(alt))
+		if matched, value, ok := alt.literalValueAt(tokens, state); ok {
 			matched.args = append(matched.args, value)
 			out = append(out, matched)
 		}
@@ -1151,6 +1237,7 @@ func (o simpleMatcherOptionsBlock) matchTokens(tokens []simpleMatcherToken, stat
 		}
 		matched.args = append(matched.args, tokens[matched.pos].value)
 		matched.pos++
+		matched.commandSep = simpleMatcherNoTokenSeparator
 	}
 	return []simpleMatcherMatchState{matched}
 }
@@ -1198,19 +1285,9 @@ func (o simpleMatcherOptionsBlock) optionDisplays() []string {
 	return values
 }
 
-func (s simpleMatcherSequence) literalValueAt(tokens []simpleMatcherToken, pos int) (string, bool) {
+func (s simpleMatcherSequence) literalValueAt(tokens []simpleMatcherToken, state simpleMatcherMatchState) (simpleMatcherMatchState, string, bool) {
 	parts := simpleMatcherSequenceLiteralParts(s)
-	if len(parts) == 0 || pos+len(parts) > len(tokens) {
-		return "", false
-	}
-	for i, part := range parts {
-		if !strings.EqualFold(tokens[pos+i].value, part) {
-			return "", false
-		}
-	}
-	values := make([]simpleMatcherToken, len(parts))
-	copy(values, tokens[pos:pos+len(parts)])
-	return joinSimpleMatcherTokens(values), true
+	return matchSimpleMatcherLiteralParts(tokens, state, parts)
 }
 
 func simpleMatcherSequenceLiteralParts(s simpleMatcherSequence) []string {
@@ -1257,6 +1334,67 @@ func joinSimpleMatcherTokens(tokens []simpleMatcherToken) string {
 		values = append(values, token.value)
 	}
 	return strings.Join(values, " ")
+}
+
+func matchSimpleMatcherLiteralParts(tokens []simpleMatcherToken, state simpleMatcherMatchState, parts []string) (simpleMatcherMatchState, string, bool) {
+	if len(parts) == 0 || state.pos+len(parts) > len(tokens) {
+		return state, "", false
+	}
+	start := state.pos
+	matched := state
+	for i, part := range parts {
+		pos := start + i
+		if i > 0 {
+			var ok bool
+			matched.pos = pos
+			matched, ok = matched.matchSeparator(simpleMatcherFlexibleSeparator, tokens[pos].sepBefore, simpleMatcherCommandBoundary)
+			if !ok {
+				return state, "", false
+			}
+		}
+		if !strings.EqualFold(tokens[pos].value, part) {
+			return state, "", false
+		}
+	}
+	matched.pos = start + len(parts)
+	values := make([]simpleMatcherToken, len(parts))
+	copy(values, tokens[start:start+len(parts)])
+	return matched, joinSimpleMatcherTokens(values), true
+}
+
+func simpleMatcherTokenFieldAt(tokens []simpleMatcherToken, pos int) (string, int) {
+	if pos >= len(tokens) {
+		return "", pos
+	}
+	field := tokens[pos].field
+	next := pos + 1
+	for next < len(tokens) && tokens[next].field == field {
+		next++
+	}
+	return field, next
+}
+
+func joinSimpleMatcherTokenFields(tokens []simpleMatcherToken) string {
+	values := make([]string, 0, len(tokens))
+	for pos := 0; pos < len(tokens); {
+		field, next := simpleMatcherTokenFieldAt(tokens, pos)
+		values = append(values, field)
+		pos = next
+	}
+	return strings.Join(values, " ")
+}
+
+func simpleMatcherRestEndPositions(tokens []simpleMatcherToken, pos int) []int {
+	var ends []int
+	for next := pos; next < len(tokens); {
+		_, end := simpleMatcherTokenFieldAt(tokens, next)
+		ends = append(ends, end)
+		next = end
+	}
+	for i, j := 0, len(ends)-1; i < j; i, j = i+1, j-1 {
+		ends[i], ends[j] = ends[j], ends[i]
+	}
+	return ends
 }
 
 func simpleMatcherTypeMatches(kind, value string) bool {

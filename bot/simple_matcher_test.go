@@ -131,7 +131,7 @@ func TestCompileSimpleMatcherRejectsBareAlternation(t *testing.T) {
 func TestCompileSimpleMatcherRequiredCapturingChoice(t *testing.T) {
 	re := mustCompileSimpleMatcherRegexp(t, "set log level {to} (level:trace|debug|info|warn|error)")
 
-	matches := re.FindStringSubmatch("set log-level to debug")
+	matches := re.FindStringSubmatch("set log level to debug")
 	if len(matches) != 2 {
 		t.Fatalf("len(matches) = %d, want 2 (%v)", len(matches), matches)
 	}
@@ -247,7 +247,7 @@ func TestCompileSimpleMatcherShippedConfigArgPositions(t *testing.T) {
 		{
 			name:    "logging level captures selected level only",
 			spec:    "set log level {to} (level:trace|debug|info|warn|error)",
-			input:   "set log-level to debug",
+			input:   "set-log-level-to debug",
 			capture: []string{"debug"},
 		},
 		{
@@ -308,17 +308,17 @@ func TestCompileSimpleMatcherShippedConfigArgPositions(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			re := mustCompileSimpleMatcherRegexp(t, tc.spec)
-			matches := re.FindStringSubmatch(tc.input)
-			if matches == nil {
+			matcher := mustCompileSimpleInputMatcher(t, tc.spec)
+			result := matcher.matchInput(tc.input)
+			if result.kind != inputExactMatch {
 				t.Fatalf("SimpleMatcher %q did not match %q", tc.spec, tc.input)
 			}
-			if len(matches[1:]) != len(tc.capture) {
-				t.Fatalf("captures = %#v, want %#v", matches[1:], tc.capture)
+			if len(result.args) != len(tc.capture) {
+				t.Fatalf("captures = %#v, want %#v", result.args, tc.capture)
 			}
 			for i, want := range tc.capture {
-				if matches[i+1] != want {
-					t.Fatalf("captures = %#v, want %#v", matches[1:], tc.capture)
+				if result.args[i] != want {
+					t.Fatalf("captures = %#v, want %#v", result.args, tc.capture)
 				}
 			}
 		})
@@ -547,6 +547,35 @@ func TestSimpleMatcherRequiresWhitespaceBeforeTypedCapture(t *testing.T) {
 	}
 }
 
+func TestSimpleMatcherCommandPhraseSeparatorsAreConsistent(t *testing.T) {
+	matcher := mustCompileSimpleInputMatcher(t, "spot (type:bigrails|rails|ember|devops|config) up [<branch:token>]")
+
+	tests := []struct {
+		input string
+		args  []string
+	}{
+		{"spot devops up", []string{"devops", ""}},
+		{"spot-devops-up", []string{"devops", ""}},
+		{"spot devops up dev", []string{"devops", "dev"}},
+		{"spot-devops-up dev", []string{"devops", "dev"}},
+	}
+	for _, tc := range tests {
+		result := matcher.matchInput(tc.input)
+		assertInputMatchResult(t, result, inputExactMatch, tc.args, "")
+	}
+
+	for _, input := range []string{
+		"spot devops-up",
+		"spot-devops up",
+		"spot devops-up dev",
+		"spot-devops up dev",
+		"spot devops up-dev",
+	} {
+		result := matcher.matchInput(input)
+		assertInputMatchResult(t, result, inputNoMatch, nil, "")
+	}
+}
+
 func TestSimpleMatcherHyphenatedCommandStillMatchesSeparateLiteralCommand(t *testing.T) {
 	baseMatcher := mustCompileSimpleInputMatcher(t, "(type:bigrails|rails|ember|devops|config) up [<branch:token>]")
 	devMatcher := mustCompileSimpleInputMatcher(t, "(type:bigrails|rails|ember|devops|config) up dev")
@@ -558,6 +587,29 @@ func TestSimpleMatcherHyphenatedCommandStillMatchesSeparateLiteralCommand(t *tes
 	assertInputMatchResult(t, result, inputExactMatch, []string{"rails"}, "")
 }
 
+func TestSimpleMatcherHyphenatedCommandDisambiguatesArguments(t *testing.T) {
+	baseMatcher := mustCompileSimpleInputMatcher(t, "spot (type:bigrails|rails|ember|devops|config) up [<branch:token>]")
+	devMatcher := mustCompileSimpleInputMatcher(t, "spot (type:bigrails|rails|ember|devops|config) up dev")
+
+	result := baseMatcher.matchInput("spot devops up dev")
+	assertInputMatchResult(t, result, inputExactMatch, []string{"devops", "dev"}, "")
+
+	result = devMatcher.matchInput("spot devops up dev")
+	assertInputMatchResult(t, result, inputExactMatch, []string{"devops"}, "")
+
+	result = baseMatcher.matchInput("spot-devops-up dev")
+	assertInputMatchResult(t, result, inputExactMatch, []string{"devops", "dev"}, "")
+
+	result = devMatcher.matchInput("spot-devops-up dev")
+	assertInputMatchResult(t, result, inputNoMatch, nil, "")
+
+	result = baseMatcher.matchInput("spot-devops-up-dev")
+	assertInputMatchResult(t, result, inputNoMatch, nil, "")
+
+	result = devMatcher.matchInput("spot-devops-up-dev")
+	assertInputMatchResult(t, result, inputExactMatch, []string{"devops"}, "")
+}
+
 func TestSimpleMatcherCapturingChoiceUsesCommandWordSeparators(t *testing.T) {
 	matcher := mustCompileSimpleInputMatcher(t, "set loglevel {to} (level:trace|debug|info|warn|error)")
 
@@ -567,11 +619,37 @@ func TestSimpleMatcherCapturingChoiceUsesCommandWordSeparators(t *testing.T) {
 	result = matcher.matchInput("set-loglevel-debug")
 	assertInputMatchResult(t, result, inputExactMatch, []string{"debug"}, "")
 
+	result = matcher.matchInput("set loglevel-debug")
+	assertInputMatchResult(t, result, inputExactMatch, []string{"debug"}, "")
+
+	result = matcher.matchInput("set log-level to debug")
+	assertInputMatchResult(t, result, inputNoMatch, nil, "")
+
 	result = matcher.matchInput("set-loglevel fine")
 	assertInputMatchResult(t, result, inputSyntaxMatch, nil, "Invalid value: \"fine\" for: \"level\"; valid values: trace, debug, info, warn, error.")
 
 	result = matcher.matchInput("set-loglevel-fine")
 	assertInputMatchResult(t, result, inputSyntaxMatch, nil, "Invalid value: \"fine\" for: \"level\"; valid values: trace, debug, info, warn, error.")
+}
+
+func TestSimpleMatcherTypedCapturesAreWhitespaceDelimitedFields(t *testing.T) {
+	showMatcher := mustCompileSimpleInputMatcher(t, "show <service:ident>")
+
+	result := showMatcher.matchInput("show slack-prod")
+	assertInputMatchResult(t, result, inputExactMatch, []string{"slack-prod"}, "")
+
+	deployMatcher := mustCompileSimpleInputMatcher(t, "deploy <service:ident> status")
+
+	result = deployMatcher.matchInput("deploy api status")
+	assertInputMatchResult(t, result, inputExactMatch, []string{"api"}, "")
+
+	for _, input := range []string{
+		"deploy-api status",
+		"deploy api-status",
+	} {
+		result = deployMatcher.matchInput(input)
+		assertInputMatchResult(t, result, inputNoMatch, nil, "")
+	}
 }
 
 func TestSimpleMatcherCapturingChoiceSupportsHyphenatedCommandPhrases(t *testing.T) {
