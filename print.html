@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a66cf0b5.js";
+            window.path_to_searchindex_js = "searchindex-a92a4f26.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-c6a2b80c.js"></script>
+        <script src="toc-b5ea2372.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -834,6 +834,7 @@ ping, floyd
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="command-matching"><a class="header" href="#command-matching">Command Matching</a></h1>
 <p>Gopherbot commands are matched by regular expressions, not fuzzy AI intent matching. That is a strength: the behavior is predictable, testable, and safe for automation.</p>
+<p>Most normal directed commands are authored with <code>SimpleMatcher</code>, a small command grammar for words, choices, typed captures, and CLI-style dash options. Plugin authors should use the <a href="#simplematcher-1">SimpleMatcher reference</a> for the full syntax and argument-passing rules.</p>
 <h2 id="what-happens-when-a-command-does-not-match"><a class="header" href="#what-happens-when-a-command-does-not-match">What happens when a command does not match</a></h2>
 <p>When you address the robot directly but no command matches, the robot usually replies with a message that points you back to help.</p>
 <p>That failure can mean one of three things:</p>
@@ -1133,6 +1134,7 @@ Commands:
 - Command: rollback
   SimpleMatcher: "rollback &lt;service:ident&gt;"
 </code></pre>
+<p>These are ordinary directed command matchers; see the <a href="#simplematcher-1">SimpleMatcher reference</a> for matcher syntax details.</p>
 <p>If the robot has <code>DefaultElevator: builtin-userapproval</code>, those commands use user approval automatically.</p>
 <p>To use this elevator for one plugin only, set <code>Elevator</code> in that plugin config:</p>
 <pre><code class="language-yaml">Elevator: builtin-userapproval
@@ -1186,9 +1188,10 @@ ElevatedCommands:
     Path: plugins/hello.lua
 </code></pre>
 <h2 id="2-add-matcher-and-help-metadata-in-customconfpluginshelloyaml"><a class="header" href="#2-add-matcher-and-help-metadata-in-customconfpluginshelloyaml">2. Add matcher and help metadata in <code>custom/conf/plugins/hello.yaml</code></a></h2>
+<p>For ordinary directed commands, use <code>SimpleMatcher</code>. See the <a href="#simplematcher-1">SimpleMatcher reference</a> when you need captures, choices, options, or detailed matching rules.</p>
 <pre><code class="language-yaml">Commands:
 - Command: hello
-  Regex: '(?i:hello)$'
+  SimpleMatcher: "hello"
   Usage: "hello"
   Summary: "reply with a friendly greeting"
   Examples:
@@ -1244,6 +1247,7 @@ return task.Fail
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="writing-good-help-text"><a class="header" href="#writing-good-help-text">Writing Good Help Text</a></h1>
 <p>Help in v3 is command-linked, so good help starts with good command metadata.</p>
+<p>Most directed commands should use <code>SimpleMatcher</code>; see the <a href="#simplematcher-1">SimpleMatcher reference</a> for the full command grammar. Help text should show what users type, not every detail of the matcher grammar.</p>
 <h2 id="recommended-fields"><a class="header" href="#recommended-fields">Recommended fields</a></h2>
 <ul>
 <li><code>Usage</code>: the command body only</li>
@@ -1254,7 +1258,7 @@ return task.Fail
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
 <pre><code class="language-yaml">Commands:
 - Command: deploy
-  Regex: '(?i:deploy ([A-Za-z0-9._/-]+))'
+  SimpleMatcher: "deploy &lt;branch:token&gt;"
   Usage: "deploy &lt;branch&gt;"
   Summary: "deploy the named git branch to the selected environment"
   Examples:
@@ -1299,6 +1303,8 @@ return task.Fail
 <p>The <code>gopherbot</code> binary is also a CLI utility. The most useful commands for authors and operators are:</p>
 <ul>
 <li><code>gopherbot --help</code></li>
+<li><code>gopherbot check</code></li>
+<li><code>gopherbot match</code></li>
 <li><code>gopherbot encrypt</code></li>
 <li><code>gopherbot decrypt</code></li>
 <li><code>gopherbot validate &lt;path&gt;</code></li>
@@ -1315,8 +1321,21 @@ return task.Fail
 <p>Validate a robot repository:</p>
 <pre><code class="language-bash">gopherbot validate ~/robots/acme/custom
 </code></pre>
+<p>Check one SimpleMatcher without loading a robot:</p>
+<pre><code class="language-bash">gopherbot check 'spot (type:rails|devops) up [&lt;branch:token&gt;]' spot-devops-up
+</code></pre>
+<p>Match command text against the configured robot’s plugin commands:</p>
+<pre><code class="language-bash">gopherbot match spot-devops-up
+</code></pre>
+<p><code>match</code> uses the configured robot’s command metadata. If the robot encryption key is available, template secrets are decrypted normally; if it is not available, secret template values are replaced with redacted placeholders and a note is written to stderr.</p>
+<p>For repeated tests, load the command metadata once and prompt for command text until EOF:</p>
+<pre><code class="language-bash">gopherbot match -interactive
+</code></pre>
 <p>Dump the final merged robot config:</p>
 <pre><code class="language-bash">gopherbot dump configured robot.yaml
+</code></pre>
+<p>Secret template values are redacted by default when dumping expanded config. Use <code>--unredacted-secrets</code> only when you deliberately want decrypted secret values printed:</p>
+<pre><code class="language-bash">gopherbot dump --unredacted-secrets configured plugins/example.yaml
 </code></pre>
 <p>These commands are especially useful when configuration reload fails and you want to understand what the engine thinks the world looks like.</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -1361,6 +1380,7 @@ return task.Fail
 <li>tasks run in sequence</li>
 <li>a failure stops normal primary-stage execution</li>
 <li>plugins often begin as a single task and then add more work dynamically</li>
+<li>privileged tasks can only be added by a pipeline that is already privileged</li>
 </ul>
 <h2 id="important-api-calls"><a class="header" href="#important-api-calls">Important API calls</a></h2>
 <ul>
@@ -1376,6 +1396,8 @@ return task.Fail
 <li><code>AddCommand</code> stays inside the current pipeline and is not a fake new inbound chat message</li>
 <li>tasks added during execution can run before later originally queued tasks, which is how setup tasks can expand into more detailed work on the fly</li>
 </ul>
+<h2 id="privilege-and-addtask"><a class="header" href="#privilege-and-addtask">Privilege and AddTask</a></h2>
+<p>Marking a task with <code>Privileged: true</code> does not make the pipeline privileged. It means the task requires a privileged pipeline. This is useful for reusable operations that depend on robot-owned credentials, such as a <code>kubectl</code> task that uses a robot-managed kubeconfig. A privileged job or plugin can add that task; an unprivileged plugin cannot.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="final-pipelines"><a class="header" href="#final-pipelines">Final Pipelines</a></h1>
 <p>Final tasks always run after the primary stage, whether the primary stage succeeded or failed.</p>
@@ -2001,7 +2023,7 @@ ScheduledJobs:
     Path: tasks/render-report.gsh
     Description: Render a report artifact
 </code></pre>
-<p>External tasks default to <code>Privileged: false</code> when <code>Privileged</code> is omitted. A privileged task cannot be added to an unprivileged pipeline.</p>
+<p>External tasks default to <code>Privileged: false</code> when <code>Privileged</code> is omitted. A privileged task cannot be added to an unprivileged pipeline; <code>Privileged: true</code> on a task means the task requires a privileged pipeline, not that the task can elevate the pipeline. For example, a task that runs <code>kubectl</code> with a robot-managed kubeconfig should be marked privileged and added only by a privileged job or plugin.</p>
 <h3 id="gotasks"><a class="header" href="#gotasks">GoTasks</a></h3>
 <p>Optional.</p>
 <p><code>GoTasks</code> declares compiled Go tasks registered with the engine.</p>
@@ -2342,12 +2364,12 @@ Config:
 <p>For <code>Commands</code>, Gopherbot wraps the regex with leading/trailing whitespace tolerance and anchors it as an exact match. Do not add surrounding <code>^</code> and <code>$</code> unless you specifically intend to anchor inside the command body.</p>
 <p>Capture groups become positional arguments to the plugin.</p>
 <h3 id="simplematcher"><a class="header" href="#simplematcher">SimpleMatcher</a></h3>
-<p><code>SimpleMatcher</code> is the preferred syntax for common directed commands.</p>
+<p><code>SimpleMatcher</code> is the preferred syntax for common directed commands. This section gives the shape; see the <a href="#simplematcher-1">SimpleMatcher reference</a> for the complete grammar, capture semantics, typed values, option blocks, diagnostics, and migration guidance.</p>
 <pre><code class="language-yaml">Commands:
 - Command: loglevel
   SimpleMatcher: "set log level {to} (level:trace|debug|info|warn|error)"
 </code></pre>
-<p>Simple matchers are case-insensitive, tolerate extra whitespace, and treat spaces in the spec as matching either spaces or dashes in user input.</p>
+<p>Simple matchers are case-insensitive and tolerate extra whitespace. Spaces between command words can be typed as spaces or dashes, but one contiguous command phrase must use one separator style consistently. Spaces before typed captures and options require whitespace. For example, <code>spot (type:rails|devops) up</code> matches <code>spot-devops-up</code>, while <code>rails up [&lt;branch:token&gt;]</code> matches <code>rails-up dev</code>, but not <code>rails-up-dev</code>.</p>
 <p>Common forms:</p>
 <ul>
 <li><code>literal text</code>: required non-capturing words</li>
@@ -2355,9 +2377,11 @@ Config:
 <li><code>/start|begin/</code>: required non-capturing synonyms</li>
 <li><code>(label:a|b|c)</code>: required capturing choice</li>
 <li><code>[label:a|b|c]</code>: optional capturing choice</li>
+<li><code>[-options:-spot|-branch:&lt;token&gt;]</code>: optional argv-style options block; matched options become individual args</li>
 <li><code>&lt;name:ident&gt;</code>: typed capture</li>
 <li><code>[&lt;name:rest&gt;]</code>: optional typed capture</li>
 </ul>
+<p>Options blocks emit no argument when omitted. Captures after an options block are variable-position, so plugins using them should parse leading <code>-</code> arguments before interpreting the remaining positional arguments.</p>
 <p>Built-in capture types include <code>ident</code>, <code>token</code>, <code>rest</code>, <code>number</code>, <code>decimal</code>, <code>bool</code>, <code>duration</code>, <code>email</code>, <code>url</code>, <code>ip</code>, <code>ipv4</code>, <code>ipv6</code>, <code>cidr</code>, <code>dnsname</code>, <code>slug</code>, and <code>base64</code>.</p>
 <p>SimpleMatcher is supported only for directed <code>Commands</code>. It is rejected for <code>MessageMatchers</code>, <code>ReplyMatchers</code>, and job argument matchers.</p>
 <h3 id="command-matcher-fields"><a class="header" href="#command-matcher-fields">Command Matcher Fields</a></h3>
@@ -2830,6 +2854,482 @@ AllowedPrivateCommands:
 </ul>
 <h2 id="operational-advice"><a class="header" href="#operational-advice">Operational advice</a></h2>
 <p>If reload fails, treat that as a config problem first, not a plugin bug. The merge and validation tools will usually point you to the real issue faster than trial-and-error editing.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="command-authoring-reference"><a class="header" href="#command-authoring-reference">Command Authoring Reference</a></h1>
+<p>This section collects detailed references for writing user-facing Gopherbot commands.</p>
+<ul>
+<li><a href="#simplematcher-1">SimpleMatcher</a>: the recommended matcher syntax for normal directed plugin commands.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="simplematcher-1"><a class="header" href="#simplematcher-1">SimpleMatcher</a></h1>
+<p><code>SimpleMatcher</code> is Gopherbot’s recommended command-matching syntax for normal directed plugin commands. It gives plugin authors a command-line-like grammar without making them write regular expressions for every command. Use it when a command can be described as words, optional words, choices, typed values, and CLI-style dash options:</p>
+<pre><code class="language-yaml">Commands:
+- Command: console
+  SimpleMatcher: "get console [-options:-spot|-branch:&lt;token&gt;] [&lt;environment:token&gt;]"
+  Usage: "get console [-spot] [-branch:&lt;branch&gt;] [environment]"
+  Summary: "open an application console"
+  Examples:
+  - "(alias) get console qa"
+  - "(alias) get console -branch:feature/login -spot qa"
+</code></pre>
+<p>For that matcher, a plugin invocation receives:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>User input</th><th>Plugin arguments</th></tr>
+</thead>
+<tbody>
+<tr><td><code>get console qa</code></td><td><code>qa</code></td></tr>
+<tr><td><code>get-console qa</code></td><td><code>qa</code></td></tr>
+<tr><td><code>get console -spot qa</code></td><td><code>-spot</code>, <code>qa</code></td></tr>
+<tr><td><code>get console -branch:feature/login -spot qa</code></td><td><code>-branch:feature/login</code>, <code>-spot</code>, <code>qa</code></td></tr>
+<tr><td><code>get console</code></td><td><code>""</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>The first argument passed to a plugin is still the configured <code>Command</code> value. The values above are the command arguments after that command token.</p>
+<h2 id="where-simplematcher-is-used"><a class="header" href="#where-simplematcher-is-used">Where SimpleMatcher Is Used</a></h2>
+<p><code>SimpleMatcher</code> is supported for directed plugin <code>Commands</code> in <code>conf/plugins/&lt;plugin&gt;.yaml</code>.</p>
+<pre><code class="language-yaml">Commands:
+- Command: deploy
+  SimpleMatcher: "deploy &lt;service:ident&gt; [&lt;branch:token&gt;]"
+</code></pre>
+<p>It is not used for:</p>
+<ul>
+<li><code>MessageMatchers</code></li>
+<li><code>ReplyMatchers</code></li>
+<li>job argument matchers</li>
+<li>connector-local command parsing</li>
+</ul>
+<p>Those matcher types continue to use <code>Regex</code>.</p>
+<h2 id="why-use-it"><a class="header" href="#why-use-it">Why Use It</a></h2>
+<p>Prefer <code>SimpleMatcher</code> when the command should feel like a small command-line interface:</p>
+<ul>
+<li>it is easier to read in plugin YAML</li>
+<li>it makes argument order obvious</li>
+<li>it supports typed captures such as <code>&lt;ident&gt;</code>, <code>&lt;number&gt;</code>, and <code>&lt;url&gt;</code></li>
+<li>it supports optional “noise” words without shifting arguments</li>
+<li>it can produce better user-facing diagnostics for invalid captured values</li>
+<li>it avoids regex escaping and grouping mistakes for common command shapes</li>
+</ul>
+<p>Use <code>Regex</code> instead when you need arbitrary regular-expression behavior, unusual punctuation rules, lookarounds, complex repeated structures, or exact control over regex capture groups.</p>
+<h2 id="matching-basics"><a class="header" href="#matching-basics">Matching Basics</a></h2>
+<p>Simple matchers are case-insensitive. Leading and trailing whitespace around the command body is ignored, and extra whitespace between terms is accepted.</p>
+<pre><code class="language-yaml">SimpleMatcher: "service status &lt;service:ident&gt;"
+</code></pre>
+<p>Matches:</p>
+<pre><code class="language-text">service status api
+SERVICE   STATUS   api
+service-status api
+</code></pre>
+<p>Does not match:</p>
+<pre><code class="language-text">service_status api
+service status
+status service api
+</code></pre>
+<p>Directed command matching happens after the user has addressed the robot. If your bot alias is <code>;</code>, then <code>;service status api</code> is reduced to the command body <code>service status api</code> before this matcher is checked.</p>
+<h2 id="spaces-and-dashes"><a class="header" href="#spaces-and-dashes">Spaces And Dashes</a></h2>
+<p>Spaces between command words in the <code>SimpleMatcher</code> spec match either whitespace or dashes in user input.</p>
+<pre><code class="language-yaml">SimpleMatcher: "show build log"
+</code></pre>
+<p>Matches all of these:</p>
+<pre><code class="language-text">show build log
+show-build-log
+show   build-log
+</code></pre>
+<p>That dash forgiveness is for command wording only. Captured values must be separated from the preceding command words by real whitespace.</p>
+<pre><code class="language-yaml">SimpleMatcher: "rails up [&lt;branch:token&gt;]"
+</code></pre>
+<p>Matches:</p>
+<pre><code class="language-text">rails up
+rails-up
+rails up dev
+rails-up dev
+</code></pre>
+<p>Does not match:</p>
+<pre><code class="language-text">rails-up-dev
+</code></pre>
+<p>This is deliberate. <code>rails-up-dev</code> should be available to match a separate command such as:</p>
+<pre><code class="language-yaml">SimpleMatcher: "rails up dev"
+</code></pre>
+<p>If you want CLI-like dash options, define an options block and require a space before each option:</p>
+<pre><code class="language-yaml">SimpleMatcher: "rails up [-options:-spot|-branch:&lt;token&gt;]"
+</code></pre>
+<p>Matches:</p>
+<pre><code class="language-text">rails up -spot
+rails-up -branch:dev
+</code></pre>
+<p>Does not match:</p>
+<pre><code class="language-text">rails-up-spot
+rails-up-branch:dev
+</code></pre>
+<h2 id="complete-syntax"><a class="header" href="#complete-syntax">Complete Syntax</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Syntax</th><th>Meaning</th><th style="text-align: right">Captures?</th></tr>
+</thead>
+<tbody>
+<tr><td><code>literal words</code></td><td>Required command text. Spaces between command words can be typed as spaces or dashes.</td><td style="text-align: right">No</td></tr>
+<tr><td><code>{word}</code></td><td>Optional non-capturing text. Good for polite words or articles.</td><td style="text-align: right">No</td></tr>
+<tr><td><code>{a|b|c}</code></td><td>Optional non-capturing choices.</td><td style="text-align: right">No</td></tr>
+<tr><td><code>/a|b|c/</code></td><td>Required non-capturing synonyms.</td><td style="text-align: right">No</td></tr>
+<tr><td><code>(label:a|b|c)</code></td><td>Required capturing choice.</td><td style="text-align: right">Yes</td></tr>
+<tr><td><code>(:a|b|c)</code></td><td>Required capturing choice with no label.</td><td style="text-align: right">Yes</td></tr>
+<tr><td><code>[label:a|b|c]</code></td><td>Optional capturing choice. Adds <code>""</code> when omitted.</td><td style="text-align: right">Yes</td></tr>
+<tr><td><code>[:a|b|c]</code></td><td>Optional capturing choice with no label. Adds <code>""</code> when omitted.</td><td style="text-align: right">Yes</td></tr>
+<tr><td><code>&lt;type&gt;</code></td><td>Required typed capture.</td><td style="text-align: right">Yes</td></tr>
+<tr><td><code>&lt;name:type&gt;</code></td><td>Required typed capture with a diagnostic label.</td><td style="text-align: right">Yes</td></tr>
+<tr><td><code>[&lt;type&gt;]</code></td><td>Optional typed capture. Adds <code>""</code> when omitted.</td><td style="text-align: right">Yes</td></tr>
+<tr><td><code>[&lt;name:type&gt;]</code></td><td>Optional typed capture with a diagnostic label. Adds <code>""</code> when omitted.</td><td style="text-align: right">Yes</td></tr>
+<tr><td><code>[-label:-flag|-name:&amp;lt;type&amp;gt;]</code></td><td>Optional options block. Matched options become individual arguments. Adds no argument when omitted.</td><td style="text-align: right">Variable</td></tr>
+</tbody>
+</table>
+</div>
+<p>The punctuation characters are part of the SimpleMatcher grammar, not regex delimiters. If your command depends on regex escaping or regex-specific precedence, use <code>Regex</code>.</p>
+<h2 id="literal-words"><a class="header" href="#literal-words">Literal Words</a></h2>
+<p>Literal words are required command text.</p>
+<pre><code class="language-yaml">SimpleMatcher: "show log"
+</code></pre>
+<p>The matcher accepts <code>show log</code>, <code>show-log</code>, and <code>SHOW LOG</code>. Literal words are not passed as plugin arguments.</p>
+<h2 id="optional-noise-words"><a class="header" href="#optional-noise-words">Optional Noise Words</a></h2>
+<p>Use <code>{...}</code> for words that should be accepted but should not change plugin behavior.</p>
+<pre><code class="language-yaml">SimpleMatcher: "set log lines {to} &lt;lines:number&gt;"
+</code></pre>
+<p>Both inputs pass one argument, <code>3</code>:</p>
+<pre><code class="language-text">set log lines 3
+set log lines to 3
+</code></pre>
+<p>Optional noise groups can include choices:</p>
+<pre><code class="language-yaml">SimpleMatcher: "{please|kindly} restart &lt;service:ident&gt;"
+</code></pre>
+<p>Use noise groups sparingly. They make commands more forgiving, but too many accepted phrasings can make help text harder to reason about.</p>
+<h2 id="required-synonyms"><a class="header" href="#required-synonyms">Required Synonyms</a></h2>
+<p>Use <code>/.../</code> when several required words mean the same thing to the plugin.</p>
+<pre><code class="language-yaml">SimpleMatcher: "/remove|delete/ &lt;user:token&gt; from {the} &lt;group:rest&gt; group"
+</code></pre>
+<p>Both inputs pass the same arguments, <code>alice</code> and <code>ops</code>:</p>
+<pre><code class="language-text">remove alice from ops group
+delete alice from the ops group
+</code></pre>
+<p>Synonym groups can contain phrases:</p>
+<pre><code class="language-yaml">SimpleMatcher: "/pick up|take|grab/ &lt;item:rest&gt;"
+</code></pre>
+<p>This matches <code>pick up wrench</code>, <code>pick-up wrench</code>, <code>take wrench</code>, and <code>grab wrench</code>.</p>
+<p>Do not use bare alternation such as <code>remove|delete &lt;user:token&gt;</code>. Bare <code>|</code> is intentionally not part of the top-level grammar.</p>
+<h2 id="capturing-choices"><a class="header" href="#capturing-choices">Capturing Choices</a></h2>
+<p>Use <code>(label:...)</code> when the selected value matters to the plugin.</p>
+<pre><code class="language-yaml">SimpleMatcher: "set log level {to} (level:trace|debug|info|warn|error)"
+</code></pre>
+<p>Inputs:</p>
+<pre><code class="language-text">set log level debug
+set log-level to warn
+</code></pre>
+<p>Arguments:</p>
+<pre><code class="language-text">debug
+warn
+</code></pre>
+<p>The label before the colon is used for diagnostics and documentation. The plugin receives only the selected value.</p>
+<p>Capturing choices must include a label prefix. If you truly do not want a label, use an empty label:</p>
+<pre><code class="language-yaml">SimpleMatcher: "set target (:foo:bar|baz|frotz)"
+</code></pre>
+<p>That matcher accepts <code>foo:bar</code>, <code>baz</code>, or <code>frotz</code>. The first top-level colon separates the label from the choices, so the empty-label form is useful when choice values themselves contain colons.</p>
+<p>Optional capturing choices use square brackets:</p>
+<pre><code class="language-yaml">SimpleMatcher: "set feature &lt;name:ident&gt; [state:disabled]"
+</code></pre>
+<p>Arguments:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>User input</th><th>Plugin arguments</th></tr>
+</thead>
+<tbody>
+<tr><td><code>set feature cache disabled</code></td><td><code>cache</code>, <code>disabled</code></td></tr>
+<tr><td><code>set feature cache</code></td><td><code>cache</code>, <code>""</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="typed-captures"><a class="header" href="#typed-captures">Typed Captures</a></h2>
+<p>Typed captures match user-supplied values and pass them to the plugin.</p>
+<pre><code class="language-yaml">SimpleMatcher: "deploy &lt;service:ident&gt; [&lt;branch:token&gt;]"
+</code></pre>
+<p>Arguments:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>User input</th><th>Plugin arguments</th></tr>
+</thead>
+<tbody>
+<tr><td><code>deploy api main</code></td><td><code>api</code>, <code>main</code></td></tr>
+<tr><td><code>deploy api</code></td><td><code>api</code>, <code>""</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>The name is optional:</p>
+<pre><code class="language-yaml">SimpleMatcher: "show &lt;ident&gt;"
+SimpleMatcher: "show &lt;service:ident&gt;"
+</code></pre>
+<p>Both match the same values and pass the same argument. The named form is usually better for public commands because it gives the engine and the docs a human word for the value. For example, <code>&lt;service:ident&gt;</code> lets Gopherbot say that a bad value is invalid for <code>service</code>; <code>&lt;ident&gt;</code> falls back to the type name.</p>
+<p>Use <code>[&lt;name:type&gt;]</code> for optional typed captures. When omitted, ordinary optional captures contribute an empty string argument so later argument positions stay stable.</p>
+<pre><code class="language-yaml">SimpleMatcher: "ps [&lt;mode:token&gt;]"
+</code></pre>
+<p>Arguments:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>User input</th><th>Plugin arguments</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ps -v</code></td><td><code>-v</code></td></tr>
+<tr><td><code>ps</code></td><td><code>""</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="capture-types"><a class="header" href="#capture-types">Capture Types</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Type</th><th>Accepts</th><th>Examples</th></tr>
+</thead>
+<tbody>
+<tr><td><code>token</code></td><td>Any single non-whitespace token.</td><td><code>main</code>, <code>feature/foo</code>, <code>-v</code></td></tr>
+<tr><td><code>ident</code></td><td>Identifier starting with a letter, followed by letters, numbers, <code>_</code>, or <code>-</code>.</td><td><code>api</code>, <code>slack-prod</code></td></tr>
+<tr><td><code>number</code></td><td>Integer.</td><td><code>0</code>, <code>42</code>, <code>-7</code></td></tr>
+<tr><td><code>decimal</code></td><td>Decimal number.</td><td><code>3.14</code>, <code>.5</code>, <code>-2</code></td></tr>
+<tr><td><code>bool</code></td><td>Boolean-like value.</td><td><code>true</code>, <code>false</code>, <code>yes</code>, <code>no</code>, <code>on</code>, <code>off</code>, <code>1</code>, <code>0</code></td></tr>
+<tr><td><code>duration</code></td><td>Go-style duration.</td><td><code>30s</code>, <code>5m</code>, <code>1h30m</code></td></tr>
+<tr><td><code>email</code></td><td>Email address.</td><td><code>ops@example.com</code></td></tr>
+<tr><td><code>url</code></td><td>Full URL with a scheme.</td><td><code>https://example.com/runbook</code></td></tr>
+<tr><td><code>ip</code></td><td>IPv4 or IPv6 address.</td><td><code>10.0.0.5</code>, <code>2001:db8::1</code></td></tr>
+<tr><td><code>ipv4</code></td><td>IPv4 address.</td><td><code>10.0.0.5</code></td></tr>
+<tr><td><code>ipv6</code></td><td>IPv6 address.</td><td><code>2001:db8::1</code></td></tr>
+<tr><td><code>cidr</code></td><td>IPv4 CIDR block.</td><td><code>10.0.0.0/24</code></td></tr>
+<tr><td><code>dnsname</code></td><td>DNS hostname.</td><td><code>api.example.com</code></td></tr>
+<tr><td><code>slug</code></td><td>Slug-like identifier containing word characters, <code>.</code>, <code>*</code>, or <code>-</code>.</td><td><code>train-123</code>, <code>prod.*</code></td></tr>
+<tr><td><code>base64</code></td><td>Base64-looking text.</td><td><code>QUJDRA==</code></td></tr>
+<tr><td><code>rest</code></td><td>The remaining non-empty text.</td><td><code>because prod is broken</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><code>rest</code> is greedy and should usually appear at the end of a matcher or optional group. It is useful for reasons, messages, descriptions, and other human text.</p>
+<h2 id="options-blocks"><a class="header" href="#options-blocks">Options Blocks</a></h2>
+<p>Options blocks are for CLI-like dash options that should be passed through as individual plugin arguments.</p>
+<pre><code class="language-yaml">SimpleMatcher: "get console [-options:-spot|-branch:&lt;token&gt;] [&lt;environment:token&gt;]"
+</code></pre>
+<p>The block:</p>
+<ul>
+<li>must be inside square brackets</li>
+<li>must have a label that starts with <code>-</code>, such as <code>-options</code></li>
+<li>must contain one or more <code>|</code>-separated option forms</li>
+<li>requires every option form to start with <code>-</code></li>
+<li>matches options only at the position where the block appears</li>
+<li>accepts options in any order</li>
+<li>allows repeated options</li>
+<li>passes each matched option exactly as the user typed it</li>
+<li>emits no argument when no options are present</li>
+</ul>
+<p>Arguments:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>User input</th><th>Plugin arguments</th></tr>
+</thead>
+<tbody>
+<tr><td><code>get console qa</code></td><td><code>qa</code></td></tr>
+<tr><td><code>get console -spot qa</code></td><td><code>-spot</code>, <code>qa</code></td></tr>
+<tr><td><code>get console -branch:feature/foo qa</code></td><td><code>-branch:feature/foo</code>, <code>qa</code></td></tr>
+<tr><td><code>get console -spot -branch:feature/foo qa</code></td><td><code>-spot</code>, <code>-branch:feature/foo</code>, <code>qa</code></td></tr>
+<tr><td><code>get console -spot -spot qa</code></td><td><code>-spot</code>, <code>-spot</code>, <code>qa</code></td></tr>
+<tr><td><code>get console -spot</code></td><td><code>-spot</code>, <code>""</code></td></tr>
+<tr><td><code>get console</code></td><td><code>""</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Typed option values use a typed capture at the end of the option form:</p>
+<pre><code class="language-yaml">SimpleMatcher: "deploy [-options:-branch:&lt;token&gt;|-timeout:&lt;duration&gt;] &lt;service:ident&gt;"
+</code></pre>
+<p>Examples:</p>
+<pre><code class="language-text">deploy -branch:feature/login api
+deploy -timeout:30s api
+deploy -branch:main -timeout:1m api
+</code></pre>
+<p>The plugin receives <code>-branch:main</code> and <code>-timeout:1m</code> as whole strings. SimpleMatcher validates the typed part, but it does not split option names from option values. That parsing belongs in your plugin.</p>
+<p>Options are positional in the command grammar:</p>
+<pre><code class="language-yaml">SimpleMatcher: "get console [-options:-spot|-branch:&lt;token&gt;] [&lt;environment:token&gt;]"
+</code></pre>
+<p>Matches:</p>
+<pre><code class="language-text">get console -spot qa
+</code></pre>
+<p>Does not match:</p>
+<pre><code class="language-text">get console qa -spot
+</code></pre>
+<p>If you use an options block before normal positional captures, argument positions become variable. A practical plugin pattern is:</p>
+<ol>
+<li>Read leading arguments that start with <code>-</code> as options.</li>
+<li>Stop option parsing at the first non-option argument.</li>
+<li>Interpret the remaining arguments as positional values.</li>
+</ol>
+<p>For example, <code>get console -branch:main -spot qa</code> yields:</p>
+<pre><code class="language-text">-branch:main
+-spot
+qa
+</code></pre>
+<p>Your plugin can consume the first two values as options and treat <code>qa</code> as the environment.</p>
+<h2 id="argument-ordering"><a class="header" href="#argument-ordering">Argument Ordering</a></h2>
+<p>Captured values are passed to the plugin in the order their capturing terms appear in the matcher, except that an options block can contribute any number of arguments at its position.</p>
+<p>Non-capturing terms do not affect argument order:</p>
+<ul>
+<li>literal words</li>
+<li>optional noise groups <code>{...}</code></li>
+<li>required synonym groups <code>/.../</code></li>
+</ul>
+<p>Ordinary optional captures add <code>""</code> when omitted:</p>
+<p>If you want an optional phrase, put the whole phrase inside the optional group:</p>
+<pre><code class="language-yaml">SimpleMatcher: "copy &lt;source:token&gt; [to &lt;destination:token&gt;]"
+</code></pre>
+<p>Arguments:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>User input</th><th>Plugin arguments</th></tr>
+</thead>
+<tbody>
+<tr><td><code>copy app to staging</code></td><td><code>app</code>, <code>staging</code></td></tr>
+<tr><td><code>copy app</code></td><td><code>app</code>, <code>""</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>If <code>to</code> were outside the optional group, the word <code>to</code> would be required even when the destination was omitted.</p>
+<p>An options block is different: when omitted, it adds no placeholder argument.</p>
+<h2 id="diagnostics"><a class="header" href="#diagnostics">Diagnostics</a></h2>
+<p>When a command has the right shape but a captured value is invalid, Gopherbot can return a specific syntax diagnostic instead of generic help.</p>
+<pre><code class="language-yaml">SimpleMatcher: "set loglevel {to} (level:trace|debug|info|warn|error)"
+</code></pre>
+<p>Input:</p>
+<pre><code class="language-text">set loglevel to fine
+</code></pre>
+<p>Possible reply:</p>
+<pre><code class="language-text">Invalid value: "fine" for: "level"; valid values: trace, debug, info, warn, error.
+</code></pre>
+<p>Typed captures can also report useful expectations:</p>
+<pre><code class="language-yaml">SimpleMatcher: "deploy siding &lt;siding:ident&gt;"
+</code></pre>
+<p>Input:</p>
+<pre><code class="language-text">deploy siding 9round
+</code></pre>
+<p>Possible reply:</p>
+<pre><code class="language-text">Invalid value: "9round" for: "siding"; expected: an identifier starting with a letter, followed by letters, numbers, '_' or '-'.
+</code></pre>
+<p>Diagnostics are intentionally conservative. If the command skeleton does not match exactly, the matcher returns no diagnostic and the normal help or fallback path runs.</p>
+<p>For example:</p>
+<pre><code class="language-yaml">SimpleMatcher: "set loglevel {to} (level:trace|debug|info|warn|error)"
+</code></pre>
+<p><code>set logging to fine</code> is not treated as a bad <code>level</code> value, because <code>logging</code> is not the same command skeleton as <code>loglevel</code>.</p>
+<p>Exact command matches always win over syntax diagnostics. If more than one visible command could produce a diagnostic, Gopherbot avoids guessing and falls back to the normal unmatched-command behavior.</p>
+<h2 id="help-metadata"><a class="header" href="#help-metadata">Help Metadata</a></h2>
+<p><code>SimpleMatcher</code> controls matching. It does not replace help metadata.</p>
+<p>Always provide a user-facing <code>Usage</code>, <code>Summary</code>, <code>Examples</code>, and useful <code>Keywords</code>:</p>
+<pre><code class="language-yaml">Commands:
+- Command: deploy
+  SimpleMatcher: "deploy [-options:-branch:&lt;token&gt;|-wait:&lt;bool&gt;] &lt;service:ident&gt;"
+  Usage: "deploy [-branch:&lt;branch&gt;] [-wait:&lt;true|false&gt;] &lt;service&gt;"
+  Summary: "deploy a service"
+  Examples:
+  - "(alias) deploy api"
+  - "(alias) deploy -branch:release/2026-07 api"
+  Keywords: [ "deploy", "release", "ship" ]
+</code></pre>
+<p>Use <code>Usage</code> for the command users should type, not for the SimpleMatcher grammar itself. For example, <code>[-branch:&lt;branch&gt;]</code> is friendlier than <code>[-options:-branch:&lt;token&gt;]</code>.</p>
+<h2 id="common-patterns-1"><a class="header" href="#common-patterns-1">Common Patterns</a></h2>
+<h3 id="simple-command"><a class="header" href="#simple-command">Simple command</a></h3>
+<pre><code class="language-yaml">SimpleMatcher: "ping"
+</code></pre>
+<p>No arguments.</p>
+<h3 id="required-typed-value"><a class="header" href="#required-typed-value">Required typed value</a></h3>
+<pre><code class="language-yaml">SimpleMatcher: "service status &lt;service:ident&gt;"
+</code></pre>
+<p><code>service status api</code> passes <code>api</code>.</p>
+<h3 id="optional-value"><a class="header" href="#optional-value">Optional value</a></h3>
+<pre><code class="language-yaml">SimpleMatcher: "show logs [page &lt;page:number&gt;]"
+</code></pre>
+<p><code>show logs page 2</code> passes <code>2</code>; <code>show logs</code> passes <code>""</code>.</p>
+<h3 id="required-choice"><a class="header" href="#required-choice">Required choice</a></h3>
+<pre><code class="language-yaml">SimpleMatcher: "set log level (level:trace|debug|info|warn|error)"
+</code></pre>
+<p>Passes the selected level.</p>
+<h3 id="synonyms"><a class="header" href="#synonyms">Synonyms</a></h3>
+<pre><code class="language-yaml">SimpleMatcher: "/remove|delete/ &lt;user:token&gt;"
+</code></pre>
+<p>Accepts either verb and passes only the user.</p>
+<h3 id="noise-word"><a class="header" href="#noise-word">Noise word</a></h3>
+<pre><code class="language-yaml">SimpleMatcher: "show {the} &lt;group:rest&gt; group"
+</code></pre>
+<p>Accepts <code>show ops group</code> and <code>show the ops group</code>; passes <code>ops</code>.</p>
+<h3 id="cli-like-options"><a class="header" href="#cli-like-options">CLI-like options</a></h3>
+<pre><code class="language-yaml">SimpleMatcher: "rails up [-options:-spot|-branch:&lt;token&gt;] [&lt;environment:token&gt;]"
+</code></pre>
+<p>Accepts <code>rails up -spot qa</code> and <code>rails-up -branch:feature/foo qa</code>; passes the options as separate leading arguments, followed by the environment.</p>
+<h2 id="choosing-the-right-form"><a class="header" href="#choosing-the-right-form">Choosing The Right Form</a></h2>
+<p>Use <code>(label:...)</code> when the selected required choice changes plugin behavior.</p>
+<p>Use <code>[label:...]</code> or <code>[&lt;name:type&gt;]</code> when an optional value should occupy a stable argument position and become <code>""</code> when omitted.</p>
+<p>Use <code>[-label:...]</code> when you want CLI-like dash options that can appear in any order and should become argv-style arguments.</p>
+<p>Use <code>{...}</code> for words that are accepted only to make the command more natural.</p>
+<p>Use <code>/.../</code> for required synonyms whose selected spelling should not matter to the plugin.</p>
+<p>Use <code>&lt;name:type&gt;</code> for values supplied by the user.</p>
+<h2 id="restrictions-and-gotchas"><a class="header" href="#restrictions-and-gotchas">Restrictions And Gotchas</a></h2>
+<p>A command matcher must specify exactly one of <code>Regex</code> or <code>SimpleMatcher</code>.</p>
+<p>A <code>SimpleMatcher</code> cannot be empty.</p>
+<p>Capturing choices must include a colon:</p>
+<pre><code class="language-yaml"># Good
+SimpleMatcher: "set level (level:trace|debug)"
+SimpleMatcher: "set level (:trace|debug)"
+
+# Invalid
+SimpleMatcher: "set level (trace|debug)"
+</code></pre>
+<p>Non-capturing groups cannot contain typed captures:</p>
+<pre><code class="language-yaml"># Invalid
+SimpleMatcher: "show {&lt;name:ident&gt;}"
+SimpleMatcher: "/show &lt;name:ident&gt;|list/"
+</code></pre>
+<p>Capturing choice groups cannot contain typed captures:</p>
+<pre><code class="language-yaml"># Invalid
+SimpleMatcher: "show (target:&lt;name:ident&gt;|all)"
+</code></pre>
+<p>Use an optional group with a typed capture instead:</p>
+<pre><code class="language-yaml">SimpleMatcher: "show [&lt;name:ident&gt;]"
+</code></pre>
+<p>Options must be single tokens and must start with <code>-</code>:</p>
+<pre><code class="language-yaml"># Good
+SimpleMatcher: "deploy [-options:-spot|-branch:&lt;token&gt;] &lt;service:ident&gt;"
+
+# Invalid
+SimpleMatcher: "deploy [-options:spot|-branch:&lt;token&gt;] &lt;service:ident&gt;"
+SimpleMatcher: "deploy [-options:-branch:&lt;token&gt;-extra] &lt;service:ident&gt;"
+</code></pre>
+<p>Spaces before captures are real boundaries. If you have both <code>rails up [&lt;branch:token&gt;]</code> and <code>rails up dev</code>, then <code>rails-up-dev</code> belongs to <code>rails up dev</code>, not to the optional branch capture on <code>rails up</code>.</p>
+<h2 id="migration-from-regex"><a class="header" href="#migration-from-regex">Migration From Regex</a></h2>
+<p>A regex command like:</p>
+<pre><code class="language-yaml">Commands:
+- Command: deploy
+  Regex: '(?i:deploy ([A-Za-z][A-Za-z0-9_-]*)(?: ([^\\s]+))?)'
+</code></pre>
+<p>can usually become:</p>
+<pre><code class="language-yaml">Commands:
+- Command: deploy
+  SimpleMatcher: "deploy &lt;service:ident&gt; [&lt;branch:token&gt;]"
+</code></pre>
+<p>Check these items when migrating:</p>
+<ul>
+<li>Match the same command body, not the robot alias or bot name.</li>
+<li>Replace non-capturing regex alternatives with <code>/.../</code>.</li>
+<li>Replace meaningful alternatives with <code>(label:...)</code>.</li>
+<li>Choose a typed capture that fits the value.</li>
+<li>Remember that optional captures emit <code>""</code> when omitted.</li>
+<li>Add an options block only when options must start with <code>-</code> and should become argv-style arguments.</li>
+<li>Keep <code>Usage</code>, <code>Summary</code>, <code>Examples</code>, and <code>Keywords</code> friendly for users.</li>
+</ul>
+<p>Regex remains the right choice for uncommon shapes. SimpleMatcher is intended to make normal command authoring boring, readable, and predictable.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="basicmarkdown-reference"><a class="header" href="#basicmarkdown-reference">BasicMarkdown Reference</a></h1>
 <p><code>BasicMarkdown</code> is the default outgoing message format in Gopherbot v3. It is a small, portability-first formatting language intended to let one plugin produce readable output across Slack, SSH, and other connectors without relying on connector-specific markup.</p>
@@ -3466,6 +3966,19 @@ bot.Say("Next time you say 'it', I will treat that as api-01.")
 <li><code>SpawnJob(...)</code> starts work in parallel, while <code>AddJob(...)</code> adds a child job into the current pipeline flow.</li>
 <li><code>Exclusive(...)</code> is the advisory lock for protecting shared resources such as worktrees or deployment targets.</li>
 </ul>
+<h2 id="privileged-tasks"><a class="header" href="#privileged-tasks">Privileged tasks</a></h2>
+<p><code>Privileged: true</code> on a task means the task requires the current pipeline to already be privileged. <code>AddTask(...)</code>, <code>FinalTask(...)</code>, and <code>FailTask(...)</code> do not elevate an unprivileged pipeline; if unprivileged code tries to add a privileged task, the engine rejects the request.</p>
+<p>Use this for tasks that need robot-owned credentials or tools that should not be exposed to ordinary plugin code. For example, a task that runs <code>kubectl</code> with a robot-managed kubeconfig should be declared privileged. Only a privileged job, a privileged plugin, or code already running inside a privileged pipeline can add that task:</p>
+<pre><code class="language-yaml">ExternalTasks:
+  "kubectl-apply":
+    Path: tasks/kubectl-apply.gsh
+    Description: Apply Kubernetes manifests with the robot kubeconfig
+    Privileged: true
+</code></pre>
+<pre><code class="language-go">// This must run from a privileged job/plugin pipeline.
+r.AddTask("kubectl-apply", "clusters/prod/payment-api.yaml")
+</code></pre>
+<p>For plugins and jobs, <code>Privileged: true</code> also controls whether that plugin or job starts a privileged pipeline. For tasks, it is a requirement on the owning pipeline.</p>
 <p><code>SetWorkingDirectory(...)</code> exists in the public Go API, but it is currently omitted from this user-facing reference until that area is revisited.</p>
 <h2 id="examples-5"><a class="header" href="#examples-5">Examples</a></h2>
 <h3 id="go-4"><a class="header" href="#go-4">Go</a></h3>

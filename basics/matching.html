@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a66cf0b5.js";
+            window.path_to_searchindex_js = "../searchindex-a92a4f26.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-c6a2b80c.js"></script>
+        <script src="../toc-b5ea2372.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,6 +176,7 @@
                     <main>
                         <h1 id="command-matching"><a class="header" href="#command-matching">Command Matching</a></h1>
 <p>Gopherbot commands are matched by regular expressions, not fuzzy AI intent matching. That is a strength: the behavior is predictable, testable, and safe for automation.</p>
+<p>Most normal directed commands are authored with <code>SimpleMatcher</code>, a small command grammar for words, choices, typed captures, and CLI-style dash options. Plugin authors should use the <a href="../reference/SimpleMatcher.html">SimpleMatcher reference</a> for the full syntax and argument-passing rules.</p>
 <h2 id="what-happens-when-a-command-does-not-match"><a class="header" href="#what-happens-when-a-command-does-not-match">What happens when a command does not match</a></h2>
 <p>When you address the robot directly but no command matches, the robot usually replies with a message that points you back to help.</p>
 <p>That failure can mean one of three things:</p>

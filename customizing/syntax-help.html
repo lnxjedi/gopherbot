@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a66cf0b5.js";
+            window.path_to_searchindex_js = "../searchindex-a92a4f26.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-c6a2b80c.js"></script>
+        <script src="../toc-b5ea2372.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,6 +176,7 @@
                     <main>
                         <h1 id="writing-good-help-text"><a class="header" href="#writing-good-help-text">Writing Good Help Text</a></h1>
 <p>Help in v3 is command-linked, so good help starts with good command metadata.</p>
+<p>Most directed commands should use <code>SimpleMatcher</code>; see the <a href="../reference/SimpleMatcher.html">SimpleMatcher reference</a> for the full command grammar. Help text should show what users type, not every detail of the matcher grammar.</p>
 <h2 id="recommended-fields"><a class="header" href="#recommended-fields">Recommended fields</a></h2>
 <ul>
 <li><code>Usage</code>: the command body only</li>
@@ -186,7 +187,7 @@
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
 <pre><code class="language-yaml">Commands:
 - Command: deploy
-  Regex: '(?i:deploy ([A-Za-z0-9._/-]+))'
+  SimpleMatcher: "deploy &lt;branch:token&gt;"
   Usage: "deploy &lt;branch&gt;"
   Summary: "deploy the named git branch to the selected environment"
   Examples:

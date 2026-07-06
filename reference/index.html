@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>CLI Tools for Authors - Gopherbot DevOps Chatbot</title>
+        <title>Command Authoring Reference - Gopherbot DevOps Chatbot</title>
 
 
         <!-- Custom HTML head -->
@@ -174,55 +174,21 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="cli-tools-for-authors"><a class="header" href="#cli-tools-for-authors">CLI Tools for Authors</a></h1>
-<p>The <code>gopherbot</code> binary is also a CLI utility. The most useful commands for authors and operators are:</p>
+                        <h1 id="command-authoring-reference"><a class="header" href="#command-authoring-reference">Command Authoring Reference</a></h1>
+<p>This section collects detailed references for writing user-facing Gopherbot commands.</p>
 <ul>
-<li><code>gopherbot --help</code></li>
-<li><code>gopherbot check</code></li>
-<li><code>gopherbot match</code></li>
-<li><code>gopherbot encrypt</code></li>
-<li><code>gopherbot decrypt</code></li>
-<li><code>gopherbot validate &lt;path&gt;</code></li>
-<li><code>gopherbot dump installed &lt;path&gt;</code></li>
-<li><code>gopherbot dump configured &lt;path&gt;</code></li>
-<li><code>gopherbot list</code></li>
-<li><code>gopherbot fetch &lt;key&gt;</code></li>
-<li><code>gopherbot version</code></li>
+<li><a href="SimpleMatcher.html">SimpleMatcher</a>: the recommended matcher syntax for normal directed plugin commands.</li>
 </ul>
-<h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
-<p>Encrypt a secret:</p>
-<pre><code class="language-bash">gopherbot encrypt MyLousyPassword
-</code></pre>
-<p>Validate a robot repository:</p>
-<pre><code class="language-bash">gopherbot validate ~/robots/acme/custom
-</code></pre>
-<p>Check one SimpleMatcher without loading a robot:</p>
-<pre><code class="language-bash">gopherbot check 'spot (type:rails|devops) up [&lt;branch:token&gt;]' spot-devops-up
-</code></pre>
-<p>Match command text against the configured robot’s plugin commands:</p>
-<pre><code class="language-bash">gopherbot match spot-devops-up
-</code></pre>
-<p><code>match</code> uses the configured robot’s command metadata. If the robot encryption key is available, template secrets are decrypted normally; if it is not available, secret template values are replaced with redacted placeholders and a note is written to stderr.</p>
-<p>For repeated tests, load the command metadata once and prompt for command text until EOF:</p>
-<pre><code class="language-bash">gopherbot match -interactive
-</code></pre>
-<p>Dump the final merged robot config:</p>
-<pre><code class="language-bash">gopherbot dump configured robot.yaml
-</code></pre>
-<p>Secret template values are redacted by default when dumping expanded config. Use <code>--unredacted-secrets</code> only when you deliberately want decrypted secret values printed:</p>
-<pre><code class="language-bash">gopherbot dump --unredacted-secrets configured plugins/example.yaml
-</code></pre>
-<p>These commands are especially useful when configuration reload fails and you want to understand what the engine thinks the world looks like.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../extensiondev/local.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../config/troubleshooting.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../extensiondev/secrets.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../reference/SimpleMatcher.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -232,11 +198,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../extensiondev/local.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../config/troubleshooting.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../extensiondev/secrets.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../reference/SimpleMatcher.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
