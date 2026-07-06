@@ -28,6 +28,8 @@ Commands:
   Command: parameteraddtask
 - Regex: (?i:sh-utils)
   Command: utilities
+- Regex: (?i:sh-jq-compat)
+  Command: jqcompat
 - Regex: (?i:sh-default-tasks)
   Command: defaulttasks
 - Regex: (?i:sh-admin-check)
@@ -253,6 +255,67 @@ utilities() {
 	return $PLUGRET_Normal
 }
 
+jqcompat() {
+	tmpdir=$(mktemp -d "$GOPHER_WORKSPACE/shjq.XXXXXX") || return $PLUGRET_Fail
+	mkdir -p "$tmpdir/data" "$tmpdir/mods" || return $PLUGRET_Fail
+	cat > "$tmpdir/data/app.json" <<'JSON'
+{"metadata":{"annotations":{"remoteWorkload":"interactive-spot","remoteNodeSize":"large"}},"spec":{"source":{"helm":{"parameters":[{"name":"nodesize","value":"small"}]},"targetRevision":"prod","path":"argocd/remote-devel"}}}
+JSON
+	cat > "$tmpdir/data/list.json" <<'JSON'
+{"n":1}
+{"n":2}
+JSON
+	printf 'alpha\nbeta\n' > "$tmpdir/data/raw.txt"
+	printf '{"fromFile":"ok"}\n' > "$tmpdir/data/vars.json"
+	cat > "$tmpdir/data/filter.jq" <<'EOF'
+.fromFile
+EOF
+	cat > "$tmpdir/mods/inc.jq" <<'EOF'
+def bump: . + 1;
+EOF
+
+	workload=$(jq -r --arg annotation remoteWorkload --arg parameter workload --arg default_value interactive '
+	  def present: select(. != null and . != "");
+	  first([
+	    ((.metadata.annotations // {})[$annotation]),
+	    (.spec.source.helm.parameters[]? | select(.name == $parameter) | .value),
+	    $default_value
+	  ][] | present) // ""
+	' "$tmpdir/data/app.json") || return $PLUGRET_Fail
+	node=$(jq -r --arg annotation missing --arg parameter nodesize --arg default_value medium '
+	  [((.metadata.annotations // {})[$annotation]), (.spec.source.helm.parameters[]? | select(.name == $parameter) | .value), $default_value]
+	  | map(select(. != null and . != "")) | .[0] // ""
+	' "$tmpdir/data/app.json") || return $PLUGRET_Fail
+	argjson=$(jq -nr --argjson obj '{"a":2}' '$obj.a + 1') || return $PLUGRET_Fail
+	args=$(jq -nr --arg name astro --argjson count 7 '$ARGS.named.name + ":" + ($ARGS.named.count|tostring) + ":" + ($ARGS.positional|join(","))' --args one two) || return $PLUGRET_Fail
+	jsonargs=$(jq -cn '[ $ARGS.positional[0].x ]' --jsonargs '{"x":1}') || return $PLUGRET_Fail
+	slurp=$(jq -c -s '[.[].n] | add' "$tmpdir/data/list.json") || return $PLUGRET_Fail
+	raw=$(jq -R -s -r 'split("\n")[:-1] | join("|")' "$tmpdir/data/raw.txt") || return $PLUGRET_Fail
+	filter=$(jq -r -f "$tmpdir/data/filter.jq" "$tmpdir/data/vars.json") || return $PLUGRET_Fail
+	slurpfile=$(jq -nr --slurpfile docs "$tmpdir/data/list.json" '$docs | map(.n) | add') || return $PLUGRET_Fail
+	rawfile=$(jq -nr --rawfile text "$tmpdir/data/raw.txt" '$text | split("\n")[0]') || return $PLUGRET_Fail
+	module=$(jq -nr -L "$tmpdir/mods" 'include "inc"; 41 | bump') || return $PLUGRET_Fail
+	env_result=$(export JQ_GSH_ENV=visible; jq -nr 'env.JQ_GSH_ENV + ":" + $ENV.JQ_GSH_ENV') || return $PLUGRET_Fail
+	input_result=$(printf '{"v":5}\n' | jq -nr 'input.v + 1') || return $PLUGRET_Fail
+	stream=$(jq -c --stream 'select(length == 2 and .[0][-1] == "remoteWorkload")' "$tmpdir/data/app.json") || return $PLUGRET_Fail
+	yaml=$(printf 'a: 9\n' | jq --yaml-input -r '.a') || return $PLUGRET_Fail
+	compact=$(jq -c '.metadata.annotations | {remoteWorkload}' "$tmpdir/data/app.json") || return $PLUGRET_Fail
+	raw_join=$(printf '"a"\n"b"\n' | jq -rj '.') || return $PLUGRET_Fail
+
+	if jq -ne 'false' >/dev/null 2>/dev/null
+	then
+		return $PLUGRET_Fail
+	fi
+	if ! jq -ne 'true' >/dev/null 2>/dev/null
+	then
+		return $PLUGRET_Fail
+	fi
+
+	say -f "JQ COMPAT OK: workload=${workload} node=${node} argjson=${argjson} args=${args} jsonargs=${jsonargs} slurp=${slurp} raw=${raw} filter=${filter} slurpfile=${slurpfile} rawfile=${rawfile} module=${module} env=${env_result} input=${input_result} stream=${stream} yaml=${yaml} compact=${compact} rawjoin=${raw_join}"
+	rm -r "$tmpdir"
+	return $PLUGRET_Normal
+}
+
 defaulttasks() {
 	helper=$(mktemp "$GOPHER_WORKSPACE/default-task-exec.XXXXXX") || return $PLUGRET_Fail
 	cat > "$helper" <<'EOF'
@@ -397,7 +460,7 @@ case "$command" in
 	_init)
 		exit 0
 		;;
-	sendmsg|configtest|subscribe|prompts|memoryseed|memorycheck|memorythreadcheck|memorydelete|memorythreaddelete|identity|parameteraddtask|utilities|defaulttasks|admincheck|elevatecheck|pipelineok|pipelinefail|spawnjob|pipeaddcmd|pipefinalcmd|pipefailcmd|secopen|secadmincmd|secauthz|secauthall|secelevated|secimmediate|sechiddenok|sechiddendenied|secadminonly|secusersonly|encryptsecret)
+	sendmsg|configtest|subscribe|prompts|memoryseed|memorycheck|memorythreadcheck|memorydelete|memorythreaddelete|identity|parameteraddtask|utilities|jqcompat|defaulttasks|admincheck|elevatecheck|pipelineok|pipelinefail|spawnjob|pipeaddcmd|pipefinalcmd|pipefailcmd|secopen|secadmincmd|secauthz|secauthall|secelevated|secimmediate|sechiddenok|sechiddendenied|secadminonly|secusersonly|encryptsecret)
 		"$command" "$@"
 		;;
 	*)

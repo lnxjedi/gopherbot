@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/itchyny/gojq"
 	"github.com/lnxjedi/gopherbot/robot"
 	ucore "github.com/u-root/u-root/pkg/core"
 	ubase64 "github.com/u-root/u-root/pkg/core/base64"
@@ -1153,72 +1152,7 @@ func (c *shellContext) cmdDate(ctx context.Context, args []string) error {
 }
 
 func (c *shellContext) cmdJq(ctx context.Context, args []string) error {
-	rawOutput := false
-	compact := false
-	nullInput := false
-	rest := args
-	for len(rest) > 0 && strings.HasPrefix(rest[0], "-") && rest[0] != "-" {
-		flag := rest[0]
-		if flag == "--" {
-			rest = rest[1:]
-			break
-		}
-		for _, ch := range flag[1:] {
-			switch ch {
-			case 'r':
-				rawOutput = true
-			case 'c':
-				compact = true
-			case 'n':
-				nullInput = true
-			default:
-				return usageError(ctx, "jq only supports -r, -c, and -n in gsh")
-			}
-		}
-		rest = rest[1:]
-	}
-	if len(rest) < 1 {
-		return usageError(ctx, "jq requires a query")
-	}
-	query, err := gojq.Parse(rest[0])
-	if err != nil {
-		return err
-	}
-	code, err := gojq.Compile(query)
-	if err != nil {
-		return err
-	}
-	inputs, err := jqInputs(interp.HandlerCtx(ctx), rest[1:], nullInput)
-	if err != nil {
-		return err
-	}
-	hc := interp.HandlerCtx(ctx)
-	enc := json.NewEncoder(hc.Stdout)
-	if !compact {
-		enc.SetIndent("", "  ")
-	}
-	for _, input := range inputs {
-		iter := code.RunWithContext(ctx, input)
-		for {
-			value, ok := iter.Next()
-			if !ok {
-				break
-			}
-			if err, ok := value.(error); ok {
-				return err
-			}
-			if rawOutput {
-				if s, ok := value.(string); ok {
-					fmt.Fprintln(hc.Stdout, s)
-					continue
-				}
-			}
-			if err := enc.Encode(value); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+	return c.runJq(ctx, args)
 }
 
 func (c *shellContext) botWithMessageOptions(ctx context.Context, args []string, direct, threaded bool) (BotAPI, string, error) {
@@ -1415,12 +1349,12 @@ type namedReader struct {
 
 func inputReaders(hc interp.HandlerContext, files []string) ([]namedReader, error) {
 	if len(files) == 0 {
-		return []namedReader{{reader: io.NopCloser(hc.Stdin)}}, nil
+		return []namedReader{{reader: gshStdinReader(hc)}}, nil
 	}
 	readers := make([]namedReader, 0, len(files))
 	for _, file := range files {
 		if file == "-" {
-			readers = append(readers, namedReader{reader: io.NopCloser(hc.Stdin)})
+			readers = append(readers, namedReader{reader: gshStdinReader(hc)})
 			continue
 		}
 		path := resolvePath(hc.Dir, file)
@@ -1432,6 +1366,13 @@ func inputReaders(hc interp.HandlerContext, files []string) ([]namedReader, erro
 		readers = append(readers, namedReader{name: file, reader: f})
 	}
 	return readers, nil
+}
+
+func gshStdinReader(hc interp.HandlerContext) io.ReadCloser {
+	if hc.Stdin == nil {
+		return io.NopCloser(strings.NewReader(""))
+	}
+	return io.NopCloser(hc.Stdin)
 }
 
 func closeReaders(readers []namedReader) {
@@ -1515,35 +1456,6 @@ func parseCountFlag(args []string, def int) (int, []string, error) {
 		}
 	}
 	return def, args, nil
-}
-
-func jqInputs(hc interp.HandlerContext, files []string, nullInput bool) ([]interface{}, error) {
-	if nullInput {
-		return []interface{}{nil}, nil
-	}
-	readers, err := inputReaders(hc, files)
-	if err != nil {
-		return nil, err
-	}
-	defer closeReaders(readers)
-	inputs := []interface{}{}
-	for _, reader := range readers {
-		dec := json.NewDecoder(reader.reader)
-		for {
-			var value interface{}
-			if err := dec.Decode(&value); err != nil {
-				if err == io.EOF {
-					break
-				}
-				return nil, err
-			}
-			inputs = append(inputs, value)
-		}
-	}
-	if len(inputs) == 0 {
-		return []interface{}{nil}, nil
-	}
-	return inputs, nil
 }
 
 type grepFlags struct {

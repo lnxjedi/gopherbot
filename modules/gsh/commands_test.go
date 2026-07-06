@@ -112,6 +112,98 @@ printf 'last=%s\n' "$output"
 	}
 }
 
+func TestRunScriptJqBuiltinCLICompatibility(t *testing.T) {
+	tmp := t.TempDir()
+	script := writeTempScript(t, tmp, "jq-compat.gsh", `#!/bin/sh
+mkdir -p data mods || exit 10
+cat > data/app.json <<'JSON'
+{"metadata":{"annotations":{"remoteWorkload":"interactive-spot","remoteNodeSize":"large"}},"spec":{"source":{"helm":{"parameters":[{"name":"nodesize","value":"small"}]},"targetRevision":"prod","path":"argocd/remote-devel"}}}
+JSON
+cat > data/list.json <<'JSON'
+{"n":1}
+{"n":2}
+JSON
+printf 'alpha\nbeta\n' > data/raw.txt
+printf '{"n":3}\n{"n":4}\n' > data/slurp.json
+printf '{"fromFile":"ok"}\n' > data/vars.json
+cat > data/filter.jq <<'EOF'
+.fromFile
+EOF
+cat > mods/inc.jq <<'EOF'
+def bump: . + 1;
+EOF
+
+workload=$(jq -r --arg annotation remoteWorkload --arg parameter workload --arg default_value interactive '
+  def present: select(. != null and . != "");
+  first([
+    ((.metadata.annotations // {})[$annotation]),
+    (.spec.source.helm.parameters[]? | select(.name == $parameter) | .value),
+    $default_value
+  ][] | present) // ""
+' data/app.json) || exit 11
+
+node=$(jq -r --arg annotation missing --arg parameter nodesize --arg default_value medium '
+  [((.metadata.annotations // {})[$annotation]), (.spec.source.helm.parameters[]? | select(.name == $parameter) | .value), $default_value]
+  | map(select(. != null and . != "")) | .[0] // ""
+' data/app.json) || exit 12
+
+argjson=$(jq -nr --argjson obj '{"a":2}' '$obj.a + 1') || exit 13
+args=$(jq -nr --arg name astro --argjson count 7 '$ARGS.named.name + ":" + ($ARGS.named.count|tostring) + ":" + ($ARGS.positional|join(","))' --args one two) || exit 14
+jsonargs=$(jq -cn '[ $ARGS.positional[0].x ]' --jsonargs '{"x":1}') || exit 15
+slurp=$(jq -c -s '[.[].n] | add' data/list.json) || exit 16
+raw=$(jq -R -s -r 'split("\n")[:-1] | join("|")' data/raw.txt) || exit 17
+filter=$(jq -r -f data/filter.jq data/vars.json) || exit 18
+slurpfile=$(jq -nr --slurpfile docs data/list.json '$docs | map(.n) | add') || exit 19
+rawfile=$(jq -nr --rawfile text data/raw.txt '$text | split("\n")[0]') || exit 20
+module=$(jq -nr -L mods 'include "inc"; 41 | bump') || exit 21
+env_result=$(export JQ_GSH_ENV=visible; jq -nr 'env.JQ_GSH_ENV + ":" + $ENV.JQ_GSH_ENV') || exit 22
+input_result=$(printf '{"v":5}\n' | jq -nr 'input.v + 1') || exit 23
+filename=$(jq -r 'input_filename' data/app.json) || exit 24
+stream=$(jq -c --stream 'select(length == 2 and .[0][-1] == "remoteWorkload")' data/app.json) || exit 25
+yaml=$(printf 'a: 9\n' | jq --yaml-input -r '.a') || exit 26
+compact=$(jq -c '.metadata.annotations | {remoteWorkload}' data/app.json) || exit 27
+raw_join=$(printf '"a"\n"b"\n' | jq -rj '.') || exit 28
+
+if jq -ne 'false' >/dev/null 2>/dev/null; then
+  exit 29
+fi
+if ! jq -ne 'true' >/dev/null 2>/dev/null; then
+  exit 30
+fi
+
+printf 'workload=%s node=%s argjson=%s args=%s jsonargs=%s slurp=%s raw=%s filter=%s slurpfile=%s rawfile=%s module=%s env=%s input=%s filename=%s stream=%s yaml=%s compact=%s rawjoin=%s\n' \
+  "$workload" "$node" "$argjson" "$args" "$jsonargs" "$slurp" "$raw" "$filter" "$slurpfile" "$rawfile" "$module" "$env_result" "$input_result" "$filename" "$stream" "$yaml" "$compact" "$raw_join"
+`)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	ret, err := runScript(
+		script,
+		"jq-compat-test",
+		tmp,
+		[]string{
+			"GOPHER_WORKSPACE=" + tmp,
+			"GOPHER_INSTALLDIR=" + tmp,
+		},
+		nil,
+		nil,
+		nil,
+		&stdout,
+		&stderr,
+	)
+	if err != nil {
+		t.Fatalf("runScript() error = %v; stderr=%q", err, stderr.String())
+	}
+	if ret != robot.Normal {
+		t.Fatalf("runScript() ret = %v, want %v; stdout=%q stderr=%q", ret, robot.Normal, stdout.String(), stderr.String())
+	}
+	got := strings.TrimSpace(stdout.String())
+	want := `workload=interactive-spot node=small argjson=3 args=astro:7:one,two jsonargs=[1] slurp=3 raw=alpha|beta filter=ok slurpfile=3 rawfile=alpha module=42 env=visible:visible input=6 filename=data/app.json stream=[["metadata","annotations","remoteWorkload"],"interactive-spot"] yaml=9 compact={"remoteWorkload":"interactive-spot"} rawjoin=ab`
+	if got != want {
+		t.Fatalf("jq compat output = %q, want %q; stderr=%q", got, want, stderr.String())
+	}
+}
+
 func TestRunScriptUsesWorkDirInsteadOfScriptDir(t *testing.T) {
 	home := t.TempDir()
 	scriptDir := filepath.Join(home, "jobs")

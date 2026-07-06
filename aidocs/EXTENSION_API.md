@@ -198,6 +198,7 @@ Gopherbot shell uses `modules/gsh/assets/gopherbot_v1.gsh` as a compatibility sh
 
 - Robot methods are exposed as shell builtins (`say`, `Reply`, `PromptForReply`, `CheckAdmin`, `AddTask`, `GetTaskConfig`, etc.).
 - Common utility commands are also builtin (`base64`, `cat`, `cp`, `find`, `grep`, `jq`, `ls`, `mktemp`, `mv`, `rm`, `sort`, `tar`, `touch`, `tr`, `uniq`, `wc`, `xargs`, and related helpers).
+- Builtin `jq` uses the `gojq` library with a GSH-local CLI adapter. Extension authors should expect practical gojq CLI compatibility for jq-heavy scripts, including variable binding flags (`--arg`, `--argjson`), `$ARGS`, file binding flags (`--slurpfile`, `--rawfile`), slurp/raw/null-input modes, `-e`, `-f`, `-L`, `--stream`, and YAML input/output. GSH-specific context still applies: relative files resolve from the current GSH working directory and `env` / `$ENV` reflect exported GSH environment variables.
 - Builtin `head` and `tail` accept both `-n <count>` and shell-compatible shorthand count flags like `-1`.
 - `say` / `Say` style variants are equivalent because command lookup normalizes case plus `-` / `_`.
 - `Log` accepts numeric `LogLevel` values and named levels (`Trace`, `Debug`, `Info`, `Audit`, `Warn`/`Warning`, `Error`), so `Log Audit "Something happened"` works when migrating external bash scripts to `.gsh`; numeric `6` is the explicit `Fatal` form.
