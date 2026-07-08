@@ -286,7 +286,6 @@ local function load_config()
   end
   cfg.Environment = environment
   cfg.DryRun = dry_run
-  cfg.ManageHost = cfg.ManageHost == true
   cfg.WireGuardConfigPath = cfg.WireGuardConfigPath or "/etc/wireguard/wg0.conf"
   cfg.InterfaceAddress = cfg.InterfaceAddress or "10.77.0.1/24"
   cfg.ListenPort = tonumber(cfg.ListenPort or 51820)
@@ -304,7 +303,6 @@ local function load_config()
   end
   log_info("load_config done: environment=" .. tostring(cfg.Environment) ..
     " dry_run=" .. tostring(cfg.DryRun) ..
-    " manage_host=" .. tostring(cfg.ManageHost) ..
     " path=" .. tostring(cfg.WireGuardConfigPath) ..
     " interface=" .. tostring(cfg.InterfaceAddress) ..
     " port=" .. tostring(cfg.ListenPort) ..
@@ -414,14 +412,9 @@ local function render_config(cfg, state)
 end
 
 local function apply_wireguard(cfg, state)
-  log_info("apply_wireguard start: dry_run=" .. tostring(cfg.DryRun) ..
-    " manage_host=" .. tostring(cfg.ManageHost))
+  log_info("apply_wireguard start: dry_run=" .. tostring(cfg.DryRun))
   if cfg.DryRun then
     log_info("apply_wireguard skipped: development dry-run")
-    return true
-  end
-  if not cfg.ManageHost then
-    log_info("apply_wireguard skipped: ManageHost=false")
     return true
   end
 
@@ -714,9 +707,7 @@ elseif command == "clear-vpn" then
   else
     state.datum.Users = {}
     if update_state(state) and apply_wireguard(cfg, state) then
-      if cfg.ManageHost then
-        shell_capture("sudo -n iptables -F ALLOW_VPN", "iptables flush ALLOW_VPN")
-      end
+      shell_capture("sudo -n iptables -F ALLOW_VPN", "iptables flush ALLOW_VPN")
       say("Cleared all VPN users and devices, and emptied the ALLOW_VPN chain")
     end
   end
