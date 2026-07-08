@@ -74,6 +74,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 ## conf/
 
 - Default configuration: `conf/README.md`, `conf/robot.yaml`, `conf/protocols/terminal.yaml`.
+- Default local script fixture template: `conf/default-fixture.yaml`.
 - Shipped OAuth2/GitHub linker command config: `conf/plugins/github-link.yaml`.
 - Installed connector defaults plus inert setup templates: `conf/protocols/googlechat.yaml`, `conf/protocols/slack.yaml.sample`, `conf/protocols/ssh.yaml`, `conf/protocols/terminal.yaml`, `conf/protocols/nullconn.yaml`. Active robot-specific changes belong under `custom/conf/`.
 - Brain provider defaults: `conf/brains/*.yaml` (`BrainConfig`);
@@ -185,8 +186,11 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 - Local CLI script-development examples and fixtures:
   `test-scripts/README.md`, `test-scripts/fixtures/cat.json`,
-  `test-scripts/lua/demo.lua`, `test-scripts/javascript/demo.js`,
-  `test-scripts/gsh/demo.gsh`, `test-scripts/go/demo.go`.
+  `test-scripts/lua/demo.lua`, `test-scripts/lua/default-hello.lua`,
+  `test-scripts/javascript/demo.js`,
+  `test-scripts/javascript/default-hello.js`, `test-scripts/gsh/demo.gsh`,
+  `test-scripts/gsh/default-hello.gsh`, `test-scripts/go/demo.go`,
+  `test-scripts/go/default-hello/default_hello.go`.
 
 ## integration/
 

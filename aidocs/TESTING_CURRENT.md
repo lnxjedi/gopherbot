@@ -160,10 +160,13 @@ integration suites:
 - `gopherbot syntax <script> [script...]` parses or compiles explicit
   `.lua`, `.js`, `.gsh`, and `.go` paths without loading robot configuration.
   Add `-json` for tool/AI-readable diagnostics.
-- `gopherbot script -fixture <fixture.json> <script> -- <command> [args...]`
+- `gopherbot script -fixture <fixture.yaml|fixture.json> <script> -- <command> [args...]`
   runs one explicit interpreter script through the child RPC runtime with a
   local fixture-backed Robot API. It does not start connectors, queues, the
   HTTP listener, modules, or the real brain.
+- When `-fixture` is omitted, `script` uses the installed
+  `conf/default-fixture.yaml`. Use `gopherbot script -new-fixture <path>` to
+  copy that commented template before editing local values.
 - `test-scripts/` contains runnable examples and fixtures that exercise common
   Lua, JavaScript, GSH, and interpreted-Go syntax.
 

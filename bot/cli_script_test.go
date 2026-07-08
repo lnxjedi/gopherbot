@@ -25,7 +25,9 @@ func TestProcessCLIHelpScriptAndSyntax(t *testing.T) {
 			command: "script",
 			needles: []string{
 				"Usage: gopherbot script [options] <script> [--] <command> [args...]",
+				"conf/default-fixture.yaml",
 				"-fixture <path>",
+				"-new-fixture <path>",
 				"-no-interactive",
 			},
 		},
@@ -107,5 +109,102 @@ func TestMergeCLIScriptPluginArgsFromFixture(t *testing.T) {
 	}
 	if got := strings.Join(args, "|"); got != "cat" {
 		t.Fatalf("args = %q, want cat", got)
+	}
+}
+
+func TestLoadCLIScriptYAMLFixture(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "fixture.yaml")
+	if err := os.WriteFile(path, []byte(`
+message:
+  user: bob
+  channel: ops
+parameters:
+  CAT_COLOR: tuxedo
+config:
+  Openings:
+    - YAML hello
+prompts:
+  replies:
+    - Felix
+memory:
+  long_term:
+    cat_profile:
+      name: Felix
+users:
+  bob:
+    fullName: Bob Example
+    internalID: U456
+`), 0600); err != nil {
+		t.Fatalf("write yaml fixture: %v", err)
+	}
+	fixture, err := loadCLIScriptFixture(path)
+	if err != nil {
+		t.Fatalf("loadCLIScriptFixture() error = %v", err)
+	}
+	if fixture.Message.User != "bob" || fixture.Message.Channel != "ops" {
+		t.Fatalf("fixture message = %#v, want bob in ops", fixture.Message)
+	}
+	if got := fixture.Parameters["CAT_COLOR"]; got != "tuxedo" {
+		t.Fatalf("CAT_COLOR = %q, want tuxedo", got)
+	}
+	var cfg struct {
+		Openings []string
+	}
+	if err := json.Unmarshal(fixture.Config, &cfg); err != nil {
+		t.Fatalf("unmarshal config raw JSON: %v", err)
+	}
+	if len(cfg.Openings) != 1 || cfg.Openings[0] != "YAML hello" {
+		t.Fatalf("config openings = %#v, want YAML hello", cfg.Openings)
+	}
+	if got := string(fixture.Memory.LongTerm["cat_profile"]); !strings.Contains(got, "Felix") {
+		t.Fatalf("long-term memory raw JSON = %s, want Felix", got)
+	}
+}
+
+func TestProcessCLIScriptNewFixtureCopiesInstalledDefault(t *testing.T) {
+	oldInstallPath := installPath
+	installRoot := t.TempDir()
+	installPath = installRoot
+	t.Cleanup(func() {
+		installPath = oldInstallPath
+	})
+
+	src := filepath.Join(installRoot, "conf", "default-fixture.yaml")
+	if err := os.MkdirAll(filepath.Dir(src), 0700); err != nil {
+		t.Fatalf("mkdir conf: %v", err)
+	}
+	const fixtureTemplate = "# default fixture\nmessage:\n  user: alice\n"
+	if err := os.WriteFile(src, []byte(fixtureTemplate), 0600); err != nil {
+		t.Fatalf("write installed default fixture: %v", err)
+	}
+	dest := filepath.Join(t.TempDir(), "my-fixture.yaml")
+
+	output := captureStdout(t, func() {
+		code := processCLI("script", []string{"--new-fixture", dest})
+		if code != 0 {
+			t.Fatalf("processCLI(script --new-fixture) = %d, want 0", code)
+		}
+	})
+	if !strings.Contains(output, "Created fixture "+dest) {
+		t.Fatalf("new-fixture output = %q, want destination", output)
+	}
+	data, err := os.ReadFile(dest)
+	if err != nil {
+		t.Fatalf("read copied fixture: %v", err)
+	}
+	if string(data) != fixtureTemplate {
+		t.Fatalf("copied fixture = %q, want template", string(data))
+	}
+
+	stderr := captureStderr(t, func() {
+		output = captureStdout(t, func() {
+			code := processCLI("script", []string{"--new-fixture", dest})
+			if code != 1 {
+				t.Fatalf("processCLI(script --new-fixture existing) = %d, want 1", code)
+			}
+		})
+	})
+	if !strings.Contains(output, "already exists") && !strings.Contains(stderr, "already exists") {
+		t.Fatalf("existing fixture output missing error; stdout=%q stderr=%q", output, stderr)
 	}
 }

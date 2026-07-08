@@ -14,11 +14,16 @@ import (
 	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	"gopkg.in/yaml.v3"
 )
+
+const cliScriptDefaultFixturePath = "conf/default-fixture.yaml"
 
 type cliScriptOptions struct {
 	inlineSource  string
 	fixturePath   string
+	newFixture    string
+	force         bool
 	kind          string
 	language      string
 	noInteractive bool
@@ -140,6 +145,21 @@ type cliLocalRobot struct {
 }
 
 func processCLIScriptCommand(args []string, opts cliScriptOptions) int {
+	if opts.newFixture != "" {
+		if len(args) > 0 {
+			fmt.Println("Error: script -new-fixture does not take script arguments")
+			fmt.Println()
+			printCLICommandHelp("script")
+			return 2
+		}
+		if err := copyCLIScriptDefaultFixture(opts.newFixture, opts.force); err != nil {
+			fmt.Printf("Error: %v\n", err)
+			return 1
+		}
+		fmt.Printf("Created fixture %s\n", opts.newFixture)
+		return 0
+	}
+
 	inv, fixture, cleanup, err := prepareCLIScriptInvocation(args, opts)
 	if cleanup != nil {
 		defer cleanup()
@@ -316,18 +336,122 @@ func normalizeCLIScriptKind(kind string) (string, error) {
 
 func loadCLIScriptFixture(path string) (cliScriptFixture, error) {
 	fixture := defaultCLIScriptFixture()
-	if strings.TrimSpace(path) == "" {
-		return fixture, nil
+	sourcePath := strings.TrimSpace(path)
+	if sourcePath == "" {
+		sourcePath = installedCLIScriptDefaultFixturePath()
 	}
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(sourcePath)
 	if err != nil {
-		return fixture, fmt.Errorf("reading fixture %q: %w", path, err)
+		if strings.TrimSpace(path) == "" && os.IsNotExist(err) {
+			return fixture, nil
+		}
+		return fixture, fmt.Errorf("reading fixture %q: %w", sourcePath, err)
 	}
-	if err := json.Unmarshal(data, &fixture); err != nil {
-		return fixture, fmt.Errorf("parsing fixture %q: %w", path, err)
+	if err := unmarshalCLIScriptFixture(data, sourcePath, &fixture); err != nil {
+		return fixture, fmt.Errorf("parsing fixture %q: %w", sourcePath, err)
 	}
 	applyCLIScriptFixtureDefaults(&fixture)
 	return fixture, nil
+}
+
+func installedCLIScriptDefaultFixturePath() string {
+	base := installPath
+	if base == "" {
+		if cwd, err := os.Getwd(); err == nil {
+			base = cwd
+		}
+	}
+	return filepath.Join(base, cliScriptDefaultFixturePath)
+}
+
+func unmarshalCLIScriptFixture(data []byte, path string, fixture *cliScriptFixture) error {
+	switch strings.ToLower(filepath.Ext(path)) {
+	case ".json":
+		return json.Unmarshal(data, fixture)
+	case ".yaml", ".yml":
+		return unmarshalCLIScriptYAMLFixture(data, fixture)
+	default:
+		if err := json.Unmarshal(data, fixture); err == nil {
+			return nil
+		}
+		return unmarshalCLIScriptYAMLFixture(data, fixture)
+	}
+}
+
+func unmarshalCLIScriptYAMLFixture(data []byte, fixture *cliScriptFixture) error {
+	var decoded interface{}
+	if err := yaml.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	normalized := normalizeCLIScriptYAMLValue(decoded)
+	jsonData, err := json.Marshal(normalized)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(jsonData, fixture)
+}
+
+func normalizeCLIScriptYAMLValue(value interface{}) interface{} {
+	switch typed := value.(type) {
+	case map[string]interface{}:
+		out := make(map[string]interface{}, len(typed))
+		for key, item := range typed {
+			out[key] = normalizeCLIScriptYAMLValue(item)
+		}
+		return out
+	case map[interface{}]interface{}:
+		out := make(map[string]interface{}, len(typed))
+		for key, item := range typed {
+			out[fmt.Sprint(key)] = normalizeCLIScriptYAMLValue(item)
+		}
+		return out
+	case []interface{}:
+		out := make([]interface{}, len(typed))
+		for i, item := range typed {
+			out[i] = normalizeCLIScriptYAMLValue(item)
+		}
+		return out
+	default:
+		return value
+	}
+}
+
+func copyCLIScriptDefaultFixture(dest string, force bool) error {
+	dest = strings.TrimSpace(dest)
+	if dest == "" {
+		return fmt.Errorf("-new-fixture requires a destination path")
+	}
+	source := installedCLIScriptDefaultFixturePath()
+	data, err := os.ReadFile(source)
+	if err != nil {
+		return fmt.Errorf("reading installed default fixture %q: %w", source, err)
+	}
+	if parent := filepath.Dir(dest); parent != "." && parent != "" {
+		if err := os.MkdirAll(parent, 0755); err != nil {
+			return fmt.Errorf("creating fixture destination directory %q: %w", parent, err)
+		}
+	}
+	flags := os.O_WRONLY | os.O_CREATE
+	if force {
+		flags |= os.O_TRUNC
+	} else {
+		flags |= os.O_EXCL
+	}
+	file, err := os.OpenFile(dest, flags, 0644)
+	if err != nil {
+		if os.IsExist(err) {
+			return fmt.Errorf("fixture %q already exists; use -force to overwrite", dest)
+		}
+		return fmt.Errorf("creating fixture %q: %w", dest, err)
+	}
+	if _, err := file.Write(data); err != nil {
+		_ = file.Close()
+		return fmt.Errorf("writing fixture %q: %w", dest, err)
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("closing fixture %q: %w", dest, err)
+	}
+	return nil
 }
 
 func defaultCLIScriptFixture() cliScriptFixture {
@@ -356,13 +480,13 @@ func applyCLIScriptFixtureDefaults(fixture *cliScriptFixture) {
 		fixture.Message.Protocol = "test"
 	}
 	if fixture.Bot.Name == "" {
-		fixture.Bot.Name = "gopherbot"
+		fixture.Bot.Name = "floyd"
 	}
 	if fixture.Bot.Alias == "" {
-		fixture.Bot.Alias = "gopherbot"
+		fixture.Bot.Alias = "floyd"
 	}
 	if fixture.Bot.FullName == "" {
-		fixture.Bot.FullName = "Gopherbot Local Runner"
+		fixture.Bot.FullName = "Floyd Gopherbot"
 	}
 	if fixture.Bot.Contact == "" {
 		fixture.Bot.Contact = fixture.Bot.Name

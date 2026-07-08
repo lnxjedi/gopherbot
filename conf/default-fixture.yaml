@@ -1,0 +1,106 @@
+# This file is the default fixture for `gopherbot script`.
+#
+# When you run `gopherbot script` without `-fixture`, Gopherbot loads this
+# installed file to provide a small local message context: @alice speaking to
+# Floyd in #general on the test protocol. You can copy it and edit it for a
+# specific plugin with:
+#
+#   gopherbot script -new-fixture my-fixture.yaml
+#   gopherbot script -fixture my-fixture.yaml plugins/example.lua -- command
+#
+# Fixtures are for local extension development. They do not start connectors,
+# queues, the HTTP listener, modules, or the real brain. Values here are used
+# by the local Robot API implementation for calls such as GetMessage,
+# GetTaskConfig, GetParameter, prompt methods, attributes, and local memory.
+
+# Optional execution defaults. Leave these commented when you want the script
+# path and command line to decide.
+# task_name: example-plugin
+# kind: plugin        # plugin, job, or task
+# language: lua       # lua, js, gsh, or go; normally inferred from extension
+# command: demo       # plugin command used when none is supplied after --
+# args: []            # capture args used when none are supplied after --
+# workdir: .          # child process working directory
+
+# Incoming message context used by GetMessage() and default Say()/Reply()
+# routing. Channel names do not include the leading "#".
+message:
+  user: alice
+  channel: general
+  protocol: test
+  # protocol_user: U123
+  # protocol_channel: C123
+  # thread_id: T123
+  # message_id: M123
+  # text: local script run
+  # direct: false
+  # threaded: false
+  # hidden: false
+
+# Bot attributes returned by GetBotAttribute().
+bot:
+  name: floyd
+  alias: floyd
+  full_name: Floyd Gopherbot
+  contact: floyd
+  # email: bot@example.test
+  # id: B123
+
+# Authorization helpers. CheckAdmin() returns admin. Elevate() returns elevated.
+admin: false
+elevated: false
+
+# Values returned by GetParameter("NAME"). These are also exposed as
+# environment variables for GSH and interpreted Go runs.
+parameters:
+  # EXAMPLE_TOKEN: local-value
+  # DEPLOY_TARGET: qa
+
+# Value returned by GetTaskConfig(). Leave null to make GetTaskConfig return
+# NoConfigFound. Use any YAML object or list your plugin expects.
+config: null
+  # Openings:
+  #   - Loaded the thing from the place
+  # Retries: 2
+
+# Local memory used by CheckoutDatum/UpdateDatum and Remember/Recall. Long-term
+# values may be any YAML value. Short-term keys use the same local scopes the
+# runner uses internally: "<user>:<channel>:<key>" or "shared:<channel>:<key>".
+memory:
+  long_term:
+    # cat_profile:
+    #   name: Garfield
+    #   snacks:
+    #     - lasagna
+  short_term:
+    # alice:general:last_cat: Garfield
+    # shared:general:team_cat: Pixel
+
+# Prompt replies are consumed in order. When this list is empty or exhausted,
+# prompts read one line from stdin unless `-no-interactive` is set.
+prompts:
+  replies:
+    # - Garfield
+    # - lasagna
+
+# User attributes returned by GetUserAttribute/GetSenderAttribute. If the
+# message user is missing here, the runner creates a minimal user record.
+users:
+  alice:
+    name: alice
+    fullName: Alice Example
+    firstName: Alice
+    lastName: Example
+    email: alice@example.test
+    internalID: alice
+
+# Optional fixture credentials for GetIdentityCredential(provider, user).
+# LinkOAuth2Identity and UnlinkIdentity remain local no-op failures.
+identities:
+  # demo:
+  #   alice:
+  #     type: bearer
+  #     value: fixture-token
+  #     scheme: Bearer
+  #     header_name: Authorization
+  #     header_value: Bearer fixture-token

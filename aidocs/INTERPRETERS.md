@@ -124,7 +124,10 @@ Useful options:
 
 - `-c <source>` runs inline source and requires `-language` or
   `fixture.language`.
-- `-fixture <path>` loads JSON message/config/parameter/memory/prompt data.
+- `-fixture <path>` loads YAML or JSON message/config/parameter/memory/prompt
+  data. If omitted, `script` loads the installed `conf/default-fixture.yaml`.
+- `-new-fixture <path>` copies the installed commented default fixture to a new
+  file so it can be edited like a `values.yaml` override.
 - `-no-interactive` makes prompts return `TimeoutExpired` when fixture replies
   are exhausted; by default prompts fall back to reading one line from stdin.
 - `-json` records messages, prompts, logs, memory updates, and pipeline API

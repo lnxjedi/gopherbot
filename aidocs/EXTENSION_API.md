@@ -163,6 +163,8 @@ Thread subscription lifecycle:
 through a local fixture-backed implementation. It is a development tool, not a
 live connector simulation:
 
+- If `-fixture` is omitted, the runner loads the installed
+  `conf/default-fixture.yaml`; YAML and JSON fixture files are both accepted.
 - Message sends are written to stdout and recorded as JSON events.
 - Logs are always recorded as JSON events; human mode prints audit/warn/error
   and fatal logs to stderr.

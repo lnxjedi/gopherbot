@@ -173,6 +173,7 @@ func cliCommands() []cliCommandSpec {
 			HelpLines: []string{
 				"Usage: gopherbot script [options] <script> [--] <command> [args...]",
 				"   or: gopherbot script [options] -c <source> [--] <command> [args...]",
+				"   or: gopherbot script -new-fixture <path>",
 				"",
 				"Runs a Lua, JavaScript, GSH, or interpreted Go script from the filesystem",
 				"using a local fixture-backed robot API. The script path is explicit and",
@@ -184,7 +185,10 @@ func cliCommands() []cliCommandSpec {
 				"",
 				"Options:",
 				"  -c <source>                  run inline source; requires -language",
-				"  -fixture <path>              load JSON fixture data",
+				"  -fixture <path>              load YAML or JSON fixture data",
+				"                               defaults to installed conf/default-fixture.yaml",
+				"  -new-fixture <path>          copy installed conf/default-fixture.yaml to path",
+				"  -force                       allow -new-fixture to overwrite an existing file",
 				"  -kind <plugin|job|task>      execution kind; default plugin",
 				"  -language <lua|js|gsh|go>   override language detection by extension",
 				"  -no-interactive             fail prompts when fixture replies run out",
@@ -192,6 +196,7 @@ func cliCommands() []cliCommandSpec {
 				"  -json, -j                    write structured JSON output",
 				"",
 				"Examples:",
+				"  gopherbot script -new-fixture local-fixture.yaml",
 				"  gopherbot script plugins/foo.lua -- console qa",
 				"  gopherbot script -fixture test-scripts/fixtures/cat.json test-scripts/lua/demo.lua -- prompt",
 				"  gopherbot script -language lua -c 'local g=require(\"gopherbot_v1\"); return g.task.Normal' -- _init",
@@ -584,7 +589,9 @@ func processCLI(command string, args []string) int {
 
 	scriptFlags := newCLIFlagSet("script")
 	scriptFlags.StringVar(&scriptOpts.inlineSource, "c", "", "inline source to run")
-	scriptFlags.StringVar(&scriptOpts.fixturePath, "fixture", "", "JSON fixture path")
+	scriptFlags.StringVar(&scriptOpts.fixturePath, "fixture", "", "YAML or JSON fixture path")
+	scriptFlags.StringVar(&scriptOpts.newFixture, "new-fixture", "", "copy installed default fixture to path")
+	scriptFlags.BoolVar(&scriptOpts.force, "force", false, "overwrite destination for -new-fixture")
 	scriptFlags.StringVar(&scriptOpts.kind, "kind", "", "execution kind")
 	scriptFlags.StringVar(&scriptOpts.language, "language", "", "override language detection")
 	scriptFlags.BoolVar(&scriptOpts.noInteractive, "no-interactive", false, "fail prompts when fixture replies run out")
