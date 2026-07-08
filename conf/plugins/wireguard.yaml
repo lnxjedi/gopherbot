@@ -66,7 +66,9 @@ Config:
   WireGuardConfigPath: "/etc/wireguard/wg0.conf"
   PostUp: "/etc/wireguard/start-nat.sh"
   PostDown: "/etc/wireguard/stop-nat.sh"
-  # ManageHost: true|false - normally true for production
+  # In GOPHER_ENVIRONMENT=development, the plugin runs in dry-run mode:
+  # no wg, iptables, brain writes, WireGuard config writes, or service restarts.
+  # ManageHost: true|false - host management for non-development environments
   # InterfaceAddress: "10.77.0.1/24"
   # ListenPort: 1234
   # PrivateKey: secret reference

@@ -161,6 +161,38 @@ users:
 	}
 }
 
+func TestDefaultCLIScriptFixtureSetsDevelopmentEnvironment(t *testing.T) {
+	fixture := defaultCLIScriptFixture()
+	if got := fixture.Parameters["GOPHER_ENVIRONMENT"]; got != "development" {
+		t.Fatalf("GOPHER_ENVIRONMENT = %q, want development", got)
+	}
+}
+
+func TestCLILocalRobotGetParameterFallsBackToRuntimeEnvironment(t *testing.T) {
+	fixture := cliScriptFixture{
+		Parameters: map[string]string{
+			"GOPHER_USER": "configured-user",
+		},
+	}
+	applyCLIScriptFixtureDefaults(&fixture)
+	inv := cliScriptInvocation{TaskName: "demo", Kind: "plugin"}
+	localRobot := newCLILocalRobot(fixture, inv, false, true, nil, nil, nil)
+
+	if got := localRobot.GetParameter("GOPHER_BRAIN"); got != "local-fixture" {
+		t.Fatalf("GOPHER_BRAIN = %q, want local-fixture", got)
+	}
+	if got := localRobot.GetParameter("GOPHER_USER"); got != "configured-user" {
+		t.Fatalf("configured GOPHER_USER parameter = %q, want configured-user", got)
+	}
+	env := envMapFromList(localRobot.environment())
+	if got := env["GOPHER_ENVIRONMENT"]; got != "development" {
+		t.Fatalf("child GOPHER_ENVIRONMENT = %q, want development", got)
+	}
+	if got := env["GOPHER_USER"]; got != "configured-user" {
+		t.Fatalf("child GOPHER_USER = %q, want configured-user", got)
+	}
+}
+
 func TestProcessCLIScriptNewFixtureCopiesInstalledDefault(t *testing.T) {
 	oldInstallPath := installPath
 	installRoot := t.TempDir()

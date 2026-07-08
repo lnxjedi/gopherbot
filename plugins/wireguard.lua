@@ -38,6 +38,9 @@ local function trim(s)
   return tostring(s or ""):match("^%s*(.-)%s*$")
 end
 
+local environment = trim(bot:GetParameter("GOPHER_ENVIRONMENT"))
+local dry_run = environment == "development"
+
 local function summarize_output(out)
   out = tostring(out or ""):gsub("%s+$", "")
   if out == "" then
@@ -281,13 +284,15 @@ local function load_config()
     say("WireGuard plugin configuration is unavailable")
     return nil
   end
+  cfg.Environment = environment
+  cfg.DryRun = dry_run
   cfg.ManageHost = cfg.ManageHost == true
   cfg.WireGuardConfigPath = cfg.WireGuardConfigPath or "/etc/wireguard/wg0.conf"
   cfg.InterfaceAddress = cfg.InterfaceAddress or "10.77.0.1/24"
   cfg.ListenPort = tonumber(cfg.ListenPort or 51820)
   cfg.PostUp = cfg.PostUp or "/etc/wireguard/start-nat.sh"
   cfg.PostDown = cfg.PostDown or "/etc/wireguard/stop-nat.sh"
-  if not cfg.PrivateKey or cfg.PrivateKey == "" then
+  if not cfg.DryRun and (not cfg.PrivateKey or cfg.PrivateKey == "") then
     log_error("load_config failed: missing private key")
     say("WireGuard private key is not configured")
     return nil
@@ -297,7 +302,9 @@ local function load_config()
     say("WireGuard interface address is invalid")
     return nil
   end
-  log_info("load_config done: manage_host=" .. tostring(cfg.ManageHost) ..
+  log_info("load_config done: environment=" .. tostring(cfg.Environment) ..
+    " dry_run=" .. tostring(cfg.DryRun) ..
+    " manage_host=" .. tostring(cfg.ManageHost) ..
     " path=" .. tostring(cfg.WireGuardConfigPath) ..
     " interface=" .. tostring(cfg.InterfaceAddress) ..
     " port=" .. tostring(cfg.ListenPort) ..
@@ -344,6 +351,10 @@ local function checkin_state(state)
 end
 
 local function gen_psk()
+  if dry_run then
+    log_info("gen_psk skipped: development dry-run")
+    return "<dry-run-psk>"
+  end
   local ok, out = shell_capture("wg genpsk", "wg genpsk")
   if not ok then
     log_error("gen_psk failed")
@@ -365,6 +376,13 @@ local function external_ip()
   end
   local ip = (response.body or ""):match("\nip=([^\n]+)") or (response.body or ""):match("^ip=([^\n]+)")
   return ip
+end
+
+local function endpoint_ip(cfg)
+  if cfg and cfg.DryRun then
+    return "<robot-public-ip>"
+  end
+  return external_ip() or "<robot-public-ip>"
 end
 
 local function render_config(cfg, state)
@@ -396,7 +414,12 @@ local function render_config(cfg, state)
 end
 
 local function apply_wireguard(cfg, state)
-  log_info("apply_wireguard start: manage_host=" .. tostring(cfg.ManageHost))
+  log_info("apply_wireguard start: dry_run=" .. tostring(cfg.DryRun) ..
+    " manage_host=" .. tostring(cfg.ManageHost))
+  if cfg.DryRun then
+    log_info("apply_wireguard skipped: development dry-run")
+    return true
+  end
   if not cfg.ManageHost then
     log_info("apply_wireguard skipped: ManageHost=false")
     return true
@@ -481,6 +504,18 @@ local function add_device(cfg, state, device, public_key)
     AllowedIPs = user_ip,
   }
 
+  if cfg.DryRun then
+    local ip = endpoint_ip(cfg)
+    local robot_public_key = cfg.PublicKey or "<robot-public-key>"
+    say("Dry-run: VPN device '" .. device .. "' would be added for user '" .. username .. "'. No brain state, WireGuard configuration, or host service changes were made.")
+    say("VPN config data: Robot_IP = " .. ip .. ":" .. tostring(cfg.ListenPort) ..
+      " | Robot_Public_Key = " .. tostring(robot_public_key) ..
+      " | USER_IP = " .. user_ip ..
+      " | PSK = " .. psk)
+    log_info("add_device dry-run done: user=" .. tostring(username) .. " device=" .. tostring(device) .. " ip=" .. tostring(user_ip))
+    return true
+  end
+
   if not update_state(state) then
     log_error("add_device failed: state update failed")
     return false
@@ -490,7 +525,7 @@ local function add_device(cfg, state, device, public_key)
     return false
   end
 
-  local ip = external_ip() or "<robot-public-ip>"
+  local ip = endpoint_ip(cfg)
   local robot_public_key = cfg.PublicKey or "<robot-public-key>"
   say("VPN config data: Robot_IP = " .. ip .. ":" .. tostring(cfg.ListenPort) ..
     " | Robot_Public_Key = " .. tostring(robot_public_key) ..
@@ -504,6 +539,11 @@ local function delete_user(cfg, state, username)
   log_info("delete_user start: username=" .. tostring(username))
   username = string.lower(username or "")
   if state.datum.Users[username] then
+    if cfg.DryRun then
+      say("Dry-run: user '" .. username .. "' and all VPN devices would be deleted. No brain state, WireGuard configuration, or host service changes were made.")
+      log_info("delete_user dry-run done: username=" .. tostring(username))
+      return
+    end
     state.datum.Users[username] = nil
     if update_state(state) and apply_wireguard(cfg, state) then
       say("User '" .. username .. "' deleted successfully.")
@@ -520,6 +560,11 @@ local function delete_device(cfg, state, device)
   log_info("delete_device start: user=" .. tostring(username) .. " device=" .. tostring(device))
   device = string.lower(device or "")
   if state.datum.Users[username] and state.datum.Users[username][device] then
+    if cfg.DryRun then
+      say("Dry-run: device '" .. device .. "' for user '" .. tostring(username) .. "' would be deleted. No brain state, WireGuard configuration, or host service changes were made.")
+      log_info("delete_device dry-run done: user=" .. tostring(username) .. " device=" .. tostring(device))
+      return
+    end
     state.datum.Users[username][device] = nil
     if update_state(state) and apply_wireguard(cfg, state) then
       say("Device '" .. device .. "' deleted successfully.")
@@ -563,7 +608,7 @@ local function get_vpn(cfg, state, device)
     return
   end
   local data = state.datum.Users[username][device]
-  local ip = external_ip() or "<robot-public-ip>"
+  local ip = endpoint_ip(cfg)
   say("VPN config data: Robot_IP = " .. ip .. ":" .. tostring(cfg.ListenPort) .. " | USER_IP = " .. data.AllowedIPs .. " | PSK = " .. data.PreSharedKey)
   log_info("get_vpn done: user=" .. tostring(username) .. " device=" .. tostring(device) .. " ip=" .. tostring(data.AllowedIPs))
 end
@@ -574,14 +619,19 @@ local function get_vpn_info(cfg)
     say("WireGuard public key is not configured")
     return
   end
-  local ip = external_ip() or "<robot-public-ip>"
+  local ip = endpoint_ip(cfg)
   say("WireGuard VPN info:\nPublic key: " .. tostring(cfg.PublicKey) .. "\nEndpoint: " .. ip .. ":" .. tostring(cfg.ListenPort))
 end
 
-local function allow_ip(address)
+local function allow_ip(cfg, address)
   if not is_global_ipv4(address) then
     log_warn("allow_ip rejected: address=" .. tostring(address))
     say("Invalid, unparseable, or non-public IP address")
+    return
+  end
+  if cfg.DryRun then
+    log_info("allow_ip skipped: development dry-run address=" .. tostring(address))
+    say("Dry-run: IP address " .. tostring(address) .. " would be added to ALLOW_VPN. No iptables changes were made.")
     return
   end
   local ok, out, status = shell_capture("sudo -n iptables -L ALLOW_VPN -n", "iptables list ALLOW_VPN")
@@ -608,6 +658,8 @@ local function allow_ip(address)
 end
 
 log_info("command start: command=" .. tostring(command) ..
+  " environment=" .. tostring(environment) ..
+  " dry_run=" .. tostring(dry_run) ..
   " user=" .. tostring(bot.user) ..
   " channel=" .. tostring(bot.channel) ..
   " arg_count=" .. tostring(#arg))
@@ -619,7 +671,7 @@ if not cfg then
 end
 
 if command == "allow-ip" then
-  allow_ip(arg[2])
+  allow_ip(cfg, arg[2])
   return task.Normal
 end
 
@@ -635,7 +687,7 @@ local write_commands = {
   ["clear-vpn"] = true,
 }
 
-local state = checkout_state(write_commands[command] == true)
+local state = checkout_state(write_commands[command] == true and not dry_run)
 if not state then
   log_error("command abort: state unavailable")
   return task.Fail
@@ -656,12 +708,17 @@ elseif command == "delete-device" then
 elseif command == "get-vpn" then
   get_vpn(cfg, state, arg[2])
 elseif command == "clear-vpn" then
-  state.datum.Users = {}
-  if update_state(state) and apply_wireguard(cfg, state) then
-    if cfg.ManageHost then
-      shell_capture("sudo -n iptables -F ALLOW_VPN", "iptables flush ALLOW_VPN")
+  if cfg.DryRun then
+    say("Dry-run: all VPN users and devices would be cleared. No brain state, WireGuard configuration, host service, or iptables changes were made.")
+    log_info("clear-vpn dry-run done")
+  else
+    state.datum.Users = {}
+    if update_state(state) and apply_wireguard(cfg, state) then
+      if cfg.ManageHost then
+        shell_capture("sudo -n iptables -F ALLOW_VPN", "iptables flush ALLOW_VPN")
+      end
+      say("Cleared all VPN users and devices, and emptied the ALLOW_VPN chain")
     end
-    say("Cleared all VPN users and devices, and emptied the ALLOW_VPN chain")
   end
 end
 

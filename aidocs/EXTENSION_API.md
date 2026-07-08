@@ -29,6 +29,14 @@ The authoritative API surface for compiled Go and Yaegi-based extensions is the 
 - `GetUserAttribute(u, a string) *AttrRet`
 - `GetSenderAttribute(a string) *AttrRet`
 
+`GetParameter` first resolves parameters explicitly attached to the current
+task/plugin/job or pipeline, then falls back to engine-provided runtime
+metadata such as `GOPHER_USER`, `GOPHER_CHANNEL`, `GOPHER_PROTOCOL`, and
+`GOPHER_ENVIRONMENT`. `GOPHER_ENVIRONMENT=development` is the standard v3
+signal for extension development and prove-it modes; plugins that manage host
+state or external systems should use it for dry-run behavior that validates
+inputs and command flow without making irreversible changes.
+
 `GetHelpMetadata` returns engine-filtered JSON describing commands the current user can browse via help. It is intended for extension-side recovery/help experiences and keeps visibility policy in the engine rather than in plugins.
 
 Returned JSON includes:
@@ -165,6 +173,10 @@ live connector simulation:
 
 - If `-fixture` is omitted, the runner loads the installed
   `conf/default-fixture.yaml`; YAML and JSON fixture files are both accepted.
+- The default fixture sets `GOPHER_ENVIRONMENT=development`. Fixture
+  parameters are exposed through `GetParameter` and as child-process
+  environment variables, and they can override runtime metadata when a local
+  check needs a different value.
 - Message sends are written to stdout and recorded as JSON events.
 - Logs are always recorded as JSON events; human mode prints audit/warn/error
   and fatal logs to stderr.

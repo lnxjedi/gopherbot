@@ -120,6 +120,12 @@ before capture args, matching configured plugin execution. In `-kind job` or
 `-kind task`, args are passed as-is. `--` is recommended whenever the plugin
 command or captures may look like CLI flags.
 
+The installed default fixture sets `GOPHER_ENVIRONMENT=development`. Local
+script runs therefore exercise the same development/prove-it convention used
+by normal extensions: plugins can call `GetParameter("GOPHER_ENVIRONMENT")`
+or read the process environment, and use `development` to avoid writes to host
+state, external systems, or persistent robot memory.
+
 Useful options:
 
 - `-c <source>` runs inline source and requires `-language` or
@@ -141,6 +147,8 @@ The local Robot API is intentionally conservative:
   consume `fixture.prompts.replies` before falling back to stdin.
 - `GetTaskConfig`, `GetParameter`, message/user/bot attributes, short-term
   memory, and datum memory are served from the fixture/local in-memory state.
+  `GetParameter` checks fixture parameters first, then runtime metadata such
+  as `GOPHER_USER`, `GOPHER_PROTOCOL`, and `GOPHER_ENVIRONMENT`.
 - Cloud-bound or privileged mechanisms such as shared encryption and identity
   linking return normal failure codes unless fixture data explicitly supplies a
   read path such as `identities`.
@@ -421,6 +429,7 @@ All scripts receive these environment variables:
 | `GOPHER_HTTP_POST` | HTTP endpoint for JSON API (external scripts only) |
 | `GOPHER_CHANNEL` | Current channel name |
 | `GOPHER_USER` | Current user name |
+| `GOPHER_ENVIRONMENT` | Current robot environment; `development` is the common extension dry-run/prove-it mode |
 | `GOPHER_PROTOCOL` | Protocol name (slack, terminal, etc.) |
 | `GOPHER_TASK_NAME` | Name of current task |
 | `GOPHER_PIPELINE_TYPE` | "plugin", "job", or "task" |

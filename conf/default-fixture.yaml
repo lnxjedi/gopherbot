@@ -51,8 +51,10 @@ admin: false
 elevated: false
 
 # Values returned by GetParameter("NAME"). These are also exposed as
-# environment variables for GSH and interpreted Go runs.
+# environment variables in the script child process. The default fixture runs
+# as a development environment so extensions can use that common dry-run mode.
 parameters:
+  GOPHER_ENVIRONMENT: development
   # EXAMPLE_TOKEN: local-value
   # DEPLOY_TARGET: qa
 

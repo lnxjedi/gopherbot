@@ -132,6 +132,7 @@ type cliLocalRobotShared struct {
 	errOutput     io.Writer
 	promptReplies []string
 	promptIndex   int
+	environment   map[string]string
 	parameters    map[string]string
 	longTerm      map[string]json.RawMessage
 	shortTerm     map[string]string
@@ -494,6 +495,9 @@ func applyCLIScriptFixtureDefaults(fixture *cliScriptFixture) {
 	if fixture.Parameters == nil {
 		fixture.Parameters = map[string]string{}
 	}
+	if _, ok := fixture.Parameters["GOPHER_ENVIRONMENT"]; !ok {
+		fixture.Parameters["GOPHER_ENVIRONMENT"] = "development"
+	}
 	if fixture.Memory.LongTerm == nil {
 		fixture.Memory.LongTerm = map[string]json.RawMessage{}
 	}
@@ -559,7 +563,7 @@ func ensureCLIScriptRuntimePaths() error {
 }
 
 func runCLIScript(inv cliScriptInvocation, r *cliLocalRobot) (robot.TaskRetVal, error) {
-	env := r.environment(inv)
+	env := r.environment()
 	botMap := scriptBot(envMapFromList(env))
 	switch inv.Language {
 	case "lua":
@@ -642,6 +646,7 @@ func newCLILocalRobot(fixture cliScriptFixture, inv cliScriptInvocation, interac
 		output:        output,
 		errOutput:     errOutput,
 		promptReplies: append([]string(nil), fixture.Prompts.Replies...),
+		environment:   cliScriptRuntimeEnvironment(inv, connectorMessage, msg),
 		parameters:    copyCLIScriptStringMap(fixture.Parameters),
 		longTerm:      copyRawMessageMap(fixture.Memory.LongTerm),
 		shortTerm:     copyCLIScriptStringMap(fixture.Memory.ShortTerm),
@@ -771,7 +776,10 @@ func (r *cliLocalRobot) GetMessage() *robot.Message {
 func (r *cliLocalRobot) GetParameter(name string) string {
 	r.shared.mu.Lock()
 	defer r.shared.mu.Unlock()
-	return r.shared.parameters[name]
+	if value, ok := r.shared.parameters[name]; ok {
+		return value
+	}
+	return r.shared.environment[name]
 }
 
 func (r *cliLocalRobot) GetIdentityCredential(provider, user string) (*robot.IdentityCredential, robot.RetVal) {
@@ -1207,19 +1215,38 @@ func (r *cliLocalRobot) shortTermKey(key string, shared, threaded bool) string {
 	return scope + ":" + channel + ":" + key
 }
 
-func (r *cliLocalRobot) environment(inv cliScriptInvocation) []string {
-	msg := r.message
+func (r *cliLocalRobot) environment() []string {
+	r.shared.mu.Lock()
+	env := copyCLIScriptStringMap(r.shared.environment)
+	for key, value := range r.shared.parameters {
+		env[key] = value
+	}
+	r.shared.mu.Unlock()
+	out := make([]string, 0, len(env))
+	for key, value := range env {
+		out = append(out, key+"="+value)
+	}
+	return out
+}
+
+func cliScriptRuntimeEnvironment(inv cliScriptInvocation, incoming *robot.ConnectorMessage, msg cliScriptFixtureMessage) map[string]string {
+	channel := msg.Channel
+	protocolChannel := msg.ProtocolChannel
+	if msg.Direct {
+		channel = ""
+		protocolChannel = ""
+	}
 	env := map[string]string{
 		"GOPHER_HOME":          homePath,
 		"GOPHER_CONFIGDIR":     configFull,
-		"GOPHER_CHANNEL":       msg.Channel,
-		"GOPHER_CHANNEL_ID":    msg.ProtocolChannel,
-		"GOPHER_MESSAGE_ID":    firstNonBlank(r.shared.fixture.Message.MessageID, "local-message"),
-		"GOPHER_THREAD_ID":     r.shared.fixture.Message.ThreadID,
+		"GOPHER_CHANNEL":       channel,
+		"GOPHER_CHANNEL_ID":    protocolChannel,
+		"GOPHER_MESSAGE_ID":    firstNonBlank(msg.MessageID, "local-message"),
+		"GOPHER_THREAD_ID":     msg.ThreadID,
 		"GOPHER_CMDMODE":       "local",
 		"GOPHER_USER":          msg.User,
 		"GOPHER_USER_ID":       msg.ProtocolUser,
-		"GOPHER_PROTOCOL":      r.shared.fixture.Message.Protocol,
+		"GOPHER_PROTOCOL":      msg.Protocol,
 		"GOPHER_TASK_NAME":     inv.TaskName,
 		"GOPHER_PIPELINE_TYPE": inv.Kind,
 		"GOPHER_CALLER_ID":     "stdin",
@@ -1232,27 +1259,18 @@ func (r *cliLocalRobot) environment(inv cliScriptInvocation) []string {
 		"PYTHONPATH":           fmt.Sprintf("%s/lib:%s/lib", installPath, configFull),
 		"PYTHONUSERBASE":       filepath.Join(homePath, ".bot-python"),
 	}
-	if msg.Incoming != nil {
-		if msg.Incoming.ThreadedMessage {
+	if incoming != nil {
+		if incoming.ThreadedMessage {
 			env["GOPHER_THREADED_MESSAGE"] = "true"
 		}
-		if msg.Incoming.HiddenMessage {
+		if incoming.HiddenMessage {
 			env["GOPHER_HIDDEN_COMMAND"] = "true"
 		}
-		if msg.Incoming.DirectMessage {
+		if incoming.DirectMessage {
 			env["GOPHER_PRIVATE_COMMAND"] = "true"
 		}
 	}
-	r.shared.mu.Lock()
-	for key, value := range r.shared.parameters {
-		env[key] = value
-	}
-	r.shared.mu.Unlock()
-	out := make([]string, 0, len(env))
-	for key, value := range env {
-		out = append(out, key+"="+value)
-	}
-	return out
+	return env
 }
 
 func envMapFromList(env []string) map[string]string {
