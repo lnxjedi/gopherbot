@@ -98,6 +98,53 @@ Extension authors should use normal `HOME`/`PATH` semantics for host tools such
 as `kubectl`, `git`, and cloud CLIs, and use `GOPHER_HOME` when they mean the
 robot directory.
 
+## Local Development CLI
+
+`gopherbot syntax` and `gopherbot script` are no-init CLI commands for local
+development of built-in interpreter scripts. They operate on explicit paths
+resolved from the current working directory; they do not discover configured
+plugins by name.
+
+`gopherbot syntax [options] <script> [script...]` checks Lua, JavaScript, GSH,
+and interpreted Go scripts without loading robot configuration. Language is
+inferred from `.lua`, `.js`, `.gsh`, or `.go`, or supplied with
+`-language lua|js|gsh|go`. Use `-json`/`-j` for structured diagnostics. GSH
+syntax checking prepends the embedded `gopherbot_v1.gsh` shim before parsing so
+the check matches runtime parsing.
+
+`gopherbot script [options] <script> [--] <command> [args...]` runs one
+built-in interpreter script through the same child RPC runtime used by normal
+pipeline execution, but with a local fixture-backed Robot API instead of a live
+connector/worker/brain. In plugin mode, the command after `--` is prepended
+before capture args, matching configured plugin execution. In `-kind job` or
+`-kind task`, args are passed as-is. `--` is recommended whenever the plugin
+command or captures may look like CLI flags.
+
+Useful options:
+
+- `-c <source>` runs inline source and requires `-language` or
+  `fixture.language`.
+- `-fixture <path>` loads JSON message/config/parameter/memory/prompt data.
+- `-no-interactive` makes prompts return `TimeoutExpired` when fixture replies
+  are exhausted; by default prompts fall back to reading one line from stdin.
+- `-json` records messages, prompts, logs, memory updates, and pipeline API
+  calls as structured events.
+
+The local Robot API is intentionally conservative:
+
+- `Say`, `Reply`, `SendChannelMessage`, and related methods write readable
+  terminal lines such as `#general @alice: message`.
+- Prompt methods write prompts such as `#general @alice Name of cat?: ` and
+  consume `fixture.prompts.replies` before falling back to stdin.
+- `GetTaskConfig`, `GetParameter`, message/user/bot attributes, short-term
+  memory, and datum memory are served from the fixture/local in-memory state.
+- Cloud-bound or privileged mechanisms such as shared encryption and identity
+  linking return normal failure codes unless fixture data explicitly supplies a
+  read path such as `identities`.
+
+Runnable examples and fixture data live under `test-scripts/`; see
+`test-scripts/README.md`.
+
 ## Plugin Contract by Language
 
 Config key note: in v3 plugin config, directed command matchers must be under `Commands`. Legacy `CommandMatchers` and top-level `Help` are no longer accepted.

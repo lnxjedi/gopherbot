@@ -286,6 +286,8 @@ EOF
 	  [((.metadata.annotations // {})[$annotation]), (.spec.source.helm.parameters[]? | select(.name == $parameter) | .value), $default_value]
 	  | map(select(. != null and . != "")) | .[0] // ""
 	' "$tmpdir/data/app.json") || return $PLUGRET_Fail
+	app_json=$(cat "$tmpdir/data/app.json") || return $PLUGRET_Fail
+	pipearg=$(printf '%s' "$app_json" | jq -r --arg annotation remoteWorkload '(.metadata.annotations // {})[$annotation] // ""') || return $PLUGRET_Fail
 	argjson=$(jq -nr --argjson obj '{"a":2}' '$obj.a + 1') || return $PLUGRET_Fail
 	args=$(jq -nr --arg name astro --argjson count 7 '$ARGS.named.name + ":" + ($ARGS.named.count|tostring) + ":" + ($ARGS.positional|join(","))' --args one two) || return $PLUGRET_Fail
 	jsonargs=$(jq -cn '[ $ARGS.positional[0].x ]' --jsonargs '{"x":1}') || return $PLUGRET_Fail
@@ -311,7 +313,7 @@ EOF
 		return $PLUGRET_Fail
 	fi
 
-	say -f "JQ COMPAT OK: workload=${workload} node=${node} argjson=${argjson} args=${args} jsonargs=${jsonargs} slurp=${slurp} raw=${raw} filter=${filter} slurpfile=${slurpfile} rawfile=${rawfile} module=${module} env=${env_result} input=${input_result} stream=${stream} yaml=${yaml} compact=${compact} rawjoin=${raw_join}"
+	say -f "JQ COMPAT OK: workload=${workload} node=${node} pipearg=${pipearg} argjson=${argjson} args=${args} jsonargs=${jsonargs} slurp=${slurp} raw=${raw} filter=${filter} slurpfile=${slurpfile} rawfile=${rawfile} module=${module} env=${env_result} input=${input_result} stream=${stream} yaml=${yaml} compact=${compact} rawjoin=${raw_join}"
 	rm -r "$tmpdir"
 	return $PLUGRET_Normal
 }

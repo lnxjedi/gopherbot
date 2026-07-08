@@ -31,6 +31,18 @@ func workerForRobotAPI(r robot.Robot) *worker {
 	}
 }
 
+type externalAPICallGate interface {
+	beginSerializedExternalAPICall() bool
+	finishSerializedExternalAPICall()
+}
+
+func externalAPICallGateForRobotAPI(r robot.Robot) externalAPICallGate {
+	if gate, ok := r.(externalAPICallGate); ok {
+		return gate
+	}
+	return workerForRobotAPI(r)
+}
+
 func killExternalProcessGroup(pid int) timeoutInterruptResult {
 	if pid == 0 {
 		return timeoutInterruptResult{manual: true}

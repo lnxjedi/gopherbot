@@ -73,6 +73,15 @@ Prompt timeout semantics:
 - Extended timeout: `42m` for `ssh`/`terminal` when the calling task is compiled Go or interpreter-backed (`.go`, `.lua`, `.js`, `.gsh`).
 - On robot shutdown, in-progress prompt waits return `Interrupted` immediately.
 
+Local `gopherbot script` prompting:
+- The local script runner does not start connector prompt tracking. It prints
+  the prompt target/text to stdout and consumes `fixture.prompts.replies` in
+  order.
+- If fixture replies run out, prompts read one line from stdin by default.
+  `-no-interactive` makes the same situation return `TimeoutExpired`.
+- A reply of `-` returns `Interrupted`; a reply of `=` returns
+  `UseDefaultValue`.
+
 ### Memory (brain + ephemeral)
 - `CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret RetVal)`
 - `CheckinDatum(key, locktoken string)`
@@ -147,6 +156,30 @@ Thread subscription lifecycle:
 - Future unmatched messages in that subscribed thread invoke the plugin with engine command `_subscribed` and the full message text as the first argument.
 - When the engine expires an inactive subscription, it invokes the plugin asynchronously with engine command `_expiresub`; `GOPHER_PROTOCOL`, `GOPHER_CHANNEL`, and `GOPHER_THREAD_ID` identify the expired context.
 - Plugin configuration must not define commands beginning with `_`; that prefix is reserved for engine lifecycle callbacks.
+
+## Local Script Runner Semantics
+
+`gopherbot script` exposes the same built-in interpreter Robot call surface
+through a local fixture-backed implementation. It is a development tool, not a
+live connector simulation:
+
+- Message sends are written to stdout and recorded as JSON events.
+- Logs are always recorded as JSON events; human mode prints audit/warn/error
+  and fatal logs to stderr.
+- `GetTaskConfig`, `GetParameter`, `GetMessage`, bot/user attributes,
+  short-term memory, and long-term datum APIs are served from fixture/local
+  memory.
+- Pipeline-control calls such as `AddTask`, `AddJob`, `AddCommand`,
+  `Subscribe`, and `Exclusive` record events and return success without
+  starting real pipelines.
+- Identity credential reads can be supplied through fixture `identities`;
+  linking/unlinking identities returns `Failed`.
+- `EncryptSecret` returns `Failed` because the local runner intentionally does
+  not initialize or expose shared robot encryption state.
+
+Use `gopherbot syntax` for fast parser/compiler diagnostics and
+`gopherbot script` for fixture-backed execution checks before shipping an
+interpreter-backed extension.
 
 ## External JSON API (HTTP)
 

@@ -152,6 +152,25 @@ Common symptom:
 - `Fatal: Listening on tcp4 port 127.0.0.1:0 ... operation not permitted`
   - means the test process could not open a localhost listener in the current execution environment (sandbox/permissions issue), not necessarily a bot logic regression.
 
+## Local Script Development Checks
+
+Use the robot CLI for fast built-in interpreter checks before running heavier
+integration suites:
+
+- `gopherbot syntax <script> [script...]` parses or compiles explicit
+  `.lua`, `.js`, `.gsh`, and `.go` paths without loading robot configuration.
+  Add `-json` for tool/AI-readable diagnostics.
+- `gopherbot script -fixture <fixture.json> <script> -- <command> [args...]`
+  runs one explicit interpreter script through the child RPC runtime with a
+  local fixture-backed Robot API. It does not start connectors, queues, the
+  HTTP listener, modules, or the real brain.
+- `test-scripts/` contains runnable examples and fixtures that exercise common
+  Lua, JavaScript, GSH, and interpreted-Go syntax.
+
+These commands are local development checks, not substitutes for integration
+coverage when engine routing, authorization, connector identity, scheduling,
+or real brain behavior is under test.
+
 ## Live Brain Inspection (Manual Debugging)
 
 For robot-side data shape debugging (for example long-term memory/datum format mismatches), use the robot CLI from a custom robot directory:

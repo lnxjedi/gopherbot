@@ -405,6 +405,59 @@ func TestProcessCLIHelpDumpShowsRedactedSecretDefault(t *testing.T) {
 	}
 }
 
+func TestProcessCLIHelpValidateShowsRedactedSecretOption(t *testing.T) {
+	output := captureStdout(t, func() {
+		code := processCLI("help", []string{"validate"})
+		if code != 0 {
+			t.Fatalf("processCLI(help validate) = %d, want 0", code)
+		}
+	})
+	for _, needle := range []string{
+		"Usage: gopherbot validate [options] <path>",
+		"-redacted-secrets",
+		"redacted placeholders",
+	} {
+		if !strings.Contains(output, needle) {
+			t.Fatalf("processCLI(help validate) missing %q in output:\n%s", needle, output)
+		}
+	}
+}
+
+func TestCLIValidateRedactedSecretsDoesNotRequireEncryptionKey(t *testing.T) {
+	resetCLIValidateTestState(t)
+	root := t.TempDir()
+	writeCLIValidateSecretFixture(t, root)
+
+	var stdout string
+	var code int
+	stderr := captureStderr(t, func() {
+		stdout = captureStdout(t, func() {
+			code = processCLI("validate", []string{"-redacted-secrets", root})
+		})
+	})
+	if code != 0 {
+		t.Fatalf("processCLI(validate -redacted-secrets) = %d, want 0\nstdout:\n%s\nstderr:\n%s", code, stdout, stderr)
+	}
+	if !strings.Contains(stdout, "Validating configuration") || !strings.Contains(stdout, "Configuration valid") {
+		t.Fatalf("validate stdout missing success messages:\n%s", stdout)
+	}
+	if !strings.Contains(stderr, "secret template values redacted for validation") {
+		t.Fatalf("validate stderr missing redaction notice:\n%s", stderr)
+	}
+	if strings.Contains(stdout, "secret-value") || strings.Contains(stderr, "secret-value") {
+		t.Fatalf("validate exposed secret; stdout:\n%s\nstderr:\n%s", stdout, stderr)
+	}
+	if !cliConfigInitialized {
+		t.Fatal("validate did not mark CLI config initialized")
+	}
+	cryptKey.RLock()
+	initialized := cryptKey.initialized
+	cryptKey.RUnlock()
+	if initialized {
+		t.Fatal("redacted validate initialized encryption despite missing key")
+	}
+}
+
 func TestCLIDumpRedactsSecretTemplatesByDefault(t *testing.T) {
 	resetConfigVariableTestState(t)
 	configPath = t.TempDir()
@@ -468,6 +521,107 @@ Secrets:
 	if err := os.WriteFile(filepath.Join(pluginDir, "secret.yaml"), []byte(`token: {{ secret "API_TOKEN" }}
 `), 0600); err != nil {
 		t.Fatalf("write plugin config: %v", err)
+	}
+}
+
+func resetCLIValidateTestState(t *testing.T) {
+	t.Helper()
+	resetConfigVariableTestState(t)
+	oldCLIConfigInitialized := cliConfigInitialized
+	oldCliOp := cliOp
+	oldGopherEnv := gopherEnv
+	oldStartupEnv := startupEnv
+	oldDeployEnvironment := deployEnvironment
+	oldConfigFull := configFull
+	oldHomePath := homePath
+	oldCurrentCfg := currentCfg.configuration
+	oldTaskList := currentCfg.taskList
+	oldInterfacesBrain := interfaces.brain
+	oldInterfacesHistory := interfaces.history
+
+	installPath = t.TempDir()
+	cliConfigInitialized = false
+	cliOp = true
+	gopherEnv = make(map[string]string)
+	startupEnv = make(map[string]string)
+	deployEnvironment = ""
+	configFull = ""
+	homePath = ""
+	currentCfg.configuration = &configuration{}
+	interfaces.brain = nil
+	interfaces.history = nil
+	cryptKey.Lock()
+	cryptKey.key = nil
+	cryptKey.initialized = false
+	cryptKey.initializing = false
+	cryptKey.Unlock()
+
+	t.Cleanup(func() {
+		cliConfigInitialized = oldCLIConfigInitialized
+		cliOp = oldCliOp
+		gopherEnv = oldGopherEnv
+		startupEnv = oldStartupEnv
+		deployEnvironment = oldDeployEnvironment
+		configFull = oldConfigFull
+		homePath = oldHomePath
+		currentCfg.configuration = oldCurrentCfg
+		currentCfg.taskList = oldTaskList
+		interfaces.brain = oldInterfacesBrain
+		interfaces.history = oldInterfacesHistory
+	})
+}
+
+func writeCLIValidateSecretFixture(t *testing.T, root string) {
+	t.Helper()
+	for _, dir := range []string{
+		filepath.Join(root, "conf", "plugins"),
+		filepath.Join(root, "conf", "protocols"),
+		filepath.Join(root, "conf", "variables"),
+		filepath.Join(root, "conf", "brains"),
+		filepath.Join(root, "conf", "history"),
+		filepath.Join(root, "plugins"),
+	} {
+		if err := os.MkdirAll(dir, 0700); err != nil {
+			t.Fatalf("MkdirAll %s: %v", dir, err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(root, "conf", "robot.yaml"), []byte(`
+PrimaryProtocol: test
+Brain: mem
+HistoryProvider: mem
+ExternalPlugins:
+  secretplug:
+    Path: plugins/secretplug.sh
+`), 0600); err != nil {
+		t.Fatalf("write robot config: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "conf", "protocols", "test.yaml"), []byte(`
+ProtocolConfig:
+  StartChannel: general
+  StartUser: alice
+`), 0600); err != nil {
+		t.Fatalf("write protocol config: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "conf", "brains", "mem.yaml"), []byte("BrainConfig: {}\n"), 0600); err != nil {
+		t.Fatalf("write brain config: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "conf", "history", "mem.yaml"), []byte("HistoryConfig: {}\n"), 0600); err != nil {
+		t.Fatalf("write history config: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "conf", "variables", "common.yaml"), []byte(`
+Secrets:
+  API_TOKEN: "ciphertext-unused-by-redacted-validation"
+`), 0600); err != nil {
+		t.Fatalf("write variables: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "conf", "plugins", "secretplug.yaml"), []byte(`
+Config:
+  token: {{ secret "API_TOKEN" }}
+`), 0600); err != nil {
+		t.Fatalf("write plugin config: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "plugins", "secretplug.sh"), []byte("#!/bin/sh\nexit 0\n"), 0700); err != nil {
+		t.Fatalf("write plugin script: %v", err)
 	}
 }
 

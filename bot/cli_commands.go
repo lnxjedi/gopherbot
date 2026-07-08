@@ -146,6 +146,59 @@ func cliCommands() []cliCommandSpec {
 			RunsBeforeInit: true,
 		},
 		{
+			Name:         "syntax",
+			SummaryUsage: "syntax [options] <script> [script...]",
+			Summary:      "syntax-check built-in interpreter scripts",
+			HelpLines: []string{
+				"Usage: gopherbot syntax [options] <script> [script...]",
+				"",
+				"Checks Lua, JavaScript, GSH, and interpreted Go scripts without",
+				"loading robot configuration or starting connectors.",
+				"",
+				"Options:",
+				"  -language <lua|js|gsh|go>   override language detection by extension",
+				"  -json, -j                    write structured JSON output",
+				"",
+				"Examples:",
+				"  gopherbot syntax plugins/foo.lua",
+				"  gopherbot syntax -json plugins/foo.lua plugins/bar.js",
+				"  gopherbot syntax -language gsh scripts/local-check",
+			},
+			RunsBeforeInit: true,
+		},
+		{
+			Name:         "script",
+			SummaryUsage: "script [options] <script> [--] <command> [args...]",
+			Summary:      "run a built-in interpreter script locally",
+			HelpLines: []string{
+				"Usage: gopherbot script [options] <script> [--] <command> [args...]",
+				"   or: gopherbot script [options] -c <source> [--] <command> [args...]",
+				"",
+				"Runs a Lua, JavaScript, GSH, or interpreted Go script from the filesystem",
+				"using a local fixture-backed robot API. The script path is explicit and",
+				"resolved from the current working directory when relative.",
+				"",
+				"Plugin mode prepends <command> before capture args, matching configured",
+				"plugin execution. Use -- before the command when args may look like flags.",
+				"Task and job modes pass args as-is.",
+				"",
+				"Options:",
+				"  -c <source>                  run inline source; requires -language",
+				"  -fixture <path>              load JSON fixture data",
+				"  -kind <plugin|job|task>      execution kind; default plugin",
+				"  -language <lua|js|gsh|go>   override language detection by extension",
+				"  -no-interactive             fail prompts when fixture replies run out",
+				"  -workdir <path>              child process working directory",
+				"  -json, -j                    write structured JSON output",
+				"",
+				"Examples:",
+				"  gopherbot script plugins/foo.lua -- console qa",
+				"  gopherbot script -fixture test-scripts/fixtures/cat.json test-scripts/lua/demo.lua -- prompt",
+				"  gopherbot script -language lua -c 'local g=require(\"gopherbot_v1\"); return g.task.Normal' -- _init",
+			},
+			RunsBeforeInit: true,
+		},
+		{
 			Name:         "genkey",
 			SummaryUsage: "genkey [options]",
 			Summary:      "generate an encrypted binary key for an environment",
@@ -339,13 +392,16 @@ func cliCommands() []cliCommandSpec {
 		},
 		{
 			Name:         "validate",
-			SummaryUsage: "validate <path>",
+			SummaryUsage: "validate [options] <path>",
 			Summary:      "syntax-check a robot repository",
 			HelpLines: []string{
-				"Usage: gopherbot validate <path>",
+				"Usage: gopherbot validate [options] <path>",
 				"",
 				"Loads the target robot repository and validates its startup configuration",
 				"without starting connectors.",
+				"",
+				"Options:",
+				"  -redacted-secrets   substitute secret template values with redacted placeholders",
 			},
 			RunsBeforeInit: true,
 		},
@@ -470,6 +526,10 @@ func processCLI(command string, args []string) int {
 	var matchJSON bool
 	var matchInteractive bool
 	var dumpUnredactedSecrets bool
+	var validateRedactedSecrets bool
+	var syntaxLanguage string
+	var syntaxJSON bool
+	var scriptOpts cliScriptOptions
 
 	encFlags := newCLIFlagSet("encrypt")
 	encFlags.StringVar(&fileName, "file", "", "file to encrypt (or - for stdin)")
@@ -489,6 +549,9 @@ func processCLI(command string, args []string) int {
 
 	dumpFlags := newCLIFlagSet("dump")
 	dumpFlags.BoolVar(&dumpUnredactedSecrets, "unredacted-secrets", false, "print decrypted secret template values")
+
+	validateFlags := newCLIFlagSet("validate")
+	validateFlags.BoolVar(&validateRedactedSecrets, "redacted-secrets", false, "substitute secret template values with redacted placeholders")
 
 	totpFlags := newCLIFlagSet("gentotp")
 
@@ -513,6 +576,21 @@ func processCLI(command string, args []string) int {
 	matchFlags.BoolVar(&matchInteractive, "interactive", false, "prompt for command text until EOF")
 	matchFlags.BoolVar(&matchJSON, "json", false, "write structured JSON output")
 	matchFlags.BoolVar(&matchJSON, "j", false, "")
+
+	syntaxFlags := newCLIFlagSet("syntax")
+	syntaxFlags.StringVar(&syntaxLanguage, "language", "", "override language detection")
+	syntaxFlags.BoolVar(&syntaxJSON, "json", false, "write structured JSON output")
+	syntaxFlags.BoolVar(&syntaxJSON, "j", false, "")
+
+	scriptFlags := newCLIFlagSet("script")
+	scriptFlags.StringVar(&scriptOpts.inlineSource, "c", "", "inline source to run")
+	scriptFlags.StringVar(&scriptOpts.fixturePath, "fixture", "", "JSON fixture path")
+	scriptFlags.StringVar(&scriptOpts.kind, "kind", "", "execution kind")
+	scriptFlags.StringVar(&scriptOpts.language, "language", "", "override language detection")
+	scriptFlags.BoolVar(&scriptOpts.noInteractive, "no-interactive", false, "fail prompts when fixture replies run out")
+	scriptFlags.StringVar(&scriptOpts.workDir, "workdir", "", "child process working directory")
+	scriptFlags.BoolVar(&scriptOpts.jsonOutput, "json", false, "write structured JSON output")
+	scriptFlags.BoolVar(&scriptOpts.jsonOutput, "j", false, "")
 
 	pullBrainFlags := newCLIFlagSet("pull-brain")
 	var pullBrainOpts brainPullOptions
@@ -809,6 +887,28 @@ func processCLI(command string, args []string) int {
 			return 2
 		}
 		return processCLIMatchCommand(matchFlags.Args(), matchJSON, matchInteractive)
+	case "syntax":
+		if err := syntaxFlags.Parse(args); err != nil {
+			if err == flag.ErrHelp {
+				printCLICommandHelp(command)
+				return 0
+			}
+			fmt.Printf("Error: %v\n\n", err)
+			printCLICommandHelp(command)
+			return 2
+		}
+		return processCLISyntaxCommand(syntaxFlags.Args(), syntaxLanguage, syntaxJSON)
+	case "script":
+		if err := scriptFlags.Parse(args); err != nil {
+			if err == flag.ErrHelp {
+				printCLICommandHelp(command)
+				return 0
+			}
+			fmt.Printf("Error: %v\n\n", err)
+			printCLICommandHelp(command)
+			return 2
+		}
+		return processCLIScriptCommand(scriptFlags.Args(), scriptOpts)
 	case "delete":
 		if len(args) != 1 {
 			fmt.Println("Error: delete requires exactly one memory key")
@@ -882,13 +982,26 @@ func processCLI(command string, args []string) int {
 			return 1
 		}
 	case "validate":
-		if len(args) != 1 {
+		if err := validateFlags.Parse(args); err != nil {
+			if err == flag.ErrHelp {
+				printCLICommandHelp(command)
+				return 0
+			}
+			fmt.Printf("Error: %v\n\n", err)
+			printCLICommandHelp(command)
+			return 2
+		}
+		validateArgs := validateFlags.Args()
+		if len(validateArgs) != 1 {
 			fmt.Println("Error: validate requires a path to a robot repository")
 			fmt.Println()
 			printCLICommandHelp(command)
 			return 2
 		}
-		cliValidate(args[0])
+		if err := cliValidate(validateArgs[0], validateRedactedSecrets); err != nil {
+			fmt.Printf("Error: %v\n", err)
+			return 1
+		}
 	case "version":
 		if len(args) > 0 {
 			fmt.Println("Error: version does not take arguments")
@@ -939,37 +1052,56 @@ func initCLIConfigDirectory() {
 }
 
 func initCLIConfigOnly() {
+	initCLIConfigOnlyWithSecrets(configSecretRequire, false)
+}
+
+func initCLIConfigOnlyWithSecrets(secretMode configSecretResolutionMode, allowMissingEncryption bool) bool {
+	redacted, err := loadCLIConfigOnlyWithSecrets(secretMode, allowMissingEncryption)
+	if err != nil {
+		Log(robot.Fatal, "%v", err)
+	}
+	return redacted
+}
+
+func loadCLIConfigOnlyWithSecrets(secretMode configSecretResolutionMode, allowMissingEncryption bool) (bool, error) {
 	if cliConfigInitialized {
-		return
+		return false, nil
 	}
 	currentCfg.configuration = &configuration{}
 	initCLIConfigDirectory()
 
-	encryptionInitialized := initCrypt()
-	if encryptionInitialized {
-		setEnv("GOPHER_ENCRYPTION_INITIALIZED", "initialized")
-	} else {
-		mode := detectStartupMode()
-		switch mode {
-		case "cli", "bootstrap", "production":
-			Log(robot.Fatal, "unable to initialize encryption for startup mode '%s', no GOPHER_ENCRYPTION_KEY set in environment (or .env)", mode)
-		default:
-			cryptKey.Lock()
-			cryptKey.key = make([]byte, 32)
-			if _, err := crand.Read(cryptKey.key); err != nil {
+	if secretMode != configSecretRedact {
+		encryptionInitialized := initCrypt()
+		if encryptionInitialized {
+			setEnv("GOPHER_ENCRYPTION_INITIALIZED", "initialized")
+		} else if !allowMissingEncryption {
+			mode := detectStartupMode()
+			switch mode {
+			case "cli", "bootstrap", "production":
+				return false, fmt.Errorf("unable to initialize encryption for startup mode '%s', no GOPHER_ENCRYPTION_KEY set in environment (or .env)", mode)
+			default:
+				cryptKey.Lock()
+				cryptKey.key = make([]byte, 32)
+				if _, err := crand.Read(cryptKey.key); err != nil {
+					cryptKey.Unlock()
+					return false, fmt.Errorf("generating temporary encryption key: %w", err)
+				}
+				cryptKey.initialized = true
 				cryptKey.Unlock()
-				Log(robot.Fatal, "Generating temporary encryption key: %v", err)
+				Log(robot.Info, "Initialized temporary encryption key for '%s' mode", mode)
 			}
-			cryptKey.initialized = true
-			cryptKey.Unlock()
-			Log(robot.Info, "Initialized temporary encryption key for '%s' mode", mode)
 		}
 	}
 
-	if err := loadConfig(true); err != nil {
-		Log(robot.Fatal, "Loading initial configuration: %v", err)
+	restoreSecretMode := beginConfigSecretResolution(secretMode)
+	err := loadConfig(true)
+	redacted := configSecretRedactionUsed()
+	restoreSecretMode()
+	if err != nil {
+		return redacted, fmt.Errorf("loading initial configuration: %w", err)
 	}
 	cliConfigInitialized = true
+	return redacted, nil
 }
 
 func initCLICommandMatcherConfig() {
@@ -1698,16 +1830,28 @@ func cliDelete(key string) error {
 	return nil
 }
 
-func cliValidate(path string) {
+func cliValidate(path string, redactedSecrets bool) error {
 	configPath = path
 	testpath := filepath.Join(configPath, "conf", robotConfigFileName)
 	_, err := os.Stat(testpath)
 	if err != nil {
-		fmt.Printf("Error: robot repository not found at %q (expected %s)\n", path, testpath)
-		os.Exit(1)
+		return fmt.Errorf("robot repository not found at %q (expected %s)", path, testpath)
 	}
 	botLogger.logger = log.New(os.Stdout, "", 0)
 	fmt.Println("Validating configuration")
-	initCLIConfigOnly()
+	secretMode := configSecretRequire
+	allowMissingEncryption := false
+	if redactedSecrets {
+		secretMode = configSecretRedact
+		allowMissingEncryption = true
+	}
+	redacted, err := loadCLIConfigOnlyWithSecrets(secretMode, allowMissingEncryption)
+	if err != nil {
+		return err
+	}
+	if redacted {
+		fmt.Fprintln(os.Stderr, "Info: secret template values redacted for validation")
+	}
 	fmt.Println("Configuration valid")
+	return nil
 }

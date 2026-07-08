@@ -1,0 +1,72 @@
+{
+  "task_name": "local-demo",
+  "kind": "plugin",
+  "command": "demo",
+  "args": ["from-fixture"],
+  "message": {
+    "user": "alice",
+    "protocol_user": "U123",
+    "channel": "general",
+    "protocol_channel": "C123",
+    "thread_id": "T123",
+    "message_id": "M123",
+    "protocol": "test",
+    "text": "local demo",
+    "threaded": true
+  },
+  "bot": {
+    "name": "gopherbot",
+    "alias": "gopher",
+    "full_name": "Gopherbot Local Runner",
+    "contact": "ops@example.test",
+    "email": "bot@example.test",
+    "id": "B123"
+  },
+  "admin": true,
+  "elevated": true,
+  "parameters": {
+    "CAT_COLOR": "orange",
+    "PIPELINE_SENTINEL": "fixture-sentinel"
+  },
+  "config": {
+    "Openings": ["Loaded the thing from the place", "Fixture-powered hello"],
+    "FavoritePlace": "the sunny windowsill",
+    "Retries": 2
+  },
+  "memory": {
+    "long_term": {
+      "cat_profile": {
+        "name": "Nermal",
+        "snacks": ["lasagna"]
+      }
+    },
+    "short_term": {
+      "alice:general:last_cat": "Milo",
+      "shared:general:team_cat": "Pixel"
+    }
+  },
+  "prompts": {
+    "replies": ["Garfield", "lasagna", "yes"]
+  },
+  "users": {
+    "alice": {
+      "name": "alice",
+      "fullName": "Alice Example",
+      "firstName": "Alice",
+      "lastName": "Example",
+      "email": "alice@example.test",
+      "internalID": "U123"
+    }
+  },
+  "identities": {
+    "demo": {
+      "alice": {
+        "type": "bearer",
+        "value": "fixture-token",
+        "scheme": "Bearer",
+        "header_name": "Authorization",
+        "header_value": "Bearer fixture-token"
+      }
+    }
+  }
+}

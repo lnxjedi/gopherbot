@@ -35,6 +35,9 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 ## bot/
 
 - Engine entrypoints: `bot/start.go` (func `Start`), `bot/startup_env_handoff.go` (direct `GOPHER_*` environment re-exec/fd handoff helpers), `bot/bot_process.go` (funcs `initBot`, `run`, `stop`), `bot/startup_ready.go` (startup readiness signal for integration harnesses), `bot/startup_gate.go` (command gating before startup readiness).
+- User-facing CLI command registry and local development commands:
+  `bot/cli_commands.go`, `bot/cli_match.go`, `bot/cli_syntax.go`,
+  `bot/cli_script.go`.
 - Runtime connector orchestration: `bot/connector_runtime.go` (runtime manager, protocol routing, lifecycle controls).
 - Runtime queue provider orchestration: `bot/queue_runtime.go` (provider lifecycle, queue body parsing, UUID-to-job matching, and queued job pipeline start).
 - Bot-side connector capability/registration consumption: `bot/connector_capabilities.go` (shared registration lookup, runtime capability lookup, and test overrides).
@@ -132,6 +135,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 ## modules/
 
 - Internal modules with init hooks: `modules/ssh-agent/ssh_agent_module.go` (func `Initialize`), `modules/ssh-git-helper/ssh_git_helper_module.go` (func `Initialize`), `modules/gsh/call_extension.go` (func `CallExtension`), `modules/yaegi-dynamic-go/yaegi_init.go` (func `Initialize`).
+- GSH syntax helper for CLI development checks: `modules/gsh/syntax_check.go`.
 - Yaegi shared GOPATH staging + runtime entrypoints: `modules/yaegi-dynamic-go/yaegi_dynamic.go` (`ensureGoPath`, `RunPluginHandler`, `RunJobHandler`, `RunTaskHandler`).
 
 ## plugins/
@@ -176,6 +180,13 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 ## test/
 
 - Integration test docs/configs: `test/README.md`, `test/bot_integration_test.go`, `test/jsfull/conf/robot.yaml`, `test/sh_full_test.go`, `test/shfull/conf/robot.yaml`.
+
+## test-scripts/
+
+- Local CLI script-development examples and fixtures:
+  `test-scripts/README.md`, `test-scripts/fixtures/cat.json`,
+  `test-scripts/lua/demo.lua`, `test-scripts/javascript/demo.js`,
+  `test-scripts/gsh/demo.gsh`, `test-scripts/go/demo.go`.
 
 ## integration/
 

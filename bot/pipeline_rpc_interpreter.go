@@ -408,26 +408,26 @@ func waitPipelineRPCResponse(dec *json.Decoder, enc *json.Encoder, targetID stri
 				_ = writePipelineRPCError(enc, msg.ID, "invalid_state", "robot is not available for this rpc request")
 				continue
 			}
-			apiWorker := workerForRobotAPI(r)
-			if apiWorker == nil {
+			apiGate := externalAPICallGateForRobotAPI(r)
+			if apiGate == nil {
 				_ = writePipelineRPCError(enc, msg.ID, "invalid_state", "robot worker is not active")
 				continue
 			}
-			if !apiWorker.beginSerializedExternalAPICall() {
+			if !apiGate.beginSerializedExternalAPICall() {
 				_ = writePipelineRPCError(enc, msg.ID, "interrupted", "external process kill is pending")
 				continue
 			}
 			res, handleErr := handlePipelineRPCRobotCall(msg.Params, r)
 			if handleErr != nil {
 				_ = writePipelineRPCError(enc, msg.ID, "robot_call_failed", handleErr.Error())
-				apiWorker.finishSerializedExternalAPICall()
+				apiGate.finishSerializedExternalAPICall()
 				continue
 			}
 			if err := writePipelineRPCResponse(enc, msg.ID, res); err != nil {
-				apiWorker.finishSerializedExternalAPICall()
+				apiGate.finishSerializedExternalAPICall()
 				return nil, newPipelineRPCError("protocol_error", method, "writing rpc response", err)
 			}
-			apiWorker.finishSerializedExternalAPICall()
+			apiGate.finishSerializedExternalAPICall()
 		default:
 			// Ignore unexpected message types.
 		}
