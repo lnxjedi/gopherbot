@@ -300,7 +300,7 @@ func (sc *sshConnector) listenOnPort(addr string, port int) ([]net.Listener, str
 	return []net.Listener{ln}, addr, nil, false
 }
 
-func (sc *sshConnector) listenAll() ([]net.Listener, string, int) {
+func (sc *sshConnector) listenAll() ([]net.Listener, string, int, error) {
 	addr := sc.cfg.ListenHost
 	basePort := sc.cfg.ListenPort
 
@@ -309,8 +309,7 @@ func (sc *sshConnector) listenAll() ([]net.Listener, string, int) {
 	}
 	maxPort := basePort + maxListenPortSkips
 	if basePort <= 0 || maxPort > 65535 {
-		sc.handler.Log(robot.Fatal, "Invalid SSH listen port range %d-%d", basePort, maxPort)
-		return nil, "", 0
+		return nil, "", 0, fmt.Errorf("invalid SSH listen port range %d-%d", basePort, maxPort)
 	}
 
 	for skipped := 0; skipped <= maxListenPortSkips; skipped++ {
@@ -320,12 +319,11 @@ func (sc *sshConnector) listenAll() ([]net.Listener, string, int) {
 			if skipped > 0 {
 				sc.handler.Log(robot.Info, "SSH connector skipped %d in-use ports before binding %s:%d", skipped, listenHost, port)
 			}
-			return listeners, listenHost, port
+			return listeners, listenHost, port, nil
 		}
 		closeListeners(listeners)
 		if !inUse {
-			sc.handler.Log(robot.Fatal, "%v", err)
-			return nil, "", 0
+			return nil, "", 0, err
 		}
 	}
 
@@ -333,8 +331,7 @@ func (sc *sshConnector) listenAll() ([]net.Listener, string, int) {
 	if bindHost == "localhost" {
 		bindHost = "127.0.0.1"
 	}
-	sc.handler.Log(robot.Fatal, "Unable to bind SSH connector on %s ports %d-%d: all %d ports are in use", bindHost, basePort, maxPort, maxListenPortSkips+1)
-	return nil, "", 0
+	return nil, "", 0, fmt.Errorf("unable to bind SSH connector on %s ports %d-%d: all %d ports are in use", bindHost, basePort, maxPort, maxListenPortSkips+1)
 }
 
 func (sc *sshConnector) writeConnectFile(host string, port int, pubKey string) {
@@ -348,27 +345,27 @@ func (sc *sshConnector) writeConnectFile(host string, port int, pubKey string) {
 	}
 }
 
-func (sc *sshConnector) loadHostKey() (ssh.Signer, string) {
+func (sc *sshConnector) loadHostKey() (ssh.Signer, string, error) {
 	if sc.cfg.HostKey != "" {
 		signer, err := ssh.ParsePrivateKey([]byte(sc.cfg.HostKey))
 		if err != nil {
-			sc.handler.Log(robot.Fatal, "Parsing configured SSH host key: %v", err)
+			return nil, "", fmt.Errorf("parsing configured SSH host key: %w", err)
 		}
 		pub := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(signer.PublicKey())))
-		return signer, pub
+		return signer, pub, nil
 	}
 
 	_, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
-		sc.handler.Log(robot.Fatal, "Generating SSH host key: %v", err)
+		return nil, "", fmt.Errorf("generating SSH host key: %w", err)
 	}
 	signer, err := ssh.NewSignerFromKey(priv)
 	if err != nil {
-		sc.handler.Log(robot.Fatal, "Creating SSH host key signer: %v", err)
+		return nil, "", fmt.Errorf("creating SSH host key signer: %w", err)
 	}
 	pub := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(signer.PublicKey())))
 	sc.handler.Log(robot.Info, "Generated ephemeral SSH host key: %s", pub)
-	return signer, pub
+	return signer, pub, nil
 }
 
 func parsePtyWidth(payload []byte) int {

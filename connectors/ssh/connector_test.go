@@ -705,7 +705,10 @@ func TestListenAllSkipsInUsePorts(t *testing.T) {
 		},
 	}
 
-	listeners, host, port := sc.listenAll()
+	listeners, host, port, err := sc.listenAll()
+	if err != nil {
+		t.Fatalf("listenAll() error = %v", err)
+	}
 	if len(listeners) != 1 {
 		t.Fatalf("expected 1 listener, got %d", len(listeners))
 	}
@@ -740,16 +743,19 @@ func TestListenAllFailsAfterSevenIncrements(t *testing.T) {
 		},
 	}
 
-	listeners, host, port := sc.listenAll()
+	listeners, host, port, err := sc.listenAll()
 	closeListeners(listeners)
+	if err == nil {
+		t.Fatalf("listenAll() error = nil, want bind failure")
+	}
 	if len(listeners) != 0 {
 		t.Fatalf("expected no listeners, got %d", len(listeners))
 	}
 	if host != "" || port != 0 {
 		t.Fatalf("expected empty bind result on failure, got host=%q port=%d", host, port)
 	}
-	if !containsLog(h.logs, fmt.Sprintf("ports %d-%d", basePort, basePort+maxListenPortSkips)) {
-		t.Fatalf("expected exhausted-range log, got %v", h.logs)
+	if !strings.Contains(err.Error(), fmt.Sprintf("ports %d-%d", basePort, basePort+maxListenPortSkips)) {
+		t.Fatalf("expected exhausted-range error, got %v", err)
 	}
 }
 

@@ -1,0 +1,20 @@
+AdminContact: "David Parsley, <parsley@linuxjedi.org>"
+DefaultChannels: [ "general" ]
+DefaultJobChannel: general
+JoinChannels: [ ]
+AdminUsers: [ "alice" ]
+Alias: ";"
+LogLevel: debug
+PrimaryProtocol: test
+SecondaryProtocols: [ "slack" ]
+
+BotInfo:
+  UserName: bender
+  FullName: Bender Rodriguez
+UserRoster:
+- UserName: "alice"
+  UserID: "u0001"
+
+LocalPort: 0
+WorkSpace: workspace
+Brain: mem

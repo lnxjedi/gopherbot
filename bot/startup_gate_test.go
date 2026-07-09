@@ -155,8 +155,8 @@ func (c *startupGateCaptureConnector) SendProtocolUserMessage(user, msg string, 
 	}
 	return robot.Ok
 }
-func (c *startupGateCaptureConnector) Reload() error                   { return nil }
-func (c *startupGateCaptureConnector) Run(stopchannel <-chan struct{}) {}
+func (c *startupGateCaptureConnector) Reload() error                         { return nil }
+func (c *startupGateCaptureConnector) Run(stopchannel <-chan struct{}) error { return nil }
 
 func TestIncomingCommandDuringStartupGateGetsStartingMessage(t *testing.T) {
 	conn := &startupGateCaptureConnector{}

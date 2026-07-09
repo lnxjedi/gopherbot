@@ -109,7 +109,7 @@ type sshConnector struct {
 func Initialize(handler robot.Handler, l *log.Logger) robot.InitializedConnector {
 	var cfg sshConfig
 	if err := handler.GetProtocolConfig(&cfg); err != nil {
-		handler.Log(robot.Fatal, "Unable to retrieve protocol configuration: %v", err)
+		return robot.InitializedConnector{Error: fmt.Errorf("unable to retrieve SSH protocol configuration: %w", err)}
 	}
 	botInfo := handler.GetBotInfo()
 	botName := strings.TrimSpace(botInfo.UserName)
@@ -179,8 +179,11 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.InitializedConnector
 	}
 }
 
-func (sc *sshConnector) Run(stop <-chan struct{}) {
-	signer, pubLine := sc.loadHostKey()
+func (sc *sshConnector) Run(stop <-chan struct{}) error {
+	signer, pubLine, err := sc.loadHostKey()
+	if err != nil {
+		return err
+	}
 	sc.botID = pubLine
 	sc.handler.SetBotID(pubLine)
 
@@ -189,10 +192,12 @@ func (sc *sshConnector) Run(stop <-chan struct{}) {
 	}
 	serverConfig.AddHostKey(signer)
 
-	listeners, listenHost, listenPort := sc.listenAll()
+	listeners, listenHost, listenPort, err := sc.listenAll()
+	if err != nil {
+		return err
+	}
 	if len(listeners) == 0 {
-		sc.handler.Log(robot.Fatal, "SSH connector failed to bind")
-		return
+		return fmt.Errorf("SSH connector failed to bind")
 	}
 	sc.handler.Log(robot.Info, "SSH connector listening on %s:%d", listenHost, listenPort)
 	defer func() {
@@ -229,6 +234,7 @@ func (sc *sshConnector) Run(stop <-chan struct{}) {
 		}()
 	}
 	wg.Wait()
+	return nil
 }
 
 func (sc *sshConnector) ConnectorAPI() interface{} {

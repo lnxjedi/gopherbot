@@ -313,7 +313,9 @@ Connector registration is static, but connector capabilities are resolved at ini
 
 - `robot.RegisterConnector(name, Initialize)` registers the connector type.
 - During connector runtime startup, the engine calls `Initialize(...)` for each active protocol.
-- `Initialize(...)` returns `robot.InitializedConnector{Connector, Capabilities}`.
+- `Initialize(...)` returns `robot.InitializedConnector{Connector, Capabilities, Error}`.
+- Connectors return initialization failures through `InitializedConnector.Error`; they do not decide process fatality themselves.
+- The engine treats primary connector initialization failure as fatal startup failure and treats secondary initialization failure as a logged, retryable protocol failure.
 - Zero-value `ConnectorCapabilities` means "no special connector capabilities".
 - This allows capability flags like `HiddenCommands` to depend on protocol config instead of being fixed at registration time.
 - Because pre-connect config is already loaded before connector runtime initialization, connectors can also consume shared robot identity at init time through `Handler.GetBotInfo()` without needing protocol-local bot-name duplicates.
@@ -526,7 +528,7 @@ Identity policy is username-authoritative in engine flows.
 `SecondaryProtocols` is accepted in `robot.yaml` and now drives active runtime orchestration:
 
 - startup attempts the primary connector and all configured secondaries
-- secondary startup failures are logged and do not abort startup
+- secondary startup/runtime failures are logged, recorded in protocol status, and do not abort startup
 - `terminal` is not supported as a secondary protocol; if listed it is ignored with a warning
 - reload reconciles secondary runtime (removed secondaries stop; configured secondaries are re-attempted)
 - after successful reload config processing and secondary reconciliation, active connectors receive `Connector.Reload()` so connector-local runtime mappings such as Slack/Google Chat `UserMap` and SSH `UserKeys` pick up the new protocol config without a process restart

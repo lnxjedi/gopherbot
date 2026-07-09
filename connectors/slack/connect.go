@@ -82,11 +82,11 @@ func Initialize(r robot.Handler, l *log.Logger) robot.InitializedConnector {
 
 	err := r.GetProtocolConfig(&c)
 	if err != nil {
-		r.Log(robot.Fatal, "Unable to retrieve slack protocol configuration: %v", err)
+		return robot.InitializedConnector{Error: fmt.Errorf("unable to retrieve slack protocol configuration: %w", err)}
 	}
 	slashEnabled, slashCommand, slashErr := resolveSlashCommandConfig(c)
 	if slashErr != nil {
-		r.Log(robot.Fatal, slashErr.Error())
+		return robot.InitializedConnector{Error: slashErr}
 	}
 	// This spits out a lot of extra stuff, so we only enable it when tracing or
 	// explicitly configured.
@@ -101,20 +101,20 @@ func Initialize(r robot.Handler, l *log.Logger) robot.InitializedConnector {
 
 	if len(c.BotToken) > 0 && len(c.AppToken) > 0 {
 		if !strings.HasPrefix(c.BotToken, "xoxb-") {
-			r.Log(robot.Fatal, "BotToken must have the prefix \"xoxb-\".")
+			return robot.InitializedConnector{Error: fmt.Errorf("BotToken must have the prefix \"xoxb-\"")}
 		}
 		if !strings.HasPrefix(c.AppToken, "xapp-") {
-			r.Log(robot.Fatal, "AppToken must have the prefix \"xapp-\".")
+			return robot.InitializedConnector{Error: fmt.Errorf("AppToken must have the prefix \"xapp-\"")}
 		}
 		tok = c.BotToken
 		socketMode = true
 		slackOpts = append(slackOpts, slack.OptionAppLevelToken(c.AppToken))
 	} else {
 		if len(c.SlackToken) == 0 {
-			r.Log(robot.Fatal, "No slack token or bot/app tokens found in config")
+			return robot.InitializedConnector{Error: fmt.Errorf("no slack token or bot/app tokens found in config")}
 		} else {
 			if !strings.HasPrefix(c.SlackToken, "xoxb-") {
-				r.Log(robot.Fatal, "BotToken must have the prefix \"xoxb-\".")
+				return robot.InitializedConnector{Error: fmt.Errorf("BotToken must have the prefix \"xoxb-\"")}
 			}
 			r.Log(robot.Warn, "Using deprecated legacy RTM mode for connection")
 			tok = c.SlackToken
@@ -147,7 +147,7 @@ func Initialize(r robot.Handler, l *log.Logger) robot.InitializedConnector {
 
 	info, err := api.AuthTest()
 	if err != nil {
-		r.Log(robot.Fatal, "Error getting auth info: %v", err)
+		return robot.InitializedConnector{Error: fmt.Errorf("error getting auth info: %w", err)}
 	}
 	r.Log(robot.Debug, "Retrieved auth info:\n%+v", info)
 	sc.botUserID = info.UserID
@@ -162,7 +162,7 @@ func Initialize(r robot.Handler, l *log.Logger) robot.InitializedConnector {
 		TeamID: sc.teamID,
 	})
 	if err != nil {
-		r.Log(robot.Fatal, "Error getting bot info: %v", err)
+		return robot.InitializedConnector{Error: fmt.Errorf("error getting bot info: %w", err)}
 	}
 	sc.botFullName = botInfo.Name
 
@@ -233,12 +233,12 @@ func (sc *slackConnector) Reload() error {
 	return nil
 }
 
-func (sc *slackConnector) Run(stop <-chan struct{}) {
+func (sc *slackConnector) Run(stop <-chan struct{}) error {
 	sc.Lock()
 	// This should never happen, just a bit of defensive coding
 	if sc.running {
 		sc.Unlock()
-		return
+		return nil
 	}
 	sc.running = true
 	sc.sendQueue = make(chan *sendMessage, sendQueueSize)
@@ -259,11 +259,14 @@ func (sc *slackConnector) Run(stop <-chan struct{}) {
 	if sc.socketMode {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
+		runErr := make(chan error, 1)
 		go func() {
 			if err := sc.sock.RunContext(ctx); err != nil && ctx.Err() == nil {
 				sc.Log(robot.Error, "Slack socket mode runtime failed: %v", err)
+				runErr <- err
 			}
 		}()
+		var err error
 	SOCKRunLoop:
 		for {
 			select {
@@ -271,9 +274,11 @@ func (sc *slackConnector) Run(stop <-chan struct{}) {
 				sc.Log(robot.Debug, "Received stop in connector")
 				cancel()
 				break SOCKRunLoop
+			case err = <-runErr:
+				break SOCKRunLoop
 			case evt, ok := <-sc.sock.Events:
 				if !ok {
-					sc.Log(robot.Error, "Slack socket mode event channel closed")
+					err = fmt.Errorf("slack socket mode event channel closed")
 					break SOCKRunLoop
 				}
 				switch evt.Type {
@@ -295,7 +300,7 @@ func (sc *slackConnector) Run(stop <-chan struct{}) {
 						sc.appID = evt.Request.ConnectionInfo.AppID
 					}
 				case socketmode.EventTypeInvalidAuth:
-					sc.Log(robot.Error, "Invalid Slack credentials")
+					err = fmt.Errorf("invalid Slack credentials")
 					break SOCKRunLoop
 				case socketmode.EventTypeEventsAPI:
 					eventsAPIEvent, ok := evt.Data.(slackevents.EventsAPIEvent)
@@ -352,6 +357,7 @@ func (sc *slackConnector) Run(stop <-chan struct{}) {
 				}
 			}
 		}
+		return err
 	} else {
 		sc.Lock()
 		sc.conn = sc.api.NewRTM()
@@ -364,6 +370,7 @@ func (sc *slackConnector) Run(stop <-chan struct{}) {
 				}
 			}
 		}()
+		var err error
 	RTMRunLoop:
 		for {
 			select {
@@ -372,7 +379,7 @@ func (sc *slackConnector) Run(stop <-chan struct{}) {
 				break RTMRunLoop
 			case msg, ok := <-sc.conn.IncomingEvents:
 				if !ok {
-					sc.Log(robot.Error, "Slack RTM event channel closed")
+					err = fmt.Errorf("slack RTM event channel closed")
 					break RTMRunLoop
 				}
 				sc.Log(robot.Trace, "Event Received (msg, data, type): %v; %v; %T", msg, msg.Data, msg.Data)
@@ -387,7 +394,7 @@ func (sc *slackConnector) Run(stop <-chan struct{}) {
 				case *slack.ConnectedEvent:
 					sc.Log(robot.Debug, "Slack connected, count: %d", ev.ConnectionCount)
 				case *slack.InvalidAuthEvent:
-					sc.Log(robot.Error, "Invalid Slack credentials")
+					err = fmt.Errorf("invalid Slack credentials")
 					break RTMRunLoop
 
 				case *slack.MessageEvent:
@@ -407,5 +414,6 @@ func (sc *slackConnector) Run(stop <-chan struct{}) {
 				}
 			}
 		}
+		return err
 	}
 }

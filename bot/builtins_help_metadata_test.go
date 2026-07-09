@@ -48,7 +48,7 @@ func (c *formatCaptureConnector) SendProtocolUserMessage(_, msg string, f robot.
 
 func (c *formatCaptureConnector) Reload() error { return nil }
 
-func (c *formatCaptureConnector) Run(<-chan struct{}) {}
+func (c *formatCaptureConnector) Run(<-chan struct{}) error { return nil }
 
 func makeFormatTestRobot(t *testing.T) Robot {
 	t.Helper()

@@ -148,7 +148,8 @@ type Connector interface {
 	// state or the new complete connector state.
 	Reload() error
 	// The Run method starts the main loop and takes a channel for stopping it.
-	Run(stopchannel <-chan struct{})
+	// It returns an error when the connector fails before or during runtime.
+	Run(stopchannel <-chan struct{}) error
 }
 
 // ConnectorAPIProvider allows a connector to expose optional connector-specific

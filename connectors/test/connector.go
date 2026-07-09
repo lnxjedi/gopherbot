@@ -35,7 +35,7 @@ type TestConnector struct {
 const static_thread_id = "0xDEADBEEF"
 
 // Run starts the main loop for the test connector
-func (tc *TestConnector) Run(stop <-chan struct{}) {
+func (tc *TestConnector) Run(stop <-chan struct{}) error {
 
 loop:
 	for {
@@ -79,6 +79,7 @@ loop:
 			tc.IncomingMessage(botMsg)
 		}
 	}
+	return nil
 }
 
 func (tc *TestConnector) Reload() error {

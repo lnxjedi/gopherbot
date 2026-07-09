@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/lnxjedi/gopherbot/v2/bot"
+	_ "github.com/lnxjedi/gopherbot/v2/connectors/slack"
 	testc "github.com/lnxjedi/gopherbot/v2/connectors/test"
 	"github.com/lnxjedi/gopherbot/v2/integration/suites"
 

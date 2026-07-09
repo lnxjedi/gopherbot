@@ -31,8 +31,9 @@ func (nc nullConnector) MessageHeard(u, c string) {
 	return
 }
 
-func (nc nullConnector) Run(stop <-chan struct{}) {
+func (nc nullConnector) Run(stop <-chan struct{}) error {
 	<-stop
+	return nil
 }
 
 func (nc nullConnector) Reload() error {

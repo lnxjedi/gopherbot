@@ -249,11 +249,27 @@ func initializeConnectorRuntime(logger *log.Logger) error {
 			continue
 		}
 		if err := ensureConnectorInitialized(protocol, false, logger); err != nil {
+			recordConnectorRuntimeError(protocol, err)
 			Log(robot.Error, "Secondary protocol '%s' initialization failed: %v", protocol, err)
 		}
 	}
 	setConnector(&runtimeConnectorRouter{})
 	return nil
+}
+
+func recordConnectorRuntimeError(protocol string, err error) {
+	if err == nil {
+		return
+	}
+	p := normalizeProtocolName(protocol)
+	if p == "" {
+		return
+	}
+	runtimeConnectors.Lock()
+	if mc, ok := runtimeConnectors.runtimes[p]; ok && mc != nil {
+		mc.lastError = err.Error()
+	}
+	runtimeConnectors.Unlock()
 }
 
 func ensureConnectorInitialized(protocol string, allowBotIdentity bool, logger *log.Logger) error {
@@ -283,6 +299,9 @@ func ensureConnectorInitialized(protocol string, allowBotIdentity bool, logger *
 		protocol:         p,
 		allowBotIdentity: allowBotIdentity,
 	}, logger)
+	if initialized.Error != nil {
+		return initialized.Error
+	}
 	conn := initialized.Connector
 	if conn == nil {
 		return fmt.Errorf("connector '%s' returned nil from initializer", p)
@@ -311,11 +330,7 @@ func startConnectorRuntime(protocol string, required bool) error {
 			return err
 		}
 		Log(robot.Error, "Connector '%s' failed to initialize: %v", p, err)
-		runtimeConnectors.Lock()
-		if mc, ok := runtimeConnectors.runtimes[p]; ok && mc != nil {
-			mc.lastError = err.Error()
-		}
-		runtimeConnectors.Unlock()
+		recordConnectorRuntimeError(p, err)
 		return err
 	}
 
@@ -344,21 +359,34 @@ func startConnectorRuntime(protocol string, required bool) error {
 	runtimeConnectors.Unlock()
 
 	go func(protocol string, connector robot.Connector, stop <-chan struct{}, done chan struct{}) {
-		connector.Run(stop)
+		err := connector.Run(stop)
 
 		var shouldLogError bool
+		var isPrimary bool
 		runtimeConnectors.Lock()
 		if mc, ok := runtimeConnectors.runtimes[protocol]; ok && mc != nil {
 			shouldLogError = !mc.stopping
+			isPrimary = protocol == runtimeConnectors.primary
 			mc.running = false
 			mc.stopping = false
 			if shouldLogError && !state.shuttingDown {
-				mc.lastError = "connector exited"
+				if err != nil {
+					mc.lastError = err.Error()
+				} else {
+					mc.lastError = "connector exited"
+				}
 			}
 		}
 		runtimeConnectors.Unlock()
 		if shouldLogError && !state.shuttingDown {
-			Log(robot.Error, "Connector '%s' exited unexpectedly", protocol)
+			if err != nil {
+				if isPrimary {
+					Log(robot.Fatal, "Primary connector '%s' failed: %v", protocol, err)
+				}
+				Log(robot.Error, "Connector '%s' failed: %v", protocol, err)
+			} else {
+				Log(robot.Error, "Connector '%s' exited unexpectedly", protocol)
+			}
 		} else {
 			Log(robot.Info, "Connector '%s' stopped", protocol)
 		}
@@ -670,6 +698,7 @@ func (rc *runtimeConnectorRouter) Reload() error {
 	return reloadActiveConnectorRuntimes()
 }
 
-func (rc *runtimeConnectorRouter) Run(stopchannel <-chan struct{}) {
+func (rc *runtimeConnectorRouter) Run(stopchannel <-chan struct{}) error {
 	<-stopchannel
+	return nil
 }

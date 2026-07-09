@@ -1,0 +1,4 @@
+ProtocolConfig:
+  AcceptSlashCommands: true
+  BotToken: xoxb-test-token
+  AppToken: xapp-test-token

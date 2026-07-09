@@ -110,6 +110,10 @@ metadata, not engine-routing policy.
 
 ## Reload Rules
 
+- Connector initialization and runtime failures are reported as errors to the
+  engine. Connectors must not decide whether those failures are process-fatal.
+  The engine owns role policy: primary connector failure aborts startup/running,
+  while secondary connector failure is logged and recorded for retry.
 - `robot.Connector.Reload() error` is called by the engine for each active connector after a successful normal configuration reload has loaded the new protocol config and reconciled active secondary connectors.
 - Reload is for connector-local runtime configuration that can be applied without reconnecting the transport. Current identity examples:
   - Slack `ProtocolConfig.UserMap`

@@ -48,8 +48,8 @@ func (c *validationCaptureConnector) SendProtocolUserMessage(user, msg string, _
 	c.messages = append(c.messages, validationCapturedMessage{user: user, protocol: protocol, message: msg})
 	return robot.Ok
 }
-func (c *validationCaptureConnector) Reload() error       { return nil }
-func (c *validationCaptureConnector) Run(<-chan struct{}) {}
+func (c *validationCaptureConnector) Reload() error             { return nil }
+func (c *validationCaptureConnector) Run(<-chan struct{}) error { return nil }
 
 func resetUserValidationRequestsForTesting() {
 	userValidationRequests.Lock()

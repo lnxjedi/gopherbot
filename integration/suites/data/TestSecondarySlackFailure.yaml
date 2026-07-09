@@ -1,0 +1,29 @@
+name: TestSecondarySlackFailure
+metadata:
+  subsystems:
+    - connector
+    - startup
+  tags:
+    - secondary-protocol
+    - slack
+  tier: focused
+config_dir: test/secondary-slack-fail
+log_name: secondary-slack-fail.log
+cases:
+  - input:
+      user: alice
+      channel: general
+      text: ;ping
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: PONG
+    replies_only: true
+  - input:
+      user: alice
+      channel: general
+      text: ;protocol-list
+    replies:
+      - channel: general
+        text_pattern: 'slack \(secondary\): failed \(Slack protocol config enables slash commands, but SlashCommand is not configured\)'
+    replies_only: true

@@ -155,7 +155,7 @@ func (gc *googleChatConnector) runtimeBotID() string {
 	return "users/app"
 }
 
-func (gc *googleChatConnector) Run(stop <-chan struct{}) {
+func (gc *googleChatConnector) Run(stop <-chan struct{}) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	defer clearActiveGoogleChatConnector(gc)
@@ -176,8 +176,9 @@ func (gc *googleChatConnector) Run(stop <-chan struct{}) {
 		msg.Ack()
 	})
 	if err != nil && ctx.Err() == nil {
-		gc.Log(robot.Error, "Google Chat Pub/Sub receive loop exited with error: %v", err)
+		return fmt.Errorf("Google Chat Pub/Sub receive loop exited with error: %w", err)
 	}
+	return nil
 }
 
 func (gc *googleChatConnector) handlePubSubMessage(msg *pubsub.Message) error {

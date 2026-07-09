@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"strings"
@@ -89,7 +90,7 @@ func (fc *fakeRuntimeConnector) Reload() error {
 	return fc.reloadErr
 }
 
-func (fc *fakeRuntimeConnector) Run(stop <-chan struct{}) {
+func (fc *fakeRuntimeConnector) Run(stop <-chan struct{}) error {
 	fc.mu.Lock()
 	fc.runCount++
 	fc.mu.Unlock()
@@ -97,6 +98,7 @@ func (fc *fakeRuntimeConnector) Run(stop <-chan struct{}) {
 	fc.mu.Lock()
 	fc.stopCount++
 	fc.mu.Unlock()
+	return nil
 }
 
 func (fc *fakeRuntimeConnector) metrics() (runs, stops int) {
@@ -199,6 +201,15 @@ func (h *runtimeHarness) registerFake(protocol string) {
 	}
 }
 
+func (h *runtimeHarness) registerInitError(protocol string, err error) {
+	p := normalizeProtocolName(protocol)
+	connectorRegistrationOverrides[p] = robot.ConnectorRegistration{
+		Initialize: func(robot.Handler, *log.Logger) robot.InitializedConnector {
+			return robot.InitializedConnector{Error: err}
+		},
+	}
+}
+
 func statusMap() map[string]connectorStatus {
 	statuses := listConnectorProtocolStatus()
 	out := make(map[string]connectorStatus, len(statuses))
@@ -256,6 +267,63 @@ func TestRuntimeLifecycleStartStopRestart(t *testing.T) {
 	waitFor(t, "all connectors stopped", func() bool {
 		sm := statusMap()
 		return sm["prime"].state == "stopped" && sm["secondary"].state == "stopped"
+	})
+}
+
+func TestInitializeConnectorRuntimeReturnsPrimaryInitError(t *testing.T) {
+	h := newRuntimeHarness(t)
+	h.registerInitError("prime", fmt.Errorf("primary boom"))
+	h.setConfig("prime")
+
+	err := initializeConnectorRuntime(log.New(io.Discard, "", 0))
+	if err == nil || !strings.Contains(err.Error(), "primary boom") {
+		t.Fatalf("initializeConnectorRuntime() error = %v, want primary init error", err)
+	}
+}
+
+func TestInitializeConnectorRuntimeRecordsSecondaryInitError(t *testing.T) {
+	h := newRuntimeHarness(t)
+	h.registerFake("prime")
+	h.registerInitError("secondary", fmt.Errorf("secondary boom"))
+	h.setConfig("prime", "secondary")
+
+	if err := initializeConnectorRuntime(log.New(io.Discard, "", 0)); err != nil {
+		t.Fatalf("initializeConnectorRuntime() error = %v", err)
+	}
+	sm := statusMap()
+	if sm["secondary"].state != "failed" || !strings.Contains(sm["secondary"].err, "secondary boom") {
+		t.Fatalf("secondary status = %+v, want failed secondary boom", sm["secondary"])
+	}
+}
+
+func TestStartSecondaryConnectorRuntimeRetriesAfterInitError(t *testing.T) {
+	h := newRuntimeHarness(t)
+	h.registerFake("prime")
+	attempts := 0
+	connectorRegistrationOverrides["secondary"] = robot.ConnectorRegistration{
+		Initialize: func(robot.Handler, *log.Logger) robot.InitializedConnector {
+			attempts++
+			if attempts == 1 {
+				return robot.InitializedConnector{Error: fmt.Errorf("temporary secondary boom")}
+			}
+			fc := &fakeRuntimeConnector{}
+			h.instances["secondary"] = fc
+			return robot.InitializedConnector{Connector: fc}
+		},
+	}
+	h.setConfig("prime", "secondary")
+
+	if err := initializeConnectorRuntime(log.New(io.Discard, "", 0)); err != nil {
+		t.Fatalf("initializeConnectorRuntime() error = %v", err)
+	}
+	if status := statusMap()["secondary"]; status.state != "failed" {
+		t.Fatalf("secondary status after first attempt = %+v, want failed", status)
+	}
+	if err := startSecondaryConnectorRuntime("secondary"); err != nil {
+		t.Fatalf("startSecondaryConnectorRuntime() retry error = %v", err)
+	}
+	waitFor(t, "secondary retry running", func() bool {
+		return statusMap()["secondary"].state == "running"
 	})
 }
 

@@ -2,6 +2,7 @@ package googlechat
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -89,7 +90,7 @@ func boolValueOrDefault(v *bool, fallback bool) bool {
 func Initialize(handler robot.Handler, l *log.Logger) robot.InitializedConnector {
 	var c config
 	if err := handler.GetProtocolConfig(&c); err != nil {
-		handler.Log(robot.Fatal, "Unable to retrieve googlechat protocol configuration: %v", err)
+		return robot.InitializedConnector{Error: fmt.Errorf("unable to retrieve googlechat protocol configuration: %w", err)}
 	}
 
 	credentialsPath := strings.TrimSpace(c.CredentialsEncryptedFile)
@@ -98,15 +99,15 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.InitializedConnector
 	}
 	creds, err := gcloud.LoadServiceAccountCredentials(handler.ReadEncryptedFile, credentialsPath)
 	if err != nil {
-		handler.Log(robot.Fatal, "Unable to load Google Chat credentials: %v", err)
+		return robot.InitializedConnector{Error: fmt.Errorf("unable to load Google Chat credentials: %w", err)}
 	}
 	projectID, err := gcloud.ResolveProjectID(c.ProjectID, creds)
 	if err != nil {
-		handler.Log(robot.Fatal, "Unable to determine Google Chat project ID: %v", err)
+		return robot.InitializedConnector{Error: fmt.Errorf("unable to determine Google Chat project ID: %w", err)}
 	}
 	subscriptionID := normalizeSubscriptionID(c.SubscriptionID)
 	if subscriptionID == "" {
-		handler.Log(robot.Fatal, "Google Chat protocol config requires SubscriptionID")
+		return robot.InitializedConnector{Error: fmt.Errorf("Google Chat protocol config requires SubscriptionID")}
 	}
 
 	opts := gcloud.ServiceAccountClientOptions(creds)
@@ -114,26 +115,26 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.InitializedConnector
 
 	pubsubClient, err := pubsub.NewClient(ctx, projectID, opts...)
 	if err != nil {
-		handler.Log(robot.Fatal, "Unable to create Google Pub/Sub client: %v", err)
+		return robot.InitializedConnector{Error: fmt.Errorf("unable to create Google Pub/Sub client: %w", err)}
 	}
 	subscription := pubsubClient.Subscription(subscriptionID)
 	subscriptionConfig, err := subscription.Config(ctx)
 	if err != nil {
-		handler.Log(robot.Fatal, "Unable to inspect Google Pub/Sub subscription %q: %v", subscriptionID, err)
+		return robot.InitializedConnector{Error: fmt.Errorf("unable to inspect Google Pub/Sub subscription %q: %w", subscriptionID, err)}
 	}
 	chatOpts := append([]option.ClientOption{}, opts...)
 	chatOpts = append(chatOpts, option.WithScopes(chatBotScope))
 	chatClient, err := chat.NewClient(ctx, chatOpts...)
 	if err != nil {
-		handler.Log(robot.Fatal, "Unable to create Google Chat client: %v", err)
+		return robot.InitializedConnector{Error: fmt.Errorf("unable to create Google Chat client: %w", err)}
 	}
 	chatAPIService, err := chatapi.NewService(ctx, chatOpts...)
 	if err != nil {
-		handler.Log(robot.Fatal, "Unable to create Google Chat REST service: %v", err)
+		return robot.InitializedConnector{Error: fmt.Errorf("unable to create Google Chat REST service: %w", err)}
 	}
 	workspaceHTTPClient, err := gcloud.NewScopedHTTPClient(ctx, creds, chatBotScope, chatAppMessagesReadonlyScope)
 	if err != nil {
-		handler.Log(robot.Fatal, "Unable to create Google Workspace Events HTTP client: %v", err)
+		return robot.InitializedConnector{Error: fmt.Errorf("unable to create Google Workspace Events HTTP client: %w", err)}
 	}
 
 	botInfo := handler.GetBotInfo()

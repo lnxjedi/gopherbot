@@ -12,6 +12,7 @@ type ConnectorCapabilities struct {
 type InitializedConnector struct {
 	Connector    Connector
 	Capabilities ConnectorCapabilities
+	Error        error
 }
 
 type ConnectorRegistration struct {

@@ -46,7 +46,7 @@ This file captures Slack connector behavior relevant to routing, private slash c
 - `Initialize(...)` returns `robot.InitializedConnector{Connector, Capabilities}` and only sets `Capabilities.HiddenCommands=true` when slash-command support is explicitly enabled in config.
 - Slack protocol config must explicitly set `AcceptSlashCommands: true|false`.
 - If `AcceptSlashCommands: true`, `SlashCommand` is required. The connector normalizes either `clu` or `/clu` to the canonical slash form.
-- If `AcceptSlashCommands` is omitted, or `SlashCommand` is missing while slash commands are enabled, Slack startup fails with a clear fatal log message so the robot owner knows the config is incomplete.
+- If `AcceptSlashCommands` is omitted, or `SlashCommand` is missing while slash commands are enabled, Slack initialization returns a clear error. The engine treats that error as fatal only when Slack is the primary protocol; as a secondary protocol it is logged and can be retried after configuration is fixed.
 - Slack slash commands are platform-routed to one bot app, so connector sets `BotMessage=true`.
 - Engine private-command policy then treats slash payload as addressed-to-robot without requiring an explicit robot name in text.
 - Command still must be explicitly allowed by plugin `AllowedPrivateCommands`, `RequiredPrivateCommands`, or `RequireAllCommandsPrivate`.

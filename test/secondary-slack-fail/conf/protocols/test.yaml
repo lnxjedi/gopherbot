@@ -1,0 +1,13 @@
+ProtocolConfig:
+  StartChannel: general
+  StartUser: alice
+  Channels:
+  - general
+  Users:
+  - Name: "alice"
+    Email: "alice@example.com"
+    InternalID: "u0001"
+    FullName: "Alice User"
+    FirstName: "Alice"
+    LastName: "User"
+    Phone: "(555)765-0001"

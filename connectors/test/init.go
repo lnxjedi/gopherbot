@@ -1,6 +1,7 @@
 package test
 
 import (
+	"fmt"
 	"log"
 	"strings"
 	"sync"
@@ -55,7 +56,7 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.InitializedConnector
 
 	err := handler.GetProtocolConfig(&c)
 	if err != nil {
-		handler.Log(robot.Fatal, "Unable to retrieve protocol configuration: %v", err)
+		return robot.InitializedConnector{Error: fmt.Errorf("unable to retrieve test protocol configuration: %w", err)}
 	}
 	botInfo := handler.GetBotInfo()
 	botName := strings.TrimSpace(botInfo.UserName)
