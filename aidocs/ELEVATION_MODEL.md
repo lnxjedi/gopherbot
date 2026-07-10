@@ -239,6 +239,8 @@ Behavior:
   `plugin/command` when a plugin command is known, such as `vpn/add-device`,
   and must reply with a single lowercase letter matched by the elevator's
   `approvalChoice` reply matcher.
+- After a valid selection, the requester is told which approver is being asked
+  before the robot sends that approver the DM prompt.
 - The selected approver receives a DM yes/no prompt. `yes`/`y` approves and
   returns `robot.Success`; `no`/`n`, timeout, invalid requester choice, or
   missing eligible approvers fail elevation.

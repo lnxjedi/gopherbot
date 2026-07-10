@@ -119,6 +119,7 @@ func runUserApproval(r userApprovalRuntime) robot.TaskRetVal {
 		r.Say("Invalid approver selection")
 		return robot.Fail
 	}
+	r.Say("Ok, hold on while I ask '%s' for approval...", approver)
 
 	answer, ret := r.PromptUserForReply("YesNo", approver,
 		"%s is requesting approval to run command %s - approve? (y/n)",
