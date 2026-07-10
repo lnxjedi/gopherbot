@@ -169,6 +169,17 @@ integration suites:
   copy that commented template before editing local values.
 - `test-scripts/` contains runnable examples and fixtures that exercise common
   Lua, JavaScript, GSH, and interpreted-Go syntax.
+- `make wireguard-plugin-test` runs the shipped WireGuard Lua plugin through
+  `gopherbot script` with development dry-run fixtures. It checks canonical
+  public-key acceptance, malformed-key rejection without brain writes, and
+  poisoned stored-state rejection before host actions. This check does not
+  require a standalone Lua runtime or a local `wg` binary, and it is included
+  in `make test` and `make fulltest`.
+- The focused process-backed `TestWireGuardKeyValidation` suite checks the
+  configured command matcher and private-message path. Its
+  `development_environment` pre-start hook scopes `GOPHER_ENVIRONMENT` to
+  `development` for the suite and restores the prior process environment on
+  cleanup, ensuring the plugin cannot invoke WireGuard or host service tools.
 
 These commands are local development checks, not substitutes for integration
 coverage when engine routing, authorization, connector identity, scheduling,

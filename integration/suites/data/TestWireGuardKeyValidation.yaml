@@ -1,0 +1,58 @@
+name: TestWireGuardKeyValidation
+metadata:
+  subsystems:
+    - extension-api
+    - security
+  tags:
+    - wireguard
+    - input-validation
+  runtimes:
+    - lua
+  tier: focused
+config_dir: test/wireguard
+log_name: bottest-wireguard.log
+before_start: development_environment
+cases:
+  - name: valid canonical key
+    input:
+      user: alice
+      text: add-device laptop xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=
+    replies:
+      - user: alice
+        text_pattern: "Dry-run: VPN device 'laptop' would be added"
+      - user: alice
+        text_pattern: 'VPN config data: Robot_IP = <robot-public-ip>:51820'
+    replies_only: true
+  - name: short key
+    input:
+      user: alice
+      text: add-device short garbage
+    replies:
+      - user: alice
+        text_pattern: 'Invalid WireGuard public key; expected the 44-character base64 value produced by ''wg pubkey''\.'
+    replies_only: true
+  - name: invalid alphabet
+    input:
+      user: alice
+      text: add-device alphabet '!TIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg='
+    replies:
+      - user: alice
+        text_pattern: 'Invalid WireGuard public key; expected the 44-character base64 value produced by ''wg pubkey''\.'
+    replies_only: true
+  - name: missing padding
+    input:
+      user: alice
+      text: add-device padding xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8DgA
+    replies:
+      - user: alice
+        text_pattern: 'Invalid WireGuard public key; expected the 44-character base64 value produced by ''wg pubkey''\.'
+    replies_only: true
+  - name: noncanonical padding bits
+    input:
+      user: alice
+      text: add-device canonical xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dh=
+    replies:
+      - user: alice
+        text_pattern: 'Invalid WireGuard public key; expected the 44-character base64 value produced by ''wg pubkey''\.'
+    replies_only: true
+

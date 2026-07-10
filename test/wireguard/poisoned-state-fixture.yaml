@@ -1,0 +1,17 @@
+message:
+  user: alice
+  direct: true
+parameters:
+  GOPHER_ENVIRONMENT: development
+config:
+  PublicKey: xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=
+memory:
+  long_term:
+    wg:
+      Users:
+        alice:
+          broken-device:
+            PublicKey: garbage
+            PreSharedKey: yAnz5TF+lXXJte14tji3zlMNq+hd2rYUIgJBgB3fBmk=
+            AllowedIPs: 10.77.0.2/32
+

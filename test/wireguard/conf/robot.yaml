@@ -1,0 +1,25 @@
+AdminContact: "WireGuard Test, <wireguard@example.org>"
+DefaultChannels: [ "general" ]
+DefaultJobChannel: general
+JoinChannels: [ ]
+AdminUsers: [ "alice" ]
+Alias: ";"
+LogLevel: debug
+PrimaryProtocol: {{ env "GOPHER_PROTOCOL" | default "test" }}
+
+BotInfo:
+  UserName: bender
+  FullName: Bender Rodriguez
+UserRoster:
+- UserName: "alice"
+  UserID: "u0001"
+
+LocalPort: 0
+ExternalPlugins:
+  "wireguard":
+    Path: plugins/wireguard.lua
+    Privileged: true
+
+WorkSpace: workspace
+Brain: mem
+

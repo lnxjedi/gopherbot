@@ -239,6 +239,69 @@ local function state_counts(state)
   return user_count, device_count
 end
 
+-- WireGuard keys are 32 bytes encoded as canonical, padded base64. This
+-- mirrors wireguard-tools key_from_base64(): 44 characters total, the
+-- standard base64 alphabet, one trailing '=', and zero padding bits in the
+-- final data character.
+local canonical_key_tail = {
+  A = true, E = true, I = true, M = true,
+  Q = true, U = true, Y = true, c = true,
+  g = true, k = true, o = true, s = true,
+  w = true, ["0"] = true, ["4"] = true, ["8"] = true,
+}
+
+local function valid_wireguard_key(value)
+  if type(value) ~= "string" or #value ~= 44 then
+    return false
+  end
+  if value:sub(44, 44) ~= "=" then
+    return false
+  end
+  if not value:sub(1, 43):match("^[A-Za-z0-9+/]+$") then
+    return false
+  end
+  return canonical_key_tail[value:sub(43, 43)] == true
+end
+
+local function validate_wireguard_state(state)
+  local users = state and state.datum and state.datum.Users
+  if type(users) ~= "table" then
+    return false, "<state>", "<state>", "Users"
+  end
+  for _, username in ipairs(sorted_keys(users)) do
+    local devices = users[username]
+    if type(devices) ~= "table" then
+      return false, username, "<devices>", "device map"
+    end
+    for _, device in ipairs(sorted_keys(devices)) do
+      local data = devices[device]
+      if type(data) ~= "table" then
+        return false, username, device, "peer record"
+      end
+      if not valid_wireguard_key(data.PublicKey) then
+        return false, username, device, "public key"
+      end
+      if not valid_wireguard_key(data.PreSharedKey) then
+        return false, username, device, "pre-shared key"
+      end
+    end
+  end
+  return true
+end
+
+local function ensure_valid_wireguard_state(state, notify_user)
+  local ok, username, device, field = validate_wireguard_state(state)
+  if ok then
+    return true
+  end
+  log_error("stored state validation failed: user=" .. tostring(username) ..
+    " device=" .. tostring(device) .. " field=" .. tostring(field))
+  if notify_user then
+    say("WireGuard state contains invalid key data; ask an administrator to remove and re-add the affected VPN device.")
+  end
+  return false
+end
+
 local function allocate_ip(cfg, state)
   log_info("allocate_ip start: interface=" .. tostring(cfg.InterfaceAddress))
   local base_num = ipv4_number_from_cidr(cfg.InterfaceAddress)
@@ -294,6 +357,16 @@ local function load_config()
   if not cfg.DryRun and (not cfg.PrivateKey or cfg.PrivateKey == "") then
     log_error("load_config failed: missing private key")
     say("WireGuard private key is not configured")
+    return nil
+  end
+  if cfg.PrivateKey and cfg.PrivateKey ~= "" and not valid_wireguard_key(cfg.PrivateKey) then
+    log_error("load_config failed: invalid private key")
+    say("WireGuard private key is invalid")
+    return nil
+  end
+  if cfg.PublicKey and cfg.PublicKey ~= "" and not valid_wireguard_key(cfg.PublicKey) then
+    log_error("load_config failed: invalid public key")
+    say("WireGuard public key is invalid")
     return nil
   end
   if not split_cidr(cfg.InterfaceAddress) then
@@ -413,6 +486,10 @@ end
 
 local function apply_wireguard(cfg, state)
   log_info("apply_wireguard start: dry_run=" .. tostring(cfg.DryRun))
+  if not ensure_valid_wireguard_state(state, command ~= "_init") then
+    log_error("apply_wireguard aborted: invalid stored state")
+    return false
+  end
   if cfg.DryRun then
     log_info("apply_wireguard skipped: development dry-run")
     return true
@@ -463,9 +540,13 @@ local function add_device(cfg, state, device, public_key)
     say("Invalid device name")
     return false
   end
-  if not public_key or not public_key:match("^[%.%w/%+=%-]+$") then
-    log_error("add_device failed: invalid public key")
-    say("Invalid public key")
+  if not valid_wireguard_key(public_key) then
+    log_error("add_device failed: invalid public key format")
+    say("Invalid WireGuard public key; expected the 44-character base64 value produced by 'wg pubkey'.")
+    return false
+  end
+  if not ensure_valid_wireguard_state(state, true) then
+    log_error("add_device failed: invalid stored state")
     return false
   end
 
@@ -490,12 +571,22 @@ local function add_device(cfg, state, device, public_key)
     say("Unable to generate a WireGuard pre-shared key")
     return false
   end
+  if not cfg.DryRun and not valid_wireguard_key(psk) then
+    log_error("add_device failed: generated invalid pre-shared key")
+    say("Unable to generate a valid WireGuard pre-shared key")
+    return false
+  end
 
   state.datum.Users[username][device] = {
     PublicKey = public_key,
     PreSharedKey = psk,
     AllowedIPs = user_ip,
   }
+
+  if not cfg.DryRun and not ensure_valid_wireguard_state(state, true) then
+    log_error("add_device failed: candidate state validation failed")
+    return false
+  end
 
   if cfg.DryRun then
     local ip = endpoint_ip(cfg)
@@ -538,7 +629,7 @@ local function delete_user(cfg, state, username)
       return
     end
     state.datum.Users[username] = nil
-    if update_state(state) and apply_wireguard(cfg, state) then
+    if ensure_valid_wireguard_state(state, true) and update_state(state) and apply_wireguard(cfg, state) then
       say("User '" .. username .. "' deleted successfully.")
       log_info("delete_user done: username=" .. tostring(username))
     end
@@ -559,7 +650,7 @@ local function delete_device(cfg, state, device)
       return
     end
     state.datum.Users[username][device] = nil
-    if update_state(state) and apply_wireguard(cfg, state) then
+    if ensure_valid_wireguard_state(state, true) and update_state(state) and apply_wireguard(cfg, state) then
       say("Device '" .. device .. "' deleted successfully.")
       log_info("delete_device done: user=" .. tostring(username) .. " device=" .. tostring(device))
     end
@@ -706,7 +797,7 @@ elseif command == "clear-vpn" then
     log_info("clear-vpn dry-run done")
   else
     state.datum.Users = {}
-    if update_state(state) and apply_wireguard(cfg, state) then
+    if ensure_valid_wireguard_state(state, true) and update_state(state) and apply_wireguard(cfg, state) then
       shell_capture("sudo -n iptables -F ALLOW_VPN", "iptables flush ALLOW_VPN")
       say("Cleared all VPN users and devices, and emptied the ALLOW_VPN chain")
     end

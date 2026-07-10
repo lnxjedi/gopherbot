@@ -1,6 +1,6 @@
 # Makefile - just builds the binary, for dev mainly
 
-.PHONY: clean test fulltest unit integration integration-build integration-run integration-mcp integration-legacy integration-full generate testbot static dist containers debug mcp docs-check
+.PHONY: clean test fulltest unit wireguard-plugin-test integration integration-build integration-run integration-mcp integration-legacy integration-full generate testbot static dist containers debug mcp docs-check
 
 commit := -X main.Commit=$(shell git rev-parse --short HEAD)
 version := $(shell ./get-version.sh)
@@ -69,6 +69,9 @@ dist: $(TAR_ARCHIVE)
 unit:
 	go test -mod readonly ./...
 
+wireguard-plugin-test: gopherbot
+	./helpers/check-wireguard-plugin.sh
+
 integration: integration-build
 	@echo "Built ./gopherbot-integration"
 	@echo "List suites: ./gopherbot-integration list-suites"
@@ -89,9 +92,9 @@ integration-legacy: gopherbot
 integration-full:
 	RUN_FULL=all $(MAKE) integration-legacy
 
-test: unit integration
+test: unit wireguard-plugin-test integration
 
-fulltest: unit integration-full
+fulltest: unit wireguard-plugin-test integration-full
 
 docs-check:
 	./helpers/check-docs-hygiene.sh

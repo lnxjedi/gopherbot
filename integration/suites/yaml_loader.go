@@ -217,6 +217,8 @@ func (ys yamlSuite) toSuite() (Suite, error) {
 	case "":
 	case "test_http_server":
 		suite.BeforeStart = withTestHTTPServer
+	case "development_environment":
+		suite.BeforeStart = withDevelopmentEnvironment
 	default:
 		return Suite{}, fmt.Errorf("unknown before_start hook %q", ys.BeforeStart)
 	}
@@ -227,6 +229,20 @@ func (ys yamlSuite) toSuite() (Suite, error) {
 		}
 	}
 	return suite, nil
+}
+
+func withDevelopmentEnvironment() (func(), error) {
+	previous, existed := os.LookupEnv("GOPHER_ENVIRONMENT")
+	if err := os.Setenv("GOPHER_ENVIRONMENT", "development"); err != nil {
+		return nil, err
+	}
+	return func() {
+		if existed {
+			_ = os.Setenv("GOPHER_ENVIRONMENT", previous)
+		} else {
+			_ = os.Unsetenv("GOPHER_ENVIRONMENT")
+		}
+	}, nil
 }
 
 func yamlCasesToCases(in []yamlCase) ([]Case, error) {

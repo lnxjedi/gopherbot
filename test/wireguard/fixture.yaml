@@ -1,0 +1,10 @@
+message:
+  user: alice
+  direct: true
+parameters:
+  GOPHER_ENVIRONMENT: development
+config:
+  PublicKey: xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg=
+memory:
+  long_term: {}
+

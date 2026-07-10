@@ -13,6 +13,7 @@ If any ad-hoc instruction conflicts with this file, this file wins.
 
 - If a task requires a local tool, command, interpreter, or development utility that is not installed or not available on `PATH`, pause and ask the project owner to install it.
 - Do not install missing local tools, vendor replacements, or silently substitute a different workflow unless the project owner explicitly approves that change.
+- For `.lua`, `.js`, `.gsh`, and interpreted `.go` extension work, standalone language runtimes are not required. Use `./gopherbot syntax` and `./gopherbot script`; see `aidocs/TESTING_CURRENT.md` and `aidocs/INTERPRETERS.md`.
 
 ## Phase 0 — Orientation (Two-Tier Model)
 
