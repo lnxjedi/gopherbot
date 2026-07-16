@@ -1,0 +1,7 @@
+---
+AllChannels: true
+ElevatedCommands:
+- secelevated
+Commands:
+- SimpleMatcher: go-sec-single-approver
+  Command: secelevated
