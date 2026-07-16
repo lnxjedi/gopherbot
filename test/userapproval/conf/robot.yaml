@@ -24,6 +24,8 @@ ExternalPlugins:
     Path: plugins/test/gofull.go
   "gosecself":
     Path: plugins/test/gofull.go
+  "gosecsingle":
+    Path: plugins/test/gofull.go
 
 WorkSpace: workspace
 Brain: mem

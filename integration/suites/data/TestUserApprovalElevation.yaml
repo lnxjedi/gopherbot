@@ -95,3 +95,28 @@ flow:
     receive:
       channel: general
       text_pattern: "SECURITY CHECK: secelevated"
+  - name: request-single-approver-elevation
+    send:
+      user: alice
+      channel: general
+      text: ;go-sec-single-approver
+  - name: single-approver-selected-automatically
+    receive:
+      channel: general
+      text_pattern: "Ok, hold on while I ask 'david' for approval\\.\\.\\."
+  - name: david-approval-prompt
+    receive:
+      user: david
+      text_pattern: "alice is requesting approval to run command gosecsingle/secelevated - approve\\? \\(y/n\\)"
+  - name: david-approves
+    send:
+      user: david
+      text: "yes"
+  - name: single-approver-approval-granted
+    receive:
+      channel: general
+      text_pattern: "Approval granted by david"
+  - name: single-approver-protected-command-runs
+    receive:
+      channel: general
+      text_pattern: "SECURITY CHECK: secelevated"

@@ -163,7 +163,7 @@ Current shipped behavior:
   It supports `TimeoutType: idle` and `TimeoutType: absolute`.
 - Duo uses the same general timeout model, plus Duo preauth/auth flow and
   remembered device/method preferences.
-- `builtin-userapproval` ignores timeout reuse and asks the requester to select
+- `builtin-userapproval` ignores timeout reuse and requests fresh approval from
   one configured human approver for each elevation attempt.
 
 ## Extension API
@@ -235,12 +235,14 @@ Behavior:
   the elevation is approved immediately without prompting another approver. If
   the requester is not listed, the normal requester-selection and approver DM
   flow is used.
-- The requester receives a lowercase-letter menu identifying the action as
-  `plugin/command` when a plugin command is known, such as `vpn/add-device`,
-  and must reply with a single lowercase letter matched by the elevator's
-  `approvalChoice` reply matcher.
-- After a valid selection, the requester is told which approver is being asked
-  before the robot sends that approver the DM prompt.
+- With multiple eligible approvers, the requester receives a lowercase-letter
+  menu identifying the action as `plugin/command` when a plugin command is
+  known, such as `vpn/add-device`, and must reply with a single lowercase
+  letter matched by the elevator's `approvalChoice` reply matcher.
+- With exactly one eligible approver, the menu is skipped and that approver is
+  selected automatically.
+- After automatic or valid manual selection, the requester is told which
+  approver is being asked before the robot sends that approver the DM prompt.
 - The selected approver receives a DM yes/no prompt. `yes`/`y` approves and
   returns `robot.Success`; `no`/`n`, timeout, invalid requester choice, or
   missing eligible approvers fail elevation.
@@ -287,8 +289,8 @@ Current test coverage exercises:
 - `Robot.Elevate(true)` API plumbing across runtimes.
 - Failure handling when the TOTP elevator prompts but cannot validate because
   the test user lacks a configured secret.
-- Successful `builtin-userapproval` requester-choice and selected-approver
-  yes/no approval flow.
+- Successful `builtin-userapproval` single-approver auto-selection,
+  requester-choice, and selected-approver yes/no approval flows.
 - Return-value handling that treats non-success as failure.
 
 Known gap:

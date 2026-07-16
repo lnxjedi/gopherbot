@@ -107,17 +107,21 @@ func runUserApproval(r userApprovalRuntime) robot.TaskRetVal {
 		return robot.Fail
 	}
 
-	choicePrompt := userApprovalChoicePrompt(actionName, approvers)
-	choice, ret := r.PromptForReply(userApprovalChoiceMatcher, choicePrompt)
-	if ret != robot.Ok {
-		r.Log(robot.Warn, "builtin-userapproval requester '%s' did not select an approver for pipeline '%s': %s", requester, pipeName, ret)
-		return robot.Fail
-	}
-	approver, ok := userApprovalApproverForChoice(choice, approvers)
-	if !ok {
-		r.Log(robot.Warn, "builtin-userapproval requester '%s' selected invalid approver choice '%s' for pipeline '%s'", requester, choice, pipeName)
-		r.Say("Invalid approver selection")
-		return robot.Fail
+	approver := approvers[0]
+	if len(approvers) > 1 {
+		choicePrompt := userApprovalChoicePrompt(actionName, approvers)
+		choice, ret := r.PromptForReply(userApprovalChoiceMatcher, choicePrompt)
+		if ret != robot.Ok {
+			r.Log(robot.Warn, "builtin-userapproval requester '%s' did not select an approver for pipeline '%s': %s", requester, pipeName, ret)
+			return robot.Fail
+		}
+		var ok bool
+		approver, ok = userApprovalApproverForChoice(choice, approvers)
+		if !ok {
+			r.Log(robot.Warn, "builtin-userapproval requester '%s' selected invalid approver choice '%s' for pipeline '%s'", requester, choice, pipeName)
+			r.Say("Invalid approver selection")
+			return robot.Fail
+		}
 	}
 	r.Say("Ok, hold on while I ask '%s' for approval...", approver)
 
