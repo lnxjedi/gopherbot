@@ -63,6 +63,7 @@ A `SyntaxMatch` is allowed only when:
 - optional noise/capturing groups are either absent or present in a grammar-valid position
 - argv-style options blocks consume only allowed dash-starting option tokens at their configured position
 - all separators and token boundaries line up with the grammar, including dash/space forgiveness for command-word terms and the whitespace boundary required before typed captures and options blocks
+- adjacent whitespace-delimited fields retain separate positional identity even when their text is identical
 - there is one invalid captured value that explains the failure
 - there are no extra unmatched terms before or after the command
 

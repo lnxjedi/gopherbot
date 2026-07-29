@@ -652,6 +652,33 @@ func TestSimpleMatcherTypedCapturesAreWhitespaceDelimitedFields(t *testing.T) {
 	}
 }
 
+func TestSimpleMatcherAdjacentIdenticalTypedCaptureFieldsRemainDistinct(t *testing.T) {
+	matcher := mustCompileSimpleInputMatcher(t, "sidetrack {ticket|story} <story:slug> <siding:ident>")
+
+	result := matcher.matchInput("sidetrack-story develop develop")
+	assertInputMatchResult(t, result, inputExactMatch, []string{"develop", "develop"}, "")
+
+	result = matcher.matchInput("sidetrack-story slack-prod slack-prod")
+	assertInputMatchResult(t, result, inputExactMatch, []string{"slack-prod", "slack-prod"}, "")
+}
+
+func TestSimpleMatcherAdjacentIdenticalExtraFieldIsNotCollapsed(t *testing.T) {
+	matcher := mustCompileSimpleInputMatcher(t, "show <service:ident>")
+
+	result := matcher.matchInput("show develop develop")
+	assertInputMatchResult(t, result, inputNoMatch, nil, "")
+}
+
+func TestSimpleMatcherRestCapturePreservesAdjacentIdenticalFields(t *testing.T) {
+	matcher := mustCompileSimpleInputMatcher(t, "echo <words:rest>")
+
+	result := matcher.matchInput("echo develop develop")
+	assertInputMatchResult(t, result, inputExactMatch, []string{"develop develop"}, "")
+
+	result = matcher.matchInput("echo slack-prod slack-prod")
+	assertInputMatchResult(t, result, inputExactMatch, []string{"slack-prod slack-prod"}, "")
+}
+
 func TestSimpleMatcherCapturingChoiceSupportsHyphenatedCommandPhrases(t *testing.T) {
 	tests := []struct {
 		spec  string

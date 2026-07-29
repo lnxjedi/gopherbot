@@ -12,3 +12,5 @@ Commands:
   SimpleMatcher: free rule
 - Command: secret
   SimpleMatcher: secret rule
+- Command: fieldtest
+  SimpleMatcher: field-test <first:token> <second:token>

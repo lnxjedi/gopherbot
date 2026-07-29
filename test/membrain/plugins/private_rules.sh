@@ -9,6 +9,9 @@ case "$command" in
 	"free"|"secret"|"locked"|"open")
 		Reply "private-rules:${command}"
 		;;
+	"fieldtest")
+		Reply "Fields: $2 then $3"
+		;;
 esac
 
 exit 0

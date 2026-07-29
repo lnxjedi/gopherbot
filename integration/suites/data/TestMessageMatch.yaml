@@ -75,6 +75,17 @@ cases:
       - ExternalTaskRan
   - input:
       user: alice
+      channel: ops
+      text: ;field-test develop develop
+    replies:
+      - user: alice
+        channel: ops
+        text_pattern: 'Fields: develop then develop'
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
       text: hello robot
     replies:
       - user: alice

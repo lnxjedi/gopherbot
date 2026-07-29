@@ -965,6 +965,7 @@ func matcherInputCandidates(input string, allowTrailingDot bool) ([]string, []st
 type simpleMatcherToken struct {
 	value     string
 	field     string
+	fieldID   int
 	sepBefore simpleMatcherTokenSeparator
 }
 
@@ -1009,12 +1010,12 @@ func simpleMatcherTokenize(input string) []simpleMatcherToken {
 	fields := strings.Fields(strings.TrimSpace(input))
 	tokens := make([]simpleMatcherToken, 0, len(fields))
 	nextSep := simpleMatcherNoTokenSeparator
-	for _, field := range fields {
+	for fieldID, field := range fields {
 		if field == "" {
 			continue
 		}
 		if strings.HasPrefix(field, "-") {
-			tokens = append(tokens, simpleMatcherToken{value: field, field: field, sepBefore: nextSep})
+			tokens = append(tokens, simpleMatcherToken{value: field, field: field, fieldID: fieldID, sepBefore: nextSep})
 			nextSep = simpleMatcherWhitespaceTokenSeparator
 			continue
 		}
@@ -1025,7 +1026,7 @@ func simpleMatcherTokenize(input string) []simpleMatcherToken {
 			if part == "" {
 				continue
 			}
-			tokens = append(tokens, simpleMatcherToken{value: part, field: field, sepBefore: nextSep})
+			tokens = append(tokens, simpleMatcherToken{value: part, field: field, fieldID: fieldID, sepBefore: nextSep})
 			nextSep = simpleMatcherDashTokenSeparator
 		}
 		nextSep = simpleMatcherWhitespaceTokenSeparator
@@ -1367,8 +1368,9 @@ func simpleMatcherTokenFieldAt(tokens []simpleMatcherToken, pos int) (string, in
 		return "", pos
 	}
 	field := tokens[pos].field
+	fieldID := tokens[pos].fieldID
 	next := pos + 1
-	for next < len(tokens) && tokens[next].field == field {
+	for next < len(tokens) && tokens[next].fieldID == fieldID {
 		next++
 	}
 	return field, next
