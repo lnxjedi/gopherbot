@@ -1,220 +1,143 @@
 # AGENTS.md — Gopherbot
 
-This file is the authoritative operating procedure for AI agents working in this repository.
+This is the repository's authoritative AI operating policy. Skills may supply
+workflows, but may not override it.
 
-If any ad-hoc instruction conflicts with this file, this file wins.
+## Tool Policy
 
-## Authority Boundary
+- If a required local tool is missing from `PATH`, stop and ask the owner to
+  install it. Do not install or substitute tools without approval.
+- `.lua`, `.js`, `.gsh`, and interpreted `.go` work does not require a
+  standalone runtime. Use `./gopherbot syntax` and `./gopherbot script`; see
+  `aidocs/TESTING_CURRENT.md`.
 
-- `AGENTS.md` is the single source of policy and required process.
-- Skills may provide workflows/templates, but must not redefine repository policy.
+## Orientation
 
-## Local Tool Availability
+Before proposing or changing code:
 
-- If a task requires a local tool, command, interpreter, or development utility that is not installed or not available on `PATH`, pause and ask the project owner to install it.
-- Do not install missing local tools, vendor replacements, or silently substitute a different workflow unless the project owner explicitly approves that change.
-- For `.lua`, `.js`, `.gsh`, and interpreted `.go` extension work, standalone language runtimes are not required. Use `./gopherbot syntax` and `./gopherbot script`; see `aidocs/TESTING_CURRENT.md` and `aidocs/INTERPRETERS.md`.
+1. Read `aidocs/README.md` and `aidocs/COMPONENT_MAP.md`.
+2. Read only the decision docs relevant to the task.
+3. Inspect the current source and tests; docs intentionally do not duplicate
+   source-level control flow or API inventories.
 
-## Phase 0 — Orientation (Two-Tier Model)
+For changes involving startup/configuration, connectors, routing, identity,
+authorization, privacy, privilege separation, task execution, root defaults,
+or cross-protocol compatibility, also read `aidocs/STARTUP_FLOW.md`,
+`aidocs/EXECUTION_SECURITY_MODEL.md`, and `aidocs/TESTING_CURRENT.md`.
 
-### Tier A: Default Orientation (required for all tasks)
+Before such a cross-cutting change, share an Impact Surface Report covering:
+affected subsystems, preserved/redefined invariants, startup/concurrency and
+compatibility risks, validation, and documentation. Do not implement until the
+report is shared unless the owner explicitly waives it.
 
-Before proposing or implementing changes, read:
-1. `aidocs/README.md`
-2. `aidocs/COMPONENT_MAP.md`
+## Architectural Decisions
 
-Then load only the canonical docs needed for the task scope.
+- Startup and configuration precedence are deterministic and explicit.
+- Connectors own transport behavior and accurate message context. The engine
+  owns routing, business policy, authorization, elevation, and secret scope.
+- Canonical username is the security identity across protocols. Never infer
+  identity equivalence from display names or transport IDs.
+- A primary connector failure is fatal; secondary connector failures are
+  isolated. Preserve message order within each connector.
+- Installed extension defaults are authoritative. Custom robot config should
+  remain delta-only unless intentionally redefining behavior.
+- Unprivileged extensions may receive secrets only through configuration
+  explicitly attached to that extension or its authorized brain namespace.
+  Never expose provider registries, parameter sets, or broad secret-bearing
+  configuration through generic extension methods.
 
-### Tier B: Escalated Orientation (hard requirement when triggered)
+## Security Invariants
 
-In addition you must run full architecture preflight before coding when **any** trigger applies.
+### Inbound identity and privacy
 
-Read in order:
-1. `aidocs/STARTUP_FLOW.md`
-2. `aidocs/TESTING_CURRENT.md`
+- `IgnoreUsers` and `IgnoreUnlistedUsers` are pre-pipeline gates. Keep them
+  before worker creation; `IgnoreUsers` matching is case-insensitive.
+- Trust a connector-supplied canonical username for policy only when
+  `ValidatedUser=true`.
+- Connectors are authoritative for `DirectMessage`, `HiddenMessage`, and
+  `SelfMessage`; engine/plugins must not rewrite that context.
+- Private-command policy is engine-owned and runs before plugin logic.
+- `Say`/`Reply` preserve the triggering context; they do not implicitly make a
+  response private. Sensitive responses must require private invocation or use
+  `Direct()`. Bot-initiated per-user secrets must use `SendUserMessage`.
 
-Then summarize in your own words:
-- core architectural invariants
-- startup ordering constraints
-- connector assumptions
-- message routing model
-- identity model
+### Authorization and elevation
 
-### Escalation Triggers (hard)
+- Admin authority has exactly two sources: configured `AdminUsers`, or
+  `automaticTask=true`. Automatic tasks are administrator-configured schedules
+  and queue triggers; future user-scheduled work must use a separate model.
+- Security order is admin → private-context checks → authorizer → elevator.
+  Admins bypass the authorizer; elevation is additional assurance after
+  authorization.
+- `Task.Users` is a whitelist whose empty value permits all users.
+- Auth/elevator plugins must explicitly return `robot.Success`; `robot.Normal`
+  is a mechanism failure.
+- Pipeline elevation persists once achieved. Do not reset it mid-pipeline.
 
-Escalated orientation is mandatory if a change touches or may affect:
-- startup/config load order (`bot/start.go`, `bot/bot_process.go`, `bot/config_load.go`, `bot/conf.go`)
-- message routing/pipeline ordering (`bot/dispatch.go`, `bot/run_pipelines.go`, scheduler flow)
-- connector runtime/behavior (`connectors/*`, connector runtime orchestration)
-- identity/authz semantics (username mapping, roster gates, authorization/elevation)
-- root/default robot config structure (`conf/robot.yaml`, `robot.skel/conf/robot.yaml`)
-- cross-protocol behavior/contracts
-- privilege separation or task execution (`bot/privsep.go`, `bot/calltask.go`, `bot/task_execution.go`)
-- user permission checks, admin/auth/elevation logic (`bot/available.go`, `bot/authorize.go`, `bot/elevate.go`)
-- pre-pipeline user filtering or message context (`bot/handler.go`)
+### Execution and privilege separation
 
-If uncertain, escalate.
+- Compiled-in Go extensions are trusted, privileged, in-process engine code.
+  File-backed extensions execute in child processes.
+- The parent retains all policy, identity, authorization, and secret authority.
+  Child interpreters receive only resolved, scoped parameters through the RPC
+  boundary.
+- There are no normal mid-process privilege transitions. A file-backed child
+  commits once, before extension code, to the invoking robot UID or the setuid
+  unprivileged UID.
+- Privsep is UID-only. GID and supplementary groups are inherited and are not a
+  security boundary.
+- Pipeline privilege is fixed from its starter. Never add a privileged
+  task/job/plugin to an unprivileged pipeline or weaken that gate.
 
-## Phase 1 — Impact Analysis (Required for Cross-Cutting Changes)
+Privsep activates only on a setuid binary and has no normal automated test.
+Changes to privsep or its call sites require manual validation: build; install
+owned by `nobody` (or platform equivalent) with setuid set and setgid clear; run
+as a non-root robot user; verify the `PRIVSEP - UID-only privilege separation
+initialized` log includes the expected daemon and unprivileged UIDs; then clear
+setuid and restore normal ownership.
 
-For changes affecting connectors, routing, startup, configuration, identity, or compatibility:
-- produce an Impact Surface Report before modifying code
-- include subsystems, invariants, cross-cutting concerns, concurrency, compatibility, docs updates
-- do not implement until report is shared, unless explicitly waived by user
+## Compatibility and Documentation
 
-## Architectural Invariants
+Follow `aidocs/V3_COMPATIBILITY_CONTRACT.md`. In short: preserve extension API
+and username-security behavior; preserve brain data where feasible; config
+schema migration is allowed only when explicit and documented.
 
-Unless explicitly updated in canonical docs, these must hold:
-- startup sequence is deterministic and traceable
-- control flow is explicit, not implicit
-- shared authorization/business policy remains in engine flows, not connectors
-- permission/policy decisions are username-authoritative
-- message routing order is preserved within a connector
-- configuration precedence is explicit and documented
-- engine-shipped extension defaults remain authoritative; custom robot extension config stays delta-only unless behavior is intentionally redefined
-- multi-connector isolation prevents cascading failure
-- secret access is explicit and scope-based: unprivileged extensions must not discover shared secrets through generic robot methods
+When behavior changes, update the decision document that explains why:
 
-## Connector Rules (Critical for Multi-Protocol)
+- startup/config precedence: `aidocs/STARTUP_FLOW.md`
+- routing/pipelines/schedules/queues: `aidocs/PIPELINE_LIFECYCLE.md`,
+  `aidocs/SCHEDULER_FLOW.md`, or `aidocs/JobQueues.md`
+- connector identity or transport semantics: `aidocs/CONNECTOR_CONTRACT.md`
+  and the connector-specific doc
+- execution/security: `aidocs/EXECUTION_SECURITY_MODEL.md`
+- extension runtime/API: `aidocs/INTERPRETERS.md` or
+  `aidocs/EXTENSION_API.md`
+- migration: `aidocs/V3_COMPATIBILITY_CONTRACT.md`, root
+  `UPGRADING-v3.md`, and corresponding `conf/` / `robot.skel/` defaults
+- test mechanics: `aidocs/TESTING_CURRENT.md`
 
-- connectors own transport concerns and protocol-local behavior
-- connectors must not bypass shared engine policy/authorization logic
-- connectors map transport identity to canonical username deterministically
-- cross-protocol identity equivalence is canonical username, not heuristic transport-ID matching
-- connector failure isolation must be preserved when multiple connectors are enabled
+`GOALS_v3.md` is the human roadmap. `aidocs/TODO.md` contains only unresolved
+AI follow-ups. Historical slice reports belong in Git history, not `aidocs/`.
 
-## Extension Secret Boundary
+Any change to `AGENTS.md`, `aidocs/`, `devdocs/`, or `UPGRADING-v3.md` must pass
+`helpers/check-docs-hygiene.sh`.
 
-- secrets may be exposed to an extension only through explicit administrator configuration for that extension, or through memory/brain state owned by that extension's authorized namespace
-- unprivileged robot methods must not reveal shared secret-bearing configuration, nor provide indirect discovery of secrets outside the caller's granted scope
-- do not add or document extension APIs that return provider registries, parameter-set contents, or other broad configuration objects containing secrets
+## Change and Validation Discipline
 
-## Security Model Invariants — Privilege Separation (setuid nobody)
+- Keep one logical change per branch unless the owner says otherwise.
+- Preserve behavior unless the task explicitly redefines it; document migration
+  for intentional changes.
+- Revalidate affected invariants and run focused tests before broader tests.
+- Rebuild with `make` after core engine or connector-runtime code changes.
 
-These apply to `bot/privsep.go`, `bot/calltask.go`, `bot/task_execution.go`, `bot/run_pipelines.go`, and `bot/robot_pipecmd.go`. All are hard escalation triggers.
+When integration coverage applies:
 
-**Process privilege invariants:**
-- There are no normal mid-process privilege transitions. Do not reintroduce `raiseThreadPriv`, `raiseThreadPrivExternal`, `dropThreadPriv`, or thread-pinned credential switching.
-- The parent engine runs as the invoking robot user after privsep startup initialization. If it does not, startup/privsep initialization is broken.
-- File-backed extension children commit once, before extension code starts, to either the invoking robot UID or the setuid unprivileged UID. Privsep is UID-only; child GID/group state is intentionally inherited and must not be treated as the privilege boundary.
-
-**Pipeline privilege invariants:**
-- `pipeContext.privileged` is set once at pipeline start from the starter task (`Plugin.Privileged` or `Job.Privileged`) in `startPipeline`. It must not be changed mid-pipeline.
-- Adding privileged tasks/jobs/plugins to an unprivileged pipeline is blocked in `bot/robot_pipecmd.go`. This is a privilege-escalation gate — do not remove or bypass it.
-
-**Child process boundary:**
-- Interpreter-backed tasks (Lua/JS/Gsh/Yaegi Go) run in child RPC processes. The parent engine retains all policy, identity, and authorization authority. The child must never receive raw config objects, shared secret values, or privilege tokens it was not explicitly given through the task's configured parameters.
-
-**Testing note:** `privSep` only activates on a setuid binary. There is no automated test for this path. Changes to `bot/privsep.go` or to privilege callsites in `bot/calltask.go` require manual testing: build the binary, install it owned by `nobody` or the platform equivalent with the setuid bit set and setgid bit clear, run as a non-root user, and verify `robot.log` contains `PRIVSEP - UID-only privilege separation initialized; daemon UID/GID <uid>/<gid>, unprivileged UID <uid> with inherited GID <gid>`. Restore normal ownership and clear setuid bits when done.
-
-## Security Model Invariants — User Permission Model
-
-These apply to `bot/handler.go`, `bot/available.go`, `bot/authorize.go`, `bot/elevate.go`, and `bot/run_pipelines.go`.
-
-**Pre-pipeline filters — must remain first, before any worker or pipeline is created:**
-- `IgnoreUsers` and `IgnoreUnlistedUsers` are checked in `handler.IncomingMessage` before any worker is created. They must remain pre-pipeline filters. Never move this logic into dispatch or pipeline code.
-- The `IgnoreUsers` check is case-insensitive. New pre-pipeline user filtering must use the same comparison.
-
-**Admin authority — sources are fixed:**
-- Admin status (`isAdminUser` in `bot/available.go`) has exactly two legitimate sources: the `adminUsers` config list (username match), or `w.automaticTask == true`. It must never be derived from user input, message content, connector-provided flags, or any runtime state modifiable by users.
-- `automaticTask == true` grants admin unconditionally. This is intentional: cron jobs are scheduled by administrators through robot configuration. If a future user-schedulable ("at-job") feature is added, it must **not** use `automaticTask = true` — it requires its own access control model.
-
-**Check ordering in `run_pipelines.go` — must not be reordered:**
-- Order is: **admin check → authorizer plugin → elevator plugin**. Admin check runs first because admins bypass the authorizer; elevation runs last because it is an additional confirmation step after base authorization is established.
-- The `w.elevated` flag persists for the lifetime of the pipeline. Once elevated, subsequent tasks in the same pipeline do not re-challenge. Do not reset `w.elevated` mid-pipeline.
-
-**Access control defaults:**
-- `Task.Users` is a whitelist: an empty list means all users are permitted. Never invert this — empty must never restrict access.
-- An authorizer plugin returning `robot.Normal` (0) is a mechanism failure, not success. Auth plugins must explicitly return `robot.Success` (1). Do not change this behavior.
-
-## Security Model Invariants — Message Context and Privacy
-
-The concern here is not command visibility (hard to hide) but message routing confidentiality: the bot accidentally broadcasting sensitive data to a channel, or treating a public channel message as if it were private.
-
-**Connector authority over message context:**
-- Connectors are the sole authority for `Incoming.DirectMessage`. This flag must be set accurately by the connector and must not be modified by the engine or plugins after `handler.IncomingMessage` returns.
-- Private-command requirements are enforced before plugin logic runs; sensitive command privacy must remain engine-owned.
-
-**Response routing — no implicit privatization:**
-- `r.Say()` and `r.Reply()` reply in the same channel/DM context as the triggering message. The engine does not implicitly privatize responses. This must not change.
-- Plugins or tasks that return sensitive data (credentials, tokens, personal info, secrets) must either:
-  - Be configured with `RequiredPrivateCommands` / `RequireAllCommandsPrivate`, **or**
-  - Explicitly call `r.Direct().Reply()` / `r.Direct().Say()` to force a DM response.
-- Bot-initiated messages (not in response to a user command) containing per-user sensitive data must use `SendUserMessage` (DM path), not `SendChannelMessage`. There is no engine guard for this — it is a code review requirement.
-
-## Documentation Discipline (Hard Mapping)
-
-When behavior changes, update canonical docs in the same change:
-
-- startup/config loading/order
-  - `aidocs/STARTUP_FLOW.md`
-- pipeline routing/execution ordering
-  - `aidocs/PIPELINE_LIFECYCLE.md`
-- scheduled job behavior
-  - `aidocs/SCHEDULER_FLOW.md`
-- connector behavior/identity mapping
-  - connector-specific docs (`aidocs/SSH_CONNECTOR.md`, `aidocs/SLACK_CONNECTOR.md`, etc.)
-  - `aidocs/COMPONENT_MAP.md` if component ownership/boundaries moved
-- execution security / privilege separation behavior
-  - `aidocs/EXECUTION_SECURITY_MODEL.md`
-- extension API/runtime semantics
-  - `aidocs/EXTENSION_API.md` and/or `aidocs/EXTENSION_SURFACES.md`
-- compatibility/config migration behavior
-  - `aidocs/V3_COMPATIBILITY_CONTRACT.md`
-  - root `UPGRADING-v3.md`
-  - corresponding defaults/templates in `conf/` and `robot.skel/`
-- test harness assumptions
-  - `aidocs/TESTING_CURRENT.md`
-
-Additional rules:
-- archive docs under `aidocs/archive/` are reference-only and non-canonical
-- roadmap remains root `GOALS_v3.md` (human-maintained)
-- AI "what's left" backlog remains `aidocs/TODO.md` (AI-maintained)
-
-## Docs Hygiene Gate
-
-For any change touching `aidocs/`, `devdocs/`, `AGENTS.md`, or `UPGRADING-v3.md`:
-- run `helpers/check-docs-hygiene.sh`
-- fix reported stale references/markers before completion
-
-Stale documentation is a defect.
-
-## v3 Compatibility Contract
-
-Follow `aidocs/V3_COMPATIBILITY_CONTRACT.md`.
-
-Required stance:
-- extension API behavior compatibility is priority
-- username-based security behavior is priority
-- persistent brain compatibility is prioritized where feasible
-- config backward compatibility is not required; migration is acceptable when documented
-
-## Change Hygiene
-
-- one logical change per branch unless manually overridden by project owner
-- planning before implementation for cross-cutting changes
-- no silent refactors
-- preserve behavior unless explicitly redefining it
-- if redefining behavior, document migration strategy
-
-## Post-Task Requirements
-
-After implementation:
-1. re-validate architectural invariants
-2. update all required canonical docs
-3. confirm startup sequence integrity
-4. confirm connector isolation and ordering guarantees
-5. run applicable tests and docs hygiene checks
-6. if the change touched core engine code or connector runtime behavior, rebuild the binary with `make` before closing out work
-
-For any task where integration tests are applicable:
-7. run the applicable process-backed integration suite through the MCP-integrated runner, not the legacy `go test ./test` harness:
-   - build the MCP helper and integration runner with `make mcp integration-build` when needed
-   - call `gopherbot-mcp` tool `run_integration_suite` for the specific suite name, with `live_output=false`
-   - use the compact MCP result summary and artifact paths; read `result.json`, `runner.log`, or `robot.log` only as needed
-   - do not use `make integration-legacy` or direct `go test ./test` unless the project owner explicitly asks for the legacy harness
-8. classify every integration failure as either:
-   - a real regression / newly introduced bug
-   - an intentional behavior change with outdated test expectations
-9. do not update test expectations until that classification is explicit
-10. when updating integration test expectations, report the exact issue fixed for each changed test if 1-3 tests were updated; for more than 3 updated tests, a concise grouped summary is acceptable
+1. Build helpers with `make mcp integration-build` when needed.
+2. Use the MCP `run_integration_suite` tool for a specific suite/selector with
+   live output disabled. Do not use direct `go test ./test` or
+   `make integration-legacy` unless the owner asks for the legacy harness.
+3. Start with the compact result; inspect `result.json`, `runner.log`, or
+   `robot.log` only as needed.
+4. Classify each failure as a regression or an intentional change with stale
+   expectations before editing assertions.
+5. Report the exact issue for each of 1–3 changed tests; group larger updates.

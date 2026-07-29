@@ -1,307 +1,38 @@
-# Extension API (Robot Methods)
+# Extension API Decisions
 
-This document catalogs the Gopherbot extension API across languages, with a focus on the methods extension authors call. It is intended as a reference for AI agents and contributors working on interpreter support.
+`robot/robot.go` is the canonical Go API. Runtime bridges and libraries are
+compatibility adapters, not independent specifications.
 
-Primary sources:
-- Go interface: `robot/robot.go` (type `Robot`).
-- External JSON API dispatch: `bot/http.go` (func `ServeHTTP` on type `handler`).
-- Language libraries: `lib/gopherbot_v1.lua`, `lib/gopherbot_v1.js`, `lib/gopherbot_v1.sh`, `lib/gopherbot_v2.py`, `lib/gopherbot_v1.rb`.
+## Boundary rules
 
-Engine-owned plugin commands:
-- The engine reserves all command names beginning with `_` for lifecycle and
-  dispatcher callbacks. Plugin configuration must not define `Commands` or
-  `MessageMatchers` using that prefix.
-- Current callbacks are `_configure`, `_init`, `_authorize`, `_usergroups`,
-  `_elevate`, `_catchall`, `_subscribed`, and `_expiresub`.
-- Jobs are different: the internal `run` command is not passed to job handlers;
-  job handlers receive only their arguments.
+- Preserve signatures and behavior across v2/v3 unless an API contradicts the
+  current security model.
+- Extension APIs expose scoped operations, not provider registries, raw
+  configuration, shared parameter sets, encryption keys, or other discovery
+  paths to secrets.
+- Identity credential methods require the caller to have the provider's
+  credential `ParameterSet` explicitly attached.
+- `SetParameter` primarily supplies subsequent pipeline tasks; immediate
+  same-task read-after-write is not the compatibility contract.
+- `RaisePriv` is intentionally absent. Privilege is fixed at child/pipeline
+  boundaries.
 
-## Canonical Robot interface (Go / Yaegi)
+## Adding or changing a Robot method
 
-The authoritative API surface for compiled Go and Yaegi-based extensions is the `robot.Robot` interface in `robot/robot.go`.
+A method is incomplete until every applicable surface and test is updated:
 
-### Identity, attributes, config
-- `GetMessage()` – returns `*robot.Message` for the current pipeline.
-- `GetTaskConfig(cfgptr interface{}) RetVal`
-- `GetHelpMetadata(query string) string`
-- `GetParameter(name string) string`
-- `GetBotAttribute(a string) *AttrRet`
-- `GetUserAttribute(u, a string) *AttrRet`
-- `GetSenderAttribute(a string) *AttrRet`
+1. canonical interface and return types in `robot/`;
+2. parent implementation and HTTP dispatch in `bot/`;
+3. child RPC dispatch;
+4. Lua, JavaScript, and GSH bridges;
+5. Yaegi exported symbols;
+6. Bash, Python, Ruby, and compatibility libraries where supported;
+7. focused unit tests and the relevant process-backed runtime suites;
+8. migration notes when behavior differs from v2.
 
-`GetParameter` first resolves parameters explicitly attached to the current
-task/plugin/job or pipeline, then falls back to engine-provided runtime
-metadata such as `GOPHER_USER`, `GOPHER_CHANNEL`, `GOPHER_PROTOCOL`, and
-`GOPHER_ENVIRONMENT`. `GOPHER_ENVIRONMENT=development` is the standard v3
-signal for extension development and prove-it modes; plugins that manage host
-state or external systems should use it for dry-run behavior that validates
-inputs and command flow without making irreversible changes.
+Search for an existing analogous method rather than trusting a static file
+list; bridge locations evolve. Verify parity by running runtime-tagged
+integration selectors through the MCP runner.
 
-`GetHelpMetadata` returns engine-filtered JSON describing commands the current user can browse via help. It is intended for extension-side recovery/help experiences and keeps visibility policy in the engine rather than in plugins.
-
-Returned JSON includes:
-- `context` – bot/user/channel/protocol metadata plus `command_mode`, `raw_query`, and normalized query text
-- `visible_here` – commands currently visible/runnable in the active context
-- `browseable` – commands the user can browse via help, even if not runnable in the current channel
-- `ranked_here` – ranked matches from `visible_here`
-- `ranked_browseable` – ranked matches from the broader `browseable` set
-
-Important semantics:
-- The engine still applies normal authorization and visibility filtering.
-- Cross-channel entries are limited to commands the current user could already discover through help.
-- The primary intended use is "help me recover from an unmatched command" flows, including wrong-channel hints.
-
-Use `GetHelpMetadata` when an extension needs engine-filtered search/browse context for help or recovery flows.
-
-### Messaging and formatting
-- `Direct() Robot`, `Threaded() Robot`, `Fixed() Robot`, `MessageFormat(f MessageFormat) Robot`
-- `SendChannelMessage(ch, msg string, v ...interface{}) RetVal`
-- `SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) RetVal`
-- `SendUserChannelMessage(u, ch, msg string, v ...interface{}) RetVal`
-- `SendProtocolUserChannelMessage(protocol, u, ch, msg string, v ...interface{}) RetVal`
-- `SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interface{}) RetVal`
-- `SendUserMessage(u, msg string, v ...interface{}) RetVal`
-- `Say(msg string, v ...interface{}) RetVal`, `SayThread(msg string, v ...interface{}) RetVal`
-- `Reply(msg string, v ...interface{}) RetVal`, `ReplyThread(msg string, v ...interface{}) RetVal`
-
-Formatting semantics:
-- `DefaultMessageFormat` is the fallback only when the sender does not explicitly choose a format.
-- `MessageFormat(...)` overrides the robot default for the resulting send/reply call chain.
-- Engine-shipped help/fallback flows intentionally send `BasicMarkdown` explicitly so connectors can render help consistently even when a robot's default format is `Raw` or another mode.
-
-### Prompting
-- `PromptForReply(regexID, prompt string, v ...interface{}) (string, RetVal)`
-- `PromptThreadForReply(regexID, prompt string, v ...interface{}) (string, RetVal)`
-- `PromptUserForReply(regexID, user, prompt string, v ...interface{}) (string, RetVal)`
-- `PromptUserChannelForReply(regexID, user, channel, prompt string, v ...interface{}) (string, RetVal)`
-- `PromptUserChannelThreadForReply(regexID, user, channel, thread, prompt string, v ...interface{}) (string, RetVal)`
-
-Prompt timeout semantics:
-- Default timeout: `45s`.
-- Extended timeout: `42m` for `ssh`/`terminal` when the calling task is compiled Go or interpreter-backed (`.go`, `.lua`, `.js`, `.gsh`).
-- On robot shutdown, in-progress prompt waits return `Interrupted` immediately.
-
-Local `gopherbot script` prompting:
-- The local script runner does not start connector prompt tracking. It prints
-  the prompt target/text to stdout and consumes `fixture.prompts.replies` in
-  order.
-- If fixture replies run out, prompts read one line from stdin by default.
-  `-no-interactive` makes the same situation return `TimeoutExpired`.
-- A reply of `-` returns `Interrupted`; a reply of `=` returns
-  `UseDefaultValue`.
-
-### Memory (brain + ephemeral)
-- `CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret RetVal)`
-- `CheckinDatum(key, locktoken string)`
-- `UpdateDatum(key, locktoken string, datum interface{}) RetVal`
-- `DeleteDatum(key string) RetVal`
-- Long-term datum keys may contain ASCII letters, digits, underscore, colon, and hyphen.
-- `Remember(key, value string, shared bool)`
-- `RememberThread(key, value string, shared bool)`
-- `RememberContext(context, value string)`
-- `RememberContextThread(context, value string)`
-- `Recall(key string, shared bool) string`
-- `DeleteMemory(key string, shared bool)`
-
-### Identity credential management
-- `GetIdentityCredential(provider, user string) (*IdentityCredential, RetVal)`
-- `LinkOAuth2Identity(link *OAuth2IdentityLinkRequest) RetVal`
-- `UnlinkIdentity(provider, user string) RetVal`
-
-Identity notes:
-- `GetIdentityCredential` returns a structured credential envelope including the raw value plus common header presentation fields.
-- Token refresh/storage is engine-managed and uses internal provider config from `IdentityProviders` in `robot.yaml`.
-- Onboarding plugins should receive OAuth client credentials only through explicit per-plugin configuration such as `ParameterSets`, not by reading shared robot config through an API.
-- Any extension calling `GetIdentityCredential`, `LinkOAuth2Identity`, or `UnlinkIdentity` must have the provider's `CredentialParameterSet` attached to that task/plugin/job. Missing attachment returns `IdentityConfigError`, with operator detail in engine logs.
-- `IdentityCredential` and `OAuth2IdentityLinkRequest` are defined in `robot/oauth2.go`.
-- Return codes include `IdentityProviderNotFound`, `IdentityNotLinked`, `IdentityReauthRequired`, `IdentityRefreshFailed`, `IdentityInvalidLinkRequest`, and `IdentityConfigError`.
-
-Secret-access rule:
-- `GetTaskConfig` and attached `ParameterSets` may contain secrets because the robot administrator explicitly scoped them to the calling extension.
-- Identity provider-backed credential access uses the same explicit-scoping model; the provider's credential `ParameterSet` must be attached to the caller.
-- Generic unprivileged robot methods must not return shared secret-bearing configuration such as provider registries or other extensions' parameter sets.
-
-### Secret helpers
-- `EncryptSecret(plaintext string) (string, RetVal)`
-
-`EncryptSecret` returns a base64 ciphertext suitable for a custom `conf/variables/*.yaml` `Secrets` entry referenced from config templates with `{{ secret "NAME" }}`.
-
-Important semantics:
-- It is only available in privileged pipelines.
-- On success it returns `(ciphertext, Ok)`.
-- On privilege or mechanism failure it returns `("", RetVal)` and logs operator detail in the engine.
-- The ciphertext format is engine-owned and should be treated as opaque by extensions.
-
-### Pipeline control
-- `Exclusive(tag string, queueTask bool) bool`
-- `SpawnJob(name string, args ...string) RetVal`
-- `AddTask(name string, args ...string) RetVal`
-- `FinalTask(name string, args ...string) RetVal`
-- `FailTask(name string, args ...string) RetVal`
-- `AddJob(name string, args ...string) RetVal`
-- `AddCommand(pluginName, command string) RetVal`
-- `FinalCommand(pluginName, command string) RetVal`
-- `FailCommand(pluginName, command string) RetVal`
-
-Pipeline behavior notes:
-- `AddJob` starts a child pipeline when the added job runs; it does not share parent `SetParameter` values by default.
-- For job pipelines, `startPipeline` exposes origin metadata in environment/parameters such as `GOPHER_START_PROTOCOL`, `GOPHER_START_CHANNEL`, `GOPHER_START_THREAD_ID`, and `GOPHER_START_USER`.
-- `GOPHER_START_MESSAGE_ID` is the connector-provided opaque message ID for the inbound event that started the job (when available); it may be empty for scheduled/init jobs.
-- Job status output normally targets the configured job channel, but extension tasks can use `GOPHER_START_*` metadata to additionally notify the command-origin context when needed.
-
-### Admin, logging, utilities
-- `CheckAdmin() bool`
-- `Subscribe() bool`, `Unsubscribe() bool`
-- `Elevate(immediate bool) bool`
-- `Log(l LogLevel, m string, v ...interface{}) bool`
-- `RandomInt(n int) int`, `RandomString(s []string) string`, `Pause(s float64)`
-- `Email(...)`, `EmailUser(...)`, `EmailAddress(...)` (see `robot/robot.go`)
-- `SetParameter(name, value string) bool`
-- `SetWorkingDirectory(path string) bool`
-
-Thread subscription lifecycle:
-- `Subscribe()` subscribes the current plugin to the current thread context.
-- Future unmatched messages in that subscribed thread invoke the plugin with engine command `_subscribed` and the full message text as the first argument.
-- When the engine expires an inactive subscription, it invokes the plugin asynchronously with engine command `_expiresub`; `GOPHER_PROTOCOL`, `GOPHER_CHANNEL`, and `GOPHER_THREAD_ID` identify the expired context.
-- Plugin configuration must not define commands beginning with `_`; that prefix is reserved for engine lifecycle callbacks.
-
-## Local Script Runner Semantics
-
-`gopherbot script` exposes the same built-in interpreter Robot call surface
-through a local fixture-backed implementation. It is a development tool, not a
-live connector simulation:
-
-- If `-fixture` is omitted, the runner loads the installed
-  `conf/default-fixture.yaml`; YAML and JSON fixture files are both accepted.
-- The default fixture sets `GOPHER_ENVIRONMENT=development`. Fixture
-  parameters are exposed through `GetParameter` and as child-process
-  environment variables, and they can override runtime metadata when a local
-  check needs a different value.
-- Message sends are written to stdout and recorded as JSON events.
-- Logs are always recorded as JSON events; human mode prints audit/warn/error
-  and fatal logs to stderr.
-- `GetTaskConfig`, `GetParameter`, `GetMessage`, bot/user attributes,
-  short-term memory, and long-term datum APIs are served from fixture/local
-  memory.
-- Pipeline-control calls such as `AddTask`, `AddJob`, `AddCommand`,
-  `Subscribe`, and `Exclusive` record events and return success without
-  starting real pipelines.
-- Identity credential reads can be supplied through fixture `identities`;
-  linking/unlinking identities returns `Failed`.
-- `EncryptSecret` returns `Failed` because the local runner intentionally does
-  not initialize or expose shared robot encryption state.
-
-Use `gopherbot syntax` for fast parser/compiler diagnostics and
-`gopherbot script` for fixture-backed execution checks before shipping an
-interpreter-backed extension.
-
-## External JSON API (HTTP)
-
-External scripts (bash/python/ruby/etc.) call into the robot via JSON POSTs. The HTTP handler in `bot/http.go` dispatches on `FuncName` and `FuncArgs` and enforces the supported call set.
-
-External script environments preserve the parent process `HOME` and `PATH`
-when they are set. Robot-specific locations are exposed separately as
-`GOPHER_HOME`, `GOPHER_CONFIGDIR`, `GOPHER_INSTALLDIR`, and
-`GOPHER_WORKSPACE`. Scripts should use `GOPHER_HOME` when they need the robot
-directory, and leave `HOME`/`PATH` for normal host-tool behavior.
-
-Supported `FuncName` values in `bot/http.go`:
-- `CheckAdmin`, `Subscribe`, `Unsubscribe`
-- `AddTask`, `AddJob`, `FinalTask`, `FailTask`, `SpawnJob`
-- `AddCommand`, `FinalCommand`, `FailCommand`
-- `SetParameter`, `SetWorkingDirectory`
-- `Exclusive`, `Elevate`, `EncryptSecret`
-- `GetIdentityCredential`, `LinkOAuth2Identity`, `UnlinkIdentity`
-- `CheckoutDatum`, `CheckinDatum`, `UpdateDatum`, `DeleteDatum`
-- `Remember`, `RememberThread`, `Recall`, `DeleteMemory`
-- `GetParameter`, `GetTaskConfig`
-- `GetHelpMetadata`
-- `GetSenderAttribute`, `GetBotAttribute`, `GetUserAttribute`
-- `Log`
-- `SendChannelThreadMessage`, `SendUserChannelThreadMessage`, `SendProtocolUserChannelMessage`, `SendUserMessage`
-- `PromptUserChannelThreadForReply`
-
-Notes:
-- `bot/http.go` explicitly notes that `Say`, `Reply`, and the user-level prompt helpers are implemented in the language libraries, not the HTTP handler.
-- External libraries use `GOPHER_HTTP_POST` and `X-Caller-ID` headers for requests (`lib/gopherbot_v1.sh`, `lib/gopherbot_v2.py`).
-
-## Built-in interpreter libraries (Lua / JavaScript / Gopherbot shell)
-
-Lua and JavaScript run in-process but use the same logical API surface via their libraries:
-
-- Lua: `lib/gopherbot_v1.lua` defines `Robot:new()` and exposes the primary methods.
-- JavaScript: `lib/gopherbot_v1.js` defines `new Robot()` and exposes the primary methods.
-
-Both wrappers use the `GBOT` global injected by the interpreter modules (`lib/gopherbot_v1.lua`, `lib/gopherbot_v1.js`). They mirror most of the `robot.Robot` interface and are the canonical method list for Lua/JS extensions.
-
-Identity parity note:
-- Lua and JavaScript both expose `GetIdentityCredential`, `LinkOAuth2Identity`, and `UnlinkIdentity`.
-
-EncryptSecret parity note:
-- Lua returns `(ciphertext, retVal)`.
-- JavaScript returns `{ ciphertext, retVal }`, with `retVal` normalized to a plain JS number.
-
-Gopherbot shell uses `modules/gsh/assets/gopherbot_v1.gsh` as a compatibility shim, but the primary interface is builtin shell commands rather than a loaded language object:
-
-- Robot methods are exposed as shell builtins (`say`, `Reply`, `PromptForReply`, `CheckAdmin`, `AddTask`, `GetTaskConfig`, etc.).
-- Common utility commands are also builtin (`base64`, `cat`, `cp`, `find`, `grep`, `jq`, `ls`, `mktemp`, `mv`, `rm`, `sort`, `tar`, `touch`, `tr`, `uniq`, `wc`, `xargs`, and related helpers).
-- Builtin `jq` uses the `gojq` library with a GSH-local CLI adapter. Extension authors should expect practical gojq CLI compatibility for jq-heavy scripts, including variable binding flags (`--arg`, `--argjson`), `$ARGS`, file binding flags (`--slurpfile`, `--rawfile`), slurp/raw/null-input modes, `-e`, `-f`, `-L`, `--stream`, and YAML input/output. GSH-specific context still applies: relative files resolve from the current GSH working directory and `env` / `$ENV` reflect exported GSH environment variables.
-- Builtin `head` and `tail` accept both `-n <count>` and shell-compatible shorthand count flags like `-1`.
-- `say` / `Say` style variants are equivalent because command lookup normalizes case plus `-` / `_`.
-- `Log` accepts numeric `LogLevel` values and named levels (`Trace`, `Debug`, `Info`, `Audit`, `Warn`/`Warning`, `Error`), so `Log Audit "Something happened"` works when migrating external bash scripts to `.gsh`; numeric `6` is the explicit `Fatal` form.
-- `.gsh` does not use `bot/http.go`; Robot methods traverse the internal pipeline RPC robot bridge instead.
-- `.gsh` exposes `EncryptSecret` as a builtin command that prints ciphertext on stdout and returns the Robot `RetVal` as shell exit status.
-
-## External interpreter libraries (Bash / Python / Ruby)
-
-External interpreters call the HTTP API and wrap it in language-appropriate helpers:
-
-- Bash: `lib/gopherbot_v1.sh` exports functions like `Say`, `Reply`, `Remember`, `PromptForReply`, `AddTask`, and more; it uses curl to post JSON to `GOPHER_HTTP_POST`.
-- Python 3: `lib/gopherbot_v2.py` defines `class Robot` with the same core methods, plus `Subscribe`, `Unsubscribe`, and `SetWorkingDirectory`.
-- Ruby: `lib/gopherbot_v1.rb` defines `class Robot` (via `BaseBot`) with the same core methods, plus `Subscribe`, `Unsubscribe`, and `SetWorkingDirectory`.
-- Bash, Python, Ruby, and compatibility JS/Lua libraries also expose the identity methods above.
-- Bash, Python, and Ruby also expose `EncryptSecret`.
-- Python 3: `lib/gopherbot_v2.py` defines `class Robot` with the same core methods, plus `Subscribe`, `Unsubscribe`, `SetWorkingDirectory`, `GetHelpMetadata`, and the identity methods above.
-- Ruby: `lib/gopherbot_v1.rb` defines `class Robot` (via `BaseBot`) with the same core methods, plus `Subscribe`, `Unsubscribe`, `SetWorkingDirectory`, `GetHelpMetadata`, and the identity methods above.
-
-EncryptSecret return-shape note for external libraries:
-- Bash: `EncryptSecret plaintext` prints ciphertext and uses the Robot `RetVal` as the shell function exit code.
-- Python: `ciphertext, ret = bot.EncryptSecret("...")`
-- Ruby: `ciphertext, ret = bot.EncryptSecret("...")`
-
-## Parity notes and known gaps
-
-- `Subscribe` / `Unsubscribe` are now part of the canonical Go interface (`robot/robot.go`) and are exercised for external yaegi plugins via `test/go_full_test.go` + `plugins/test/gofull.go`.
-- `GetHelpMetadata` is available to compiled Go, Yaegi Go, and the HTTP-backed Bash/Python/Ruby libraries. It is not yet surfaced in the in-process Lua/JS helper libraries.
-- `SetWorkingDirectory` exists in the Go interface and external libraries (`lib/gopherbot_v1.sh`, `lib/gopherbot_v2.py`, `lib/gopherbot_v1.rb`), but it is not present in the Lua/JS wrappers as of `lib/gopherbot_v1.lua` / `lib/gopherbot_v1.js`.
-- `.gsh` implements `SetWorkingDirectory` plus a BusyBox-style builtin utility surface in-process inside the child interpreter.
-- `RaisePriv` was removed from the extension API. Privilege separation is process-scoped: compiled-in Go runs in-process as the invoking user, and file-backed extensions commit once in a child process before extension code starts.
-- Yaegi caveat: interpreted Go plugins can diverge from compiled Go when values cross reflective boundaries. A focused local repro in `modules/yaegi-dynamic-go/yaegi_dynamic_test.go` shows that a helper chain returning a mixed multi-value tuple such as `(conversationState, []conversationExchange)` can panic under `RunPluginHandler` with `reflect.Set ... not assignable`, even though the same pattern succeeds in compiled Go.
-- For external Go plugins running under Yaegi, prefer returning a single wrapper struct when state must carry multiple logically-related values across helper boundaries. The `plugins/go-ai-fallback` compaction path now uses `compactionResult{State, Older}` for this reason.
-- As of March 11, 2026, no exact upstream Yaegi issue was identified for this specific panic. The behavior is consistent with Yaegi's documented limitation that `reflect` type representation can differ between compiled and interpreted execution.
-
-## Adding a New Robot API Method (Checklist)
-
-When adding a method to the Robot API, update ALL of these locations:
-
-1. **Go interface**: `robot/robot.go` (type `Robot`)
-2. **Engine implementation**: `bot/robot.go` (method on `Robot`)
-3. **HTTP handler** (for external scripts): `bot/http.go` (`FuncName` dispatch)
-4. **Lua bridge**: `modules/lua/bot_api.go` + `modules/lua/attribute_methods.go`
-5. **JS bridge**: `modules/javascript/bot_api.go` + `modules/javascript/bot_object.go` + `modules/javascript/attribute_methods.go`
-6. **Gsh bridge**: `modules/gsh/commands.go`
-7. **Yaegi symbols**: `modules/yaegi-dynamic-go/yaegi_symbols.go`
-8. **RPC interpreter dispatch**: `bot/pipeline_rpc_interpreter.go`
-9. **External libraries** (use HTTP API):
-   - Python: `lib/gopherbot_v2.py`
-   - Ruby: `lib/gopherbot_v1.rb`
-   - Bash: `lib/gopherbot_v1.sh`
-   - Compat Lua: `lib/gopherbot_v1.lua`
-   - Compat JS: `lib/gopherbot_v1.js`
-10. **Docs**: `aidocs/EXTENSION_API.md` (method catalog + parity notes)
-11. **Tests**: add coverage in appropriate `test/*_full_test.go` + `plugins/test/*`
-
-## Related docs
-
-- `aidocs/INTERPRETERS.md` – execution model and interpreter categories
-- `aidocs/EXTENSION_SURFACES.md` – where extensions live and how they are wired
+Document only intentional gaps or non-obvious semantics here. Do not duplicate
+the method catalog from `robot/robot.go`.

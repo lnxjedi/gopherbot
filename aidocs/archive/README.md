@@ -1,7 +1,5 @@
-# AIDocs Archive
+# Archive
 
-This tree contains historical planning/slice artifacts from completed workstreams.
-
-Archive docs are reference material, not canonical operating documentation.
-
-When implementing or reviewing current behavior, prefer active `aidocs/` canonical docs.
+Historical slice reports were removed to keep AI context focused. Git history
+is the archive; recover a specific document only when doing migration or design
+forensics.

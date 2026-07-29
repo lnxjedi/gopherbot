@@ -1,58 +1,32 @@
-Gopherbot is an extensible automation framework designed as a persistent, Go-based chatbot ("robot"). It connects to chat platforms (or terminal) and executes automation pipelines triggered by messages, schedules, and internal calls.
+# AI Documentation
 
-# AI Docs Mission
+`aidocs/` contains only decisions and operational knowledge that are difficult
+to reconstruct safely from source. Read code and tests for types, symbols,
+call graphs, configuration fields, and ordinary control flow.
 
-`aidocs/` exists to make AI onboarding fast and reliable for new implementation work.
+## Core decision records
 
-Design goals:
-- prioritize current operating behavior over historical planning detail
-- keep canonical architecture/docs discoverable in a small set of entry points
-- keep historical slice artifacts available, but out of the default onboarding path
+- `COMPONENT_MAP.md` — ownership boundaries, not a file inventory
+- `STARTUP_FLOW.md` — ordering and precedence decisions
+- `CONNECTOR_CONTRACT.md` — cross-protocol trust boundary
+- `PIPELINE_LIFECYCLE.md` — routing and pipeline semantics
+- `EXECUTION_SECURITY_MODEL.md` — authorization, privacy, secrets, and privsep
+- `TESTING_CURRENT.md` — required test tools and failure workflow
+- `V3_COMPATIBILITY_CONTRACT.md` — what compatibility means
 
-## Documentation Tiers
+## Scoped decision records
 
-### 1) Canonical (default onboarding)
+- Connectors: `SLACK_CONNECTOR.md`, `GOOGLECHAT_CONNECTOR.md`,
+  `SSH_CONNECTOR.md`
+- Extensions: `INTERPRETERS.md`, `EXTENSION_API.md`,
+  `EXTENSION_SURFACES.md`, `SIMPLE_MATCHER_DIAGNOSTICS.md`,
+  `JS_HTTP_API.md`, `LUA_HTTP_API.md`
+- State/integrations: `brain_lock_cache.md`, `OAUTH2_TOKEN_MANAGEMENT.md`,
+  `JobQueues.md`, `SCHEDULER_FLOW.md`,
+  `SECRETS_VARIABLES_ENVIRONMENT_DESIGN.md`
+- UX/operations: `ELEVATION_MODEL.md`, `setup-style-guide.md`,
+  `DEV_CONTAINER.md`, `macos-privsep.md`
 
-Use these first for current behavior:
-- `aidocs/COMPONENT_MAP.md`
-- `aidocs/CONNECTOR_CONTRACT.md`
-- `aidocs/STARTUP_FLOW.md`
-- `aidocs/PIPELINE_LIFECYCLE.md`
-- `aidocs/SIMPLE_MATCHER_DIAGNOSTICS.md`
-- `aidocs/SCHEDULER_FLOW.md`
-- `aidocs/JobQueues.md`
-- `aidocs/EXECUTION_SECURITY_MODEL.md`
-- `aidocs/ELEVATION_MODEL.md`
-- `aidocs/macos-privsep.md`
-- `aidocs/setup-style-guide.md`
-- `aidocs/GOOGLECHAT_CONNECTOR.md`
-- `aidocs/SLACK_CONNECTOR.md`
-- `aidocs/SSH_CONNECTOR.md`
-- `aidocs/TESTING_CURRENT.md`
-- `aidocs/INTEGRATION_HARNESS_PLAN.md`
-- `aidocs/V3_COMPATIBILITY_CONTRACT.md`
-
-Project roadmap source of truth:
-- root `GOALS_v3.md` (human-maintained)
-
-AI backlog source of truth:
-- `aidocs/TODO.md` (AI-maintained “what’s left” tracker)
-
-### 2) Active Workstream Indexes
-
-- `aidocs/multi-protocol/README.md`
-- `aidocs/multiprocess/README.md`
-
-These are active entry points only; they should point to canonical docs for current behavior.
-
-### 3) Archive (reference only)
-
-- `aidocs/archive/`
-
-Archive docs are for later reference only if needed (historical rationale, old slice context, migration forensics).
-Do not treat archive docs as canonical behavior documentation.
-
-## Navigation Note
-
-References prefer file + symbol anchors (e.g., `bot/handler.go` func `IncomingMessage`) over line-number prose.
-Use search/symbol navigation to resolve details quickly.
+Root `GOALS_v3.md` is the roadmap. `TODO.md` contains unresolved AI follow-ups
+only. Completed plans and slice reports are intentionally absent; use Git
+history when historical forensics are actually required.

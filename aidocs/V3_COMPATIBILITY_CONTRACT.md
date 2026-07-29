@@ -1,48 +1,20 @@
 # v3 Compatibility Contract
 
-This document defines compatibility priorities for v3 work.
+Compatibility priorities, in order:
 
-## Priority Guarantees
+1. Preserve extension API behavior and signatures for existing
+   plugins/jobs/tasks. A security-obsolete API may be removed only if it fails
+   clearly and the migration is documented.
+2. Preserve username-authoritative security behavior.
+3. Preserve persistent brain data where feasible. V2 import/export may remain
+   an explicit CLI operation; normal v3 startup need not carry v2 branches.
 
-1. Extension runtime compatibility is required across v2 -> v3.
-   - Existing plugin/job/task scripts should continue to run without API-signature churn.
-   - Robot extension API method signatures and behavior are the compatibility boundary.
-   - Security exception: APIs that imply a privilege boundary the engine no longer provides may be removed instead of retained as no-ops. Removed APIs must fail clearly and be documented in `UPGRADING-v3.md`.
-2. Username-based security behavior is required.
-   - Admin users, groups, authorization, and policy checks stay username-authoritative.
-3. Brain compatibility is prioritized.
-   - Persistent brain data compatibility should be preserved whenever feasible.
-   - V2 persistent brain compatibility may be provided through explicit CLI
-     migration/export commands rather than normal runtime compatibility
-     branches.
-   - The v3 runtime may require v3-formatted cloud brain records when the
-     migration path is documented in `UPGRADING-v3.md`.
+Configuration schema compatibility is not guaranteed. Prefer a fail-fast
+migration error over silently accepting a removed key or template function.
+Any config migration must update root `UPGRADING-v3.md`, installed defaults,
+the robot skeleton, and the relevant decision record in the same change.
 
-## Explicit Non-Guarantee
-
-- Configuration schema backward compatibility is not guaranteed for v3.
-- Configuration migration is expected as architecture evolves.
-- Failing fast on invalid/removed config keys is preferred over silently ignoring legacy keys.
-- Removed config-template functions such as `decrypt` should fail fast with a
-  migration hint instead of returning empty values or silently preserving legacy
-  behavior.
-
-## Configuration Layering Contract for Shipped Extensions
-
-- Defaults shipped with the engine are the canonical baseline for included plugins/jobs/tasks.
-- Included with the engine does not imply active in the default robot.
-- Shipped extensions that require owner-provided credentials or secrets should remain disabled or absent in the default robot until a custom robot owner explicitly enables them.
-- Custom robots should keep extension config override files minimal and local (enable/disable, parameters, environment-specific behavior).
-- Avoid copying full shipped defaults into `custom/conf` unless intentionally redefining behavior.
-- When behavior is intentionally redefined, document the divergence and keep only explicit delta in custom config.
-
-## Required Contributor Actions for Config Changes
-
-When a change requires config migration, contributors must:
-
-1. Update root `UPGRADING-v3.md` in the same change.
-2. Update default config files in `conf/` and robot templates in `robot.skel/`.
-3. Update affected architecture docs in `aidocs/` and connector docs as needed.
-4. Preserve the shipped-extension layering contract above (defaults authoritative; custom configs delta-only).
-
-This keeps migration explicit while preserving runtime behavior for existing extension code.
+Installed extension defaults are the canonical baseline. Custom robots should
+keep only enablement, credentials, parameters, and intentional local deltas.
+Credentialed shipped extensions are opt-in, not active merely because they ship
+with the engine.

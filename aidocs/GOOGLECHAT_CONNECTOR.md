@@ -1,183 +1,40 @@
-# Google Chat Connector Notes
+# Google Chat Connector Decisions
 
-This file captures Google Chat connector behavior relevant to routing, private slash commands, identity mapping, ambient Workspace Events subscriptions, threading, and outgoing message formatting.
+Google Chat uses the Chat API outbound and Pub/Sub inbound. When ambient
+messages are enabled, the connector also owns per-space Workspace Events
+subscription creation, renewal, suspension recovery, and deletion. Terraform
+owns project resources; it does not own these short-lived per-space resources.
 
-## Source Anchors
+Do not region-pin the shared Pub/Sub topic with a narrow message-storage policy.
+Google may publish Workspace Events from another region, causing apparently
+healthy subscriptions to become suspended later.
 
-- Registration/init + Google Chat utility plugin: `connectors/googlechat/static.go`, `connectors/googlechat/plugin.go`, `connectors/googlechat/connect.go`
-- Incoming event normalization + send behavior: `connectors/googlechat/connector.go`
-- Ambient Workspace Events subscription lifecycle + CloudEvent normalization: `connectors/googlechat/ambient.go`, `connectors/googlechat/workspaceevents.go`
-- BasicMarkdown rendering: `connectors/googlechat/basic_markdown.go`
-- Installed default config: `conf/protocols/googlechat.yaml` (custom robots
-  override from `custom/conf/protocols/googlechat.yaml`)
-- Shared Google credential loading: `internal/gcloud/credentials.go`
+Outbound create retries reuse the same request ID to avoid duplicate messages
+after ambiguous timeouts. Inbound interaction and ambient deliveries share a
+seen-message cache because Google can deliver the same message through both
+paths.
 
-## Transport Model
+## Identity and context
 
-- Google Chat uses the Chat API for outbound messages and a Pub/Sub pull subscription for inbound events.
-- Connector initialization loads encrypted service-account credentials through `Handler.ReadEncryptedFile(...)` and `internal/gcloud`.
-- Runtime receive uses one Pub/Sub goroutine with one outstanding message at a time so connector-local event handling remains serialized.
-- Outbound Chat API calls use connector-managed short deadlines and retry once on transient timeout/unavailable failures; `CreateMessage` retries reuse the same Google Chat `requestId` so a timed-out first attempt does not double-post if Google accepted it.
-- At `Trace` log level, the connector logs concise summaries of inbound Pub/Sub deliveries so operators can distinguish Chat interaction events from Workspace Events deliveries while debugging Google-side configuration.
-- The connector is text-only in v1. It does not expose cards, dialogs, or other Google Chat-specific UI surfaces through the shared connector contract.
-- The same Pub/Sub subscription receives both normal Chat interaction events and Google Workspace Events CloudEvents when ambient-space subscriptions are enabled.
+- `UserMap` is connector-local canonical username → `users/{id}` mapping and is
+  the only basis for `ValidatedUser=true`.
+- `SelfID` is separate recognition metadata for the bot and never user policy.
+  `HearSelf` remains engine-owned.
+- Ordinary mentions are normalized and remain ordinary messages. Slash/app
+  commands are bot-directed; configured slash commands are hidden/private.
+- Hidden replies remain viewer-private only while the original user and space
+  context are preserved. Retargeting drops hidden treatment.
+- Direct messages have no engine channel identity.
 
-## Ambient Message Support
+Only `UserMap` reloads live and must swap atomically. Credentials, Pub/Sub,
+ambient behavior, and self identity require restart.
 
-- `ProtocolConfig.AmbientMessages` enables connector-managed Google Workspace Events subscriptions.
-- The installed default Google Chat config lives in `conf/protocols/googlechat.yaml`.
-  Custom robots should override only the fields they need in
-  `custom/conf/protocols/googlechat.yaml` rather than copying the full default
-  unless they are intentionally redefining behavior.
-- When enabled, the connector:
-  - lists non-DM spaces the app is already a member of
-  - creates or renews a per-space Workspace Events subscription targeting the shared Pub/Sub topic
-  - refreshes those subscriptions periodically before expiration
-  - creates a new subscription when Chat reports `ADDED_TO_SPACE`
-  - deletes the subscription when Chat reports `REMOVED_FROM_SPACE`
-- Workspace Events subscription lifecycle deliveries are handled connector-locally:
-  - expiration warnings renew the subscription TTL
-  - expired subscriptions are treated as deleted and the connector ensures a replacement per-space subscription when the lifecycle payload includes the target Chat space
-  - suspended subscriptions are reactivated once, but failures are logged with the Workspace event type, subscription name, target resource, state, suspension reason, endpoint topic, and parsed Google API error reason
-- Ambient delivery currently subscribes to Chat message-created events and normalizes them into the same `ConnectorMessage` flow as interaction events.
-- This path requires administrator-approved `chat.app.*` scopes and the Google Workspace Events API. Terraform remains project-level only; the connector owns per-space subscription lifecycle.
-- Because Chat app ambient subscriptions currently use payload data, subscription TTL is short-lived and the connector renews them automatically.
-- The shared Pub/Sub topic must not be created with a narrow
-  `--message-storage-policy-allowed-regions=...` setting. A topic pinned to a
-  single region can look healthy at first and later cause ambient Workspace
-  Events subscriptions to become `SUSPENDED` with suspension reason `OTHER`
-  when Google publishes from another region.
+## Transport choices
 
-## Identity Mapping
+Google Chat may default same-context replies into the incoming thread. This is
+connector-local and explicit thread APIs still win.
 
-- Google Chat connector identity mapping is connector-local in `ProtocolConfig.UserMap` (`username -> users/{id}`).
-- Google Chat bot self-identification is separate in `ProtocolConfig.SelfID`; robot owners should not overload the bot's own numeric `users/{id}` into `UserMap`.
-- `ProtocolConfig.SelfID` is recognition metadata only. The engine's top-level
-  `HearSelf` setting decides whether messages marked `SelfMessage=true` are
-  processed.
-- Engine policy checks remain username-based against global `UserRoster`.
-- Inbound interaction events carry the Google Chat user resource name (for example `users/12345678901234567890`) as `ConnectorMessage.UserID`.
-- If the resource name exists in `ProtocolConfig.UserMap`, the connector sets `ConnectorMessage.UserName` to the canonical Gopherbot username and sets `ConnectorMessage.ValidatedUser=true`.
-- Outbound user-targeted sends only treat `users/{id}` (or bracketed internal IDs) as transport IDs. Canonical usernames are resolved through `ProtocolConfig.UserMap` / cached records; the connector must not invent `users/<username>` resource names from arbitrary text.
-- If a human user is not mapped, the connector leaves canonical username unset and `ValidatedUser=false`.
-- Internal Google Chat user IDs should be discovered through the built-in `validate user <username>` flow rather than passive warning logs.
-- If Google Chat returns the bot's own messages or mention annotations with a numeric bot `users/{id}` rather than `users/app`, administrators can discover and learn that ID with the Google Chat utility command `google validate robot`. The connector stores the learned ID in runtime state for self-message recognition, and robots can persist it in `ProtocolConfig.SelfID`.
-- During normal engine reload, Google Chat `Reload()` refreshes connector-local `ProtocolConfig.UserMap` without recreating API clients or the Pub/Sub receive loop.
-- The reload path normalizes the new map first, then swaps `botUserMap`, the reverse configured-user index, and affected cached canonical-name indexes under the connector lock. Concurrent message normalization and outbound user lookup see a complete old or complete new map.
-- Transport/client settings such as credentials, project, subscription, ambient subscription behavior, and `SelfID` remain startup/restart concerns rather than live reload behavior.
-
-## Inbound Message Normalization
-
-- Google Chat interaction events that produce bot input are normalized as `Protocol: "googlechat"`.
-- Google Workspace Events message-created CloudEvents are also normalized as `Protocol: "googlechat"`.
-- Self-message recognition accepts both the Google Chat alias `users/app` and
-  the configured/learned numeric `ProtocolConfig.SelfID`; recognized self
-  messages are forwarded with `SelfMessage=true`.
-- Mention spans are rewritten into Slack-style plain-text mentions before the engine sees them.
-  - bot mentions become `@<bot username>` using the robot's canonical bot username
-  - mapped human mentions become `@<canonical username>`
-  - unmapped mentions are left in their human-visible text form
-- For `MESSAGE` and supported `APP_COMMAND` events:
-  - `BotMessage=true` only for slash-command-style and app-command-style interactions that Google already routes directly to the app
-  - ordinary text messages, including those that mention the app, use `BotMessage=false`
-  - ordinary message text is normalized from `message.text`, not collapsed to `message.argumentText`, so engine bot-name regexes remain the authority for deciding whether the message is addressed to the bot
-- For ambient Workspace Events message-created events:
-  - `BotMessage=false`
-  - `HiddenMessage=false`
-  - text is normalized from `message.text` using the same mention-rewrite rules as interaction events
-- `DirectMessage=true` when `space.spaceType == DIRECT_MESSAGE`.
-- For direct messages, `ChannelID`/`ChannelName` are left empty so engine DM behavior continues to use `SendProtocolUserMessage(...)`.
-- For space messages:
-  - `ChannelID` is the Chat space resource name (`spaces/{space}`)
-  - `ChannelName` is the display name when Chat provides one
-- Thread normalization:
-  - `ThreadID` is the Chat thread resource name when present
-  - `ThreadedMessage=true` only when the incoming Chat message is already a reply in a thread
-  - root/top-level threaded-space messages still carry `ThreadID` for connector-local default threading decisions
-- The connector keeps a short-lived seen-message cache so the same Chat message is not processed twice if both an interaction event and a Workspace Events delivery arrive for it.
-
-## Private Command Semantics
-
-- Hidden/ephemeral transport support is enabled when `ProtocolConfig.SlashCommand` is configured.
-- Google Chat slash commands are private to the invoking user and the Chat app, so connector maps slash-command events to:
-  - `HiddenMessage=true`
-  - `BotMessage=true`
-- Connector implements `robot.HiddenCommandFormatter`.
-- Help/fallback rendering uses the configured slash command name, for example `/bishop help ping`.
-- Plugin channel restrictions for private-capable commands are engine policy. By default, private-capable Google Chat slash commands are not limited by plugin `Channels`; `RestrictPrivateChannels: true` makes the engine require the slash command to originate from an allowed plugin space/channel.
-- When replying to a private slash command:
-  - if reply stays in the same user + same space context, connector uses `privateMessageViewer` so only that user sees the response
-  - if engine code uses a channel/thread-style send in that same hidden context, the connector still recovers the original invoking user from the hidden event so the reply remains private
-  - if target user or space changes, connector drops hidden/private treatment and sends a normal visible message instead
-
-## Robot SelfID Validation
-
-- Google Chat registers its own utility plugin `googlechatutil`, so `google validate robot` is only available when the Google Chat connector is compiled in.
-- The command can be started from any validated administrator DM or hidden context.
-- If the connector already knows a numeric bot `SelfID`, the command reports it immediately.
-- Otherwise the command issues a short-lived 7-digit code.
-- The plugin then waits on a connector-local result channel for about 30 seconds, similar in spirit to `PromptForReply(...)` but without using engine reply matchers.
-- An administrator can then mention the bot in Google Chat with that code in a visible message.
-- When the connector sees a bot mention annotation carrying a numeric bot `users/{id}` plus a live validation code, it:
-  - learns that ID for the current runtime
-  - delivers a result back to the waiting Google Chat utility plugin
-- When the waiting plugin receives that result, it:
-  - replies in the visible Google Chat mention context with `Code accepted.`
-  - replies to the original requesting administrator in the original command context with the discovered internal ID
-  - learns that ID for the current runtime
-- The connector updates the runtime bot ID used for self-message recognition as soon as the Google Chat mention is consumed.
-- If the code is not used before the timeout expires, the waiting plugin cancels the pending request and reports the timeout to the original requester.
-- This flow is connector-local and diagnostic; it does not change username-authoritative engine policy.
-
-## ThreadResponses
-
-- `ProtocolConfig.ThreadResponses` defaults to `true`.
-- When enabled, if an outbound send does not specify a thread explicitly and the send stays in the same originating Google Chat user/space context, the connector reuses the inbound `ThreadID`.
-- Practical effect:
-  - normal `Say()` / `Reply()` behavior in Google Chat tends to stay in the originating thread
-  - explicit thread methods still win if engine/plugin code supplies a thread ID
-- This is connector-local behavior only; engine-wide send semantics are unchanged.
-
-## Outgoing Message Formatting
-
-The connector is text-only in v1 and sends through the Google Chat `Message.text` field.
-
-- `BasicMarkdown`:
-  - converted to Google Chat text-message syntax
-  - `**bold**` -> Chat bold
-  - `*italic*` -> Chat italic
-  - fenced code, inline code, block quotes, and single-level unordered lists are preserved in Chat-compatible text form
-  - `[label](url)` -> Chat hyperlink syntax
-  - the documented BasicMarkdown core shortcode set is translated to Unicode in normal text:
-    `:white_check_mark:`, `:warning:`, `:x:`, `:rocket:`, `:fire:`, `:joy:`, `:thinking_face:`, `:eyes:`, `:thumbsup:`, `:thumbsdown:`
-  - `@username` -> `<users/{id}>` only when `UserMap` resolves unambiguously; otherwise literal `@username` is preserved
-  - inline code and fenced code blocks remain literal, so shortcode text inside code is not converted
-  - code-style literal regions use a narrower zero-width-space pass aimed at suppressing Google Chat link parsing and auto-linking without rewriting unrelated punctuation
-  - connector does not synthesize Google Chat custom emoji resource tags on the current app-authenticated send path
-- `Variable`:
-  - rendered with a Google Chat-specific homoglyph substitution pass for the small set of delimiters that Chat otherwise insists on re-parsing as emphasis, inline code, block quotes, lists, or angle-bracket link syntax
-  - this preserves approximate visual intent better than zero-width spaces for Google Chat text messages, but the visible characters are not byte-for-byte identical to the authored input
-  - unlike Slack's block-backed `Variable` rendering, this is only an approximation layer and does not provide clean copy/paste fidelity
-- `Fixed`:
-  - sent as a fenced monospace block
-  - inner content uses a narrower zero-width-space pass focused on preserving literal link-like text such as `<https://...|label>` and bare URLs inside the fenced block
-  - unlike Slack's block-backed `Fixed` rendering, this is visual fidelity only, not clean copy/paste fidelity
-- `Raw`:
-  - treated as literal-ish text passthrough
-  - connector does not attempt to interpret protocol-specific Slack-style raw formatting
-  - because Google Chat still parses its own text-message formatting on raw text sends, `Raw` remains non-portable and should not be relied on for connector-neutral literal display
-
-## Directed Replies
-
-- Google Chat has no separate native “user-in-channel” send primitive in the shared connector contract.
-- For visible directed replies in a space, the connector prefixes a real Chat mention (`<users/{id}>: `) and posts the message into the target space/thread.
-- DM sends first resolve the direct-message space with the same short-deadline retry policy used for visible outbound sends.
-- For hidden slash-command replies in the original context, the connector prefers `privateMessageViewer` over a visible mention prefix.
-
-## Limitations
-
-- No card/dialog/widget support through the connector contract in v1.
-- `JoinChannel(...)` is not implemented for Google Chat spaces and returns `FailedChannelJoin`.
-- Arbitrary channel lookup by plain display name is best-effort from connector-observed spaces only; the authoritative route is the Chat space resource name (`spaces/{space}`).
-- Ambient message capture currently only consumes message-created events. Message edits/deletes are not routed into the engine.
-- `Variable` on Google Chat is now a best-effort visual approximation using homoglyph substitution because Google Chat text messages do not expose a documented general-purpose escape mechanism for emphasis/code parsing.
+The shared surface is text-only: no cards/dialogs. `BasicMarkdown` is translated
+to Chat text syntax. `Fixed` and `Variable` are visual approximations because
+Chat lacks a general literal-text escape; do not promise byte-for-byte
+copy/paste fidelity. `Raw` is non-portable and still subject to Chat parsing.
