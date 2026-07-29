@@ -18,6 +18,8 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '>=1.25.0'
+      - name: Check documentation hygiene
+        run: make docs-check
       - name: Test
         run: make test
       - name: Build Linux amd64

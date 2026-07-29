@@ -119,7 +119,7 @@ When behavior changes, update the decision document that explains why:
 `GOALS_v3.md` is the human roadmap. `aidocs/TODO.md` contains only unresolved
 AI follow-ups. Historical slice reports belong in Git history, not `aidocs/`.
 
-Any change to `AGENTS.md`, `aidocs/`, `devdocs/`, or `UPGRADING-v3.md` must pass
+Any documentation or AI-instruction change must pass
 `helpers/check-docs-hygiene.sh`.
 
 ## Change and Validation Discipline

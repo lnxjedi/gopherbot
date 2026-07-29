@@ -16,37 +16,75 @@ report_info() {
 }
 
 collect_active_docs() {
-  find AGENTS.md aidocs devdocs \
-    -type f -name '*.md' \
-    ! -path 'aidocs/archive/*' \
-    -print
+  {
+    find . -maxdepth 1 -type f -name '*.md' -print
+    find aidocs devdocs -type f -name '*.md' \
+      ! -path 'aidocs/archive/*' -print
+    if [[ -f aidocs/archive/README.md ]]; then
+      printf '%s\n' aidocs/archive/README.md
+    fi
+  } | sed 's#^\./##' | sort -u
 }
 
-report_info "checking stale path references in active docs"
-if collect_active_docs | xargs rg -n "aidocs/GOALS_v3.md|devdocs/UPGRADING-v3.md|Upgrading_to_v3\.md" /dev/null; then
-  report_fail "found stale path reference(s); use root GOALS_v3.md and root UPGRADING-v3.md"
-fi
+validate_reference() {
+  local source="$1"
+  local line="$2"
+  local reference="${3%%#*}"
+  local source_dir
 
-report_info "checking stale implementation markers in active docs"
-if collect_active_docs | xargs rg -n "commit pending|pending implementation|not yet started|: pending$" /dev/null; then
-  report_fail "found stale status marker(s) in active docs"
-fi
-
-report_info "checking devdocs index coverage"
-actual_devdocs="$(find devdocs -maxdepth 1 -type f -name '*.md' | sort | grep -v 'devdocs/README.md$' || true)"
-declared_devdocs="$(rg -o "devdocs/[A-Za-z0-9._/-]+\.md" devdocs/README.md | sort -u || true)"
-missing_in_index="$(comm -23 <(printf "%s\n" "$actual_devdocs") <(printf "%s\n" "$declared_devdocs") | sed '/^$/d' || true)"
-if [[ -n "$missing_in_index" ]]; then
-  echo "$missing_in_index" >&2
-  report_fail "devdocs/README.md is missing one or more docs"
-fi
-
-report_info "checking active workstream index files"
-for path in aidocs/multi-protocol/README.md aidocs/multiprocess/README.md aidocs/archive/README.md; do
-  if [[ ! -f "$path" ]]; then
-    report_fail "missing required index file: $path"
+  [[ "$reference" == *"<"* || "$reference" == *">"* ]] && return
+  source_dir="$(dirname "$source")"
+  if [[ ! -f "$reference" && ! -f "$source_dir/$reference" ]]; then
+    report_fail "$source:$line references missing document: $reference"
   fi
-done
+}
+
+report_info "checking local document references"
+while IFS= read -r source; do
+  while IFS=: read -r line match; do
+    reference="${match#\`}"
+    validate_reference "$source" "$line" "${reference%\`}"
+  done < <(rg -n -o '`[A-Za-z0-9._<>/-]+\.md`' "$source" || true)
+
+  while IFS=: read -r line match; do
+    reference="${match#](}"
+    validate_reference "$source" "$line" "${reference%)}"
+  done < <(rg -n -o '\]\([A-Za-z0-9._<>/-]+\.md(#[A-Za-z0-9._-]+)?\)' "$source" || true)
+done < <(collect_active_docs)
+
+check_index_coverage() {
+  local directory="$1"
+  local index="$directory/README.md"
+  local actual
+  local declared
+  local missing
+
+  actual="$(find "$directory" -maxdepth 1 -type f -name '*.md' \
+    ! -name 'README.md' -print | sort)"
+  declared="$(rg -o '`[A-Za-z0-9._/-]+\.md`' "$index" \
+    | tr -d '`' \
+    | while IFS= read -r reference; do
+        if [[ "$reference" == "$directory/"* ]]; then
+          printf '%s\n' "$reference"
+        else
+          printf '%s\n' "$directory/$reference"
+        fi
+      done \
+    | sort -u || true)"
+  missing="$(comm -23 \
+    <(printf '%s\n' "$actual") \
+    <(printf '%s\n' "$declared") \
+    | sed '/^$/d' || true)"
+
+  if [[ -n "$missing" ]]; then
+    printf '%s\n' "$missing" >&2
+    report_fail "$index does not list every top-level document"
+  fi
+}
+
+report_info "checking documentation index coverage"
+check_index_coverage aidocs
+check_index_coverage devdocs
 
 if [[ "$failed" -ne 0 ]]; then
   echo "[docs-check] one or more checks failed" >&2
