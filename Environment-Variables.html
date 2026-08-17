@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a92a4f26.js";
+            window.path_to_searchindex_js = "searchindex-81ef9362.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b5ea2372.js"></script>
@@ -191,6 +191,7 @@
 <h2 id="task-and-pipeline-environment"><a class="header" href="#task-and-pipeline-environment">Task and pipeline environment</a></h2>
 <p>Tasks receive a cleaned environment plus pipeline-specific values. Common examples include:</p>
 <ul>
+<li><code>GOPHER_ENVIRONMENT</code></li>
 <li><code>GOPHER_PROTOCOL</code></li>
 <li><code>GOPHER_USER</code></li>
 <li><code>GOPHER_CHANNEL</code></li>
@@ -203,7 +204,15 @@
 <li><code>GOPHER_START_THREAD_ID</code></li>
 <li><code>GOPHER_START_USER</code></li>
 </ul>
-<p>For task authors, the practical rule is simple: prefer the Robot API for important values, and use the environment for integration with external scripts and tools.</p>
+<p><code>GOPHER_ENVIRONMENT</code> selects environment-specific robot configuration at
+startup. It is also exposed to extensions as runtime metadata. The standard v3
+authoring convention is to treat <code>GOPHER_ENVIRONMENT=development</code> as a local
+prove-it mode: plugins that manage host state, cloud resources, firewall rules,
+or persistent robot memory should validate inputs and report intended actions
+without making those changes.</p>
+<p>For task authors, the practical rule is simple: use <code>GetParameter(...)</code> for
+important values, because it sees explicit parameters and runtime metadata. Use
+the process environment for integration with external scripts and tools.</p>
 
                     </main>
 

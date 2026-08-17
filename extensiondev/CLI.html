@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a92a4f26.js";
+            window.path_to_searchindex_js = "../searchindex-81ef9362.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b5ea2372.js"></script>
@@ -180,6 +180,8 @@
 <li><code>gopherbot --help</code></li>
 <li><code>gopherbot check</code></li>
 <li><code>gopherbot match</code></li>
+<li><code>gopherbot syntax</code></li>
+<li><code>gopherbot script</code></li>
 <li><code>gopherbot encrypt</code></li>
 <li><code>gopherbot decrypt</code></li>
 <li><code>gopherbot validate &lt;path&gt;</code></li>
@@ -198,6 +200,40 @@
 </code></pre>
 <p>Check one SimpleMatcher without loading a robot:</p>
 <pre><code class="language-bash">gopherbot check 'spot (type:rails|devops) up [&lt;branch:token&gt;]' spot-devops-up
+</code></pre>
+<p>Check one or more script files without loading a robot:</p>
+<pre><code class="language-bash">gopherbot syntax custom/plugins/hello.lua
+gopherbot syntax custom/plugins/hello.lua custom/plugins/report.js
+</code></pre>
+<p><code>syntax</code> supports Lua, JavaScript, Gopherbot shell (<code>.gsh</code>), and interpreted Go
+(<code>.go</code>) files. The language is normally inferred from the file extension. Use
+<code>-language lua|js|gsh|go</code> when checking an unusual path, and <code>-json</code> when you
+want structured diagnostics for editor tooling or automation.</p>
+<p>Run a plugin script locally with a fixture-backed Robot API:</p>
+<pre><code class="language-bash">gopherbot script custom/plugins/hello.lua -- hello alice
+</code></pre>
+<p>In plugin mode, the first argument after <code>--</code> is the plugin command and the
+remaining arguments are the captured command arguments. For job or task scripts,
+pass <code>-kind job</code> or <code>-kind task</code>; then the arguments after <code>--</code> are passed
+directly to the script:</p>
+<pre><code class="language-bash">gopherbot script -kind task custom/tasks/render.lua -- daily-report
+</code></pre>
+<p><code>script</code> starts only the built-in interpreter child process. It does not load
+robot configuration, start connectors, connect to the real brain, or run
+pipelines. The local Robot API uses a fixture for message context, task config,
+parameters, prompts, attributes, and local memory.</p>
+<p>When <code>-fixture</code> is omitted, <code>script</code> uses the installed
+<code>conf/default-fixture.yaml</code>. Copy it before editing local test data:</p>
+<pre><code class="language-bash">gopherbot script -new-fixture hello-fixture.yaml
+gopherbot script -fixture hello-fixture.yaml custom/plugins/hello.lua -- hello alice
+</code></pre>
+<p>The default fixture sets <code>GOPHER_ENVIRONMENT=development</code>, so plugins can use
+<code>GetParameter("GOPHER_ENVIRONMENT")</code> or the process environment to enter a
+dry-run or prove-it mode. Fixture <code>parameters:</code> are visible through
+<code>GetParameter(...)</code> and as child-process environment variables, and can override
+runtime metadata for local checks.</p>
+<p>Inline scripts are useful for quick API checks:</p>
+<pre><code class="language-bash">gopherbot script -language lua -c 'local gopherbot = require("gopherbot_v1"); local bot = gopherbot.Robot:new(); bot:Say(bot:GetParameter("GOPHER_ENVIRONMENT")); return gopherbot.task.Normal' -- check
 </code></pre>
 <p>Match command text against the configured robot’s plugin commands:</p>
 <pre><code class="language-bash">gopherbot match spot-devops-up

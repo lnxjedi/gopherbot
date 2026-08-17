@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a92a4f26.js";
+            window.path_to_searchindex_js = "../searchindex-81ef9362.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b5ea2372.js"></script>
@@ -179,6 +179,8 @@
 <h2 id="sources-of-task-values"><a class="header" href="#sources-of-task-values">Sources of task values</a></h2>
 <p>From lower priority to higher priority, values can come from:</p>
 <ul>
+<li>engine-provided runtime metadata such as <code>GOPHER_USER</code>, <code>GOPHER_CHANNEL</code>,
+<code>GOPHER_PROTOCOL</code>, and <code>GOPHER_ENVIRONMENT</code></li>
 <li>namespaces</li>
 <li>task, plugin, or job parameters</li>
 <li>pipeline parameters</li>
@@ -188,9 +190,17 @@
 <ul>
 <li>jobs seed pipeline parameters naturally</li>
 <li>plugins usually have to publish values into the pipeline explicitly with <code>SetParameter(...)</code></li>
-<li>secure parameters may need to be read with <code>GetParameter(...)</code></li>
+<li>use <code>GetParameter(...)</code> for values your extension logic depends on; it reads
+explicit parameters first, then falls back to runtime metadata</li>
+<li>secure parameters must be read with <code>GetParameter(...)</code></li>
+<li><code>GOPHER_ENVIRONMENT=development</code> is the common v3 signal for local
+development and dry-run behavior in plugins that manage host state, external
+systems, or persistent robot memory</li>
 </ul>
 <p>The safe mental model is: tasks run with the environment the engine intentionally assembles for them, not whatever happened to be exported in the parent shell.</p>
+<p>For fast local checks, <code>gopherbot script</code> uses the same <code>GetParameter(...)</code>
+model with a fixture-backed Robot API; see
+<a href="../extensiondev/CLI.html">CLI Tools for Authors</a>.</p>
 
                     </main>
 

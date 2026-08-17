@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a92a4f26.js";
+            window.path_to_searchindex_js = "searchindex-81ef9362.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b5ea2372.js"></script>
@@ -1305,6 +1305,8 @@ return task.Fail
 <li><code>gopherbot --help</code></li>
 <li><code>gopherbot check</code></li>
 <li><code>gopherbot match</code></li>
+<li><code>gopherbot syntax</code></li>
+<li><code>gopherbot script</code></li>
 <li><code>gopherbot encrypt</code></li>
 <li><code>gopherbot decrypt</code></li>
 <li><code>gopherbot validate &lt;path&gt;</code></li>
@@ -1323,6 +1325,40 @@ return task.Fail
 </code></pre>
 <p>Check one SimpleMatcher without loading a robot:</p>
 <pre><code class="language-bash">gopherbot check 'spot (type:rails|devops) up [&lt;branch:token&gt;]' spot-devops-up
+</code></pre>
+<p>Check one or more script files without loading a robot:</p>
+<pre><code class="language-bash">gopherbot syntax custom/plugins/hello.lua
+gopherbot syntax custom/plugins/hello.lua custom/plugins/report.js
+</code></pre>
+<p><code>syntax</code> supports Lua, JavaScript, Gopherbot shell (<code>.gsh</code>), and interpreted Go
+(<code>.go</code>) files. The language is normally inferred from the file extension. Use
+<code>-language lua|js|gsh|go</code> when checking an unusual path, and <code>-json</code> when you
+want structured diagnostics for editor tooling or automation.</p>
+<p>Run a plugin script locally with a fixture-backed Robot API:</p>
+<pre><code class="language-bash">gopherbot script custom/plugins/hello.lua -- hello alice
+</code></pre>
+<p>In plugin mode, the first argument after <code>--</code> is the plugin command and the
+remaining arguments are the captured command arguments. For job or task scripts,
+pass <code>-kind job</code> or <code>-kind task</code>; then the arguments after <code>--</code> are passed
+directly to the script:</p>
+<pre><code class="language-bash">gopherbot script -kind task custom/tasks/render.lua -- daily-report
+</code></pre>
+<p><code>script</code> starts only the built-in interpreter child process. It does not load
+robot configuration, start connectors, connect to the real brain, or run
+pipelines. The local Robot API uses a fixture for message context, task config,
+parameters, prompts, attributes, and local memory.</p>
+<p>When <code>-fixture</code> is omitted, <code>script</code> uses the installed
+<code>conf/default-fixture.yaml</code>. Copy it before editing local test data:</p>
+<pre><code class="language-bash">gopherbot script -new-fixture hello-fixture.yaml
+gopherbot script -fixture hello-fixture.yaml custom/plugins/hello.lua -- hello alice
+</code></pre>
+<p>The default fixture sets <code>GOPHER_ENVIRONMENT=development</code>, so plugins can use
+<code>GetParameter("GOPHER_ENVIRONMENT")</code> or the process environment to enter a
+dry-run or prove-it mode. Fixture <code>parameters:</code> are visible through
+<code>GetParameter(...)</code> and as child-process environment variables, and can override
+runtime metadata for local checks.</p>
+<p>Inline scripts are useful for quick API checks:</p>
+<pre><code class="language-bash">gopherbot script -language lua -c 'local gopherbot = require("gopherbot_v1"); local bot = gopherbot.Robot:new(); bot:Say(bot:GetParameter("GOPHER_ENVIRONMENT")); return gopherbot.task.Normal' -- check
 </code></pre>
 <p>Match command text against the configured robot’s plugin commands:</p>
 <pre><code class="language-bash">gopherbot match spot-devops-up
@@ -1433,6 +1469,8 @@ return task.Fail
 <h2 id="sources-of-task-values"><a class="header" href="#sources-of-task-values">Sources of task values</a></h2>
 <p>From lower priority to higher priority, values can come from:</p>
 <ul>
+<li>engine-provided runtime metadata such as <code>GOPHER_USER</code>, <code>GOPHER_CHANNEL</code>,
+<code>GOPHER_PROTOCOL</code>, and <code>GOPHER_ENVIRONMENT</code></li>
 <li>namespaces</li>
 <li>task, plugin, or job parameters</li>
 <li>pipeline parameters</li>
@@ -1442,9 +1480,17 @@ return task.Fail
 <ul>
 <li>jobs seed pipeline parameters naturally</li>
 <li>plugins usually have to publish values into the pipeline explicitly with <code>SetParameter(...)</code></li>
-<li>secure parameters may need to be read with <code>GetParameter(...)</code></li>
+<li>use <code>GetParameter(...)</code> for values your extension logic depends on; it reads
+explicit parameters first, then falls back to runtime metadata</li>
+<li>secure parameters must be read with <code>GetParameter(...)</code></li>
+<li><code>GOPHER_ENVIRONMENT=development</code> is the common v3 signal for local
+development and dry-run behavior in plugins that manage host state, external
+systems, or persistent robot memory</li>
 </ul>
 <p>The safe mental model is: tasks run with the environment the engine intentionally assembles for them, not whatever happened to be exported in the parent shell.</p>
+<p>For fast local checks, <code>gopherbot script</code> uses the same <code>GetParameter(...)</code>
+model with a fixture-backed Robot API; see
+<a href="#cli-tools-for-authors">CLI Tools for Authors</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="included-tasks"><a class="header" href="#included-tasks">Included Tasks</a></h1>
 <p>Gopherbot ships with a small set of useful stock tasks. Common examples include:</p>
@@ -2821,6 +2867,7 @@ AllowedPrivateCommands:
 <h2 id="task-and-pipeline-environment"><a class="header" href="#task-and-pipeline-environment">Task and pipeline environment</a></h2>
 <p>Tasks receive a cleaned environment plus pipeline-specific values. Common examples include:</p>
 <ul>
+<li><code>GOPHER_ENVIRONMENT</code></li>
 <li><code>GOPHER_PROTOCOL</code></li>
 <li><code>GOPHER_USER</code></li>
 <li><code>GOPHER_CHANNEL</code></li>
@@ -2833,7 +2880,15 @@ AllowedPrivateCommands:
 <li><code>GOPHER_START_THREAD_ID</code></li>
 <li><code>GOPHER_START_USER</code></li>
 </ul>
-<p>For task authors, the practical rule is simple: prefer the Robot API for important values, and use the environment for integration with external scripts and tools.</p>
+<p><code>GOPHER_ENVIRONMENT</code> selects environment-specific robot configuration at
+startup. It is also exposed to extensions as runtime metadata. The standard v3
+authoring convention is to treat <code>GOPHER_ENVIRONMENT=development</code> as a local
+prove-it mode: plugins that manage host state, cloud resources, firewall rules,
+or persistent robot memory should validate inputs and report intended actions
+without making those changes.</p>
+<p>For task authors, the practical rule is simple: use <code>GetParameter(...)</code> for
+important values, because it sees explicit parameters and runtime metadata. Use
+the process environment for integration with external scripts and tools.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h1>
 <p>When config behaves strangely, start with the engine’s own view of the world.</p>
@@ -3960,6 +4015,12 @@ bot.Say("Next time you say 'it', I will treat that as api-01.")
 </ul>
 <h2 id="important-behavior-notes"><a class="header" href="#important-behavior-notes">Important behavior notes</a></h2>
 <ul>
+<li><code>GetParameter(...)</code> reads explicit task/plugin/job and pipeline parameters
+first, then falls back to engine runtime metadata such as <code>GOPHER_USER</code>,
+<code>GOPHER_CHANNEL</code>, <code>GOPHER_PROTOCOL</code>, and <code>GOPHER_ENVIRONMENT</code>.</li>
+<li><code>GOPHER_ENVIRONMENT=development</code> is the common v3 signal for dry-run or
+prove-it behavior in extensions that would otherwise change host state,
+external systems, or persistent robot memory.</li>
 <li><code>AddCommand(...)</code> composes another plugin command into the current pipeline. It is not the same thing as injecting a fresh user message.</li>
 <li><code>FinalTask(...)</code> runs during cleanup even if the main pipeline fails.</li>
 <li><code>FailTask(...)</code> and <code>FailCommand(...)</code> only run when the primary pipeline fails.</li>
