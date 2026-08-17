@@ -4,6 +4,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+if ! command -v rg >/dev/null 2>&1; then
+  echo "[docs-check] FAIL: rg (ripgrep) is required; install ripgrep and retry" >&2
+  exit 2
+fi
+
 failed=0
 
 report_fail() {

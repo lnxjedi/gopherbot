@@ -18,6 +18,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '>=1.25.0'
+      - name: Install documentation check dependency
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ripgrep
       - name: Check documentation hygiene
         run: make docs-check
       - name: Test
