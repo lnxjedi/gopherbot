@@ -43,9 +43,10 @@ and `REVIEW_GATE_1.md` for the current human review.
 
 ## Current stage
 
-Phase 1 AI work is complete in the local worktree and is waiting at its human
-rendered-book/integration review gate. The separate repository's publisher has
-not been disabled, so approval can happen before the publishing cutover.
+Gate 1 is approved. Phase 1's main-repository import and publishing workflow
+are committed on `main`; the old repository's publisher has been disabled
+locally and is awaiting human review and commit. See `STATUS.md` for the exact
+cutover validation and handoff requirements.
 
 ## Exit criteria
 
