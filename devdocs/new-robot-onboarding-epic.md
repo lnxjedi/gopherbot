@@ -63,7 +63,7 @@ Relevant files:
   - `.env` generation semantics
 - Documentation:
   - root `GOALS_v3.md` alignment references
-  - user docs in `../gopherbot-doc`
+  - user docs in `docs/`
   - root `UPGRADING-v3.md` when behavior shifts
 
 ### 3) Current invariants potentially impacted
@@ -95,7 +95,7 @@ Relevant files:
 
 ### 7) Documentation updates required
 
-- `../gopherbot-doc` onboarding chapters (`botsetup`, `RunRobot`, directory structure references).
+- `docs/` onboarding chapters (`botsetup`, `RunRobot`, directory structure references).
 - Add "new robot from empty directory" walkthrough using `;new-robot`.
 
 ## Proposed phased slices

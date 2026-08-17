@@ -30,3 +30,16 @@ call graphs, configuration fields, and ordinary control flow.
 Root `GOALS_v3.md` is the roadmap. `TODO.md` contains unresolved AI follow-ups
 only. Completed plans and slice reports are intentionally absent; use Git
 history when historical forensics are actually required.
+
+## Active project records
+
+`projects/README.md` indexes temporary coordination records for work spanning
+multiple human/AI review cycles. These records are working state, not permanent
+architecture decisions. Remove a project's directory and index entry when its
+exit criteria are satisfied; Git history retains the completed record.
+
+Every active project has an authoritative status file named STATUS.md. A fresh
+context should read the project README and status first, verify the recorded
+state against the worktree, and either perform the named AI action or report
+the named human gate. Status records must identify the next owner, exact action,
+relevant validation, and current model/reasoning recommendation.

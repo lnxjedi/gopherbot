@@ -5,7 +5,6 @@ then
     rm -rf tmp
     mkdir tmp
     git clone git@github.com:lnxjedi/gopherbot.git tmp/gopherbot
-    git clone git@github.com:lnxjedi/gopherbot-doc.git tmp/gopherbot-doc
 fi
 
 #docker pull ghcr.io/lnxjedi/gopherbot-base:latest

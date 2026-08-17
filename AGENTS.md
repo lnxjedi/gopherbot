@@ -102,6 +102,13 @@ Follow `aidocs/V3_COMPATIBILITY_CONTRACT.md`. In short: preserve extension API
 and username-security behavior; preserve brain data where feasible; config
 schema migration is allowed only when explicit and documented.
 
+For every change to Gopherbot source, installed defaults, `robot.skel/`,
+shipped extensions, deployment assets, or user-visible CLI behavior, inspect
+`docs/` and decide whether the user documentation is affected. Update affected
+user documentation in the same logical change. When no user-doc update is
+needed, report that the documentation impact was reviewed. Co-location exists
+so source behavior and its user documentation evolve together.
+
 When behavior changes, update the decision document that explains why:
 
 - startup/config precedence: `aidocs/STARTUP_FLOW.md`
@@ -116,11 +123,23 @@ When behavior changes, update the decision document that explains why:
   `UPGRADING-v3.md`, and corresponding `conf/` / `robot.skel/` defaults
 - test mechanics: `aidocs/TESTING_CURRENT.md`
 
+Only Clu, Floyd, and Bishop are public robot-instance names. Generated or
+edited documentation may mention those names. Treat every other
+robot-instance name as private: do not reproduce it from source, configuration,
+examples, logs, or connected workspaces. Use neutral placeholders such as
+`acme-bot` or `example-robot` instead.
+
 `GOALS_v3.md` is the human roadmap. `aidocs/TODO.md` contains only unresolved
-AI follow-ups. Historical slice reports belong in Git history, not `aidocs/`.
+AI follow-ups. Active project coordination may live temporarily under
+`aidocs/projects/`; each active project must maintain a resumable status file
+named STATUS.md with the current phase, completed work, exact next owner/action,
+validation state, and recommended model/reasoning effort. Update it at every
+human/AI handoff and remove the project records when the project is complete.
+Historical slice reports belong in Git history, not `aidocs/`.
 
 Any documentation or AI-instruction change must pass
 `helpers/check-docs-hygiene.sh`.
+Changes under `docs/` must also pass `mdbook build docs`.
 
 ## Change and Validation Discipline
 

@@ -5,9 +5,6 @@
         },
         {
             "path": "/opt/gopherbot"
-        },
-        {
-            "path": "/opt/gopherbot-doc"
         }
     ],
     "settings": {

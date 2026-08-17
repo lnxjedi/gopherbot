@@ -26,9 +26,9 @@ Slogans under consideration:
 * Highly configurable with Go-templated YAML
 
 ## Documentation
-The latest documentation can always be found at the GitHub-hosted [online manual](https://lnxjedi.github.io/gopherbot); the documentation source is in a [separate repository](https://github.com/lnxjedi/gopherbot-doc). Documentation automatically generated from the Go sources can be found at [pkg.go.dev](https://pkg.go.dev/github.com/lnxjedi/gopherbot/v2).
+The latest documentation can always be found at the GitHub-hosted [online manual](https://lnxjedi.github.io/gopherbot); its source is maintained with the engine under [`docs/`](docs/). Documentation automatically generated from the Go sources can be found at [pkg.go.dev](https://pkg.go.dev/github.com/lnxjedi/gopherbot/v2).
 
-The manual is still very incomplete; however, sometimes the best documentation is example code. To that end, the most powerful and complete robot I have is [Mr. Data](https://github.com/parsley42/data-gopherbot) (now retired) - the robot that ran my home Kubernetes cluster when I still had time for such things. [Clu](https://github.com/parsley42/clu-gopherbot) is the development robot used for development and writing documentation. Though **Clu** doesn't do any useful work, he has examples of most facets of **Gopherbot** functionality. [Floyd](https://github.com/parsley42/floyd-gopherbot) (a utility robot I shared with my wife) is the oldest and longest-running robot instance, though he retired after AWS started charging for his IP address.
+The manual is still incomplete; example robot code can also be useful while it is being refreshed. [Clu](https://github.com/parsley42/clu-gopherbot) is the development robot used for development and writing documentation. [Floyd](https://github.com/parsley42/floyd-gopherbot) is the oldest public robot example, and Bishop is also available as a public documentation example.
 
 ## Release Status
 Version 2 has been stable for me for over a year, and has finally been released. I've accepted that a fully up-to-date manual will lag significantly, but that is currently where the most work is being done. Version 3 is expected Q1 2025, with the primary features being dynamic Go extension support (already available in v2.15.0) and having all core features migrated to dynamic Go extensions to reduce bootstrapping dependencies.

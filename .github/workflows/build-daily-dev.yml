@@ -36,22 +36,10 @@ jobs:
         path: resources/containers/tmp/gopherbot
         fetch-depth: 0
 
-    - name: Checkout doc repository for container
-      uses: actions/checkout@v3
-      with:
-        repository: lnxjedi/gopherbot-doc
-        path: resources/containers/tmp/gopherbot-doc
-        fetch-depth: 0
-
     - name: Fix up gopherbot repository URL
       run: |
         cd resources/containers/tmp/gopherbot
         git remote set-url origin git@github.com:${{ github.repository_owner }}/gopherbot.git
-
-    - name: Fix up gopherbot-doc repository URL
-      run: |
-        cd resources/containers/tmp/gopherbot-doc
-        git remote set-url origin git@github.com:${{ github.repository_owner }}/gopherbot-doc.git
       
     - name: Log in to the Container registry
       uses: docker/login-action@f75d088332b07a08afadf6ac53c74509b9453f12

@@ -1,0 +1,6 @@
+[book]
+authors = ["David Parsley"]
+language = "en"
+src = "src"
+title = "Gopherbot DevOps Chatbot"
+[build]

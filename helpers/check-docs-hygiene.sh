@@ -20,6 +20,8 @@ collect_active_docs() {
     find . -maxdepth 1 -type f -name '*.md' -print
     find aidocs devdocs -type f -name '*.md' \
       ! -path 'aidocs/archive/*' -print
+    find docs -type f -name '*.md' \
+      ! -path 'docs/src/Outdated/*' -print
     if [[ -f aidocs/archive/README.md ]]; then
       printf '%s\n' aidocs/archive/README.md
     fi

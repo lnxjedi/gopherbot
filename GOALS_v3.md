@@ -21,7 +21,7 @@ The following points describe limitations of the current v2 architecture. They a
 * The relationship between default configuration and custom configuration is not well documented or well understood.
 * Creating new extensions is harder than it should be; the workflow should explicitly support AI-assisted development.
 * Bootstrapping new robots is unnecessarily difficult.
-* The end-user documentation (maintained in the separate gopherbot-docs repository) is significantly out of date.
+* The end-user documentation under `docs/` is significantly out of date.
 * Brain persistence via git is awful/ugly
 
 ## Early Enabling Goals

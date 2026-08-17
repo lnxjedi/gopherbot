@@ -1,0 +1,4 @@
+# Manual Setup
+This section documents manual setup of a new robot custom configuration repository, using a Linux system or VM with the **Gopherbot** software [already installed](../install/ManualInstall.md). Note that the documentation will often refer to a robot's *configuration repository*, even though using a *git* repository isn't strictly required.
+
+> Note: This manual in general, and this section in particular, is not written as a complete step-by-step guide. Rather more of an outline, it skips a lot of e.g. `mkdir`, `sudo`, etc. If you're somewhat new to Linux systems administration, but have some experience with containers (e.g. [Docker](https://www.docker.com/)), you'll have a much better experience with [autosetup](Plugin.md). Nevertheless, you may find some useful content that makes this section worth reading.

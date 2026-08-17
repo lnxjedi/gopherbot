@@ -14,7 +14,6 @@ RUN curl -o .git-completion.bash https://raw.githubusercontent.com/git/git/maste
     curl -o .git-prompt.sh https://raw.githubusercontent.com/git/git/master/contrib/completion/git-prompt.sh
 
 COPY --chown=${USERNAME}:${USERNAME} tmp/gopherbot/ /opt/gopherbot/
-COPY --chown=${USERNAME}:${USERNAME} tmp/gopherbot-doc/ /opt/gopherbot-doc/
 COPY --chown=${USERNAME}:${USERNAME} assets/gopherbot.code-workspace /home/${USERNAME}/gopherbot.code-workspace
 COPY --chown=${USERNAME}:${USERNAME} assets/jsconfig.json /home/${USERNAME}/jsconfig.json
 COPY --chown=${USERNAME}:${USERNAME} assets/dev-init /home/${USERNAME}/.dev-init
@@ -23,8 +22,6 @@ COPY --chown=${USERNAME}:${USERNAME} assets/gitconfig /home/${USERNAME}/.gitconf
 RUN echo "source /home/${USERNAME}/.dev-init" >> /home/${USERNAME}/.bashrc && \
     mkdir -p /home/${USERNAME}/.ssh && \
     chmod 0700 /home/${USERNAME}/.ssh && \
-    cd /opt/gopherbot-doc && \
-    sed -i -e '/\[http/,+1d' .git/config && \
     cd /opt/gopherbot && \
     sed -i -e '/\[http/,+1d' .git/config && \
     make

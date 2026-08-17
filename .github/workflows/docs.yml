@@ -1,0 +1,64 @@
+name: Gopherbot Docs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/**"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: gopherbot-docs-pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download and verify mdBook
+        env:
+          MDBOOK_VERSION: "0.5.3"
+          EXPECTED_HASH: "e2fd508a4fac06cbaa9f88b97d27bdc3b55a08946304ca845879fe26a3699e11"
+        run: |
+          ARCHIVE="mdbook-v${MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+          curl -sSL -O "https://github.com/rust-lang/mdBook/releases/download/v${MDBOOK_VERSION}/${ARCHIVE}"
+          echo "${EXPECTED_HASH}  ${ARCHIVE}" | sha256sum -c -
+          tar -xzf "${ARCHIVE}"
+          echo "$PWD" >> "$GITHUB_PATH"
+
+      - name: Build docs
+        run: mdbook build docs
+
+      - name: Checkout gh-pages
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          path: ghpages
+          ref: gh-pages
+
+      - name: Sync built docs to gh-pages
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: rsync -a --delete --exclude='.git' docs/book/ ghpages/
+
+      - name: Commit and push to gh-pages
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          cd ghpages
+          git config user.email "parsley@linuxjedi.org"
+          git config user.name "David Parsley"
+          git add -A
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "Automated update from ${GITHUB_SHA}"
+          git push origin HEAD:gh-pages
