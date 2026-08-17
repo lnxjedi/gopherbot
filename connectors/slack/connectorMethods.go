@@ -1,6 +1,9 @@
 package slack
 
 import (
+	"context"
+	"errors"
+	"net"
 	"strings"
 	"time"
 
@@ -9,11 +12,14 @@ import (
 	"github.com/slack-go/slack"
 )
 
-const typingDelay = 200 * time.Millisecond
-
 // Message send delay; slack has problems with scrolling if messages fly out
 // too fast.
 const msgDelay = 1 * time.Second
+
+const (
+	slackSendTimeout  = 15 * time.Second
+	slackSendAttempts = 3
+)
 
 // Bursting constants; we allow the robot to send a maximum of `burstMessages`
 // in a `burstWindow` window; above the burst limit we slow messages down to
@@ -59,10 +65,16 @@ func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string,
 }
 
 type sendMessage struct {
-	message, legacyText, markdownText, user, channel, thread string
-	blocks                                                   []slack.Block
-	format                                                   robot.MessageFormat
-	mtype                                                    msgType
+	message, markdownText, user, channel, thread string
+	blocks                                       []slack.Block
+	format                                       robot.MessageFormat
+	mtype                                        msgType
+}
+
+type sendRequest struct {
+	ctx      context.Context
+	messages []*sendMessage
+	result   chan robot.RetVal
 }
 
 const sendQueueSize = 256
@@ -99,124 +111,216 @@ func (s *slackConnector) MessageHeard(user, channel string) {
 	}
 }
 
-func (s *slackConnector) queueSendMessage(send *sendMessage) bool {
+func (s *slackConnector) queueSendRequest(req *sendRequest) robot.RetVal {
 	s.RLock()
 	q := s.sendQueue
+	stop := s.sendStop
 	running := s.running
 	s.RUnlock()
-	if !running || q == nil {
+	if !running || q == nil || stop == nil {
 		s.Log(robot.Warn, "Dropping Slack outbound message while connector is stopped")
-		return false
+		return robot.FailedMessageSend
 	}
 	select {
-	case q <- send:
-		return true
+	case <-req.ctx.Done():
+		return robot.FailedMessageSend
+	case <-stop:
+		return robot.FailedMessageSend
+	case q <- req:
 	default:
-		s.Log(robot.Warn, "Slack outbound queue is full; dropping message for channel '%s'", send.channel)
+		channel := ""
+		if len(req.messages) > 0 {
+			channel = req.messages[0].channel
+		}
+		s.Log(robot.Warn, "Slack outbound queue is full; dropping message for channel '%s'", channel)
+		return robot.FailedMessageSend
+	}
+	select {
+	case ret := <-req.result:
+		return ret
+	case <-req.ctx.Done():
+		select {
+		case ret := <-req.result:
+			return ret
+		default:
+		}
+		s.Log(robot.Error, "Slack outbound message timed out before delivery completed")
+		return robot.FailedMessageSend
+	case <-stop:
+		select {
+		case ret := <-req.result:
+			return ret
+		default:
+		}
+		return robot.FailedMessageSend
+	}
+}
+
+func slackErrorRetryable(err error) bool {
+	if err == nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return false
+	}
+	type retryableError interface {
+		Retryable() bool
+	}
+	var retryable retryableError
+	if errors.As(err, &retryable) {
+		return retryable.Retryable()
+	}
+	var netErr net.Error
+	return errors.As(err, &netErr)
+}
+
+func slackRetryDelay(err error, attempt int) time.Duration {
+	var rateLimited *slack.RateLimitedError
+	if errors.As(err, &rateLimited) && rateLimited.RetryAfter > 0 {
+		return rateLimited.RetryAfter
+	}
+	return time.Second << attempt
+}
+
+func (s *slackConnector) sleepRetry(ctx context.Context, delay time.Duration) error {
+	if s.retrySleep != nil {
+		return s.retrySleep(ctx, delay)
+	}
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func sleepSlackBurst(stop <-chan struct{}, delay time.Duration) bool {
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+		return true
+	case <-stop:
 		return false
 	}
 }
 
-func (s *slackConnector) startSendLoop(stop <-chan struct{}) {
-	s.RLock()
-	q := s.sendQueue
-	s.RUnlock()
-	if q == nil {
-		s.Log(robot.Error, "Slack send loop started without queue")
-		return
+func (s *slackConnector) postSlackMessage(ctx context.Context, send *sendMessage) robot.RetVal {
+	opts := []slack.MsgOption{
+		slack.MsgOptionAsUser(true),
+		slack.MsgOptionDisableLinkUnfurl(),
 	}
+	if send.markdownText != "" {
+		opts = append(opts, slack.MsgOptionMarkdownText(send.markdownText))
+	} else {
+		opts = append(opts, slack.MsgOptionText(send.message, false))
+	}
+	if len(send.blocks) > 0 {
+		opts = append(opts, slack.MsgOptionBlocks(send.blocks...))
+	}
+	// Slash commands are hidden, so we respond with an ephemeral message.
+	if len(send.user) > 0 && send.mtype == msgSlashCmd {
+		opts = append(opts, slack.MsgOptionPostEphemeral(send.user))
+	}
+	if len(send.thread) > 0 {
+		opts = append(opts, slack.MsgOptionTS(send.thread))
+	}
+	if send.format == robot.Variable || len(send.blocks) > 0 {
+		opts = append(opts, slack.MsgOptionDisableMarkdown(), slack.MsgOptionParse(false))
+	}
+
+	postMessage := s.postMessage
+	if postMessage == nil && s.api != nil {
+		postMessage = s.api.PostMessageContext
+	}
+	if postMessage == nil {
+		s.Log(robot.Error, "Slack send failed: Web API client is unavailable")
+		return robot.FailedMessageSend
+	}
+
+	s.Log(robot.Trace, "Bot message in slack send loop for channel %s, size: %d", send.channel, len(send.message))
+	var lastErr error
+	for attempt := 0; attempt < slackSendAttempts; attempt++ {
+		_, _, err := postMessage(ctx, send.channel, opts...)
+		if err == nil {
+			return robot.Ok
+		}
+		lastErr = err
+		if attempt == slackSendAttempts-1 || !slackErrorRetryable(err) {
+			break
+		}
+		delay := slackRetryDelay(err, attempt)
+		s.Log(robot.Warn, "Sending Slack message to channel '%s' failed (attempt %d/%d); retrying in %v: %v", send.channel, attempt+1, slackSendAttempts, delay, err)
+		if err := s.sleepRetry(ctx, delay); err != nil {
+			lastErr = err
+			break
+		}
+	}
+	s.Log(robot.Error, "Failed sending Slack message to channel '%s' after delivery attempts: %v", send.channel, lastErr)
+	return robot.FailedMessageSend
+}
+
+func completeSlackSend(req *sendRequest, ret robot.RetVal) {
+	select {
+	case req.result <- ret:
+	default:
+	}
+}
+
+func (s *slackConnector) startSendLoop(q <-chan *sendRequest, stop <-chan struct{}, done chan<- struct{}) {
+	defer close(done)
 	// See bursting constants above.
 	var burstTime time.Time
 	mtimes := make([]time.Time, burstMessages)
 	current := 0 // index of the current message send time
 	for {
-		var send *sendMessage
+		var req *sendRequest
 		select {
 		case <-stop:
 			return
-		case send = <-q:
+		case req = <-q:
 		}
-		msgTime := time.Now()
-		mtimes[current] = msgTime
-		windowStartMsg := current + 1
-		if windowStartMsg == (burstMessages - 1) {
-			windowStartMsg = 0
-		}
-		current++
-		if current == (burstMessages - 1) {
-			current = 0
-		}
-		opts := []slack.MsgOption{
-			slack.MsgOptionAsUser(true),
-			slack.MsgOptionDisableLinkUnfurl(),
-		}
-		if send.markdownText != "" {
-			opts = append(opts, slack.MsgOptionMarkdownText(send.markdownText))
-		} else {
-			opts = append(opts, slack.MsgOptionText(send.message, false))
-		}
-		if len(send.blocks) > 0 {
-			opts = append(opts, slack.MsgOptionBlocks(send.blocks...))
-		}
-		// Slash commands are hidden, so we respond with an ephemeral message
-		if len(send.user) > 0 && send.mtype == msgSlashCmd {
-			opts = append(opts, slack.MsgOptionPostEphemeral(send.user))
-		}
-		if len(send.thread) > 0 {
-			opts = append(opts, slack.MsgOptionTS(send.thread))
-		}
-		if send.format == robot.Variable || len(send.blocks) > 0 {
-			opts = append(opts, slack.MsgOptionDisableMarkdown(), slack.MsgOptionParse(false))
-		}
-		s.Log(robot.Trace, "Bot message in slack send loop for channel %s, size: %d", send.channel, len(send.message))
-		time.Sleep(typingDelay)
-		sent := false
-		for p := range []int{1, 2, 4} {
-			_, _, err := s.api.PostMessage(send.channel, opts...)
-			if err != nil && p == 1 {
-				s.Log(robot.Warn, "Sending slack message '%s' initiating backoff: %v", send.message, err)
-			}
-			if err != nil {
-				time.Sleep(time.Second * time.Duration(p))
-			} else {
-				sent = true
+		ret := robot.Ok
+		for i, send := range req.messages {
+			if req.ctx.Err() != nil {
+				ret = robot.FailedMessageSend
 				break
 			}
-		}
-		if !sent {
-			if s.socketMode {
-				s.Log(robot.Error, "Failed sending slack message '%s' to channel '%s' after 3 tries", send.message, send.channel)
-				// There doesn't appear to be a fallback available with socket mode
-			} else {
-				s.Log(robot.Error, "Failed sending slack message '%s' to channel '%s' after 3 tries, attempting fallback to RTM", send.message, send.channel)
-				s.RLock()
-				conn := s.conn
-				s.RUnlock()
-				if conn == nil {
-					s.Log(robot.Error, "Slack RTM fallback unavailable: no active RTM client")
-				} else {
-					fallback := send.legacyText
-					if fallback == "" {
-						fallback = send.message
-					}
-					conn.SendMessage(conn.NewOutgoingMessage(fallback, send.channel))
+			msgTime := time.Now()
+			mtimes[current] = msgTime
+			windowStartMsg := current + 1
+			if windowStartMsg == (burstMessages - 1) {
+				windowStartMsg = 0
+			}
+			current++
+			if current == (burstMessages - 1) {
+				current = 0
+			}
+			if ret = s.postSlackMessage(req.ctx, send); ret != robot.Ok {
+				break
+			}
+
+			lastMessage := i == len(req.messages)-1
+			if lastMessage {
+				completeSlackSend(req, robot.Ok)
+			}
+			timeSinceBurst := msgTime.Sub(burstTime)
+			if msgTime.Sub(mtimes[windowStartMsg]) < burstWindow || timeSinceBurst < coolDown {
+				if timeSinceBurst > coolDown {
+					burstTime = msgTime
+				}
+				s.Log(robot.Debug, "Slack burst limit exceeded, delaying next message by %v", msgDelay)
+				if !sleepSlackBurst(stop, msgDelay) {
+					return
 				}
 			}
 		}
-		timeSinceBurst := msgTime.Sub(burstTime)
-		if msgTime.Sub(mtimes[windowStartMsg]) < burstWindow || timeSinceBurst < coolDown {
-			if timeSinceBurst > coolDown {
-				burstTime = msgTime
-			}
-			s.Log(robot.Debug, "Slack burst limit exceeded, delaying next message by %v", msgDelay)
-			// if we've sent `burstMessages` messages in less than the `burstWindow`
-			// window, delay the next message by `msgDelay`.
-			time.Sleep(msgDelay)
+		if ret != robot.Ok {
+			completeSlackSend(req, ret)
 		}
 	}
 }
 
-func (s *slackConnector) sendMessages(msgs []slackOutgoingPayload, userID, chanID, threadID string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) {
+func (s *slackConnector) sendMessages(msgs []slackOutgoingPayload, userID, chanID, threadID string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {
 	mtype := getMsgType(msgObject)
 	if mtype == msgSlashCmd { // could also check msgObject.Hidden
 		slashCmd := msgObject.MessageObject.(*slack.SlashCommand)
@@ -229,10 +333,16 @@ func (s *slackConnector) sendMessages(msgs []slackOutgoingPayload, userID, chanI
 			mtype = msgNone
 		}
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), slackSendTimeout)
+	defer cancel()
+	req := &sendRequest{
+		ctx:      ctx,
+		messages: make([]*sendMessage, 0, len(msgs)),
+		result:   make(chan robot.RetVal, 1),
+	}
 	for _, msg := range msgs {
-		s.queueSendMessage(&sendMessage{
+		req.messages = append(req.messages, &sendMessage{
 			message:      msg.text,
-			legacyText:   msg.legacyText,
 			markdownText: msg.markdown,
 			blocks:       msg.blocks,
 			user:         userID,
@@ -242,18 +352,20 @@ func (s *slackConnector) sendMessages(msgs []slackOutgoingPayload, userID, chanI
 			mtype:        mtype,
 		})
 	}
+	if len(req.messages) == 0 {
+		return robot.FailedMessageSend
+	}
+	return s.queueSendRequest(req)
 }
 
 // SendProtocolChannelMessage sends a message to a channel
 func (s *slackConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	msgs := s.slackifyMessage("", "", "", msg, f, msgObject)
 	if chanID, ok := util.ExtractID(ch); ok {
-		s.sendMessages(msgs, "", chanID, thr, f, msgObject)
-		return
+		return s.sendMessages(msgs, "", chanID, thr, f, msgObject)
 	}
 	if chanID, ok := s.chanID(ch); ok {
-		s.sendMessages(msgs, "", chanID, thr, f, msgObject)
-		return
+		return s.sendMessages(msgs, "", chanID, thr, f, msgObject)
 	}
 	s.Log(robot.Error, "Slack channel ID not found for: %s", ch)
 	return robot.ChannelNotFound
@@ -289,8 +401,7 @@ func (s *slackConnector) SendProtocolUserChannelThreadMessage(uid, u, ch, thr, m
 	legacyPrefix := "<@" + userID + ">: "
 	blockPrefix := "@" + u + ": "
 	msgs := s.slackifyMessage(userID, legacyPrefix, blockPrefix, msg, f, msgObject)
-	s.sendMessages(msgs, userID, chanID, thr, f, msgObject)
-	return robot.Ok
+	return s.sendMessages(msgs, userID, chanID, thr, f, msgObject)
 }
 
 // SendProtocolUserMessage sends a direct message to a user
@@ -323,8 +434,7 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.M
 		userIMchanstr = userIMchan.Conversation.ID
 	}
 	msgs := s.slackifyMessage(userID, "", "", msg, f, msgObject)
-	s.sendMessages(msgs, "", userIMchanstr, "", f, msgObject)
-	return robot.Ok
+	return s.sendMessages(msgs, "", userIMchanstr, "", f, msgObject)
 }
 
 // JoinChannel joins a channel given it's human-readable name, e.g. "general"

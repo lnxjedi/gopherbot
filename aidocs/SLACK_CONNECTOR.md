@@ -30,3 +30,21 @@ an atomic swap; connection/client settings require restart.
 
 Exact formatting and SDK adaptation belong in connector tests and source, not
 this decision record.
+
+## Outbound delivery
+
+Slack outbound calls are completion-coupled: `Ok` means every chunk produced
+for that Robot API call was accepted by Slack's Web API. Queue rejection,
+connector shutdown, deadline expiry, or final API failure returns
+`FailedMessageSend`. A failure after an earlier chunk succeeded is still a
+whole-call failure; callers that retry must tolerate a duplicated prefix.
+
+The connector keeps a single outbound worker to preserve message order and
+burst control. Transient transport, rate-limit, and server failures receive
+bounded retries; permanent Slack API errors do not. Delivery has an overall
+deadline so an unhealthy Slack service cannot block a pipeline indefinitely.
+There is no RTM fallback because RTM cannot confirm acceptance and would make a
+reported failure ambiguous.
+
+Do not add cosmetic pre-send latency. A successful call returns as soon as
+Slack accepts its final chunk; burst throttling may delay later queued sends.

@@ -125,6 +125,7 @@ func Initialize(r robot.Handler, l *log.Logger) robot.InitializedConnector {
 
 	sc := &slackConnector{
 		api:             api,
+		postMessage:     api.PostMessageContext,
 		maxMessageSplit: c.MaxMessageSplit,
 		reflectHidden:   !c.DisableReflection,
 		slashCommand:    slashCommand,
@@ -234,6 +235,8 @@ func (sc *slackConnector) Reload() error {
 }
 
 func (sc *slackConnector) Run(stop <-chan struct{}) error {
+	sendStop := make(chan struct{})
+	sendDone := make(chan struct{})
 	sc.Lock()
 	// This should never happen, just a bit of defensive coding
 	if sc.running {
@@ -241,18 +244,25 @@ func (sc *slackConnector) Run(stop <-chan struct{}) error {
 		return nil
 	}
 	sc.running = true
-	sc.sendQueue = make(chan *sendMessage, sendQueueSize)
+	sc.sendQueue = make(chan *sendRequest, sendQueueSize)
+	sc.sendStop = sendStop
 	sc.lastMsgTime = nil
+	sendQueue := sc.sendQueue
 	sc.Unlock()
 
-	sendStop := make(chan struct{})
-	go sc.startSendLoop(sendStop)
+	go sc.startSendLoop(sendQueue, sendStop, sendDone)
 
 	defer func() {
-		close(sendStop)
 		sc.Lock()
 		sc.running = false
-		sc.sendQueue = nil
+		close(sendStop)
+		sc.Unlock()
+		<-sendDone
+		sc.Lock()
+		if sc.sendQueue == sendQueue {
+			sc.sendQueue = nil
+			sc.sendStop = nil
+		}
 		sc.Unlock()
 	}()
 

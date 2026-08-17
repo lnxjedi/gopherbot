@@ -4,6 +4,7 @@ package slack
 most of the internal methods. */
 
 import (
+	"context"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +20,8 @@ const optimeout = 1 * time.Minute
 // slackConnector holds all the relevant data about a connection
 type slackConnector struct {
 	api             *slack.Client
+	postMessage     func(context.Context, string, ...slack.MsgOption) (string, string, error)
+	retrySleep      func(context.Context, time.Duration) error
 	conn            *slack.RTM
 	sock            *socketmode.Client
 	socketMode      bool
@@ -44,7 +47,8 @@ type slackConnector struct {
 	userIDMap       map[string]string         // map from user ID to engine-provided username, for resolving @foo
 	userIDToIM      map[string]string         // map from user ID to IM channel ID
 	imToUserID      map[string]string         // map from IM channel ID to user ID
-	sendQueue       chan *sendMessage         // outbound message queue, initialized per Run lifecycle
+	sendQueue       chan *sendRequest         // outbound message queue, initialized per Run lifecycle
+	sendStop        chan struct{}             // closes when the outbound lifecycle stops
 	lastMsgTime     map[userlast]time.Time    // edited-message dedupe tracking
 	lastMsgLock     sync.Mutex
 }
