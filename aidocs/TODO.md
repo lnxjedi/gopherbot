@@ -17,6 +17,9 @@
   parent-process memory protection.
 - Reconcile SSH and terminal slash parsing while preserving the distinction
   between transport-hidden and robot-addressed input.
+- Remove the Terminal connector after the SSH path fully covers local demo,
+  onboarding, and development needs; do not expose Terminal in the refreshed
+  user manual while that retirement is pending.
 - Clarify or narrow runtime bot-ID lookup so it is not misused as a generic
   connector self-identity heuristic.
 

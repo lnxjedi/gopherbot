@@ -37,16 +37,16 @@ history; the import commit records the exact handoff revision.
   validation, important failure modes, and security/recovery guidance where
   relevant.
 
-See `PLAN.md` for the staged workflow, `INVENTORY.md` for the research baseline
-and known conflicts, `IMPORT_VALIDATION.md` for the mechanical handoff record,
-and `REVIEW_GATE_1.md` for the current human review.
+See `PLAN.md` for the staged workflow, `NORTH_STAR_TOC.md` for the greenfield
+manual proposal, `INVENTORY.md` for the research baseline and known conflicts,
+`IMPORT_VALIDATION.md` for the mechanical handoff record, and
+`REVIEW_GATE_1.md` for the completed mechanical review.
 
 ## Current stage
 
-Gate 1 is approved. Phase 1's main-repository import and publishing workflow
-are committed on `main`; the old repository's publisher has been disabled
-locally and is awaiting human review and commit. See `STATUS.md` for the exact
-cutover validation and handoff requirements.
+Phase 1 is complete. Phase 2A has produced a greenfield north-star table of
+contents and is waiting for owner discussion and approval before the imported
+corpus is classified or allowed to alter the target structure.
 
 ## Exit criteria
 
