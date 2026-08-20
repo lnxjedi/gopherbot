@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-81ef9362.js";
+            window.path_to_searchindex_js = "../searchindex-c6c6d349.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b5ea2372.js"></script>
@@ -181,6 +181,7 @@
 <ul>
 <li><code>Usage</code>: the command body only</li>
 <li><code>Summary</code>: one short sentence</li>
+<li><code>Details</code>: optional multiline BasicMarkdown for full command help</li>
 <li><code>Examples</code>: a few realistic examples</li>
 <li><code>Keywords</code>: the search terms users will actually try</li>
 </ul>
@@ -190,6 +191,12 @@
   SimpleMatcher: "deploy &lt;branch:token&gt;"
   Usage: "deploy &lt;branch&gt;"
   Summary: "deploy the named git branch to the selected environment"
+  Details: |
+    The deployment uses the selected environment's normal rollout policy.
+
+    **Notes**
+
+    A failed health check rolls the deployment back.
   Examples:
   - "(alias) deploy main"
   - "(alias) deploy release/2026-03-13"
@@ -199,7 +206,9 @@
 <ul>
 <li>Use placeholders in examples, not your real bot name.</li>
 <li>Keep <code>Usage</code> short and command-line-like.</li>
-<li>Put the detailed explanation in follow-up help or normal prose, not inside <code>Usage</code>.</li>
+<li>Keep <code>Summary</code> to one logical line; multi-command help combines it with <code>Usage</code>.</li>
+<li>Put longer explanations in <code>Details</code>, not inside <code>Usage</code> or <code>Summary</code>.</li>
+<li><code>Details</code> is rendered only for full single-command help and may contain BasicMarkdown sections, lists, and code.</li>
 <li>If a command has a common invalid form, handle it deliberately and reply with the correct syntax.</li>
 </ul>
 

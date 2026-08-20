@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-81ef9362.js";
+            window.path_to_searchindex_js = "../searchindex-c6c6d349.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b5ea2372.js"></script>
@@ -189,16 +189,23 @@
 <ul>
 <li><code>Usage</code></li>
 <li><code>Summary</code></li>
+<li>optional multiline <code>Details</code></li>
 <li><code>Examples</code></li>
 <li><code>Keywords</code></li>
 </ul>
 <p>That means users see help that is closer to the actual command surface rather than a detached block of prose.</p>
+<p>When more than one command matches, help shows one line per command:</p>
+<pre><code class="language-text">lists/list: `;list &lt;name&gt;` - list the contents of the &lt;name&gt; list
+</code></pre>
+<p>The <code>plugin/command</code> address is plain text, and a blank line separates each entry. The usage includes the robot’s configured alias so it can be copied directly. Commands allowed or required in private use instead show the connector’s private-command form when available. If a required-private command has no private-command transport, its alias form is marked <code>(direct message only)</code>.</p>
+<p>Use <code>help &lt;plugin&gt;/&lt;command&gt;</code> for full help. Full help shows the summary, usage, any options derived from <code>SimpleMatcher</code>, optional detailed documentation, examples, and availability. A search that finds only one command goes directly to that full view.</p>
 <h2 id="context-aware-behavior"><a class="header" href="#context-aware-behavior">Context-aware behavior</a></h2>
 <p>Help is filtered by the current channel or DM context, and where possible by what the user should actually be allowed to see. If a command exists somewhere else, help can point you there instead of pretending the command does not exist.</p>
 <h2 id="advice-for-users"><a class="header" href="#advice-for-users">Advice for users</a></h2>
 <ul>
 <li>Use <code>commands</code> when you want to browse.</li>
 <li>Use <code>help &lt;keyword&gt;</code> when you know roughly what you want.</li>
+<li>Use <code>help &lt;plugin&gt;/&lt;command&gt;</code> when you want full help for one command.</li>
 <li>Use <code>info</code> when you need operational details about the robot itself.</li>
 </ul>
 

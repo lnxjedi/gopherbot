@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-81ef9362.js";
+            window.path_to_searchindex_js = "../searchindex-c6c6d349.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b5ea2372.js"></script>
@@ -299,12 +299,25 @@ Config:
 <li><code>SimpleMatcher</code>: simplified matcher syntax</li>
 <li><code>Usage</code>: short usage text for help</li>
 <li><code>Summary</code>: one-sentence help summary</li>
+<li><code>Details</code>: optional multiline BasicMarkdown shown only in full command help</li>
 <li><code>Examples</code>: example invocations</li>
 <li><code>Keywords</code>: help search terms</li>
 <li><code>ChannelOnly</code>: match only normal channel messages, not threaded messages</li>
 <li><code>Contexts</code>: capture-group labels for short-term “it”/context memory</li>
 </ul>
-<p><code>Usage</code>, <code>Summary</code>, <code>Examples</code>, and <code>Keywords</code> drive the v3 help system. They do not change matching behavior.</p>
+<p><code>Usage</code>, <code>Summary</code>, <code>Details</code>, <code>Examples</code>, and <code>Keywords</code> drive the v3 help system. They do not change matching behavior. Keep <code>Usage</code> and <code>Summary</code> on one logical line; multi-command results render them as:</p>
+<pre><code class="language-text">plugin/command: `;usage` - summary
+</code></pre>
+<p>The canonical command address is plain text, and a blank line separates entries. The displayed usage is addressed with the configured alias, or with the connector’s private-command syntax when the command allows private invocation. A required-private command without such transport retains its alias and adds <code>(direct message only)</code> before the summary.</p>
+<p><code>Details</code> may contain multiple lines of BasicMarkdown. It appears without an added heading in full help for a single command, so it can contain whatever sections make sense for that command:</p>
+<pre><code class="language-yaml">Details: |
+  This command provisions a temporary console.
+
+  **Notes**
+
+  Existing consoles may be reused after confirmation.
+</code></pre>
+<p>When <code>SimpleMatcher</code> contains an options block, full help automatically lists the accepted option forms after <code>Usage</code>. <code>Details</code> should explain their meaning, interactions, or other behavior rather than restating the matcher grammar.</p>
 <h3 id="contexts"><a class="header" href="#contexts">Contexts</a></h3>
 <p><code>Contexts</code> lets a command remember a captured value for later commands that use a generic reference such as <code>it</code>.</p>
 <pre><code class="language-yaml">Commands:
@@ -599,6 +612,7 @@ AllowedPrivateCommands:
 <tr><td><code>SimpleMatcher</code></td><td><code>Commands</code> only</td><td>Simplified directed-command matcher</td></tr>
 <tr><td><code>Usage</code></td><td><code>Commands</code>, <code>MessageMatchers</code></td><td>Help usage text</td></tr>
 <tr><td><code>Summary</code></td><td><code>Commands</code>, <code>MessageMatchers</code></td><td>Help summary</td></tr>
+<tr><td><code>Details</code></td><td><code>Commands</code></td><td>Optional multiline BasicMarkdown for full command help</td></tr>
 <tr><td><code>Examples</code></td><td><code>Commands</code>, <code>MessageMatchers</code></td><td>Help examples</td></tr>
 <tr><td><code>Keywords</code></td><td><code>Commands</code>, <code>MessageMatchers</code></td><td>Help search terms</td></tr>
 <tr><td><code>Label</code></td><td><code>ReplyMatchers</code></td><td>Reply matcher label</td></tr>

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-81ef9362.js";
+            window.path_to_searchindex_js = "../searchindex-c6c6d349.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b5ea2372.js"></script>
@@ -541,18 +541,23 @@ qa
 <p>Exact command matches always win over syntax diagnostics. If more than one visible command could produce a diagnostic, Gopherbot avoids guessing and falls back to the normal unmatched-command behavior.</p>
 <h2 id="help-metadata"><a class="header" href="#help-metadata">Help Metadata</a></h2>
 <p><code>SimpleMatcher</code> controls matching. It does not replace help metadata.</p>
-<p>Always provide a user-facing <code>Usage</code>, <code>Summary</code>, <code>Examples</code>, and useful <code>Keywords</code>:</p>
+<p>Always provide a user-facing <code>Usage</code>, <code>Summary</code>, <code>Examples</code>, and useful <code>Keywords</code>. Add multiline <code>Details</code> when exact command help needs longer explanation:</p>
 <pre><code class="language-yaml">Commands:
 - Command: deploy
   SimpleMatcher: "deploy [-options:-branch:&lt;token&gt;|-wait:&lt;bool&gt;] &lt;service:ident&gt;"
   Usage: "deploy [-branch:&lt;branch&gt;] [-wait:&lt;true|false&gt;] &lt;service&gt;"
   Summary: "deploy a service"
+  Details: |
+    Deployments use the service's normal rollout and health-check policy.
+
+    Use `-wait:false` to return after the rollout starts.
   Examples:
   - "(alias) deploy api"
   - "(alias) deploy -branch:release/2026-07 api"
   Keywords: [ "deploy", "release", "ship" ]
 </code></pre>
 <p>Use <code>Usage</code> for the command users should type, not for the SimpleMatcher grammar itself. For example, <code>[-branch:&lt;branch&gt;]</code> is friendlier than <code>[-options:-branch:&lt;token&gt;]</code>.</p>
+<p>Full help automatically renders accepted forms from every SimpleMatcher options block. One block is labeled <code>Options</code>; multiple positional blocks are labeled <code>Options 1</code>, <code>Options 2</code>, and so on. Use <code>Details</code> for semantic explanations the matcher cannot infer.</p>
 <h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
 <h3 id="simple-command"><a class="header" href="#simple-command">Simple command</a></h3>
 <pre><code class="language-yaml">SimpleMatcher: "ping"

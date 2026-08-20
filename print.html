@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-81ef9362.js";
+            window.path_to_searchindex_js = "searchindex-c6c6d349.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b5ea2372.js"></script>
@@ -884,16 +884,23 @@ ping, floyd
 <ul>
 <li><code>Usage</code></li>
 <li><code>Summary</code></li>
+<li>optional multiline <code>Details</code></li>
 <li><code>Examples</code></li>
 <li><code>Keywords</code></li>
 </ul>
 <p>That means users see help that is closer to the actual command surface rather than a detached block of prose.</p>
+<p>When more than one command matches, help shows one line per command:</p>
+<pre><code class="language-text">lists/list: `;list &lt;name&gt;` - list the contents of the &lt;name&gt; list
+</code></pre>
+<p>The <code>plugin/command</code> address is plain text, and a blank line separates each entry. The usage includes the robot’s configured alias so it can be copied directly. Commands allowed or required in private use instead show the connector’s private-command form when available. If a required-private command has no private-command transport, its alias form is marked <code>(direct message only)</code>.</p>
+<p>Use <code>help &lt;plugin&gt;/&lt;command&gt;</code> for full help. Full help shows the summary, usage, any options derived from <code>SimpleMatcher</code>, optional detailed documentation, examples, and availability. A search that finds only one command goes directly to that full view.</p>
 <h2 id="context-aware-behavior"><a class="header" href="#context-aware-behavior">Context-aware behavior</a></h2>
 <p>Help is filtered by the current channel or DM context, and where possible by what the user should actually be allowed to see. If a command exists somewhere else, help can point you there instead of pretending the command does not exist.</p>
 <h2 id="advice-for-users"><a class="header" href="#advice-for-users">Advice for users</a></h2>
 <ul>
 <li>Use <code>commands</code> when you want to browse.</li>
 <li>Use <code>help &lt;keyword&gt;</code> when you know roughly what you want.</li>
+<li>Use <code>help &lt;plugin&gt;/&lt;command&gt;</code> when you want full help for one command.</li>
 <li>Use <code>info</code> when you need operational details about the robot itself.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -1252,6 +1259,7 @@ return task.Fail
 <ul>
 <li><code>Usage</code>: the command body only</li>
 <li><code>Summary</code>: one short sentence</li>
+<li><code>Details</code>: optional multiline BasicMarkdown for full command help</li>
 <li><code>Examples</code>: a few realistic examples</li>
 <li><code>Keywords</code>: the search terms users will actually try</li>
 </ul>
@@ -1261,6 +1269,12 @@ return task.Fail
   SimpleMatcher: "deploy &lt;branch:token&gt;"
   Usage: "deploy &lt;branch&gt;"
   Summary: "deploy the named git branch to the selected environment"
+  Details: |
+    The deployment uses the selected environment's normal rollout policy.
+
+    **Notes**
+
+    A failed health check rolls the deployment back.
   Examples:
   - "(alias) deploy main"
   - "(alias) deploy release/2026-03-13"
@@ -1270,7 +1284,9 @@ return task.Fail
 <ul>
 <li>Use placeholders in examples, not your real bot name.</li>
 <li>Keep <code>Usage</code> short and command-line-like.</li>
-<li>Put the detailed explanation in follow-up help or normal prose, not inside <code>Usage</code>.</li>
+<li>Keep <code>Summary</code> to one logical line; multi-command help combines it with <code>Usage</code>.</li>
+<li>Put longer explanations in <code>Details</code>, not inside <code>Usage</code> or <code>Summary</code>.</li>
+<li><code>Details</code> is rendered only for full single-command help and may contain BasicMarkdown sections, lists, and code.</li>
 <li>If a command has a common invalid form, handle it deliberately and reply with the correct syntax.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -2438,12 +2454,25 @@ Config:
 <li><code>SimpleMatcher</code>: simplified matcher syntax</li>
 <li><code>Usage</code>: short usage text for help</li>
 <li><code>Summary</code>: one-sentence help summary</li>
+<li><code>Details</code>: optional multiline BasicMarkdown shown only in full command help</li>
 <li><code>Examples</code>: example invocations</li>
 <li><code>Keywords</code>: help search terms</li>
 <li><code>ChannelOnly</code>: match only normal channel messages, not threaded messages</li>
 <li><code>Contexts</code>: capture-group labels for short-term “it”/context memory</li>
 </ul>
-<p><code>Usage</code>, <code>Summary</code>, <code>Examples</code>, and <code>Keywords</code> drive the v3 help system. They do not change matching behavior.</p>
+<p><code>Usage</code>, <code>Summary</code>, <code>Details</code>, <code>Examples</code>, and <code>Keywords</code> drive the v3 help system. They do not change matching behavior. Keep <code>Usage</code> and <code>Summary</code> on one logical line; multi-command results render them as:</p>
+<pre><code class="language-text">plugin/command: `;usage` - summary
+</code></pre>
+<p>The canonical command address is plain text, and a blank line separates entries. The displayed usage is addressed with the configured alias, or with the connector’s private-command syntax when the command allows private invocation. A required-private command without such transport retains its alias and adds <code>(direct message only)</code> before the summary.</p>
+<p><code>Details</code> may contain multiple lines of BasicMarkdown. It appears without an added heading in full help for a single command, so it can contain whatever sections make sense for that command:</p>
+<pre><code class="language-yaml">Details: |
+  This command provisions a temporary console.
+
+  **Notes**
+
+  Existing consoles may be reused after confirmation.
+</code></pre>
+<p>When <code>SimpleMatcher</code> contains an options block, full help automatically lists the accepted option forms after <code>Usage</code>. <code>Details</code> should explain their meaning, interactions, or other behavior rather than restating the matcher grammar.</p>
 <h3 id="contexts"><a class="header" href="#contexts">Contexts</a></h3>
 <p><code>Contexts</code> lets a command remember a captured value for later commands that use a generic reference such as <code>it</code>.</p>
 <pre><code class="language-yaml">Commands:
@@ -2738,6 +2767,7 @@ AllowedPrivateCommands:
 <tr><td><code>SimpleMatcher</code></td><td><code>Commands</code> only</td><td>Simplified directed-command matcher</td></tr>
 <tr><td><code>Usage</code></td><td><code>Commands</code>, <code>MessageMatchers</code></td><td>Help usage text</td></tr>
 <tr><td><code>Summary</code></td><td><code>Commands</code>, <code>MessageMatchers</code></td><td>Help summary</td></tr>
+<tr><td><code>Details</code></td><td><code>Commands</code></td><td>Optional multiline BasicMarkdown for full command help</td></tr>
 <tr><td><code>Examples</code></td><td><code>Commands</code>, <code>MessageMatchers</code></td><td>Help examples</td></tr>
 <tr><td><code>Keywords</code></td><td><code>Commands</code>, <code>MessageMatchers</code></td><td>Help search terms</td></tr>
 <tr><td><code>Label</code></td><td><code>ReplyMatchers</code></td><td>Reply matcher label</td></tr>
@@ -3283,18 +3313,23 @@ qa
 <p>Exact command matches always win over syntax diagnostics. If more than one visible command could produce a diagnostic, Gopherbot avoids guessing and falls back to the normal unmatched-command behavior.</p>
 <h2 id="help-metadata"><a class="header" href="#help-metadata">Help Metadata</a></h2>
 <p><code>SimpleMatcher</code> controls matching. It does not replace help metadata.</p>
-<p>Always provide a user-facing <code>Usage</code>, <code>Summary</code>, <code>Examples</code>, and useful <code>Keywords</code>:</p>
+<p>Always provide a user-facing <code>Usage</code>, <code>Summary</code>, <code>Examples</code>, and useful <code>Keywords</code>. Add multiline <code>Details</code> when exact command help needs longer explanation:</p>
 <pre><code class="language-yaml">Commands:
 - Command: deploy
   SimpleMatcher: "deploy [-options:-branch:&lt;token&gt;|-wait:&lt;bool&gt;] &lt;service:ident&gt;"
   Usage: "deploy [-branch:&lt;branch&gt;] [-wait:&lt;true|false&gt;] &lt;service&gt;"
   Summary: "deploy a service"
+  Details: |
+    Deployments use the service's normal rollout and health-check policy.
+
+    Use `-wait:false` to return after the rollout starts.
   Examples:
   - "(alias) deploy api"
   - "(alias) deploy -branch:release/2026-07 api"
   Keywords: [ "deploy", "release", "ship" ]
 </code></pre>
 <p>Use <code>Usage</code> for the command users should type, not for the SimpleMatcher grammar itself. For example, <code>[-branch:&lt;branch&gt;]</code> is friendlier than <code>[-options:-branch:&lt;token&gt;]</code>.</p>
+<p>Full help automatically renders accepted forms from every SimpleMatcher options block. One block is labeled <code>Options</code>; multiple positional blocks are labeled <code>Options 1</code>, <code>Options 2</code>, and so on. Use <code>Details</code> for semantic explanations the matcher cannot infer.</p>
 <h2 id="common-patterns-1"><a class="header" href="#common-patterns-1">Common Patterns</a></h2>
 <h3 id="simple-command"><a class="header" href="#simple-command">Simple command</a></h3>
 <pre><code class="language-yaml">SimpleMatcher: "ping"
