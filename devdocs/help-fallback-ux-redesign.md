@@ -51,19 +51,15 @@ The redesign uses a few simple UX rules that fit chatops well:
 
 This gives users a more understandable mental model than the older quick-help copy.
 
-### 2. `commands` Is Now Organized Around Plugins And Command Groups
+### 2. `commands` Is An Apropos-Style Command Index
 
-The old command browsing path leaned toward a very long command list. That is hard to skim in chat.
+The old command browsing path rendered plugin blocks and command previews. The current output uses one logical line per available command:
 
-The new `commands` output is grouped by plugin and, for each plugin, shows:
+```text
+plugin/command: `addressed usage` - summary
+```
 
-- a short plugin summary
-- a preview of representative commands using their full `plugin/command` address
-- the next step: `help <plugin>`
-
-Plugin names are visually emphasized so they are easier to skim in a long help response.
-
-This turns `commands` into a directory instead of a dump.
+The engine divides very large indexes into ordered messages at command-line boundaries and ends with the exact-help path.
 
 ### 3. `help <plugin>` Now Works As A Real Plugin Overview
 
@@ -71,7 +67,7 @@ Users often know the command family they want, but not the exact command. The ne
 
 - the plugin name
 - the plugin summary
-- the commands in that plugin with short summaries
+- the commands in that plugin using the same one-line address, usage, and summary format
 - the next exact step: `help <plugin>/<command>`
 
 This is the missing middle layer between global browsing and exact command syntax.
@@ -96,13 +92,11 @@ This matters for terms like `help`, `list`, or `groups`, where users may want bo
 
 This makes the help response feel guided rather than arbitrary.
 
-### 6. Multi-Match Help Teaches The Canonical Command Address
+### 6. Multi-Match Help Uses Apropos Summaries
 
 One important product decision in the second design pass was that multi-command help output should always reinforce the canonical command address.
 
-The system now consistently teaches users to think in terms of:
-
-- `plugin/command`
+The system consistently renders a plaintext `plugin/command`, copyable connector-aware usage, and purpose on one line, with a blank line between command entries. Public commands use alias addressing. Private-capable commands prefer the connector's hidden-command form; a required-private command without that transport uses the alias form and marks the summary `(direct message only)`. Full help is reserved for a single result or an exact `help plugin/command` request.
 
 That address now shows up across:
 
@@ -111,9 +105,15 @@ That address now shows up across:
 - keyword search results
 - exact-help links in multi-match responses
 
+The former `help <keyword> brief` mode is gone because every multi-command result is compact.
+
+### 7. Exact Help Supports Man-Page-Like Details
+
+Full help renders summary, usage, SimpleMatcher-derived options, optional multiline BasicMarkdown `Details`, examples, and availability. `Details` is additive metadata and is neither rendered in multi-command results nor used for ranking.
+
 This is the text-chat equivalent of teaching a stable "man page address" for each command.
 
-### 7. Deterministic Fallback Copy Is More Actionable
+### 8. Deterministic Fallback Copy Is More Actionable
 
 When a user sends an unmatched command, the built-in fallback now gives short next steps instead of only saying the command did not match.
 
@@ -125,7 +125,7 @@ Current recovery copy points users toward:
 
 That makes the failure path more useful immediately.
 
-### 8. High-Confidence Suggestions Are Now Explicit, But Narrower
+### 9. High-Confidence Suggestions Are Now Explicit, But Narrower
 
 When the matcher has a strong deterministic guess based on the actual command surface, the fallback now says so directly.
 
@@ -185,18 +185,17 @@ Robot:
 ```text
 Quick help:
 !help <keyword> - get help for the provided <keyword>
-!help <keyword> brief - compact help for a likely command
-!commands - browse plugins and command groups available in this channel
-!help-all - help for all commands available in this channel, including global commands
+!commands - browse commands available in this channel
+!help-all - summarize all commands available in this channel, including global commands
 Plugin help: !help <plugin>
 Exact command help: !help <plugin>/<command>
-Tip: !commands shows plugins and command groups in this channel.
+Tip: !commands shows commands available in this channel.
 ```
 
 Commentary:
 
 - quick help now explicitly teaches plugin help and exact command help
-- users are told that `commands` shows plugins and command groups in the current channel
+- users are told that `commands` shows commands in the current channel
 
 ### Transcript: `!commands`
 
@@ -209,27 +208,25 @@ User:
 Robot:
 
 ```text
-Plugins and command groups available in this channel:
-**builtin-help**: A plugin providing help for commands
-Commands: `builtin-help/commands`, `builtin-help/help`, `builtin-help/help-all`, `builtin-help/info`
-Help: `!help builtin-help`
-**knock**: An external Go plugin demonstrating Prompting and custom configuration
-Commands: `knock/knock`
-Help: `!help knock`
-**lists**: An external Go plugin for managing simple lists of strings
-Commands: `lists/add`, `lists/delete`, `lists/empty`, `lists/help`, +5 more
-Help: `!help lists`
+Commands available in this channel:
+
+builtin-help/commands: `/acme-bot commands` - browse commands available in this channel
+
+builtin-help/help: `/acme-bot help <keyword>` - find help for commands matching <keyword>
+
+knock/knock: `!tell me a knock-knock joke` - start an interactive knock-knock joke
+
+lists/add: `!add <item> to <name>` - add an item to a named list
 ...
-Exact help: `!help <plugin>/<command>`
-Search by keyword: `!help <plugin|command|keyword>`
+
+For full command help, use `!help <plugin>/<command>`.
 ```
 
 Commentary:
 
-- response begins with an explicit plugins-and-command-groups heading
-- plugin names are emphasized so the list is easier to scan
-- each plugin shows a summary, a command preview using the full `plugin/command` address, and a `!help <plugin>` next step
-- the footer gives both exact-help and keyword-search paths
+- every command has one logical address, usage, and summary line
+- the footer gives the exact-help path
+- large output is split only at command-line boundaries
 
 This is noticeably more scannable than a flat command list.
 
@@ -244,35 +241,22 @@ User:
 Robot:
 
 ```text
-Help for keyword: help
+Command matches for keyword: help
 
-Plugin help: help
-give general help on the help system and using the robot
-Commands:
-- `help/help` - give general help on the help system and using the robot
-Exact help: !help help/help
+help/help: `!help with robot` - give general help on the help system and using the robot
 
-Other command matches:
+builtin-help/help: `/acme-bot help <keyword>` - find help for commands matching <keyword>
 
-Command: builtin-help/help
-Summary: find help for commands matching <keyword>
-Usage: help <keyword>
-Examples:
-- !help ping
-- !help
-Availability: all channels + direct messages
-Exact help: !help builtin-help/help
-
-Command: groups/help
+groups/help: `!help with groups` - give general help for using groups
 ...
-Exact help: !help groups/help
+
+For full command help, use `!help <plugin>/<command>`.
 ```
 
 Commentary:
 
 - the plugin named by the keyword is shown first
-- other matching commands from other plugins are still shown afterward
-- every secondary result teaches the exact `plugin/command` address
+- other matching commands use the same compact format
 
 This is the new "plugin match plus broader search" behavior.
 
@@ -287,20 +271,18 @@ User:
 Robot:
 
 ```text
-Help for keyword: knock
+Command help: knock/knock
 
-Plugin help: knock
-An external Go plugin demonstrating Prompting and custom configuration
-Commands:
-- `knock/knock` - Starts an interactive knock-knock joke.
-Exact help: !help knock/knock
+Summary: Starts an interactive knock-knock joke.
+Usage: tell me a knock-knock joke
+Examples:
+- !tell me a knock-knock joke
+Availability: #general, #random
 ```
 
 Commentary:
 
-- the robot now returns a plugin overview for `knock`
-- the response lists the plugin summary and the `knock/knock` command address
-- it points the user to `!help knock/knock`
+- a search or plugin lookup with exactly one result goes directly to full help
 
 This is exactly the kind of "middle step" the old UX was missing.
 
@@ -317,9 +299,8 @@ Robot:
 ```text
 Command help: knock/knock
 
-[knock] knock
-Usage: tell me a knock-knock joke
 Summary: Starts an interactive knock-knock joke.
+Usage: tell me a knock-knock joke
 Examples:
 - !tell me a knock-knock joke
 - <bot>, tell me another joke
@@ -330,7 +311,7 @@ Availability: channels: (many)
 Commentary:
 
 - the robot returns exact command help for the fully qualified path
-- the response includes usage, summary, examples, and availability
+- the response includes summary, usage, generated options when applicable, optional details, examples, and availability
 
 This makes exact help addressable and predictable.
 
@@ -395,6 +376,7 @@ The current system can produce a much better UX by reusing the metadata we alrea
 - usage
 - examples
 - plugin/task description
+- optional multiline command details
 
 That means we can improve user experience significantly without forcing a broad migration of plugin YAML.
 
@@ -409,7 +391,7 @@ The most useful improvements are:
 - ensure examples are realistic and copy-paste-friendly
 - keep usage lines short enough for chat
 
-If we later decide we need richer metadata, we should add it to solve a specific UX problem, not because we assume "more structure" will help.
+The additive `Details` field solves the specific need for man-page-like exact help without migrating existing metadata. Robots opt in command by command after upgrading.
 
 ## Product Recommendation
 
@@ -439,8 +421,7 @@ The current work establishes the right help architecture. The next best product 
    - broad no-match
    - command family likely found but syntax incomplete
 
-4. Consider a compact mode for long plugin overviews.
-   Some plugins may still need shorter chat-first rendering when command counts are large.
+4. Continue tuning exact-help details where complex commands need option semantics or operational notes.
 
 ## Bottom Line
 
@@ -451,7 +432,7 @@ It reduces system complexity, removes AI pressure from the core help path, and g
 The new interaction model is:
 
 - `help` teaches the system
-- `commands` shows plugins and command groups
+- `commands` shows one-line command summaries
 - `help plugin` narrows to a family
 - `help plugin/command` gives exact syntax
 - fallback points users back into that path

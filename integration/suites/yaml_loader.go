@@ -19,7 +19,6 @@ type yamlSuite struct {
 	Name         string                      `yaml:"name"`
 	ConfigDir    string                      `yaml:"config_dir"`
 	LogName      string                      `yaml:"log_name"`
-	FullGate     string                      `yaml:"full_gate"`
 	Metadata     Metadata                    `yaml:"metadata"`
 	BeforeStart  string                      `yaml:"before_start"`
 	Capabilities map[string]yamlCapabilities `yaml:"capabilities"`
@@ -205,7 +204,6 @@ func (ys yamlSuite) toSuite() (Suite, error) {
 		Name:         ys.Name,
 		ConfigDir:    ys.ConfigDir,
 		LogName:      ys.LogName,
-		FullGate:     ys.FullGate,
 		Metadata:     normalizeMetadata(ys.Metadata),
 		Capabilities: capabilities,
 		Cases:        cases,

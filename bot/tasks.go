@@ -118,6 +118,7 @@ type InputMatcher struct {
 	Command       string         `yaml:"Command"`       // The name of the command to pass to the plugin with its arguments
 	Usage         string         `yaml:"Usage"`         // Canonical usage text for help output
 	Summary       string         `yaml:"Summary"`       // Short command description for help output
+	Details       string         `yaml:"Details"`       // Optional multi-line BasicMarkdown for exact command help
 	Examples      []string       `yaml:"Examples"`      // Optional examples for this command
 	Keywords      []string       `yaml:"Keywords"`      // Optional help search keywords tied to this command matcher
 	Label         string         `yaml:"Label"`         // ReplyMatchers use "Label" instead of "Command"

@@ -64,7 +64,6 @@ type Suite struct {
 	Name         string
 	ConfigDir    string
 	LogName      string
-	FullGate     string
 	Metadata     Metadata
 	Capabilities map[string]robot.ConnectorCapabilities
 	Cases        []Case

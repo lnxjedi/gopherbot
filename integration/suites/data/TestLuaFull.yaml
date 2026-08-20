@@ -13,7 +13,6 @@ metadata:
   tier: full
 config_dir: test/luafull
 log_name: bottest.log
-full_gate: lua
 before_start: test_http_server
 cases:
   - input:

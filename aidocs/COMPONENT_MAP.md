@@ -21,7 +21,8 @@ navigation, and tests for the current file/symbol inventory.
   scaffold. A deployed robot's `custom/conf/` should contain deltas, not copied
   defaults.
 - `integration/` and `cmd/gopherbot-integration/` own process-backed suites.
-  `test/` is a legacy compatibility harness, not the default validation path.
+  `test/` contains the robot configurations and extension fixtures those
+  suites run against, plus terminal-connector test support.
 - `cmd/gopherbot-mcp/` provides lifecycle and compact integration automation.
 - `devdocs/` documents extension authoring; `aidocs/` documents architecture
   decisions; root `UPGRADING-v3.md` owns migration instructions.

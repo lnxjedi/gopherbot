@@ -494,7 +494,7 @@ Exact command matches always win over syntax diagnostics. If more than one visib
 
 `SimpleMatcher` controls matching. It does not replace help metadata.
 
-Always provide a user-facing `Usage`, `Summary`, `Examples`, and useful `Keywords`:
+Always provide a user-facing `Usage`, `Summary`, `Examples`, and useful `Keywords`. Add multiline `Details` when exact command help needs longer explanation:
 
 ```yaml
 Commands:
@@ -502,6 +502,10 @@ Commands:
   SimpleMatcher: "deploy [-options:-branch:<token>|-wait:<bool>] <service:ident>"
   Usage: "deploy [-branch:<branch>] [-wait:<true|false>] <service>"
   Summary: "deploy a service"
+  Details: |
+    Deployments use the service's normal rollout and health-check policy.
+
+    Use `-wait:false` to return after the rollout starts.
   Examples:
   - "(alias) deploy api"
   - "(alias) deploy -branch:release/2026-07 api"
@@ -509,6 +513,8 @@ Commands:
 ```
 
 Use `Usage` for the command users should type, not for the SimpleMatcher grammar itself. For example, `[-branch:<branch>]` is friendlier than `[-options:-branch:<token>]`.
+
+Full help automatically renders accepted forms from every SimpleMatcher options block. One block is labeled `Options`; multiple positional blocks are labeled `Options 1`, `Options 2`, and so on. Use `Details` for semantic explanations the matcher cannot infer.
 
 ## Common Patterns
 

@@ -53,6 +53,7 @@ func TestGetHelpMetadataFiltersAndMarksVisibility(t *testing.T) {
 					Command:  "add",
 					Usage:    "(alias) add <item> to list",
 					Summary:  "Adds an item to a list.",
+					Details:  "Adds the item after prompting for a missing list.",
 					Keywords: []string{"list", "add"},
 				}},
 			},
@@ -118,6 +119,9 @@ func TestGetHelpMetadataFiltersAndMarksVisibility(t *testing.T) {
 	}
 	if len(payload.VisibleHere) != 1 || payload.VisibleHere[0].PluginName != "lists" {
 		t.Fatalf("visible_here = %+v, want only lists/add", payload.VisibleHere)
+	}
+	if got := payload.VisibleHere[0].Details; got != "Adds the item after prompting for a missing list." {
+		t.Fatalf("visible help details = %q", got)
 	}
 
 	foundBrowseableElsewhere := false
@@ -209,6 +213,22 @@ func TestGetHelpMetadataIncludesPrivateExamplesForSupportedConnector(t *testing.
 	}
 	if len(entry.PrivateExamples) != 1 || entry.PrivateExamples[0] != "/clu help ping" {
 		t.Fatalf("private examples = %+v, want [/clu help ping]", entry.PrivateExamples)
+	}
+}
+
+func TestFallbackAdviceEntryPreservesPrivateInvocationPolicy(t *testing.T) {
+	entry := helpMetadataEntry{
+		PluginName:       "accounts",
+		Command:          "rotate-password",
+		Usage:            "rotate-password",
+		PrivateOK:        true,
+		PrivateRequired:  true,
+		PrivateSupported: true,
+	}
+	fallback := toFallbackAdviceEntry(entry, 80)
+	rendered := fallback.toHelpCommandMetadata()
+	if !rendered.PrivateOK || !rendered.PrivateRequired || !rendered.PrivateSupported {
+		t.Fatalf("fallback private policy was not preserved: %+v", rendered)
 	}
 }
 

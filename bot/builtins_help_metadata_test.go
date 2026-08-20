@@ -252,14 +252,14 @@ func TestRankHelpMatchesRegressionTable(t *testing.T) {
 	}
 }
 
-func TestRenderPluginHelpOverviewIncludesExamplesAndMoreDetail(t *testing.T) {
+func TestRenderPluginHelpOverviewUsesOneLineCommandSummaries(t *testing.T) {
 	r := makeFormatTestRobot(t)
 	got := r.renderPluginHelpOverview("knock", []helpCommandMetadata{
 		{
 			PluginName: "knock",
 			Command:    "knock",
+			Usage:      "tell me a knock-knock joke",
 			Summary:    "Starts an interactive knock-knock joke.",
-			Examples:   []string{"(alias) tell me a knock-knock joke"},
 		},
 		{
 			PluginName: "knock",
@@ -268,17 +268,17 @@ func TestRenderPluginHelpOverviewIncludesExamplesAndMoreDetail(t *testing.T) {
 			Usage:      "(alias) tell me another joke",
 		},
 	})
-	if !strings.Contains(got, "**Plugin help:** `knock`") {
+	if !strings.Contains(got, "**Commands for plugin:** `knock`") {
 		t.Fatalf("renderPluginHelpOverview() missing plugin header: %q", got)
 	}
-	if !strings.Contains(got, "Example: `!tell me a knock-knock joke`") {
-		t.Fatalf("renderPluginHelpOverview() missing explicit example: %q", got)
+	if !strings.Contains(got, "knock/knock: `!tell me a knock-knock joke` - Starts an interactive knock-knock joke.") {
+		t.Fatalf("renderPluginHelpOverview() missing compact command summary: %q", got)
 	}
-	if !strings.Contains(got, "Example: `tell me another joke`") {
-		t.Fatalf("renderPluginHelpOverview() missing usage fallback example: %q", got)
+	if strings.Contains(got, "**Examples:**") || strings.Contains(got, "Example:") {
+		t.Fatalf("renderPluginHelpOverview() unexpectedly included full examples: %q", got)
 	}
-	if !strings.Contains(got, "**More detail:** `!help knock/<command>`") {
-		t.Fatalf("renderPluginHelpOverview() missing more detail hint: %q", got)
+	if !strings.Contains(got, "For full command help, use `!help knock/<command>`.") {
+		t.Fatalf("renderPluginHelpOverview() missing full help hint: %q", got)
 	}
 }
 
@@ -400,19 +400,17 @@ func TestFormatSuggestedCommandPrefersHiddenHelp(t *testing.T) {
 	if got := r.formatSuggestedCommand("(alias) help knock/knock"); got != "/clu help knock/knock" {
 		t.Fatalf("formatSuggestedCommand() = %q", got)
 	}
-}
-
-func TestSummarizeQualifiedPluginCommands(t *testing.T) {
-	entries := []helpCommandMetadata{
-		{PluginName: "builtin-admin", Command: "branch"},
-		{PluginName: "builtin-admin", Command: "abort"},
-		{PluginName: "builtin-admin", Command: "chanlog"},
-		{PluginName: "builtin-admin", Command: "defaultbranch"},
-		{PluginName: "builtin-admin", Command: "quit"},
+	entry := helpCommandMetadata{
+		PluginName:       "lists",
+		Command:          "list",
+		Usage:            "list lists",
+		Summary:          "list all lists",
+		PrivateOK:        true,
+		PrivateRequired:  true,
+		PrivateSupported: true,
 	}
-	want := "`builtin-admin/abort`, `/branch`, `/chanlog`, `/defaultbranch` ... (+1 more)"
-	if got := summarizeQualifiedPluginCommands("builtin-admin", entries, 4); got != want {
-		t.Fatalf("summarizeQualifiedPluginCommands() = %q, want %q", got, want)
+	if got := r.renderHelpSummaryLine(entry); got != "lists/list: `/clu list lists` - list all lists" {
+		t.Fatalf("renderHelpSummaryLine(private) = %q", got)
 	}
 }
 
@@ -470,37 +468,126 @@ func containsLine(rendered, target string) bool {
 	return false
 }
 
-func TestParseHelpQueryMode(t *testing.T) {
-	term, brief := parseHelpQueryMode([]string{"knock", "brief"})
-	if term != "knock" || !brief {
-		t.Fatalf("parseHelpQueryMode(knock brief) = (%q, %t), want (%q, %t)", term, brief, "knock", true)
-	}
-
-	term, brief = parseHelpQueryMode([]string{"knock brief"})
-	if term != "knock" || !brief {
-		t.Fatalf("parseHelpQueryMode(single arg knock brief) = (%q, %t), want (%q, %t)", term, brief, "knock", true)
-	}
-
-	term, brief = parseHelpQueryMode([]string{"sidetrack", "story", "foo"})
-	if term != "sidetrack story foo" || brief {
-		t.Fatalf("parseHelpQueryMode(sidetrack story foo) = (%q, %t), want (%q, %t)", term, brief, "sidetrack story foo", false)
-	}
-}
-
 func TestParseHelpQuery(t *testing.T) {
 	parsed := parseHelpQuery([]string{"knock/knock"})
-	if !parsed.HasPath || parsed.PluginName != "knock" || parsed.Command != "knock" || parsed.Brief {
+	if !parsed.HasPath || parsed.PluginName != "knock" || parsed.Command != "knock" {
 		t.Fatalf("parseHelpQuery(knock/knock) = %+v, want exact plugin/command path", parsed)
 	}
 
 	parsed = parseHelpQuery([]string{"knock/knock", "brief"})
-	if !parsed.HasPath || parsed.PluginName != "knock" || parsed.Command != "knock" || !parsed.Brief {
-		t.Fatalf("parseHelpQuery(knock/knock brief) = %+v, want exact path with brief mode", parsed)
+	if parsed.HasPath || parsed.Term != "knock/knock brief" {
+		t.Fatalf("parseHelpQuery(knock/knock brief) = %+v, want ordinary search term", parsed)
 	}
 
 	parsed = parseHelpQuery([]string{"sidetrack", "story", "foo"})
 	if parsed.HasPath || parsed.Term != "sidetrack story foo" {
 		t.Fatalf("parseHelpQuery(sidetrack story foo) = %+v, want non-path term", parsed)
+	}
+}
+
+func TestRenderHelpSummaryLine(t *testing.T) {
+	r := makeFormatTestRobot(t)
+	tests := []struct {
+		name  string
+		entry helpCommandMetadata
+		want  string
+	}{
+		{
+			name: "public command uses alias",
+			entry: helpCommandMetadata{
+				PluginName: "lists",
+				Command:    "list",
+				Usage:      "(alias) list <name>",
+				Summary:    "list the contents of the <name> list",
+			},
+			want: "lists/list: `!list <name>` - list the contents of the <name> list",
+		},
+		{
+			name: "allowed private command without hidden transport still uses alias",
+			entry: helpCommandMetadata{
+				PluginName: "lists",
+				Command:    "list",
+				Usage:      "list lists",
+				Summary:    "list all lists",
+				PrivateOK:  true,
+			},
+			want: "lists/list: `!list lists` - list all lists",
+		},
+		{
+			name: "required private command without hidden transport names DM requirement",
+			entry: helpCommandMetadata{
+				PluginName:      "accounts",
+				Command:         "rotate-password",
+				Usage:           "rotate-password",
+				Summary:         "rotate the user's password and display the new value",
+				PrivateOK:       true,
+				PrivateRequired: true,
+			},
+			want: "accounts/rotate-password: `!rotate-password` - (direct message only) rotate the user's password and display the new value",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := r.renderHelpSummaryLine(tc.entry); got != tc.want {
+				t.Fatalf("renderHelpSummaryLine() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestRenderHelpSummaryLinesSeparatesEntriesWithBlankLines(t *testing.T) {
+	r := makeFormatTestRobot(t)
+	entries := []helpCommandMetadata{
+		{PluginName: "lists", Command: "add", Usage: "add <item>", Summary: "add an item"},
+		{PluginName: "lists", Command: "list", Usage: "list <name>", Summary: "list the contents"},
+	}
+	want := "lists/add: `!add <item>` - add an item\n\nlists/list: `!list <name>` - list the contents"
+	if got := strings.Join(r.renderHelpSummaryLines(entries), "\n"); got != want {
+		t.Fatalf("renderHelpSummaryLines() = %q, want %q", got, want)
+	}
+	if got := r.renderHelpSummaryLines(nil); len(got) != 0 {
+		t.Fatalf("renderHelpSummaryLines(nil) = %#v, want empty", got)
+	}
+}
+
+func TestRenderHelpEntryOrdersDetailsAndGeneratedOptions(t *testing.T) {
+	r := makeFormatTestRobot(t)
+	entry := helpCommandMetadata{
+		PluginName:     "console",
+		Command:        "console",
+		SimpleMatchers: []string{"get console [-first:-spot|-branch:<token>] middle [-second:-ttyd|-count:<number>]"},
+		Usage:          "get-console [-spot] [-branch:<branch>]",
+		Summary:        "provision a console",
+		Details:        "Longer explanation.\n\n**Notes**\n\nKeep it short.",
+	}
+	rendered := r.renderHelpEntry(entry, true, false, 0)
+	wantOrder := []string{
+		"**Summary:** provision a console",
+		"**Usage:** `get-console [-spot] [-branch:<branch>]`",
+		"**Options 1:** `-spot`, `-branch:<token>`",
+		"**Options 2:** `-ttyd`, `-count:<number>`",
+		"Longer explanation.",
+	}
+	last := -1
+	for _, part := range wantOrder {
+		idx := strings.Index(rendered, part)
+		if idx <= last {
+			t.Fatalf("renderHelpEntry() order/content mismatch for %q: %q", part, rendered)
+		}
+		last = idx
+	}
+	if strings.Contains(rendered, "**Details") {
+		t.Fatalf("renderHelpEntry() added an unwanted Details heading: %q", rendered)
+	}
+}
+
+func TestSplitHelpOutputUsesLineBoundaries(t *testing.T) {
+	chunks := splitHelpOutput("intro\none\ntwo\nfooter", 11)
+	if len(chunks) != 2 {
+		t.Fatalf("splitHelpOutput() chunks = %#v, want two chunks", chunks)
+	}
+	if chunks[0] != "intro\none" || chunks[1] != "two\nfooter" {
+		t.Fatalf("splitHelpOutput() = %#v", chunks)
 	}
 }
 

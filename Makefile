@@ -1,6 +1,6 @@
 # Makefile - just builds the binary, for dev mainly
 
-.PHONY: clean test fulltest unit wireguard-plugin-test integration integration-build integration-run integration-mcp integration-legacy integration-full generate testbot static dist containers debug mcp docs-check
+.PHONY: clean test unit wireguard-plugin-test integration integration-build integration-run integration-mcp generate testbot static dist containers debug mcp docs-check
 
 commit := -X main.Commit=$(shell git rev-parse --short HEAD)
 version := $(shell ./get-version.sh)
@@ -13,30 +13,6 @@ ZIP_ARCHIVE = gopherbot-$(DIST_GOOS)-$(GOARCH).zip
 
 CGO ?= 0
 CTAG ?= latest
-
-ifdef TEST
-TESTARGS = -run ${TEST}
-endif
-ifeq ($(TEST),JSFull)
-TESTARGS = -run TestJSFull
-TESTENV = RUN_FULL=js
-endif
-ifeq ($(TEST),LuaFull)
-TESTARGS = -run TestLuaFull
-TESTENV = RUN_FULL=lua
-endif
-ifeq ($(TEST),ShFull)
-TESTARGS = -run TestShFull
-TESTENV = RUN_FULL=sh
-endif
-ifeq ($(TEST),GoFull)
-TESTARGS = -run TestGoFull
-TESTENV = RUN_FULL=go
-endif
-ifneq ($(strip $(RUN_FULL)),)
-TESTARGS = -run Test.*Full
-TESTENV = RUN_FULL=$(RUN_FULL)
-endif
 
 static: gopherbot
 
@@ -63,9 +39,7 @@ $(TAR_ARCHIVE): static
 
 dist: $(TAR_ARCHIVE)
 
-# Run test suite without coverage (see .gopherci/pipeline.sh)
-# Full suites are opt-in: use RUN_FULL=js (or RUN_FULL=all) and only Test.*Full runs.
-# Shortcut: TEST=JSFull make integration
+# Run unit tests without coverage.
 unit:
 	go test -mod readonly ./...
 
@@ -76,7 +50,6 @@ integration: integration-build
 	@echo "Built ./gopherbot-integration"
 	@echo "List suites: ./gopherbot-integration list-suites"
 	@echo "Run a suite: ./gopherbot-integration run-suite TestBotName"
-	@echo "Legacy go test harness: make integration-legacy"
 
 integration-build: gopherbot-integration
 
@@ -86,15 +59,7 @@ integration-run: gopherbot-integration
 integration-mcp: gopherbot-mcp gopherbot-integration
 	printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"run_integration_suite","arguments":{"suite":"$(if $(TEST),$(TEST),all)","build":false,"live":false,"include_output_tail":true,"tail_lines":80}}}' | ./gopherbot-mcp
 
-integration-legacy: gopherbot
-	${TESTENV} go test ${TESTARGS} -v --tags 'test integration netgo osusergo static_build' -mod readonly -race ./test
-
-integration-full:
-	RUN_FULL=all $(MAKE) integration-legacy
-
 test: unit wireguard-plugin-test integration
-
-fulltest: unit wireguard-plugin-test integration-full
 
 docs-check:
 	./helpers/check-docs-hygiene.sh

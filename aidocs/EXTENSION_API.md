@@ -17,6 +17,18 @@ compatibility adapters, not independent specifications.
 - `RaisePriv` is intentionally absent. Privilege is fixed at child/pipeline
   boundaries.
 
+## Command help metadata
+
+Command metadata is additive and does not affect matching. `Usage` and
+`Summary` form the multi-command index, with a plaintext canonical command
+address, copyable connector-aware invocation, and a blank line between entries.
+Private-capable commands prefer the connector-provided hidden-command form;
+required-private commands without one retain alias addressing and are marked
+direct-message-only. Optional multiline `Details` is BasicMarkdown rendered
+only for full single-command help. SimpleMatcher option blocks are rendered
+automatically before `Details`, so extensions use `Details` for option semantics
+and longer operational guidance rather than duplicating matcher syntax.
+
 ## Adding or changing a Robot method
 
 A method is incomplete until every applicable surface and test is updated:

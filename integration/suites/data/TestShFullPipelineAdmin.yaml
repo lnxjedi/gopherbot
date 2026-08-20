@@ -13,7 +13,6 @@ metadata:
   tier: focused
 config_dir: test/shfull
 log_name: bottest.log
-full_gate: sh
 cases:
   - input:
       user: alice

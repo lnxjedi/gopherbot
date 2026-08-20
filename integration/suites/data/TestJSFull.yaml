@@ -14,7 +14,6 @@ metadata:
   tier: full
 config_dir: test/jsfull
 log_name: bottest.log
-full_gate: js
 before_start: test_http_server
 cases:
   - input:

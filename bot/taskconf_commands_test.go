@@ -29,6 +29,24 @@ Commands:
 	}
 }
 
+func TestValidateYAMLPluginAcceptsMultilineCommandDetails(t *testing.T) {
+	yml := []byte(`
+---
+Commands:
+- Command: deploy
+  SimpleMatcher: deploy
+  Details: |
+    Deploys the current build.
+
+    **Notes**
+
+    This may take several minutes.
+`)
+	if err := validate_yaml("conf/plugins/example.yaml", yml); err != nil {
+		t.Fatalf("validate_yaml() rejected Details: %v", err)
+	}
+}
+
 func TestValidateYAMLPluginRejectsLegacyCommandMatchersKey(t *testing.T) {
 	yml := []byte(`
 ---

@@ -20,7 +20,7 @@ cases:
       text: help ruby, bender
     replies:
       - channel: general
-        text_pattern: '(?s:Command matches for keyword: ruby.*Availability: #random)'
+        text_pattern: '(?s:Command matches for keyword: ruby.*rubydemo/ruby: ;ruby.*For full command help, use /bender help <plugin>/<command>\.)'
         threaded: true
     events:
       - CommandTaskRan

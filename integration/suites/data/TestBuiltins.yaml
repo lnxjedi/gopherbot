@@ -19,7 +19,7 @@ cases:
       text: ;help log
     replies:
       - channel: general
-        text_pattern: '(?s:Command matches for keyword: log.*builtin-logging/show.*Availability: private context only)'
+        text_pattern: '(?s:Command matches for keyword: log.*builtin-logging/show: /bender show-log \(page X\).*For full command help, use /bender help <plugin>/<command>\.)'
         threaded: true
     events:
       - CommandTaskRan
@@ -76,7 +76,7 @@ cases:
       text: ;help info
     replies:
       - channel: general
-        text_pattern: '(?s:Command matches for keyword: info.*Summary: .*admins.*)'
+        text_pattern: '(?s:Command matches for keyword: info.*builtin-help/info: /bender info \| tell me about yourself - provide useful information for admins.*For full command help, use /bender help <plugin>/<command>\.)'
         threaded: true
     events:
       - CommandTaskRan
@@ -87,7 +87,7 @@ cases:
       text: ;help ruby
     replies:
       - channel: random
-        text_pattern: '(?s:Command matches for keyword: ruby.*Availability: #random)'
+        text_pattern: '(?s:Command matches for keyword: ruby.*rubydemo/ruby: ;ruby.*For full command help, use /bender help <plugin>/<command>\.)'
         threaded: true
     events:
       - CommandTaskRan

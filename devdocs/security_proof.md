@@ -304,18 +304,11 @@ This now proves load-time disabling for the misconfigured plugin (fail-fast), wh
 ## Re-run Commands
 
 ```bash
-TEST=JSFull make integration
-TEST=LuaFull make integration
-TEST=GoFull make integration
-go test -run TestPythonSecurity -v --tags 'test integration netgo osusergo static_build' -mod readonly -race ./test
+make integration-mcp TEST=TestJSFullSecurity
+make integration-mcp TEST=TestLuaFullSecurity
+make integration-mcp TEST=TestGoFullSecurity
+make integration-mcp TEST=TestPythonSecurity
 ```
 
-Captured pass lines from this run:
-
-```text
---- PASS: TestJSFullSecurity
---- PASS: TestLuaFullSecurity
---- PASS: TestGoFullSecurity
---- PASS: TestPythonSecurity
-PASS
-```
+The compact suite report records each selected suite as passed or failed and
+links its saved artifacts under `integration/runs/`.

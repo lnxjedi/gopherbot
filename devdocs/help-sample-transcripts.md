@@ -12,6 +12,9 @@ The goal is to agree on the user-facing conversations before tuning ranking, mat
 
 - Prefer one strong recovery path over a noisy list of weak guesses.
 - Always show commands in their canonical `plugin/command` form when listing multiple possibilities.
+- Render every multi-command result as ``plugin/command: `addressed usage` - summary``, with a plaintext address and a blank line between entries.
+- Use alias addressing for public commands and connector-native private addressing for private-capable commands.
+- Reserve examples, availability, generated options, and multiline details for full single-command help.
 - When there is a good direct retry, show the literal retry the user should type.
 - Mention the current channel when channel availability matters.
 - Do not leak internal matcher structure into replies.
@@ -32,7 +35,7 @@ User:
 Robot:
 ```text
 Quick help:
-- `!commands` shows plugins and command groups available here
+- `!commands` shows commands available here
 - `!help <keyword>` searches by plugin, command, or topic
 - `!help <plugin>` shows commands from one plugin
 - `!help <plugin>/<command>` shows exact help for one command
@@ -42,7 +45,7 @@ Notes:
 - Keep this compact.
 - Teach the four main wayfinding commands immediately.
 
-### Journey 2: Browsing plugins, then drilling into one plugin
+### Journey 2: Browsing commands, then drilling into one command
 
 User:
 ```text
@@ -51,23 +54,21 @@ User:
 
 Robot:
 ```text
-Plugins and command groups available in this channel:
+Commands available in this channel:
 
-**weather**: A plugin that uses OpenWeatherMap to report the weather
-Commands: `weather/weather`
-Help: `!help weather`
+weather/weather: `!weather in <city>` - fetch current weather for a city
 
-**lists**: An external Go plugin for managing simple lists of strings
-Commands: `lists/add`, `lists/delete`, `lists/empty`, `lists/help`, `lists/list`, `lists/remove`
-Help: `!help lists`
+lists/add: `!add <item> to <name>` - add an item to a named list
 
-Exact help: `!help <plugin>/<command>`
-Search by keyword: `!help <plugin|command|keyword>`
+lists/list: `!list <name>` - list the contents of a named list
+
+For full command help, use `!help <plugin>/<command>`.
 ```
 
 Notes:
-- Plugin names are first-class.
-- Command previews always use `plugin/command`.
+- Every available command is represented by one logical line.
+- The usage is normally enough to issue the command immediately.
+- Large results may be divided into ordered messages at command-line boundaries.
 
 Reviewer Notes:
 - I like the spacing/separation here between plugins; that wasn't present in the last QA test I did.
@@ -81,25 +82,25 @@ User:
 
 Robot:
 ```text
-Help for keyword: `lists`
-
-Plugin help: `lists`
+Command matches for keyword: `lists`
 An external Go plugin for managing simple lists of strings
-Commands:
-- `lists/add` - Adds an item to a named list, prompting to create the list if needed.
-- `lists/remove` - Removes an item from a named list.
-- `lists/list` - Shows items from a named list.
-- `lists/delete` - Deletes an entire named list.
 
-Other command matches:
-- `builtin-help/commands` - browse plugins and command groups available in this channel
+lists/add: `!add <item> to <name>` - add an item to a named list
 
-Exact help: `!help <plugin>/<command>`
+lists/remove: `!remove <item> from <name>` - remove an item from a named list
+
+lists/list: `!list <name>` - list the contents of a named list
+
+lists/delete: `!delete <name>` - delete an entire named list
+
+builtin-help/commands: `/acme-bot commands` - browse commands available in this channel
+
+For full command help, use `!help <plugin>/<command>`.
 ```
 
 Notes:
-- When the keyword is also a plugin name, show the plugin section first.
-- Then show other matches, if any.
+- When the keyword is also a plugin name, show that plugin's commands first.
+- Keep other matching commands in the same compact result.
 
 ### Journey 4: Exact command help
 
@@ -112,8 +113,12 @@ Robot:
 ```text
 Command help: `weather/weather`
 
-Usage: `weather in <city>`
 Summary: Fetches current weather from OpenWeatherMap.
+Usage: `weather in <city>`
+Options: `-units:<token>`
+
+The default units follow the robot's configured locale.
+
 Examples:
 - `!weather in Boston`
 - `!weather in London`
@@ -122,7 +127,9 @@ Availability: `#general`, `#weather`, `#ops`
 
 Notes:
 - Exact help is the destination state.
-- This should show all relevant help for that command.
+- This shows all relevant help for that command.
+- Summary precedes usage; SimpleMatcher options are generated automatically.
+- Optional multiline `Details` appears without an engine-added heading after the generated options.
 - Show explicit channel availability here when the list is still readable.
 - Reserve shortened availability summaries like `(many)` for broader browse/search views.
 
@@ -222,17 +229,20 @@ Robot:
 ```text
 `add` matches several commands.
 You may be looking for:
-- `lists/add` - `!add bananas to the groceries list`
-- `groups/add` - `!add alice to the deployers group`
-- `links/add` - `!add golang https://go.dev`
-- `links/save` - save a link, then add keywords interactively
+lists/add: `!add <item> to the <name> list` - add an item to a named list
+
+groups/add: `!add <user> to the <name> group` - add a user to a group
+
+links/add: `!add <name> <url>` - save a named link
+
+links/save: `!save <url>` - save a link and add keywords interactively
 More help: `!help add`
 Exact help: `!help <plugin>/<command>`
 ```
 
 Notes:
 - Group around the shared verb.
-- Prefer one practical example per command family.
+- Use the same address, usage, and summary line as every other multi-command help surface.
 
 ### Scenario 5: Phrase-shaped command with one plausible retry
 

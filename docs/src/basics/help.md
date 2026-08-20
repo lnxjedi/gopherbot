@@ -16,10 +16,21 @@ Help in v3 is tied more closely to command metadata:
 
 - `Usage`
 - `Summary`
+- optional multiline `Details`
 - `Examples`
 - `Keywords`
 
 That means users see help that is closer to the actual command surface rather than a detached block of prose.
+
+When more than one command matches, help shows one line per command:
+
+```text
+lists/list: `;list <name>` - list the contents of the <name> list
+```
+
+The `plugin/command` address is plain text, and a blank line separates each entry. The usage includes the robot's configured alias so it can be copied directly. Commands allowed or required in private use instead show the connector's private-command form when available. If a required-private command has no private-command transport, its alias form is marked `(direct message only)`.
+
+Use `help <plugin>/<command>` for full help. Full help shows the summary, usage, any options derived from `SimpleMatcher`, optional detailed documentation, examples, and availability. A search that finds only one command goes directly to that full view.
 
 ## Context-aware behavior
 
@@ -29,4 +40,5 @@ Help is filtered by the current channel or DM context, and where possible by wha
 
 - Use `commands` when you want to browse.
 - Use `help <keyword>` when you know roughly what you want.
+- Use `help <plugin>/<command>` when you want full help for one command.
 - Use `info` when you need operational details about the robot itself.

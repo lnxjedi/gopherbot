@@ -1,74 +1,85 @@
-#  Developing Integration Tests
+# Developing Integration Tests
 
-The current testing methodology for **Gopherbot** uses a special `test` protocol connector for sending test commands to the engine from various users in various channels, and then examining the responses and events generated. The tests themselves and test configurations are located in `/test`.
+Gopherbot's integration tests are YAML suites under
+`integration/suites/data/`. Each suite starts a real robot process with the
+`test` connector, sends messages as configured users and channels, and checks
+the resulting replies and engine events.
 
-## Building the special "testbot"
+Robot configurations and extension fixtures live under `test/`. A suite's
+`config_dir` selects one of those configurations.
 
-The **Gopherbot** `Makefile` includes a special "testbot" target that builds the robot with a modified version of the terminal connector:
+## Building and running suites
 
-```shell
-$ make testbot
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod vendor -tags 'netgo osusergo static_build test' -o gopherbot
-```
-
-## Developing Tests
-
-See the contents of `test/*_test.go` for the format of the tests. After any given exchange with the robot, pressing `<enter>` by itself gives the events generated. Here's an example session for developing the tests in `test/bot_integration_test.go:TestPrompting`:
+Build the runner and list the available suites:
 
 ```shell
-$ make testbot
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod vendor -tags 'netgo osusergo static_build test' -o gopherbot
-[gopherbot]$ cd test/membrain
-[membrain]$ ../../gopherbot 
-Terminal connector running; Type '|c?' to list channels, '|u?' to list users
-...
+make integration-build
+./gopherbot-integration list-suites
 ```
-## Debugging Deadlocks
 
-Occasionally locking changes in the core may result in deadlocks, which should hopefully be detected by the test suite. To assist in debugging these, the `SIGTERM` handler changes for the `test` build tag, causing the robot to perform a full stack dump and panic. Note that if an actual robot deadlocks, it should still accept an `abort` command from an administrator, which will trigger the same behavior.
-
-If `make test` hangs, you can trigger a stack dump with `<ctrl-c>`; here's an example where updated locking of the `botContext` struct introduced a deadlock in the `reload` command:
+Run one suite by name:
 
 ```shell
-$ make test
-...
-=== RUN   TestReload
-# Test hung here, <ctrl-c>
-goroutine 631 [running]:
-github.com/lnxjedi/gopherbot/bot.sigHandle(0xc0000a1f20)
-        /home/davidparsley/git/gopherbot/bot/signal_testing.go:24 +0x243
-created by github.com/lnxjedi/gopherbot/bot.run
-        /home/davidparsley/git/gopherbot/bot/bot_process.go:310 +0x3e4
-...
-goroutine 590 [semacquire]:
-sync.runtime_SemacquireMutex(0xc000358504, 0x900000000, 0x1)
-        /usr/local/go/src/runtime/sema.go:71 +0x47
-sync.(*Mutex).lockSlow(0xc000358500)
-        /usr/local/go/src/sync/mutex.go:138 +0x1c1
-sync.(*Mutex).Lock(0xc000358500)
-        /usr/local/go/src/sync/mutex.go:81 +0x7d
-github.com/lnxjedi/gopherbot/bot.Robot.getLockedContext(0xc00016e540, 0x81, 0x0)
-        /home/davidparsley/git/gopherbot/bot/robot.go:25 +0x4e
-github.com/lnxjedi/gopherbot/bot.Robot.Reply(0xc00016e540, 0x81, 0xbf0ee6, 0x23, 0x0, 0x0, 0x0, 0x0)
-        /home/davidparsley/git/gopherbot/bot/robot_connector_methods.go:212 +0x121
-github.com/lnxjedi/gopherbot/bot.admin(0xce2020, 0xc0001ff930, 0xc0000b6320, 0x6, 0xc0001fedb0, 0x0, 0x0, 0x0)
-        /home/davidparsley/git/gopherbot/bot/builtins.go:345 +0x16b2
-github.com/lnxjedi/gopherbot/bot.(*botContext).callTaskThread(0xc000358500, 0xc0003df6e0, 0xb0ef20, 0xc00012a180, 0xc0000b6320, 0x6, 0xc0001fedb0, 0x0, 0x0)
-        /home/davidparsley/git/gopherbot/bot/calltask.go:138 +0xb64
-created by github.com/lnxjedi/gopherbot/bot.(*botContext).callTask
-        /home/davidparsley/git/gopherbot/bot/calltask.go:75 +0xe8
-...
-panic: Tests terminated by signal terminated
-
-goroutine 631 [running]:
-github.com/lnxjedi/gopherbot/bot.sigHandle(0xc0000a1f20)
-        /home/davidparsley/git/gopherbot/bot/signal_testing.go:27 +0x37a
-created by github.com/lnxjedi/gopherbot/bot.run
-        /home/davidparsley/git/gopherbot/bot/bot_process.go:310 +0x3e4
-FAIL    github.com/lnxjedi/gopherbot/test       58.197s
-FAIL
-Makefile:52: recipe for target 'test' failed
-make: *** [test] Error 1
+./gopherbot-integration run-suite TestPrompting
 ```
 
-In this case the lock on the `botContext` was first aquired at the top of the admin `reload` built-in command, and then hung later when trying to acquire the lock in the robot `Reply` method.
+The selector may also be a glob, a comma-separated list, or metadata such as
+`subsystem:`, `tag:`, `runtime:`, or `tier:`. To run every suite:
+
+```shell
+./gopherbot-integration run-suite all
+```
+
+`make integration-run TEST=<selector>` is a convenient wrapper. The MCP-backed
+wrapper used by AI-assisted development is
+`make integration-mcp TEST=<selector>`.
+
+## Writing a suite
+
+Start with a nearby YAML suite that uses the same fixture configuration or
+runtime. A suite declares its name, metadata, `config_dir`, and cases. Each case
+provides an input message and may assert replies and engine events.
+
+For example:
+
+```yaml
+name: TestExample
+metadata:
+  subsystems:
+    - routing
+  tier: smoke
+config_dir: test/example
+cases:
+  - input:
+      user: alice
+      channel: general
+      text: ;ping
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: PONG
+    events:
+      - CommandTaskRan
+      - GoPluginRan
+```
+
+Keep expectations specific enough to prove the intended behavior without
+depending on unrelated presentation details. Run the focused suite before a
+broader selector.
+
+## Failure artifacts and timeouts
+
+Every run records a result, transcript, robot log, and runner log under
+`integration/runs/<run-id>/`. Read the compact failure summary first, then use
+the per-suite artifacts for diagnosis.
+
+Cases have a bounded timeout. Suite startup and shutdown are also bounded; on a
+hang, the runner saves a goroutine dump before terminating the suite process.
+This isolation prevents one stuck robot from blocking the remaining suites.
+
+## Interactive fixture development
+
+`make testbot` builds an interactive robot with the test-oriented terminal
+behavior. Run it from a fixture directory when developing configuration or
+reproducing an exchange manually. The automated source of truth remains the
+corresponding YAML suite.

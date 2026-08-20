@@ -847,8 +847,9 @@ Field semantics and authoring conventions:
 Built-in help commands are now metadata-driven:
 
 - `(alias) help <keyword>`: ranked command search
-- `(alias) commands`: command groups available in current channel
-- `(alias) help-all`: detailed command list including global commands
+- `(alias) commands`: one-line summaries for commands available in the current channel
+- `(alias) help-all`: one-line summaries including global commands
+- `(alias) help <plugin>/<command>`: full help for one command, including generated SimpleMatcher options and optional multiline `Details`
 
 Built-in unmatched-command fallback now returns algorithmic closest matches using the same command metadata and ranking logic.
 

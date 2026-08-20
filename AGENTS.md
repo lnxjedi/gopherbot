@@ -153,8 +153,7 @@ When integration coverage applies:
 
 1. Build helpers with `make mcp integration-build` when needed.
 2. Use the MCP `run_integration_suite` tool for a specific suite/selector with
-   live output disabled. Do not use direct `go test ./test` or
-   `make integration-legacy` unless the owner asks for the legacy harness.
+   live output disabled.
 3. Start with the compact result; inspect `result.json`, `runner.log`, or
    `robot.log` only as needed.
 4. Classify each failure as a regression or an intentional change with stale

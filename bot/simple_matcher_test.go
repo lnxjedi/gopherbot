@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"reflect"
 	"regexp"
 	"testing"
 )
@@ -742,6 +743,15 @@ func TestSimpleMatcherOptionsBlockPassesArgvStyleOptions(t *testing.T) {
 	for _, tc := range tests {
 		result := matcher.matchInput(tc.input)
 		assertInputMatchResult(t, result, inputExactMatch, tc.args, "")
+	}
+}
+
+func TestSimpleMatcherOptionGroupsPreserveMultipleBlocksAndDeduplicateRepeats(t *testing.T) {
+	spec := "cmd [-first:-a|-x:<token>] middle [-second:-b|-y:<number>] end [-first:-a|-x:<token>]"
+	groups := simpleMatcherOptionGroups(spec)
+	want := [][]string{{"-a", "-x:<token>"}, {"-b", "-y:<number>"}}
+	if !reflect.DeepEqual(groups, want) {
+		t.Fatalf("simpleMatcherOptionGroups() = %#v, want %#v", groups, want)
 	}
 }
 

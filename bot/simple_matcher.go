@@ -1286,6 +1286,36 @@ func (o simpleMatcherOptionsBlock) optionDisplays() []string {
 	return values
 }
 
+func simpleMatcherOptionGroups(spec string) [][]string {
+	matcher, err := compileSimpleMatcherObject(spec)
+	if err != nil || matcher == nil {
+		return nil
+	}
+	groups := make([][]string, 0, 1)
+	seen := make(map[string]struct{})
+	var collectExpr func(simpleMatcherExpr)
+	collectExpr = func(expr simpleMatcherExpr) {
+		for _, alternative := range expr.alternatives {
+			for _, term := range alternative.terms {
+				switch typed := term.(type) {
+				case simpleMatcherOptionsBlock:
+					options := typed.optionDisplays()
+					key := strings.Join(options, "\x00")
+					if _, ok := seen[key]; ok {
+						continue
+					}
+					seen[key] = struct{}{}
+					groups = append(groups, options)
+				case simpleMatcherGroup:
+					collectExpr(typed.expr)
+				}
+			}
+		}
+	}
+	collectExpr(matcher.expr)
+	return groups
+}
+
 func (s simpleMatcherSequence) literalValueAt(tokens []simpleMatcherToken, state simpleMatcherMatchState) (simpleMatcherMatchState, string, bool) {
 	parts := simpleMatcherSequenceLiteralParts(s)
 	return matchSimpleMatcherLiteralParts(tokens, state, parts)

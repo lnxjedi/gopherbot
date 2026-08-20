@@ -17,8 +17,8 @@ source alone.
 ## Process-backed integration
 
 The authoritative suites are YAML under `integration/suites/data/` and run in a
-real robot process. The Go tests under `test/` are a legacy compatibility
-harness.
+real robot process. Robot configurations and extension fixtures live under
+`test/`.
 
 For AI validation:
 
@@ -32,9 +32,7 @@ For AI validation:
    `runner.log`, `robot.log`, transcript, or timeout goroutine dump only when
    needed.
 
-`make integration-mcp TEST=<selector>` is the local wrapper. Do not use direct
-`go test ./test`, `make integration-legacy`, or `make integration-full` unless
-the owner explicitly requests the legacy harness.
+`make integration-mcp TEST=<selector>` is the local wrapper.
 
 Each suite has a case timeout (normally 14 seconds). A timeout hard-exits the
 suite after saving artifacts so the goroutine dump reflects the hang. A

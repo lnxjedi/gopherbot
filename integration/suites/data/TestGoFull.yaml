@@ -13,7 +13,6 @@ metadata:
   tier: full
 config_dir: test/gofull
 log_name: bottest.log
-full_gate: go
 cases:
   - input:
       user: alice

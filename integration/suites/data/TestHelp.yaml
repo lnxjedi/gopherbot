@@ -18,7 +18,7 @@ cases:
       text: ;help
     replies:
       - channel: deadzone
-        text_pattern: '(?s:Quick help.*- /bender help <keyword> - get help for the provided <keyword>.*- /bender help <keyword> brief - compact help for a likely command.*- /bender commands - browse plugins and command groups available in this channel.*- /bender help-all - help for all commands available in this channel, including global commands.*Plugin help: /bender help <plugin>.*Exact command help: /bender help <plugin>/<command>.*Browse this channel: /bender commands)'
+        text_pattern: '(?s:Quick help.*- /bender help <keyword> - get help for the provided <keyword>.*- /bender commands - browse commands available in this channel.*- /bender help-all - summarize all commands available in this channel, including global commands.*Plugin help: /bender help <plugin>.*Exact command help: /bender help <plugin>/<command>.*Browse this channel: /bender commands)'
         threaded: true
     events:
       - CommandTaskRan
@@ -29,7 +29,7 @@ cases:
       text: ;commands
     replies:
       - channel: deadzone
-        text_pattern: '(?s:Plugins and command groups available in this channel.*builtin-help.*Commands: builtin-help/commands.*Help: /bender help builtin-help or /bender help builtin-help/<command>.*Exact help: /bender help <plugin>/<command>.*Search by keyword: /bender help <plugin\|command\|keyword>)'
+        text_pattern: '(?s:Commands available in this channel.*bashdemo/hear.*;hear.*builtin-admin/encryptsecret.*/bender encrypt-secret <secret>.*builtin-help/commands.*/bender commands.*browse commands available.*builtin-help/help.*/bender help <keyword>.*find help for commands.*For full command help, use /bender help <plugin>/<command>)'
         threaded: true
     events:
       - CommandTaskRan
@@ -40,7 +40,7 @@ cases:
       text: ;help-all
     replies:
       - channel: deadzone
-        text_pattern: '(?s:Commands available in this channel \(including global\).*Command: builtin-help/help.*Usage: help <keyword>.*Exact help: /bender help builtin-help/help)'
+        text_pattern: '(?s:Commands available in this channel \(including global\).*builtin-help/help.*help <keyword>.*find help for commands.*For full command help, use /bender help <plugin>/<command>)'
         threaded: true
     events:
       - CommandTaskRan
@@ -51,7 +51,7 @@ cases:
       text: ;help help
     replies:
       - channel: deadzone
-        text_pattern: '(?s:Help for keyword: help.*Plugin help: help.*Commands:.*- help/help.*Example: ;help with robot.*More detail: /bender help help/help.*Other command matches:.*Command: builtin-help/help.*Exact help: /bender help builtin-help/help)'
+        text_pattern: '(?s:Command matches for keyword: help.*help/help.*help with robot.*give general help on the help system.*builtin-help/help.*help <keyword>.*find help for commands.*For full command help, use /bender help <plugin>/<command>)'
         threaded: true
     events:
       - CommandTaskRan
@@ -62,7 +62,7 @@ cases:
       text: ;help knock
     replies:
       - channel: deadzone
-        text_pattern: '(?s:Help for keyword: knock.*Plugin help: knock.*Commands:.*- knock/knock - Starts an interactive knock-knock joke\..*Example: ;tell me a knock-knock joke.*More detail: /bender help knock/knock)'
+        text_pattern: '(?s:Command help: knock/knock.*Summary: Starts an interactive knock-knock joke\..*Usage: tell me a knock-knock joke.*Examples:.*;tell me a knock-knock joke.*Availability:)'
         threaded: true
     events:
       - CommandTaskRan

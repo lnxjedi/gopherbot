@@ -166,12 +166,32 @@ These fields are accepted inside each `Commands` item:
 - `SimpleMatcher`: simplified matcher syntax
 - `Usage`: short usage text for help
 - `Summary`: one-sentence help summary
+- `Details`: optional multiline BasicMarkdown shown only in full command help
 - `Examples`: example invocations
 - `Keywords`: help search terms
 - `ChannelOnly`: match only normal channel messages, not threaded messages
 - `Contexts`: capture-group labels for short-term "it"/context memory
 
-`Usage`, `Summary`, `Examples`, and `Keywords` drive the v3 help system. They do not change matching behavior.
+`Usage`, `Summary`, `Details`, `Examples`, and `Keywords` drive the v3 help system. They do not change matching behavior. Keep `Usage` and `Summary` on one logical line; multi-command results render them as:
+
+```text
+plugin/command: `;usage` - summary
+```
+
+The canonical command address is plain text, and a blank line separates entries. The displayed usage is addressed with the configured alias, or with the connector's private-command syntax when the command allows private invocation. A required-private command without such transport retains its alias and adds `(direct message only)` before the summary.
+
+`Details` may contain multiple lines of BasicMarkdown. It appears without an added heading in full help for a single command, so it can contain whatever sections make sense for that command:
+
+```yaml
+Details: |
+  This command provisions a temporary console.
+
+  **Notes**
+
+  Existing consoles may be reused after confirmation.
+```
+
+When `SimpleMatcher` contains an options block, full help automatically lists the accepted option forms after `Usage`. `Details` should explain their meaning, interactions, or other behavior rather than restating the matcher grammar.
 
 ### Contexts
 
@@ -620,6 +640,7 @@ This index lists the top-level keys that have an effect in v3 plugin config.
 | `SimpleMatcher` | `Commands` only | Simplified directed-command matcher |
 | `Usage` | `Commands`, `MessageMatchers` | Help usage text |
 | `Summary` | `Commands`, `MessageMatchers` | Help summary |
+| `Details` | `Commands` | Optional multiline BasicMarkdown for full command help |
 | `Examples` | `Commands`, `MessageMatchers` | Help examples |
 | `Keywords` | `Commands`, `MessageMatchers` | Help search terms |
 | `Label` | `ReplyMatchers` | Reply matcher label |

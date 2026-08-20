@@ -39,3 +39,14 @@ cases:
       - CatchAllsRan
       - CatchAllTaskRan
       - GoPluginRan
+  - input:
+      user: alice
+      channel: general
+      text: ;commands
+    replies:
+      - channel: general
+        text_pattern: '(?s:builtin-admin/encryptsecret: ;encrypt-secret <secret> - \(direct message only\) encrypt a secret value)'
+        threaded: true
+    events:
+      - CommandTaskRan
+      - GoPluginRan

@@ -27,8 +27,10 @@ type helpMetadataEntry struct {
 	PluginName       string   `json:"plugin"`
 	Command          string   `json:"command"`
 	SimpleMatcher    string   `json:"-"`
+	SimpleMatchers   []string `json:"-"`
 	Usage            string   `json:"usage,omitempty"`
 	Summary          string   `json:"summary,omitempty"`
+	Details          string   `json:"details,omitempty"`
 	Examples         []string `json:"examples,omitempty"`
 	PrivateExamples  []string `json:"private_examples,omitempty"`
 	Keywords         []string `json:"keywords,omitempty"`
@@ -59,17 +61,20 @@ type helpMetadataResponse struct {
 }
 
 type fallbackAdviceEntry struct {
-	PluginName    string   `json:"plugin"`
-	Command       string   `json:"command"`
-	SimpleMatcher string   `json:"-"`
-	Usage         string   `json:"usage,omitempty"`
-	Summary       string   `json:"summary,omitempty"`
-	Examples      []string `json:"examples,omitempty"`
-	Keywords      []string `json:"keywords,omitempty"`
-	Channels      []string `json:"channels,omitempty"`
-	VisibleHere   bool     `json:"visible_here,omitempty"`
-	Score         int      `json:"score,omitempty"`
-	PluginSummary string   `json:"plugin_summary,omitempty"`
+	PluginName       string   `json:"plugin"`
+	Command          string   `json:"command"`
+	SimpleMatcher    string   `json:"-"`
+	Usage            string   `json:"usage,omitempty"`
+	Summary          string   `json:"summary,omitempty"`
+	Examples         []string `json:"examples,omitempty"`
+	Keywords         []string `json:"keywords,omitempty"`
+	Channels         []string `json:"channels,omitempty"`
+	PrivateOK        bool     `json:"private_ok,omitempty"`
+	PrivateRequired  bool     `json:"private_required,omitempty"`
+	PrivateSupported bool     `json:"private_supported,omitempty"`
+	VisibleHere      bool     `json:"visible_here,omitempty"`
+	Score            int      `json:"score,omitempty"`
+	PluginSummary    string   `json:"plugin_summary,omitempty"`
 }
 
 type fallbackAdviceResponse struct {
@@ -114,8 +119,10 @@ func (e helpMetadataEntry) toHelpCommandMetadata() helpCommandMetadata {
 		PluginName:       e.PluginName,
 		Command:          e.Command,
 		SimpleMatcher:    e.SimpleMatcher,
+		SimpleMatchers:   append([]string(nil), e.SimpleMatchers...),
 		Usage:            e.Usage,
 		Summary:          e.Summary,
+		Details:          e.Details,
 		Examples:         append([]string(nil), e.Examples...),
 		PrivateExamples:  append([]string(nil), e.PrivateExamples...),
 		Keywords:         append([]string(nil), e.Keywords...),
@@ -277,8 +284,12 @@ func (r Robot) collectHelpMetadata(query string) helpMetadataResponse {
 			if len(entry.SimpleMatcher) == 0 && len(strings.TrimSpace(matcher.SimpleMatcher)) > 0 {
 				entry.SimpleMatcher = strings.TrimSpace(matcher.SimpleMatcher)
 			}
+			entry.SimpleMatchers = appendUniqueStrings(entry.SimpleMatchers, matcher.SimpleMatcher)
 			if len(entry.Summary) == 0 && len(strings.TrimSpace(matcher.Summary)) > 0 {
 				entry.Summary = strings.TrimSpace(matcher.Summary)
+			}
+			if len(entry.Details) == 0 && len(strings.TrimSpace(matcher.Details)) > 0 {
+				entry.Details = strings.TrimSpace(matcher.Details)
 			}
 			if entry.PluginSummary == "" {
 				entry.PluginSummary = helpPluginSummary(task, matcher.Summary)
@@ -425,17 +436,20 @@ func (r Robot) collectFallbackAdvice(query string) fallbackAdviceResponse {
 
 func toFallbackAdviceEntry(entry helpMetadataEntry, score int) fallbackAdviceEntry {
 	return fallbackAdviceEntry{
-		PluginName:    entry.PluginName,
-		Command:       entry.Command,
-		SimpleMatcher: entry.SimpleMatcher,
-		Usage:         entry.Usage,
-		Summary:       entry.Summary,
-		Examples:      append([]string(nil), entry.Examples...),
-		Keywords:      append([]string(nil), entry.Keywords...),
-		Channels:      append([]string(nil), entry.Channels...),
-		VisibleHere:   entry.VisibleHere,
-		Score:         score,
-		PluginSummary: entry.PluginSummary,
+		PluginName:       entry.PluginName,
+		Command:          entry.Command,
+		SimpleMatcher:    entry.SimpleMatcher,
+		Usage:            entry.Usage,
+		Summary:          entry.Summary,
+		Examples:         append([]string(nil), entry.Examples...),
+		Keywords:         append([]string(nil), entry.Keywords...),
+		Channels:         append([]string(nil), entry.Channels...),
+		PrivateOK:        entry.PrivateOK,
+		PrivateRequired:  entry.PrivateRequired,
+		PrivateSupported: entry.PrivateSupported,
+		VisibleHere:      entry.VisibleHere,
+		Score:            score,
+		PluginSummary:    entry.PluginSummary,
 	}
 }
 
@@ -633,15 +647,11 @@ func (r Robot) buildDeterministicFallbackReply(advice fallbackAdviceResponse) st
 	}
 	renderFamilyOptions := func(entries []fallbackAdviceEntry) string {
 		lines := []string{"You may be looking for:"}
+		summaries := make([]helpCommandMetadata, 0, len(entries))
 		for _, entry := range entries {
-			line := "- " + formatHelpPath(entry)
-			if example := formatExample(entry); example != "" {
-				line += " - " + example
-			} else if summary := strings.TrimSpace(entry.Summary); summary != "" {
-				line += " - " + summary
-			}
-			lines = append(lines, line)
+			summaries = append(summaries, entry.toHelpCommandMetadata())
 		}
+		lines = append(lines, r.renderHelpSummaryLines(summaries)...)
 		return strings.Join(lines, "\n")
 	}
 	renderStrongSuggestion := func(entry fallbackAdviceEntry, includeAvailability bool) string {
@@ -798,14 +808,17 @@ func (r Robot) formatFallbackExampleForMode(entry fallbackAdviceEntry, mode, bot
 
 func (e fallbackAdviceEntry) toHelpCommandMetadata() helpCommandMetadata {
 	return helpCommandMetadata{
-		PluginName:    e.PluginName,
-		Command:       e.Command,
-		SimpleMatcher: e.SimpleMatcher,
-		Usage:         e.Usage,
-		Summary:       e.Summary,
-		Examples:      append([]string(nil), e.Examples...),
-		Keywords:      append([]string(nil), e.Keywords...),
-		PluginSummary: e.PluginSummary,
+		PluginName:       e.PluginName,
+		Command:          e.Command,
+		SimpleMatcher:    e.SimpleMatcher,
+		Usage:            e.Usage,
+		Summary:          e.Summary,
+		Examples:         append([]string(nil), e.Examples...),
+		Keywords:         append([]string(nil), e.Keywords...),
+		PrivateOK:        e.PrivateOK,
+		PrivateRequired:  e.PrivateRequired,
+		PrivateSupported: e.PrivateSupported,
+		PluginSummary:    e.PluginSummary,
 	}
 }
 
