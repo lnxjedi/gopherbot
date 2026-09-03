@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c6c6d349.js";
+            window.path_to_searchindex_js = "searchindex-67229e02.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b5ea2372.js"></script>
@@ -4354,6 +4354,10 @@ bot.Say(choice)
 <h1 id="upgrading-existing-robots"><a class="header" href="#upgrading-existing-robots">Upgrading Existing Robots</a></h1>
 <p>For v3, extension compatibility is a higher priority than configuration compatibility.</p>
 <p>That means many older plugins and jobs can keep working, while robot configuration often needs deliberate migration.</p>
+<p>Until the first public v3 release, this is a priority rather than a guarantee:
+extension APIs and operational behavior may still change when required to
+complete the v3 model. Intentional breaks should fail clearly and be documented
+in the root <code>UPGRADING-v3.md</code> migration guide and the Changelog.</p>
 <h2 id="highest-priority-migration-items"><a class="header" href="#highest-priority-migration-items">Highest-priority migration items</a></h2>
 <ol>
 <li>Move to <code>PrimaryProtocol</code> and optional <code>SecondaryProtocols</code>.</li>
