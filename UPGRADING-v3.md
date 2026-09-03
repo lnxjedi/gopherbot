@@ -3,7 +3,10 @@
 This guide describes user-facing config changes for robots moving from the old single-protocol model to v3 multi-protocol.
 
 Compatibility scope for this guide:
-- Existing plugin/job/task scripts are expected to keep working across v2 -> v3.
+- Existing plugin/job/task scripts should keep working where that does not
+  block the intended v3 model, but extension APIs are not frozen before the
+  first public v3 release. Any required break must fail clearly and be
+  documented here.
 - Configuration is expected to require migration as v3 architecture evolves.
 
 ## Quick Checklist

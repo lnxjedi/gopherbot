@@ -18,7 +18,7 @@ cases:
       text: ;help
     replies:
       - channel: deadzone
-        text_pattern: '(?s:Quick help.*- /bender help <keyword> - get help for the provided <keyword>.*- /bender commands - browse commands available in this channel.*- /bender help-all - summarize all commands available in this channel, including global commands.*Plugin help: /bender help <plugin>.*Exact command help: /bender help <plugin>/<command>.*Browse this channel: /bender commands)'
+        text_pattern: '(?s:Quick help.*- /bender help <keyword> - get help for the provided <keyword>.*- /bender commands - browse commands available in this channel.*- /bender help-all - summarize all commands available in this channel, including global commands.*Most browse and search results are terse, one-line summaries\..*For full command details, use /bender help <plugin>/<command>\..*Plugin help: /bender help <plugin>.*Exact command help: /bender help <plugin>/<command>.*Browse this channel: /bender commands)'
         threaded: true
     events:
       - CommandTaskRan

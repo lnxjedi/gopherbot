@@ -98,7 +98,7 @@ cases:
       text: help
     replies:
       - channel: general
-        text_pattern: (?s:Help.*Hi, I'm Bender, a staff robot\. I see you've asked for help\..*I've been programmed to perform a variety of tasks for your team.*Getting command help.*bender, help ping.*Useful discovery commands.*;help.*;commands.*;help <keyword>.*;help-all.*When I ask a follow-up question.*= uses the default value.*- cancels.*;info.*parsley@linuxjedi\.org.*)
+        text_pattern: (?s:Help.*Hi, I'm Bender, a staff robot\. I see you've asked for help\..*I've been programmed to perform a variety of tasks for your team.*Getting command help.*bender, help ping.*Useful discovery commands.*;help.*;commands.*;help <keyword>.*;help-all.*Most browse and search results are terse, one-line summaries\..*full usage, options, examples, and availability.*;help <plugin>/<command>.*When I ask a follow-up question.*= uses the default value.*- cancels.*;info.*parsley@linuxjedi\.org.*)
         threaded: true
     events:
       - AmbientTaskRan

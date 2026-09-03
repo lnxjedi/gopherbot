@@ -98,9 +98,13 @@ setuid and restore normal ownership.
 
 ## Compatibility and Documentation
 
-Follow `aidocs/V3_COMPATIBILITY_CONTRACT.md`. In short: preserve extension API
-and username-security behavior; preserve brain data where feasible; config
-schema migration is allowed only when explicit and documented.
+Follow `aidocs/V3_COMPATIBILITY_CONTRACT.md`. Before the first public v3
+release, configuration, extension APIs, and operational behavior may change
+when the change is intentional, bounded, and fully synchronized across source,
+defaults, skeleton, tests, user docs, migration guidance, and material
+Changelog entries. Preserve username-security invariants and brain data where
+feasible; publish the stricter public compatibility contract at the v3 release
+boundary.
 
 For every change to Gopherbot source, installed defaults, `robot.skel/`,
 shipped extensions, deployment assets, or user-visible CLI behavior, inspect

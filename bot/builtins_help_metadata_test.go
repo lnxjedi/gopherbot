@@ -643,6 +643,12 @@ func TestHelpUsesBasicMarkdownOutputFormat(t *testing.T) {
 	if !strings.Contains(fake.lastMessage, "**Quick help**") {
 		t.Fatalf("help() message missing quick help header: %q", fake.lastMessage)
 	}
+	if !strings.Contains(fake.lastMessage, "Most browse and search results are terse, one-line summaries.") {
+		t.Fatalf("help() message missing terse-help guidance: %q", fake.lastMessage)
+	}
+	if !strings.Contains(fake.lastMessage, "For full command details, use `!help <plugin>/<command>`.") {
+		t.Fatalf("help() message missing exact-help guidance: %q", fake.lastMessage)
+	}
 }
 
 func TestHelpEscapesMarkdownSensitiveAliasByUsingInlineCode(t *testing.T) {

@@ -52,13 +52,14 @@ at the v3 release boundary.
 AI work:
 
 1. Classify every imported page as keep, rewrite, merge, or remove.
-2. Map every page and known content gap to the approved north-star structure
-   and its DevOps operator journeys.
+2. Map every page to the approved north-star structure and its DevOps operator
+   journeys; resolve content and product-readiness gaps inside the applicable
+   later slice rather than maintaining a parallel checklist.
 3. Propose an extension to the target table of contents only when the corpus
    exposes a distinct user need that the greenfield design missed; the mere
    existence of a legacy page is not sufficient justification.
-4. Produce the final table of contents, move/redirect map, gap list, and
-   orphan/removal disposition without making broad content moves.
+4. Produce the final table of contents and clean move/removal disposition
+   without making broad content moves or creating transition stubs.
 5. Define a pre-cleanup tag before obsolete pages are deleted; do not maintain
    an active documentation archive merely because the imported files existed.
 
@@ -74,24 +75,90 @@ and before the onboarding documentation concern. It must establish the current
 supported onboarding contract before the manual presents a new-robot path as
 authoritative.
 
+### Phase 2.5A: Evidence census and configuration boundary
+
+AI work:
+
+1. Reconcile installed defaults, `robot.skel/`, onboarding extensions and
+   shared libraries, startup/configuration paths, focused tests, existing
+   onboarding design records, and every locally available Robot repository.
+   Synthesize repository evidence into neutral operational categories such as
+   production best practices, development patterns, or legacy migration cases;
+   never reproduce non-public source identities or secret values.
+2. Inventory launcher/private-file environment variables by authority:
+   unavoidable pre-configuration bootstrap or host controls; Robot behavior
+   that should move to environments plus variables/secrets files; and
+   engine-internal child handoff that is not user configuration.
+3. Default toward deprecating environment variables as Robot configuration.
+   Justify every retained public launcher variable, especially values needed
+   before `custom/` can be cloned or decrypted.
+4. Audit removed `decrypt` usage, obsolete setup stages and compatibility
+   branches, copied defaults, SSH key/passphrase remnants, and other pre-v3
+   onboarding cruft. Distinguish connector server host keys, git bootstrap
+   deploy credentials, user login public keys, and retired general-purpose
+   outbound Robot identities.
+
+### Phase 2.5B: Impact report and onboarding contract
+
 AI work:
 
 1. Produce the required Impact Surface Report for startup, configuration,
-   routing, identity, authorization, privacy, and privilege-separation effects.
-2. Reconcile installed defaults, `robot.skel/`, the `new-robot` setup plugin,
-   related startup/configuration paths, focused tests, and the existing
-   onboarding design records.
-3. Identify the supported first-run flow, its persisted state and restart
-   boundaries, and any migration or recovery requirements; bring conflicts to
-   the owner rather than resolving product policy implicitly.
-4. Implement the approved, bounded scaffold/setup-flow changes with focused
-   tests, required documentation updates, and owner-run onboarding validation.
+   routing, identity, authorization, privacy, secrets, bootstrap credentials,
+   privilege separation, migration, compatibility, and documentation.
+2. Propose the supported first-run flow, persisted state, restart boundaries,
+   recovery behavior, repository handoff, and the exact retained environment
+   variable boundary.
+3. Propose a locale-ready English message catalog for all user-facing
+   onboarding copy. Use stable semantic keys, explicit placeholders, and
+   paragraph/list structure; keep validation, matching, state transitions, and
+   security logic in code or authoritative configuration.
 
 Human gate:
 
-- Approve the proposed onboarding contract and any migration/security tradeoffs
-  before implementation; field-test the resulting first-run flow before its
-  documentation slice is accepted.
+- Approve the onboarding contract, environment-variable exceptions, migration
+  and security tradeoffs, and message-catalog shape before implementation.
+
+### Phase 2.5C: Scaffold and configuration migration
+
+AI work:
+
+1. Update installed defaults, `robot.skel/`, generated variables/secrets files,
+   provider files, and migration checks so new Robot configuration is
+   delta-only and environment-aware.
+2. Put stable Robot identity and other nonsecret Robot-owned values in
+   variables files; put environment-specific values in the corresponding
+   environment variables file; keep encrypted material in `Secrets`.
+3. Remove approved obsolete environment/configuration and SSH identity paths
+   with focused validation and explicit migration guidance.
+
+### Phase 2.5D: Flow, state, and message-catalog implementation
+
+AI work:
+
+1. Update the onboarding state machine, resume/recovery behavior, repository
+   handoff, and restart transitions to the approved contract.
+2. Move user-facing onboarding text into the approved English catalog, add
+   missing-key/placeholder validation, and preserve friendly pacing and
+   BasicMarkdown behavior.
+3. Present the catalog for owner voice editing without requiring logic changes.
+
+### Phase 2.5E: End-to-end validation and handoff
+
+AI work:
+
+1. Run focused unit and process-backed onboarding coverage, configuration and
+   documentation checks, clean-directory bootstrap, interrupted-session
+   recovery, and repository bootstrap validation.
+2. Recheck representative Robot configurations against the migration boundary
+   without changing those repositories implicitly; report only neutral
+   operational patterns.
+3. Update user documentation only after the supported flow is proven.
+
+Human gates:
+
+- Review/edit the English catalog for voice and clarity.
+- Field-test the complete first-run, restart, recovery, git handoff, and clean
+  bootstrap flow before the onboarding documentation concern is accepted.
 
 ## Phase 2.6: Extension-authoring and OAuth readiness
 

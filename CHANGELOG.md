@@ -4,11 +4,13 @@ Gopherbot v2.99.0 starts the pre-v3 pilot series. The v3 architecture work is
 now substantially complete, and this release is intended for real robots that
 can validate the new model before the final v3.0.0 tag.
 
-The goal for the rest of the pre-v3 series is stability: no new
-robot-breaking changes before v3 unless pilot testing uncovers a critical
-defect that cannot be fixed any other way. Existing custom extension code is
-expected to remain compatible across the v2 -> v3 transition, while robot
-configuration is the migration boundary.
+The goal for the rest of the pre-v3 series is convergence on a coherent,
+secure v3 design, not a compatibility freeze. Configuration, extension APIs,
+and operational behavior may still change before the first public v3 release.
+Existing custom extension code should remain compatible where that does not
+block the intended v3 model. Intentional changes must keep source, defaults,
+the Robot skeleton, tests, user documentation, migration guidance, and
+material Changelog entries aligned.
 
 For migration details, see [`UPGRADING-v3.md`](UPGRADING-v3.md).
 
@@ -18,8 +20,9 @@ The v3 line makes Gopherbot a more self-contained automation framework with a
 clearer internal model and less dependence on external tools. The main
 compatibility stance is:
 
-* Custom plugins, jobs, and tasks written against the Robot API should continue
-  to run without API-signature churn.
+* Avoid unnecessary API-signature churn for custom plugins, jobs, and tasks,
+  while allowing explicit, documented pre-release changes needed by the v3
+  model.
 * Username-based authorization and admin semantics remain the security
   authority.
 * Persistent brain compatibility is preserved where feasible.

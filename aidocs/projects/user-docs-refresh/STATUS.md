@@ -1,21 +1,26 @@
 # User Documentation Refresh Status
 
-Last updated: 2026-08-17
+Last updated: 2026-09-01
 
 This is the authoritative resume point for the active project. Verify it
 against `git status` before acting, then update it at the next handoff.
 
 ## Current position
 
-- Phase: 2A — Greenfield information architecture
-- State: North-star proposal revised from owner feedback, including the OAuth
-  setup/runtime boundary; final approval pending
-- Next owner: Human
-- Next action: approve the revised `NORTH_STAR_TOC.md` or identify any final
-  correction before the pre-v3 policy update and Phase 2B reconciliation
+- Phase: 2.5 — New-Robot scaffold and setup-flow reconciliation
+- State: Phase 2B approved; Phase 2.5A evidence census complete; Phase 2.5B
+  Impact Surface Report and onboarding contract proposed; owner approval
+  pending before implementation
+- Next owner: human
+- Next action: review and approve or revise the nine decisions in the owner
+  acceptance gate of `PHASE_2_5B_IMPACT_AND_CONTRACT.md`
 - Recommended model/reasoning: GPT-5.6 Sol, high
-- Blocking condition: owner approval of the north-star structure is required
-  before Phase 2B corpus reconciliation
+- Blocking condition: Phase 2.5B human approval is required before implementing
+  cross-cutting onboarding changes
+
+The owner approved the revised `NORTH_STAR_TOC.md` on 2026-08-31 as the
+starting structure for the epic, with the expectation that justified changes
+may emerge during later evidence gathering and field testing.
 
 Gate 1 correction during review: the checklist now uses
 `api/API-Introduction.html` to test internal links. `api/Pipeline-API.html` has
@@ -41,6 +46,24 @@ Gate 1 was approved by the owner on 2026-08-17 after the correction.
    Chat setup guides.
 10. Removed the old repository's Pages-publishing workflow and redirected its
     README to the main repository's `docs/` source.
+11. Recorded the approved pre-v3 development boundary in
+    `aidocs/V3_COMPATIBILITY_CONTRACT.md` and synchronized the root AI policy,
+    roadmap, Changelog, migration guide, and user upgrading page.
+12. Classified all 128 Markdown sources: 16 keep, 35 rewrite, 42 merge, and 35
+    remove, with no missing or duplicate corpus entries.
+13. Produced the concrete final source-tree proposal, complete disposition
+    matrix, move/removal policy, and Phase 2B owner questions in
+    `PHASE_2B_RECONCILIATION.md`.
+14. Received Phase 2B owner approval for the target tree and page dispositions;
+    selected clean moves without transition stubs and concern-local handling of
+    product-readiness gaps.
+15. Completed the Phase 2.5A source/configuration census across startup,
+    installed defaults, scaffold/onboarding code and tests, deployment helpers,
+    and all seven locally available Robot configuration trees; recorded only
+    anonymous operational patterns in `PHASE_2_5A_EVIDENCE.md`.
+16. Produced the Phase 2.5B Impact Surface Report and proposed exact
+    first-run, launcher, state, recovery, repository, credential, and English
+    message-catalog contract in `PHASE_2_5B_IMPACT_AND_CONTRACT.md`.
 
 The approved main-repository Phase 1 work is committed and pushed as
 `0efdc6b6` (`Start process of moving gopherbot-doc to docs/`). The old
@@ -67,6 +90,12 @@ Passing locally:
   workflow and development-container references to the old checkout are absent
 - GitHub-hosted main-repository Pages workflow execution after cutover, with
   the manual served at the preserved URL
+- Phase 2B matrix comparison against the current `docs/src/**/*.md` corpus:
+  128 rows for 128 sources, with no missing, extra, or duplicate paths
+- focused Phase 2.5A tests:
+  `go test ./bot ./jobs/go-resume-setup ./jobs/go-welcome-join`
+- onboarding library tests from the separate `lib/` module:
+  `GOWORK=off go test ./...`
 
 Not yet run; defer to the cutover/merge workflow unless scope changes:
 
@@ -88,9 +117,9 @@ before following the next action.
 
 `NORTH_STAR_TOC.md` proposes the manual that should exist if the imported
 corpus did not constrain its structure. It deliberately precedes page-level
-classification. After owner approval, Phase 2B will map the corpus and gaps to
-that target, propose justified extensions if necessary, and produce the final
-move/redirect and disposition map.
+classification. The owner approved it on 2026-08-31, after which Phase 2B
+mapped the corpus and gaps to that target and produced the proposed final
+move/removal and disposition map.
 
 The latest Phase 2A correction records that provider-specific OAuth setup may
 be complex and plugin-owned, but must converge on generic configuration and
@@ -98,13 +127,51 @@ secure long-lived credential storage. Runtime extensions obtain short-lived
 credentials through the provider-neutral Robot API and do not own that setup
 complexity.
 
-## Next human task: North-star TOC gate
+## Phase 2B result
 
-Review the revised navigation and accepted decisions in `NORTH_STAR_TOC.md`.
-Approve it as written or identify a final correction. No existing pages will
-be classified or moved until this gate is resolved. After approval, AI first
-records the relaxed pre-v3 compatibility contract, then begins Phase 2B corpus
-reconciliation.
+The approved north-star structure survived corpus reconciliation without a
+proposed top-level extension. The corpus exposes substantial content and
+product-readiness gaps, but no distinct user journey or operational concern
+missing from the Phase 2A spine.
+
+`PHASE_2B_RECONCILIATION.md` expresses the north-star structure as concrete
+target paths, classifies every imported Markdown source, and defines the
+approved clean-move and removal treatment. Product-readiness gaps are handled
+inside their applicable planned slices rather than through a separate list.
+
+The owner approved the reconciliation on 2026-08-31.
+
+## Phase 2.5A result
+
+`PHASE_2_5A_EVIDENCE.md` establishes the source truth for the new-Robot path.
+It records `.env` as the supported bootstrap baseline, preserves
+`GOPHER_ENVIRONMENT` as a legitimate per-invocation selector, classifies the
+remaining launcher and engine-owned environment surfaces, distinguishes all
+SSH credential roles, and inventories scaffold/state/recovery gaps.
+
+The anonymous real-Robot comparison found seven available config trees: five
+use named identity variables, none yet use per-environment variables files,
+and no active removed decrypt template remains. Optional outbound SSH
+identities still exist in production automation, but are not core onboarding
+requirements.
+
+## Phase 2.5B proposal
+
+`PHASE_2_5B_IMPACT_AND_CONTRACT.md` proposes:
+
+1. a private, validated-admin, single-owner conversation;
+2. non-destructive preflight and recovery;
+3. two restart boundaries, with remote branch/commit verification before the
+   configured restart;
+4. a five-name public launcher contract;
+5. version-5 single-session state with bounded version-4 migration;
+6. no copied custom resume hook;
+7. explicit separation of connector, human, deploy, encryption, and optional
+   outbound SSH credential roles; and
+8. a strict locale-ready English YAML message catalog.
+
+The owner now approves or revises the proposal's nine-decision acceptance gate.
+Phase 2.5C implementation must not begin before that handoff.
 
 Phase 1 cutover work completed:
 

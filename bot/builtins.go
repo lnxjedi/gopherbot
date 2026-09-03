@@ -1434,11 +1434,14 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 			if len(defaultHelpLines) == 0 {
 				defaultHelpLines = defaultHelp()
 			}
-			lines := make([]string, 0, len(defaultHelpLines)+2)
+			lines := make([]string, 0, len(defaultHelpLines)+4)
 			lines = append(lines, "**Quick help**")
 			for _, line := range defaultHelpLines {
 				lines = append(lines, r.formatSuggestedHelpLine(line))
 			}
+			lines = append(lines, "")
+			lines = append(lines, "Most browse and search results are terse, one-line summaries.")
+			lines = append(lines, "For full command details, use "+r.formatInlineSuggestedCommand("(alias) help <plugin>/<command>")+".")
 			lines = append(lines, "")
 			lines = append(lines, "**Plugin help:** "+r.formatInlineSuggestedCommand("(alias) help <plugin>"))
 			lines = append(lines, "**Exact command help:** "+r.formatInlineSuggestedCommand("(alias) help <plugin>/<command>"))

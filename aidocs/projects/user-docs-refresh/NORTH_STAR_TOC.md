@@ -1,7 +1,8 @@
 # Ideal North-Star Table of Contents
 
-Status: revised Phase 2A proposal for owner approval. This is a greenfield
-target, not a rearrangement of the imported manual.
+Status: approved by the owner on 2026-08-31 as the Phase 2A starting structure.
+This is a greenfield target, not a rearrangement of the imported manual;
+evidence gathering and field testing may justify changes during later phases.
 
 ## Design premise
 
@@ -280,9 +281,9 @@ deleted rather than retained in active documentation or an archive section.
     provider validation is required before the model is taught as
     production-ready.
 
-## Phase 2A approval question
+## Phase 2A approval
 
-Does this revised navigation spine capture the approved product story strongly
-enough to begin the pre-v3 policy update and corpus reconciliation? Phase 2B
-may propose an extension only when a genuine user journey or operational
-concern is missing; legacy page existence alone is not justification.
+The owner approved this navigation spine on 2026-08-31 as the starting point
+for the pre-v3 policy update and corpus reconciliation. Phase 2B may propose an
+extension only when a genuine user journey or operational concern is missing;
+legacy page existence alone is not justification.

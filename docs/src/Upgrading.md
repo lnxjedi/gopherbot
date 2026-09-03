@@ -4,6 +4,11 @@ For v3, extension compatibility is a higher priority than configuration compatib
 
 That means many older plugins and jobs can keep working, while robot configuration often needs deliberate migration.
 
+Until the first public v3 release, this is a priority rather than a guarantee:
+extension APIs and operational behavior may still change when required to
+complete the v3 model. Intentional breaks should fail clearly and be documented
+in the root `UPGRADING-v3.md` migration guide and the Changelog.
+
 ## Highest-priority migration items
 
 1. Move to `PrimaryProtocol` and optional `SecondaryProtocols`.

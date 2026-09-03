@@ -94,6 +94,13 @@ javascript, so not implemented.
 ### Backward Compatibility with v2 Custom Extensions, but Not Configuration
 To the greatest extent possible, custom extensions written to the robot API from v2 should continue to function unmodified. To support greater functionality, `robot.yaml` and other configuration will be changed, no longer supporting v2 configuration syntax. `UPGRADING-v3.md` will be the definitive guide for upgrading v2 robots to v3 robots.
 
+This is a design priority, not a pre-release compatibility freeze. Until the
+first public v3 release, extension APIs and operational behavior may also
+change when required to complete the v3 model. Such changes must be explicit,
+tested, and synchronized with defaults, the Robot skeleton, user docs,
+migration guidance, and material Changelog entries. The released v3 line will
+define a stricter public compatibility contract.
+
 ### Multi-Protocol Support and a Common Outgoing Message Format
 Gopherbot v3 will support multiple simultaneous chat protocols, and will support more team chat platforms.
 

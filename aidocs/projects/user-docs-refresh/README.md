@@ -41,12 +41,22 @@ See `PLAN.md` for the staged workflow, `NORTH_STAR_TOC.md` for the greenfield
 manual proposal, `INVENTORY.md` for the research baseline and known conflicts,
 `IMPORT_VALIDATION.md` for the mechanical handoff record, and
 `REVIEW_GATE_1.md` for the completed mechanical review.
+`PHASE_2B_RECONCILIATION.md` contains the approved final source tree, complete
+page disposition matrix, and clean-move/removal policy.
+`PHASE_2_5A_EVIDENCE.md` records the source/configuration census for the
+new-Robot scaffold and onboarding contract without identifying private source
+repositories.
+`PHASE_2_5B_IMPACT_AND_CONTRACT.md` contains the proposed cross-cutting impact
+report and the exact owner-approval gate before implementation.
 
 ## Current stage
 
-Phase 1 is complete. Phase 2A has produced a greenfield north-star table of
-contents and is waiting for owner discussion and approval before the imported
-corpus is classified or allowed to alter the target structure.
+Phase 1 is complete. The owner approved the Phase 2A greenfield north-star
+table of contents on 2026-08-31. The pre-v3 compatibility policy is updated,
+and the owner approved the Phase 2B corpus reconciliation on 2026-08-31. Phase
+2.5A established the new-Robot evidence baseline, and 2.5B proposes the impact
+surface and supported contract. The project is waiting for owner approval of
+that contract before implementation.
 
 ## Exit criteria
 
