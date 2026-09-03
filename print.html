@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-67229e02.js";
+            window.path_to_searchindex_js = "searchindex-f528795f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b5ea2372.js"></script>
@@ -3913,6 +3913,10 @@ end
 </ul>
 <p>Use long-term memory for persistent state such as deployment records, saved lists, or structured workflow state. Read-write checkouts are intentionally short-lived. If you need to coordinate longer work, combine long-term memory with <code>Exclusive(...)</code>.</p>
 <p>Long-term memory helpers are not available in the Bash binding.</p>
+<p>JavaScript datums must contain JSON-compatible values: <code>null</code>, booleans,
+strings, finite numbers, arrays, and ordinary string-keyed objects. Unsupported
+values, sparse arrays, and cycles make <code>UpdateDatum</code> return <code>DataFormatError</code>;
+the engine logs the failing data path without logging the datum value.</p>
 <h3 id="go-3"><a class="header" href="#go-3">Go</a></h3>
 <pre><code class="language-go">type DeployState struct {
     Version string `json:"version"`
