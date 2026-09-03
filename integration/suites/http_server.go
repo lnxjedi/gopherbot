@@ -18,6 +18,7 @@ func withTestHTTPServer() (func(), error) {
 		}
 		writeJSON(w, map[string]interface{}{
 			"method": r.Method,
+			"items":  []interface{}{"one"},
 		})
 	})
 	mux.HandleFunc("/json/post", func(w http.ResponseWriter, r *http.Request) {

@@ -116,12 +116,15 @@ func (jr *jsBot) botUpdateDatum(call goja.FunctionCall) goja.Value {
 	// Convert the JS 'datum' back into Go
 	goDatum, err := parseJSValueToGo(datumVal)
 	if err != nil {
-		jr.ctx.l.Log(robot.Error, fmt.Sprintf("Error serializing JS object for key '%s': %v", keyStr, err))
+		jr.log(robot.Error, fmt.Sprintf("UpdateDatum rejected datum for key %q: %v", keyStr, err))
 		return jr.ctx.vm.ToValue(int(robot.DataFormatError))
 	}
 
 	// Call the underlying Go method
 	retVal := jr.r.UpdateDatum(keyStr, tokenStr, goDatum)
+	if retVal != robot.Ok {
+		jr.log(robot.Error, fmt.Sprintf("UpdateDatum failed for key %q: %s", keyStr, retVal.String()))
+	}
 	return jr.ctx.vm.ToValue(int(retVal))
 }
 
@@ -166,19 +169,4 @@ func (jr *jsBot) botDeleteDatum(call goja.FunctionCall) goja.Value {
 	}
 	retVal := jr.r.DeleteDatum(key)
 	return jr.ctx.vm.ToValue(int(retVal))
-}
-
-// parseGoValueToJS converts a Go interface{} into a goja.Value. If you have cyclical
-// data structures, you’d need extra checks. For now, we just do a naive approach.
-func parseGoValueToJS(rt *goja.Runtime, data interface{}) (goja.Value, error) {
-	// For many use cases, simply rt.ToValue(...) is enough.
-	val := rt.ToValue(data)
-	return val, nil
-}
-
-// parseJSValueToGo converts a goja.Value into an interface{} suitable for JSON
-// serialization. If you expect complex objects or cyclical references from JS,
-// you’d need specialized logic. Here we assume no cycles or functions to store.
-func parseJSValueToGo(v goja.Value) (interface{}, error) {
-	return v.Export(), nil
 }

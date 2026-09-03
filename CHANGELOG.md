@@ -116,6 +116,10 @@ Highlights:
   cover core Robot API behavior, messaging, prompting, memory, HTTP, and
   admin/failure surfaces.
 * JS and Lua synchronous `require("http")` support is available for extension authors.
+* JavaScript brain datums, task configuration, and parsed HTTP JSON now use
+  native JavaScript objects and arrays. `UpdateDatum` rejects cycles and
+  non-JSON values with `DataFormatError` and logs the failing path, preventing
+  silent loss or corruption when extensions resize persisted nested arrays.
 * The v3 policy remains that the parent engine owns process execution,
   routing, authorization, elevation, parameter resolution, and secret scoping.
   Lua and JavaScript do not gain a broad subprocess escape hatch.

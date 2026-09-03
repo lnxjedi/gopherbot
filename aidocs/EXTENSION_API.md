@@ -16,6 +16,11 @@ compatibility adapters, not independent specifications.
   same-task read-after-write is not the compatibility contract.
 - `RaisePriv` is intentionally absent. Privilege is fixed at child/pipeline
   boundaries.
+- JSON-shaped values returned to JavaScript extensions are native JavaScript
+  objects and arrays, not Go-backed host objects. JavaScript datum updates use
+  a strict JSON boundary: unsupported values and cycles return
+  `DataFormatError`, with diagnostics that identify the failing path without
+  logging datum contents.
 
 ## Command help metadata
 

@@ -222,7 +222,9 @@ func (m *jsHTTPModule) responseObject(resp *http.Response, body []byte) goja.Val
 	if isJSONContentType(contentType) {
 		var parsed interface{}
 		if err := json.Unmarshal(body, &parsed); err == nil {
-			jsonValue = m.vm.ToValue(parsed)
+			if converted, convertErr := parseGoValueToJS(m.vm, parsed); convertErr == nil {
+				jsonValue = converted
+			}
 		}
 	}
 	_ = obj.Set("json", jsonValue)

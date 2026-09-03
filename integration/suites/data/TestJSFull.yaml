@@ -90,6 +90,8 @@ cases:
       text: ;js-config
     replies:
       - channel: general
+        text_pattern: 'CONFIG ARRAY: push=3 length=3'
+      - channel: general
         text_pattern: Not completely random.*
     events:
       - CommandTaskRan
@@ -101,6 +103,8 @@ cases:
     replies:
       - channel: general
         text_pattern: 'HTTP GET ok: GET'
+      - channel: general
+        text_pattern: 'HTTP GET array: one,two'
       - channel: general
         text_pattern: 'HTTP POST ok: alpha'
       - channel: general
@@ -294,6 +298,46 @@ cases:
     replies:
       - channel: general
         text_pattern: 'MEMORY DATUM CHECK: mission=opal-orbit vehicle=heron-7 status=go'
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;js-memory-datum-array-seed
+    replies:
+      - channel: general
+        text_pattern: 'MEMORY DATUM ARRAY SEED: update=Ok'
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;js-memory-datum-array-mutate
+    replies:
+      - channel: general
+        text_pattern: 'MEMORY DATUM ARRAY MUTATE: push=2 removed=one length=1 item=two nested=a,b counter=2 update=Ok'
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;js-memory-datum-array-check
+    replies:
+      - channel: general
+        text_pattern: 'MEMORY DATUM ARRAY CHECK: length=1 item=two nested=a,b counter=2'
+    events:
+      - CommandTaskRan
+      - ExternalTaskRan
+  - input:
+      user: alice
+      channel: general
+      text: ;js-memory-datum-invalid
+    replies:
+      - channel: general
+        text_pattern: 'MEMORY DATUM INVALID: update=DataFormatError'
     events:
       - CommandTaskRan
       - ExternalTaskRan

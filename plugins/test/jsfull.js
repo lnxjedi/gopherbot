@@ -28,6 +28,14 @@ Commands:
   Command: memorydatumseed
 - Regex: (?i:js-memory-datum-check)
   Command: memorydatumcheck
+- Regex: (?i:js-memory-datum-array-seed)
+  Command: memorydatumarrayseed
+- Regex: (?i:js-memory-datum-array-mutate)
+  Command: memorydatumarraymutate
+- Regex: (?i:js-memory-datum-array-check)
+  Command: memorydatumarraycheck
+- Regex: (?i:js-memory-datum-invalid)
+  Command: memorydatuminvalid
 - Regex: (?i:js-memory-datum-checkin)
   Command: memorydatumcheckin
 - Regex: (?i:js-memory-datum-delete)
@@ -105,6 +113,8 @@ function handler(argv) {
           return task.Fail;
         }
         const openings = cfg.config.Openings || [];
+        const pushResult = openings.push("Not completely random 3");
+        bot.Say(`CONFIG ARRAY: push=${pushResult} length=${cfg.config.Openings.length}`);
         bot.Say(bot.RandomString(openings));
         return task.Normal;
       }
@@ -140,7 +150,9 @@ function handler(argv) {
           return response.json;
         }
         const getRes = requestJSON("GET", "/json/get", { timeout: "5s" });
+        getRes.items.push("two");
         bot.Say(`HTTP GET ok: ${getRes.method}`);
+        bot.Say(`HTTP GET array: ${getRes.items.join(",")}`);
         const postRes = requestJSON("POST", "/json/post", { timeout: "5s" }, { value: "alpha" });
         bot.Say(`HTTP POST ok: ${postRes.value}`);
         const putRes = requestJSON("PUT", "/json/put", { timeout: "5s" }, { value: "bravo" });
@@ -292,6 +304,73 @@ function handler(argv) {
           `MEMORY DATUM CHECK: mission=${showMemory(d.mission)} vehicle=${showMemory(d.vehicle)} status=${showMemory(d.status)}`
         );
         return task.Normal;
+      }
+    case 'memorydatumarrayseed':
+      {
+        const bot = new Robot();
+        const out = bot.CheckoutDatum("array_manifest", true);
+        if (out.retVal !== ret.Ok) {
+          bot.Say(`MEMORY DATUM ARRAY SEED FAILED: ${ret.string(out.retVal)}`);
+          return task.Fail;
+        }
+        out.datum = {
+          counter: 1,
+          items: [{ id: "one" }],
+          nested: { values: ["a"] },
+        };
+        const upd = bot.UpdateDatum(out);
+        bot.Say(`MEMORY DATUM ARRAY SEED: update=${ret.string(upd)}`);
+        return upd === ret.Ok ? task.Normal : task.Fail;
+      }
+    case 'memorydatumarraymutate':
+      {
+        const bot = new Robot();
+        const out = bot.CheckoutDatum("array_manifest", true);
+        if (out.retVal !== ret.Ok || !out.exists) {
+          bot.Say(`MEMORY DATUM ARRAY MUTATE FAILED: ${ret.string(out.retVal)}`);
+          return task.Fail;
+        }
+        const pushResult = out.datum.items.push({ id: "two" });
+        const removed = out.datum.items.splice(0, 1);
+        out.datum.nested.values.push("b");
+        out.datum.counter += 1;
+        const upd = bot.UpdateDatum(out);
+        bot.Say(
+          `MEMORY DATUM ARRAY MUTATE: push=${pushResult} removed=${removed[0].id} ` +
+          `length=${out.datum.items.length} item=${out.datum.items[0].id} ` +
+          `nested=${out.datum.nested.values.join(",")} counter=${out.datum.counter} ` +
+          `update=${ret.string(upd)}`
+        );
+        return upd === ret.Ok ? task.Normal : task.Fail;
+      }
+    case 'memorydatumarraycheck':
+      {
+        const bot = new Robot();
+        const out = bot.CheckoutDatum("array_manifest", false);
+        if (out.retVal !== ret.Ok || !out.exists) {
+          bot.Say(`MEMORY DATUM ARRAY CHECK FAILED: ${ret.string(out.retVal)}`);
+          return task.Fail;
+        }
+        bot.Say(
+          `MEMORY DATUM ARRAY CHECK: length=${out.datum.items.length} ` +
+          `item=${out.datum.items[0].id} nested=${out.datum.nested.values.join(",")} ` +
+          `counter=${out.datum.counter}`
+        );
+        return task.Normal;
+      }
+    case 'memorydatuminvalid':
+      {
+        const bot = new Robot();
+        const out = bot.CheckoutDatum("invalid_manifest", true);
+        if (out.retVal !== ret.Ok) {
+          bot.Say(`MEMORY DATUM INVALID FAILED: ${ret.string(out.retVal)}`);
+          return task.Fail;
+        }
+        out.datum = { valid: true, unsupported: undefined };
+        const upd = bot.UpdateDatum(out);
+        bot.CheckinDatum(out);
+        bot.Say(`MEMORY DATUM INVALID: update=${ret.string(upd)}`);
+        return upd === ret.DataFormatError ? task.Normal : task.Fail;
       }
     case 'memorydatumcheckin':
       {

@@ -20,6 +20,11 @@ Use long-term memory for persistent state such as deployment records, saved list
 
 Long-term memory helpers are not available in the Bash binding.
 
+JavaScript datums must contain JSON-compatible values: `null`, booleans,
+strings, finite numbers, arrays, and ordinary string-keyed objects. Unsupported
+values, sparse arrays, and cycles make `UpdateDatum` return `DataFormatError`;
+the engine logs the failing data path without logging the datum value.
+
 ### Go
 ```go
 type DeployState struct {
