@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-f528795f.js";
+            window.path_to_searchindex_js = "../searchindex-f5186057.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b5ea2372.js"></script>
@@ -178,6 +178,7 @@
 <p>Gopherbot ships with a small set of useful stock tasks. Common examples include:</p>
 <ul>
 <li><code>send-message</code></li>
+<li><code>notify-admins</code></li>
 <li><code>restart-robot</code></li>
 <li><code>robot-quit</code></li>
 <li><code>pause</code></li>
@@ -191,6 +192,13 @@
 <li><code>email-log</code></li>
 </ul>
 <p>These tasks are useful both directly and as examples of how the pipeline model is meant to be used.</p>
+<h2 id="notify-admins"><a class="header" href="#notify-admins"><code>notify-admins</code></a></h2>
+<p>Usage: <code>AddTask notify-admins &lt;message&gt; (...)</code></p>
+<p>Sends the message as a direct message to every canonical username in
+<code>AdminUsers</code>. The task attempts every administrator and fails if any delivery
+fails. It is privileged in the installed defaults, so only privileged
+pipelines can add it unless custom <code>GoTasks</code> configuration explicitly
+overrides that setting.</p>
 
                     </main>
 

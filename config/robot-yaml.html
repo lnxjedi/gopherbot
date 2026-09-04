@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-f528795f.js";
+            window.path_to_searchindex_js = "../searchindex-f5186057.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b5ea2372.js"></script>
@@ -614,6 +614,12 @@ ScheduledJobs:
     Description: Prepare SSH agent state
 </code></pre>
 <p>Go task entries pass through even when disabled because compiled tasks are enabled by default and may need an explicit <code>Disabled: true</code>.</p>
+<p>Compiled tasks use the privilege requirement registered by the engine when
+<code>Privileged</code> is omitted. Set <code>Privileged</code> explicitly to override that default.
+For example, the installed <code>notify-admins</code> task is privileged by default so
+only an already-privileged pipeline can add it; a custom robot may intentionally
+set <code>GoTasks.notify-admins.Privileged: false</code> to allow unprivileged pipelines to
+add it.</p>
 <h3 id="namespaces"><a class="header" href="#namespaces">NameSpaces</a></h3>
 <p>Optional.</p>
 <p><code>NameSpaces</code> declares shared namespaces for memory and parameters.</p>

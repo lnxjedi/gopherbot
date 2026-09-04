@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f528795f.js";
+            window.path_to_searchindex_js = "searchindex-f5186057.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b5ea2372.js"></script>
@@ -1512,6 +1512,7 @@ model with a fixture-backed Robot API; see
 <p>Gopherbot ships with a small set of useful stock tasks. Common examples include:</p>
 <ul>
 <li><code>send-message</code></li>
+<li><code>notify-admins</code></li>
 <li><code>restart-robot</code></li>
 <li><code>robot-quit</code></li>
 <li><code>pause</code></li>
@@ -1525,6 +1526,13 @@ model with a fixture-backed Robot API; see
 <li><code>email-log</code></li>
 </ul>
 <p>These tasks are useful both directly and as examples of how the pipeline model is meant to be used.</p>
+<h2 id="notify-admins"><a class="header" href="#notify-admins"><code>notify-admins</code></a></h2>
+<p>Usage: <code>AddTask notify-admins &lt;message&gt; (...)</code></p>
+<p>Sends the message as a direct message to every canonical username in
+<code>AdminUsers</code>. The task attempts every administrator and fails if any delivery
+fails. It is privileged in the installed defaults, so only privileged
+pipelines can add it unless custom <code>GoTasks</code> configuration explicitly
+overrides that setting.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="configuration-reference"><a class="header" href="#configuration-reference">Configuration Reference</a></h1>
 <p>Gopherbot configuration is built from two layers:</p>
@@ -2094,6 +2102,12 @@ ScheduledJobs:
     Description: Prepare SSH agent state
 </code></pre>
 <p>Go task entries pass through even when disabled because compiled tasks are enabled by default and may need an explicit <code>Disabled: true</code>.</p>
+<p>Compiled tasks use the privilege requirement registered by the engine when
+<code>Privileged</code> is omitted. Set <code>Privileged</code> explicitly to override that default.
+For example, the installed <code>notify-admins</code> task is privileged by default so
+only an already-privileged pipeline can add it; a custom robot may intentionally
+set <code>GoTasks.notify-admins.Privileged: false</code> to allow unprivileged pipelines to
+add it.</p>
 <h3 id="namespaces"><a class="header" href="#namespaces">NameSpaces</a></h3>
 <p>Optional.</p>
 <p><code>NameSpaces</code> declares shared namespaces for memory and parameters.</p>
