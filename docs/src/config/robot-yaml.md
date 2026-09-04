@@ -674,6 +674,13 @@ GoTasks:
 
 Go task entries pass through even when disabled because compiled tasks are enabled by default and may need an explicit `Disabled: true`.
 
+Compiled tasks use the privilege requirement registered by the engine when
+`Privileged` is omitted. Set `Privileged` explicitly to override that default.
+For example, the installed `notify-admins` task is privileged by default so
+only an already-privileged pipeline can add it; a custom robot may intentionally
+set `GoTasks.notify-admins.Privileged: false` to allow unprivileged pipelines to
+add it.
+
 ### NameSpaces
 
 Optional.

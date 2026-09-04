@@ -6,3 +6,5 @@ RequireAdmin: true
 Commands:
 - SimpleMatcher: go-encrypt-secret
   Command: encryptsecret
+- Regex: (?i:go-priv-notify-admins (.+))
+  Command: notifyadmins

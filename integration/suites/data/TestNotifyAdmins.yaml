@@ -1,0 +1,35 @@
+name: TestNotifyAdmins
+metadata:
+  subsystems:
+    - pipeline
+    - security
+    - messaging
+  tags:
+    - add-task
+    - admin
+    - privileged
+  runtimes:
+    - go
+  tier: focused
+config_dir: test/gofull
+log_name: bottest.log
+cases:
+  - input:
+      user: alice
+      channel: general
+      text: ;go-notify-admins Printer is on fire
+    replies:
+      - channel: general
+        text_pattern: 'NOTIFY ADMINS: PrivilegeViolation'
+    replies_only: true
+  - input:
+      user: alice
+      channel: general
+      text: ;go-priv-notify-admins Printer is on fire
+    replies:
+      - channel: general
+        text_pattern: 'NOTIFY ADMINS: Ok'
+      - user: alice
+        text_pattern: 'Printer is on fire'
+    replies_only: true
+

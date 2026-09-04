@@ -44,6 +44,10 @@ not user authorization.
 
 - Starter plugin/job fixes pipeline privilege for its lifetime.
 - Unprivileged pipelines cannot add privileged work.
+- Compiled extension registrations provide privilege defaults. An explicit
+  `GoTasks`, `GoJobs`, or `GoPlugins` `Privileged` value in `robot.yaml`
+  overrides the corresponding registration/type default; omission preserves
+  it.
 - Successful elevation persists within the pipeline.
 - Scheduled, init, and queue-triggered jobs are `automaticTask` because their
   creation is administrator-controlled; this is not a reusable model for

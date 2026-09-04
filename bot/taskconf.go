@@ -110,7 +110,9 @@ func loadTaskConfig(processed *configuration, preConnect bool) (*taskList, error
 		if (ttype == typePlugin && plug == nil) || (ttype == typeJob && job == nil) || task == nil {
 			return fmt.Errorf("configuring Go task '%s' (type %s) - no task of that type registered with that name", ts.Name, ttype)
 		}
-		if (ttype == typePlugin) || (ttype == typeJob) {
+		// Registrations provide safe compiled defaults. An explicit robot.yaml
+		// value overrides that default for every compiled extension type.
+		if ts.Privileged != nil {
 			task.Privileged = *ts.Privileged
 		}
 		_, err := checkTaskSettings(ts, task)

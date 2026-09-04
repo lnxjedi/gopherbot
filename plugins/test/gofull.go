@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
@@ -45,6 +46,8 @@ Commands:
   Command: pipelineok
 - Regex: (?i:go-pipeline-fail)
   Command: pipelinefail
+- Regex: (?i:go-notify-admins (.+))
+  Command: notifyadmins
 - Regex: (?i:go-spawn-job)
   Command: spawnjob
 - Regex: (?i:go-admin-check)
@@ -324,6 +327,10 @@ func PluginHandler(r robot.Robot, command string, args ...string) (retval robot.
 		}
 		r.Say("PIPELINE FAIL: armed")
 		return robot.Fail
+	case "notifyadmins":
+		ret := r.AddTask("notify-admins", strings.Join(args, " "))
+		r.Say("NOTIFY ADMINS: %s", ret)
+		return robot.Normal
 	case "spawnjob":
 		if r.SpawnJob("pipe-spawn-job", "spawn-step") != robot.Ok {
 			r.Say("SPAWN JOB: queue=false")

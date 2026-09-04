@@ -70,6 +70,33 @@ func sendmsg(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	return
 }
 
+// notifyAdmins sends the supplied message directly to every configured
+// administrator. It lives in the engine because the administrator list is
+// policy configuration and is intentionally not exposed through the Robot API.
+func notifyAdmins(m robot.Robot, args ...string) robot.TaskRetVal {
+	r := m.(Robot)
+	message := strings.TrimSpace(strings.Join(args, " "))
+	if message == "" {
+		m.Log(robot.Error, "notify-admins requires a non-empty message")
+		return robot.Fail
+	}
+
+	admins := append([]string(nil), r.cfg.adminUsers...)
+	if len(admins) == 0 {
+		m.Log(robot.Error, "notify-admins has no configured administrators")
+		return robot.Fail
+	}
+
+	retval := robot.Normal
+	for _, admin := range admins {
+		if ret := m.SendUserMessage(admin, message); ret != robot.Ok {
+			m.Log(robot.Error, "notify-admins failed sending a direct message to administrator '%s': %s", admin, ret)
+			retval = robot.Fail
+		}
+	}
+	return retval
+}
+
 // logmail - task email-log; send the job log to one or more email
 // addresses.
 func logmail(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
@@ -227,6 +254,7 @@ func syncGitStateTask(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 func init() {
 	robot.RegisterTask("email-log", true, robot.TaskHandler{Handler: logmail})
 	robot.RegisterTask("git-sync-state", true, robot.TaskHandler{Handler: syncGitStateTask})
+	robot.RegisterTask("notify-admins", true, robot.TaskHandler{Handler: notifyAdmins})
 	robot.RegisterTask("pause-brain", true, robot.TaskHandler{Handler: pauseBrainTask})
 	robot.RegisterTask("pause", false, robot.TaskHandler{Handler: pause})
 	robot.RegisterTask("restart-robot", true, robot.TaskHandler{Handler: restart})

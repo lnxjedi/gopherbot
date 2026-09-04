@@ -31,6 +31,24 @@ Compatibility scope for this guide:
     for v2 import/export.
 13. Reload and verify runtime with `protocol-list` (or `protocol list`).
 
+## 2026-09-04 Configurable Compiled-Task Privilege
+
+An explicit `Privileged` value under `GoTasks` now overrides the task's
+compiled registration default. Previously, Gopherbot parsed this setting but
+did not apply it to compiled tasks. Robots that already contain such an
+override should review it because it now takes effect.
+
+The installed configuration declares the new `notify-admins` pipeline task as
+privileged. It sends its message as a direct message to every canonical user in
+`AdminUsers`. To let unprivileged pipelines add it, make that policy change
+explicitly in custom `conf/robot.yaml`:
+
+```yaml
+GoTasks:
+  notify-admins:
+    Privileged: false
+```
+
 ## 2026-05-24 Brain Cache and Cloud Brain Migration
 
 Gopherbot v3 uses an engine-owned local brain cache. The cache is the normal

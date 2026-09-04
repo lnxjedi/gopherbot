@@ -152,6 +152,11 @@ The operator surface is much stronger in v2.99.0.
 
 New or improved capabilities:
 
+* Added the built-in `notify-admins` pipeline task, which directly messages
+  every configured administrator. Installed defaults require a privileged
+  pipeline, and custom `GoTasks` configuration can override that requirement.
+* Explicit `Privileged` values under `GoTasks` now take effect; omission keeps
+  the compiled registration default.
 * Hidden admin/log inspection commands are available for supported connectors.
 * `ps` now shows robot pipeline IDs, type, start time, and age without exposing
   OS PIDs by default.

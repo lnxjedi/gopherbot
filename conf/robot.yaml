@@ -299,6 +299,11 @@ GoJobs:
     Description: A compiled-in job to bootstrap an existing robot to a new container/directory
     NameSpace: manage
 
+GoTasks:
+  "notify-admins":
+    Description: Send a direct message to every configured administrator
+    Privileged: true
+
 ## ExternalJobs describe configurable jobs the robot knows about. Requires
 ## config in conf/jobs/<jobname>.yaml (see sample files in dist)
 ExternalJobs:
