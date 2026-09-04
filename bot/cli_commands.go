@@ -338,6 +338,7 @@ func cliCommands() []cliCommandSpec {
 				"Usage: gopherbot pull-brain [options]",
 				"",
 				"Imports remote brain memories into the local v3 cache.",
+				"The cloud instance lock is not imported; inspect it with fetch -cloud bot:instance-lock.",
 				"By default it does not modify the remote brain.",
 				"",
 				"Options:",

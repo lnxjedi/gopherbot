@@ -9,8 +9,10 @@ allows writes to commit locally before metered/coalesced cloud sync.
 - `file` is a valid local-only brain.
 - Cloud runtime records are v3-only. V2/unversioned import and rollback export
   are explicit CLI operations, not startup branches.
-- `pull-brain` chooses remote/legacy data as the source for a local cache.
-  `restore-brain` chooses the local cache as the source for remote data.
+- `pull-brain` chooses remote/legacy data as the source for a local cache. It
+  excludes the remote `bot:instance-lock`, which is provider-side ownership
+  metadata rather than portable brain data. `restore-brain` chooses the local
+  cache as the source for remote data.
 
 ## Ownership and startup
 

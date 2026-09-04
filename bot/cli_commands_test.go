@@ -367,6 +367,11 @@ func TestProcessCLIHelpBrainMemoryCommandsShowCacheSemantics(t *testing.T) {
 			"Usage: gopherbot list [options]",
 			"-cloud",
 		},
+		"pull-brain": {
+			"Usage: gopherbot pull-brain [options]",
+			"cloud instance lock is not imported",
+			"fetch -cloud bot:instance-lock",
+		},
 		"restore-brain": {
 			"Usage: gopherbot restore-brain [-v2] [options]",
 			"Defaults to v3 output",

@@ -84,7 +84,9 @@ single-robot ownership.
 V2 compatibility is CLI-only:
 
 - `gopherbot pull-brain` imports v2/v3 remote records or legacy file-brain data
-  into the local v3 cache. It does not modify cloud by default.
+  into the local v3 cache. It excludes the cloud `bot:instance-lock`, which can
+  be inspected directly with `fetch -cloud bot:instance-lock`, and does not
+  modify cloud by default.
 - `gopherbot pull-brain -upgrade-cloud-v3` additionally writes upgraded v3
   records to cloud.
 - `gopherbot restore-brain` writes the local cache to the configured cloud

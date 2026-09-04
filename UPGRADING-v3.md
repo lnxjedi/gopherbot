@@ -176,8 +176,10 @@ For an existing v2 robot using Cloudflare KV, DynamoDB, or Firestore:
    gopherbot pull-brain
    ```
 
-   This reads v2 or v3 cloud records and writes the local v3 cache. By default
-   it does not modify the cloud provider.
+   This reads v2 or v3 cloud records and writes the local v3 cache, excluding
+   the cloud `bot:instance-lock`. Inspect that ownership record directly with
+   `gopherbot fetch -cloud bot:instance-lock`. By default, `pull-brain` does not
+   modify the cloud provider.
 
 3. Write v3 cloud records before starting the v3 runtime:
 
@@ -239,7 +241,8 @@ runtime startup until it is written back as v3.
 
 Useful command options:
 
-- `pull-brain -dry-run` reports remote v2/v3 counts without writing.
+- `pull-brain -dry-run` reports importable remote v2/v3 counts without writing;
+  the cloud `bot:instance-lock` is excluded.
 - `pull-brain -force` replaces an existing local cache.
 - `pull-brain -upgrade-cloud-v3` imports locally and writes upgraded v3 cloud
   records.

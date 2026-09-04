@@ -70,6 +70,7 @@ func cliPullBrain(opts brainPullOptions) error {
 		}
 		cursor = page.NextCursor
 	}
+	metas = pullableRemoteBrainMetadata(metas)
 	sort.Slice(metas, func(i, j int) bool { return metas[i].Key < metas[j].Key })
 	var v2Count, v3Count int
 	for _, meta := range metas {
@@ -155,7 +156,7 @@ func cliPullBrain(opts brainPullOptions) error {
 	}
 	if opts.upgradeCloudV3 {
 		if records, err := listAllRemoteBrainMetadata(ctx, remote); err == nil {
-			reportCloudListSyncStatus(records)
+			reportCloudListSyncStatus(pullableRemoteBrainMetadata(records))
 		} else {
 			fmt.Fprintf(os.Stderr, "Brain cache sync: unable to refresh cloud status: %v\n", err)
 		}
@@ -170,6 +171,17 @@ func cliPullBrain(opts brainPullOptions) error {
 		fmt.Printf("Remote brain is still v2/unversioned; %s.\n", v2RemoteBrainMigrationHint)
 	}
 	return nil
+}
+
+func pullableRemoteBrainMetadata(records []robot.RemoteBrainRecord) []robot.RemoteBrainRecord {
+	pullable := make([]robot.RemoteBrainRecord, 0, len(records))
+	for _, record := range records {
+		if record.Key == brainLockKey {
+			continue
+		}
+		pullable = append(pullable, record)
+	}
+	return pullable
 }
 
 func cliPullFileBrain(opts brainPullOptions) error {
