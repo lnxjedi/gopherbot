@@ -214,6 +214,9 @@ func Start(v VersionInfo) {
 	// Re-evaluate startup mode after private environment loading so
 	// bootstrap decisions include values from process env or .env.
 	startMode = detectStartupMode()
+	if err := validateStartupEnvironment(startMode); err != nil {
+		log.Fatalf("Invalid startup environment: %v", err)
+	}
 
 	var logger *log.Logger
 	var logOut *os.File
@@ -354,6 +357,21 @@ func Start(v VersionInfo) {
 			}
 		}()
 	}
+}
+
+func validateStartupEnvironment(mode string) error {
+	environment := strings.TrimSpace(getEnv("GOPHER_ENVIRONMENT"))
+	if environment == "" {
+		switch mode {
+		case "demo", "cli":
+			return nil
+		case "bootstrap", "production":
+			return fmt.Errorf("GOPHER_ENVIRONMENT is required when GOPHER_CUSTOM_REPOSITORY is configured; set it in the launcher environment or .env")
+		default:
+			return fmt.Errorf("GOPHER_ENVIRONMENT is required for startup mode %q; set it in the launcher environment or private environment file", mode)
+		}
+	}
+	return validateConfigTemplateEnvironment(environment)
 }
 
 func loadPrivateEnvironment(envFile string) error {

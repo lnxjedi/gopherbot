@@ -1,17 +1,4 @@
 ## ssh.yaml - stock configuration for the SSH connector
-{{ $botname := env "GOPHER_BOTNAME" | default "floyd" }}
-{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Floyd Gopherbot"}}
-{{ $botalias := env "GOPHER_ALIAS" | default ";"}}
-
-AdminUsers: [ "alice" ]
-DefaultChannels: [ "general", "random" ]
-
-BotInfo:
-  UserName: {{ $botname }}
-  FullName: {{ $botfullname }}
-
-Alias: {{ $botalias }}
-
 ProtocolConfig:
   ListenHost: {{ env "GOPHER_SSH_HOST" | default "localhost" }}
   ListenPort: {{ env "GOPHER_SSH_PORT" | default "4221" }}
@@ -49,6 +36,3 @@ ProtocolConfig:
   - UserName: erin
     PublicKeys:
     - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO9Ql2OpNDensa9uEaKC2iz/HUNyeuVZxfykeVuAwjLX"
-
-{{ $defaultjobchannel := "general" }}
-DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default $defaultjobchannel }}

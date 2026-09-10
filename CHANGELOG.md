@@ -76,8 +76,9 @@ customization.
 
 Major changes:
 
-* `GOPHER_ENVIRONMENT` selects the robot environment, defaulting to
-  `development`.
+* `GOPHER_ENVIRONMENT` selects the robot environment and is required, with no
+  default, when `GOPHER_CUSTOM_REPOSITORY` configures a Robot. With no custom
+  repository, an omitted environment remains valid demo startup.
 * Environment-specific robot settings belong under
   `custom/conf/environments/`.
 * Installed defaults under `gopherbot/conf/` define baseline engine behavior.
@@ -96,6 +97,35 @@ Major changes:
 * `gopherbot genkey` can create environment-specific encrypted data keys.
 * `;new-robot` provides the current bootstrap flow for creating a robot repo
   with local SSH access.
+* `;new-robot` now requires a validated administrator in an actual direct
+  message. The default SSH welcome tells the user to enter `|c` before starting
+  onboarding.
+* New-Robot onboarding now refuses non-destructively when `custom/` contains
+  any existing data, including hidden entries and symlinks. It no longer
+  removes that directory before the first restart.
+* New-Robot persistence now records one owner and only three durable boundary
+  checkpoints. Questionnaire answers are kept in memory, interruption restarts
+  the short questionnaire, cancellation/completion removes `.setup-state`, and
+  unsupported version-4 partial state is rejected with recovery guidance.
+* The unconfigured demo Robot now warns on a long-running plugin after 35
+  minutes and terminates it after 42 minutes, leaving enough time for
+  interactive onboarding. Generated Robot configuration retains explicit
+  7-minute warning and 14-minute kill thresholds.
+* New Robot scaffolds now keep generated identity and default-job-channel
+  values in named variables, use static SSH listener configuration, and include
+  documented development/production variables files. The deprecated terminal
+  connector configuration is no longer copied into new Robots.
+* The installed default Robot now has the fixed identity `floyd` / `Floyd
+  Gopherbot` and alias `;` rather than reading `GOPHER_BOTNAME`,
+  `GOPHER_BOTFULLNAME`, or `GOPHER_ALIAS`. Its onboarding join triggers match
+  that identity directly; after configured startup, the temporary setup-resume
+  trigger uses the scaffold's `ROBOT_NAME` variable.
+* Installed null, SSH, and terminal connector files now contain only their
+  effective `ProtocolConfig`; discarded copies of robot-wide identity,
+  authorization, channel, and job-channel settings have been removed.
+* New-Robot writes the persistent SSH server public key as
+  `custom/ssh-host-key.pub`. The `bot-ssh` client helper prefers that clear name
+  while retaining a fallback for existing `custom/robot-ssh.pub` files.
 
 See `UPGRADING-v3.md` before migrating production robots, especially for the
 environment-scoped secrets and variables changes.

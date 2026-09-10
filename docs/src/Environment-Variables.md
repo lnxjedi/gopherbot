@@ -32,10 +32,12 @@ Tasks receive a cleaned environment plus pipeline-specific values. Common exampl
 - `GOPHER_START_USER`
 
 `GOPHER_ENVIRONMENT` selects environment-specific robot configuration at
-startup. It is also exposed to extensions as runtime metadata. The standard v3
-authoring convention is to treat `GOPHER_ENVIRONMENT=development` as a local
-prove-it mode: plugins that manage host state, cloud resources, firewall rules,
-or persistent robot memory should validate inputs and report intended actions
+startup. It is required, with no default, when `GOPHER_CUSTOM_REPOSITORY`
+configures a Robot. An unconfigured Robot may omit it and start in demo mode.
+It is also exposed to extensions as runtime metadata. The standard v3 authoring
+convention is to treat `GOPHER_ENVIRONMENT=development` as a local prove-it
+mode: plugins that manage host state, cloud resources, firewall rules, or
+persistent robot memory should validate inputs and report intended actions
 without making those changes.
 
 For task authors, the practical rule is simple: use `GetParameter(...)` for

@@ -131,6 +131,35 @@ AI work:
 3. Remove approved obsolete environment/configuration and SSH identity paths
    with focused validation and explicit migration guidance.
 
+Implementation is divided into owner-gated logical slices. Never combine two
+independent product changes without checking in with the owner:
+
+1. require validated-admin direct-message onboarding and teach the SSH `|c`
+   transition in the welcome flow;
+2. add non-destructive setup preflight and remove automatic cleanup of unknown
+   `custom/` data;
+3. replace general partial-questionnaire resumption with the smallest safe
+   checkpoint model for restart and repository-verification boundaries;
+4. define and enforce the required `GOPHER_ENVIRONMENT` boundary as a dedicated
+   main-engine startup change, while retaining demo startup when no custom
+   repository is configured;
+5. migrate the new-Robot scaffold to explicit environment selection,
+   delta-only configuration, named variables, and four onboarding credential
+   roles;
+6. review installed-default environment-template uses separately, preserving
+   the general `env` helper and compatibility with custom configuration;
+7. verify repository access, branch, and pushed commit before the configured
+   restart, with any runtime branch-state engine changes isolated for review;
+8. extract and validate the English onboarding message catalog; and
+9. complete process-backed validation, owner field testing, and the proven
+   user-facing onboarding documentation.
+
+Timeout handling is a separate reviewed concern within these slices. The
+default/demo Robot uses a 35-minute warning and 42-minute plugin kill window
+for interactive onboarding. `robot.skel` explicitly retains the
+configured-Robot defaults of a 7-minute warning and 14-minute kill so owners
+can adjust them deliberately.
+
 ### Phase 2.5D: Flow, state, and message-catalog implementation
 
 AI work:

@@ -19,6 +19,14 @@ Connectors translate transports; they do not implement shared policy.
 Canonical username is the only cross-protocol policy identity. Transport IDs
 remain connector-local routing data.
 
+## Configuration ownership
+
+- Protocol files own `ProtocolConfig` and may optionally contribute a
+  protocol-local `ChannelRoster`.
+- Robot-wide identity, administrator policy, default channels, alias, and job
+  channel belong in `robot.yaml`. Copies in protocol files are not connector
+  fallbacks and must not be treated as effective configuration.
+
 ## Runtime behavior
 
 - Connector initialization reports errors to the engine. The engine decides

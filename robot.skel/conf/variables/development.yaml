@@ -1,0 +1,5 @@
+## Development-only values override matching entries from common.yaml.
+## Put non-secret values under Variables and encrypted values under Secrets.
+## Keep values needed in every environment in common.yaml instead.
+Secrets: {}
+Variables: {}

@@ -31,6 +31,55 @@ Compatibility scope for this guide:
     for v2 import/export.
 13. Reload and verify runtime with `protocol-list` (or `protocol list`).
 
+## 2026-09-04 Required Robot Environment
+
+Configured Robots no longer receive an implicit `production` or `development`
+environment. A normal start with a nonempty `GOPHER_CUSTOM_REPOSITORY` must set
+`GOPHER_ENVIRONMENT` to a valid single path segment in the launcher environment
+or private environment file. Blank values count as unset.
+
+Before upgrading an existing Robot, add the intended value to its deployment
+environment or `.env`, for example:
+
+```text
+GOPHER_ENVIRONMENT=production
+```
+
+Launcher values continue to take precedence over `.env`. An unconfigured Robot
+with no custom repository may omit the value and start in demo mode; setting an
+environment by itself does not take the Robot out of demo mode. CLI commands
+that load Robot configuration also require an environment. `gopherbot genkey`
+may instead receive `-environment`, while help, version, syntax, script, and
+other no-config paths remain exempt.
+
+Fresh v3 scaffolds keep stable scalar values in
+`conf/variables/common.yaml`: `ROBOT_NAME`, `ROBOT_FULL_NAME`, `ROBOT_EMAIL`,
+`ROBOT_ALIAS`, and `DEFAULT_JOB_CHANNEL`. `robot.yaml` consumes those values
+with the `variable` helper. The scaffold also creates documented
+`conf/variables/development.yaml` and `production.yaml` files for values that
+should override common settings in just one environment.
+
+The installed default Robot no longer reads `GOPHER_BOTNAME`,
+`GOPHER_BOTFULLNAME`, or `GOPHER_ALIAS`; its fixed identity is `floyd` /
+`Floyd Gopherbot` and its fixed alias is `;`.
+Configured Robots should define `BotInfo` in custom configuration, as the fresh
+scaffold does through `ROBOT_NAME` and `ROBOT_FULL_NAME`, and define `Alias`
+through `ROBOT_ALIAS`. The installed
+`welcome-join` and `resume-setup` onboarding triggers also no longer read
+`GOPHER_BOTNAME`: the default trigger matches `floyd`, while the temporary
+configured resume trigger reads `ROBOT_NAME`. Existing custom templates may
+continue to use the general `env` helper when an environment-backed value is
+intentional.
+
+The deprecated terminal connector configuration is no longer included in new
+scaffolds. Existing `conf/protocols/terminal.yaml` files are not removed by an
+upgrade, but should not be copied forward unless an existing development flow
+still requires them.
+
+New-Robot now writes the persistent SSH server public key to
+`custom/ssh-host-key.pub`. Existing `custom/robot-ssh.pub` files remain accepted
+by the `bot-ssh` helper, so this rename does not require an immediate migration.
+
 ## 2026-09-04 Configurable Compiled-Task Privilege
 
 An explicit `Privileged` value under `GoTasks` now overrides the task's

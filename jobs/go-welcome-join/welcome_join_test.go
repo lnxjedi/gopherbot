@@ -1,10 +1,20 @@
 package main
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
+
+func TestWelcomeNextStepsMovesOnboardingToDirectMessage(t *testing.T) {
+	message := welcomeNextSteps(";")
+	for _, expected := range []string{"`help`", "`|c`", "`;new robot`", "direct conversation"} {
+		if !strings.Contains(message, expected) {
+			t.Fatalf("welcomeNextSteps() missing %q: %q", expected, message)
+		}
+	}
+}
 
 func TestJoinedUserParsesJoinMessage(t *testing.T) {
 	msg := &robot.Message{

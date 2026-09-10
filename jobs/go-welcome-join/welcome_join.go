@@ -35,8 +35,12 @@ func JobHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 	send.Pause(newrobotflow.SetupInitialGreetingPauseSeconds)
 	send.SendChannelMessage(channel, "Welcome to the *Gopherbot* ssh connector, @%s! Since no custom configuration was detected, you're connected to '%s', the default robot.", user, name)
 	send.Pause(newrobotflow.SetupParagraphReadPauseSeconds)
-	send.SendChannelMessage(channel, "If you've started the robot by mistake, just hit ctrl-D to exit and try 'gopherbot --help'; otherwise feel free to play around with the default robot - you can start by typing 'help'. If you'd like to start configuring a new robot, type: '%snew robot'.", alias)
+	send.SendChannelMessage(channel, welcomeNextSteps(alias))
 	return robot.Normal
+}
+
+func welcomeNextSteps(alias string) string {
+	return "If you've started the robot by mistake, just hit ctrl-D to exit and try `gopherbot --help`. Otherwise, feel free to explore the default robot; you can start by typing `help`. When you're ready to configure a new robot, type `|c` to switch to a direct conversation with me, then type `" + alias + "new robot` there."
 }
 
 func joinedUser(args []string, m *robot.Message) (string, string) {

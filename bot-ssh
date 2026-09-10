@@ -45,14 +45,22 @@ if [[ "$print_known_hosts" == "true" ]]; then
   host="${hostport%:*}"
   port="${hostport##*:}"
   server_pubkey="${BOT_SERVER_PUBKEY:-}"
-  if [[ -f "./custom/robot-ssh.pub" ]]; then
-    file_key="$(awk 'NF >= 2 { print $1 " " $2; exit }' ./custom/robot-ssh.pub 2>/dev/null || true)"
+  host_key_file=""
+  if [[ -f "./custom/ssh-host-key.pub" ]]; then
+    host_key_file="./custom/ssh-host-key.pub"
+  elif [[ -f "./custom/robot-ssh.pub" ]]; then
+    # Compatibility with Robots scaffolded before the host-key file was
+    # given an unambiguous name.
+    host_key_file="./custom/robot-ssh.pub"
+  fi
+  if [[ -n "${host_key_file}" ]]; then
+    file_key="$(awk 'NF >= 2 { print $1 " " $2; exit }' "${host_key_file}" 2>/dev/null || true)"
     if [[ -n "${file_key}" ]]; then
       server_pubkey="${file_key}"
     fi
   fi
   if [[ -z "${server_pubkey}" ]]; then
-    echo "Unable to determine server host key from .ssh-connect or custom/robot-ssh.pub" >&2
+    echo "Unable to determine server host key from .ssh-connect or custom/ssh-host-key.pub" >&2
     exit 1
   fi
   echo "[${host}]:${port} ${server_pubkey}"

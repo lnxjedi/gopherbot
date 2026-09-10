@@ -2,6 +2,7 @@
 # The test suite doesn't read it, so it's mainly useful for developing
 # and troubleshooting tests. Use "make testbot" to compile gopherbot
 # with the terminal connector in test development mode.
+GOPHER_ENVIRONMENT=development
 GOPHER_PROTOCOL=terminal
 GOPHER_LOGFILE=/tmp/term.log
 GOPHER_ENCRYPTION_KEY=ThisIsTheTestingKeyNotUsedAnywhereElse

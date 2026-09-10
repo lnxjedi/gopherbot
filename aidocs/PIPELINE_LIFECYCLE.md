@@ -20,6 +20,10 @@ commands must not.
 
 - Self messages may trigger jobs but not ordinary plugin/catch-all/subscription
   paths. This supports workflows that react to bot-authored transport events.
+- Installed onboarding join jobs retain ordinary exact-`User` triggers. Their
+  templates select the fixed Floyd identity in demo mode and the configured
+  `ROBOT_NAME` variable once `custom/` is active; onboarding does not require a
+  special self-message trigger type.
 - `BotUser` accounts may issue explicit commands and trigger jobs, but do not
   participate in ambient/catch-all/subscription routing.
 - Prompt waiters are scoped by protocol, canonical user, channel, and thread.

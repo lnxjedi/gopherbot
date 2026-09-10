@@ -101,10 +101,6 @@ BrainCache:
 LogDest: {{ $logdest }}
 LogLevel: {{ $loglevel }}
 
-{{ $botname := env "GOPHER_BOTNAME" | default "floyd" }}
-{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Floyd Gopherbot"}}
-{{ $botalias := env "GOPHER_ALIAS" | default ";"}}
-
 AdminUsers: [ "alice" ]
 DefaultChannels: [ "general", "random" ]
 DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default "general" }}
@@ -114,17 +110,23 @@ DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default "general" }}
 # ReadyChannel: general
 TimeOuts:
   Plugin:
+{{- if eq $mode "demo" }}
+    ## Leave enough time for an interactive first-run setup conversation.
+    Warn: 35m
+    Kill: 42m
+{{- else }}
     Warn: 7m
     Kill: 14m
+{{- end }}
   Job:
     Warn: 1h
     Kill: 2h
 
 BotInfo:
-  UserName: {{ $botname }}
-  FullName: {{ $botfullname }}
+  UserName: floyd
+  FullName: Floyd Gopherbot
 
-Alias: {{ $botalias }}
+Alias: ";"
 
 ## Global user directory for default/demo mode. Custom robots typically
 ## override this in custom/conf/robot.yaml.

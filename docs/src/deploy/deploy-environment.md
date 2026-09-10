@@ -4,6 +4,10 @@ These are the environment variables you are most likely to care about when movin
 
 ## Usually required in deployed environments
 
+- `GOPHER_ENVIRONMENT`
+  - Selects `custom/conf/environments/<environment>.yaml`.
+  - Required, with no default, when `GOPHER_CUSTOM_REPOSITORY` configures a
+    Robot.
 - `GOPHER_ENCRYPTION_KEY`
   - Unlocks encrypted config values and encrypted robot keys.
 - `GOPHER_CUSTOM_REPOSITORY`
@@ -13,9 +17,6 @@ These are the environment variables you are most likely to care about when movin
 
 ## Commonly useful
 
-- `GOPHER_ENVIRONMENT`
-  - Selects `custom/conf/environments/<environment>.yaml`.
-  - Defaults to `development` for scaffolded robots when not set.
 - `GOPHER_CUSTOM_BRANCH`
   - Overrides the branch used for custom config checkout and update flows.
 - `GOPHER_SSH_PORT`

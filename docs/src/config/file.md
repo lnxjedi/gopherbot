@@ -63,6 +63,11 @@ Detailed config lives in dedicated files:
 - plugin config: `conf/plugins/<plugin>.yaml`
 - job config: `conf/jobs/<job>.yaml`
 
+A protocol file should contain its connector-owned `ProtocolConfig` and, when
+needed, a protocol-local `ChannelRoster`. Keep `BotInfo`, `AdminUsers`,
+`DefaultChannels`, `Alias`, and `DefaultJobChannel` in `robot.yaml`; copies in a
+protocol file do not override the Robot-wide configuration.
+
 See the [plugin config reference](plugin-yaml.md) for `conf/plugins/<plugin>.yaml`.
 
 This split keeps boundaries clean:
@@ -133,8 +138,10 @@ See [Config Templates](templates.md) for the helper reference, examples, and sec
 ## Example
 
 ```yaml
-{{ $environment := env "GOPHER_ENVIRONMENT" | default "development" }}
+{{ $environment := env "GOPHER_ENVIRONMENT" }}
 {{ printf "environments/%s.yaml" $environment | .Include }}
 ```
 
-That is the standard v3 pattern for selecting environment-specific defaults in a scaffolded robot.
+That is the standard v3 pattern for selecting environment-specific defaults in
+a scaffolded Robot. `GOPHER_ENVIRONMENT` is required for configured Robots and
+has no default.

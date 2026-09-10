@@ -1,7 +1,8 @@
 # New Robot Onboarding — Target Transcript
 
-Design target for the redesigned `;new robot` flow. The user starts exactly one
-setup command, `;new robot`, and the rest of the onboarding is resumed
+Design target for the redesigned `;new robot` flow. The user first switches to
+a direct conversation with the robot, starts exactly one setup command,
+`;new robot`, and the rest of the onboarding is resumed
 automatically after reconnects. The target is two robot restarts total:
 
 1. restart after writing `GOPHER_ENCRYPTION_KEY` to `.env`
@@ -44,9 +45,10 @@ Floyd: @alice Welcome to the *Gopherbot* ssh connector! Since no configuration
        was detected, you're connected to 'floyd', the default robot.
 
 Floyd: If you've started the robot by mistake, just hit ctrl-D to exit and try
-       'gopherbot --help'; otherwise feel free to play around with the default
-       robot - you can start by typing 'help'. If you'd like to start
-       configuring a new robot, type: ';new robot'.
+       `gopherbot --help`. Otherwise, feel free to explore the default robot;
+       you can start by typing `help`. When you're ready to configure a new
+       robot, type `|c` to switch to a direct conversation with me, then type
+       `;new robot` there.
 ```
 
 [Use one normal channel message per paragraph; greet the connecting user once in the first welcome paragraph]
@@ -56,7 +58,14 @@ Floyd: If you've started the robot by mistake, just hit ctrl-D to exit and try
 
 ## Stage 1 — Encryption bootstrap
 
-User types `;new robot`.
+User types `|c` to switch from `#general` to a direct conversation with the
+robot, then types `;new robot`.
+
+[Before writing setup state, Robot verifies that `custom/` is absent or
+literally empty. Any entry, including hidden files, `.git`, or symlinks, causes
+an actionable refusal without deletion, renaming, or merging. Robot repeats
+the check immediately before writing `.env` so data created during the prompt
+is also protected.]
 
 ```
 Floyd: Let's build your robot together. First we'll create the one secret every
@@ -90,8 +99,9 @@ Floyd: Keep `.env` safe and never commit it to git. After I restart, reconnect a
        @alice and we'll pick up automatically right where we left off.
 ```
 
-[Robot writes `.setup-state` with `status=active`, stage=`awaiting-bot-name`]
-[Robot removes any existing `custom/` scaffold and any existing `custom/binary-encrypted-key` from prior failed setup attempts before restarting]
+[Robot writes the single-owner `encryption-restart` checkpoint to
+`.setup-state`; no questionnaire answers are stored]
+[Robot does not delete or clean `custom/` before restarting]
 [Robot adds `restart-robot` task to pipeline]
 
 ### Path B — user supplies key
@@ -121,8 +131,9 @@ Floyd: I'm restarting now. Reconnect as @alice and I'll pick up automatically
        right where we left off.
 ```
 
-[Robot writes `.setup-state` with `status=active`, stage=`awaiting-bot-name`]
-[Robot removes any existing `custom/` scaffold and any existing `custom/binary-encrypted-key` from prior failed setup attempts before restarting]
+[Robot writes the single-owner `encryption-restart` checkpoint to
+`.setup-state`; no questionnaire answers are stored]
+[Robot does not delete or clean `custom/` before restarting]
 [Robot adds `restart-robot` task to pipeline]
 
 > Use the `GOPHER_USER` parameter (`GetParameter`) to determine the username.
@@ -142,9 +153,14 @@ At this point, the normal welcome job sees `.setup-state` and stays quiet.
 The `resume-setup` join job detects the saved `.setup-state` and resumes automatically:
 
 ```
-Floyd: Welcome back. I found onboarding progress in `.setup-state`, so I'll
-       continue from where we left off.
+Floyd: Welcome back. I found the safe onboarding checkpoint in `.setup-state`,
+       so I'll continue from there.
 ```
+
+If the questionnaire is interrupted or reaches the interactive timeout, the
+checkpoint remains `encryption-restart`; the next direct `new robot` command or
+authenticated reconnect starts again at Robot name. Individual answers are
+deliberately not resumed.
 
 ---
 
@@ -167,7 +183,7 @@ alice: clu
 Floyd: Perfect. Your robot will respond to messages that start with `clu`.
 ```
 
-[Session updated: `botName=clu`, `stage=awaiting-bot-alias`]
+[Answer held in memory; `.setup-state` remains at `encryption-restart`]
 
 ### Robot alias
 
@@ -183,7 +199,7 @@ alice: ;
 Floyd: Sounds good. Your robot will also respond to `;`.
 ```
 
-[Session updated: `botAlias=;`, `stage=awaiting-job-channel`]
+[Answer held in memory; `.setup-state` remains at `encryption-restart`]
 
 ### Job channel
 
@@ -199,7 +215,7 @@ alice: =
 Floyd: Got it. Scheduled job messages will go to `#clu-jobs`.
 ```
 
-[Session updated: `jobChannel=clu-jobs`, `stage=awaiting-robot-email`]
+[Answer held in memory; `.setup-state` remains at `encryption-restart`]
 
 ### Robot email
 
@@ -212,7 +228,7 @@ Floyd: Thanks. The robot will use `samantha.jackson@example.com` for its own
        email identity.
 ```
 
-[Session updated: `robotEmail=samantha.jackson@example.com`, `stage=awaiting-admin-email`]
+[Answer held in memory; `.setup-state` remains at `encryption-restart`]
 
 ### Administrator email
 
@@ -225,7 +241,7 @@ Floyd: Understood. The robot will advertise
        `samantha.jackson@example.com` as its administrator contact.
 ```
 
-[Session updated: `adminEmail=samantha.jackson@example.com`, `stage=awaiting-ssh-username`]
+[Answer held in memory; `.setup-state` remains at `encryption-restart`]
 
 ### Username and SSH key
 
@@ -243,7 +259,7 @@ Floyd: Good choice. You'll use `samantha` as your canonical username for this
        robot.
 ```
 
-[Session updated: `canonicalUser=samantha`, `stage=awaiting-ssh-key`]
+[Configured username held in memory until scaffold creation]
 
 ```
 Floyd: I found this public key in your home directory:
@@ -259,7 +275,8 @@ Floyd: Excellent. I'll use the SSH public key from
 
 [The home directory should come from the `$HOME` environment variable.]
 
-[Session updated: `sshPublicKey=<key>`, `sshPublicKeySource=detected`]
+[Key answer held in memory; neither it nor its source is written to
+`.setup-state`]
 
 ### Scaffold creation
 
@@ -271,11 +288,12 @@ Floyd: That's everything I need for the local robot itself. I'll build the
 [Robot generates `custom/` from `robot.skel` with the collected values]
 [Robot writes `custom/conf/robot.yaml` and supporting config]
 [Robot writes SSH identity config for `samantha`]
-[Robot saves the SSH server public key to `custom/robot-ssh.pub`]
+[Robot saves the SSH server public key to `custom/ssh-host-key.pub`]
 [Robot writes an encrypted persistent SSH server host key into config for the SSH connector using `EncryptSecret`]
 [Robot does not configure legacy `BOT_SSH_PHRASE` / self-managed outbound SSH key material for the new-robot path]
 [Robot does not manually generate `custom/binary-encrypted-key`; that was already created by the engine on the first restart]
-[Session updated: `stage=awaiting-repository-url`]
+[Robot atomically replaces `.setup-state` with the `repository-handoff`
+checkpoint, retaining only the initiating owner and configured username]
 
 ```
 Floyd: I've created the local scaffold under `custom/` and configured a local
@@ -315,7 +333,8 @@ Floyd: Perfect. I'll configure bootstrap to use
 [Robot updates `.env` with `GOPHER_CUSTOM_REPOSITORY=<repo-url>`]
 [Robot updates `.env` with `GOPHER_DEPLOY_KEY=<encoded-private-key>`]
 [Robot updates `.env` with any other required bootstrap vars such as `GOPHER_ENVIRONMENT=development`]
-[Session updated: repository handoff complete; setup can proceed without waiting for a typed confirmation]
+[Repository files and `.env` updated; the durable checkpoint does not store
+the repository URL or key material]
 
 ```
 Floyd: Repository handoff is ready. I've updated `.env` with the repository
@@ -349,7 +368,7 @@ Floyd: Meanwhile, I'll restart once more from the current directory, where
 Floyd: Have fun.
 ```
 
-[Robot writes `.setup-state` with `status=completed`, stage=`repository-ready`]
+[Robot writes the `final-restart` checkpoint to `.setup-state`]
 [Robot adds `restart-robot` task to pipeline]
 
 ---
@@ -396,5 +415,5 @@ Clu: If that works, you're done. You now have a robot that can be deployed by
 | User prompts | Functional prompts, some terse and phase-oriented | Friendlier prompts that explain why each answer matters and offer defaults where helpful |
 | Git handoff | Separate repository phase after scaffold restart | Repository setup is part of the same `;new robot` flow and explains the manual git steps without waiting for a typed `done` |
 | Restarts | More than two reconnect moments in the draft transcript | Two restarts total: one after `.env` key creation, one final configured restart |
-| Resume UX | User must type resume/repo commands after reconnect | Welcome flow resumes automatically for the active onboarding session |
+| Resume UX | User must type resume/repo commands after reconnect | Restart and repository checkpoints resume automatically; an interrupted questionnaire restarts from its first question |
 | Bootstrap verification | Tells user to remove local files and restart in place | Tells user to copy `.env` into a new empty directory and test bootstrap there |

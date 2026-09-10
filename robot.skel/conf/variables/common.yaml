@@ -1,3 +1,10 @@
+## Values shared by every environment. New-Robot replaces the placeholders
+## below with answers collected during setup.
 Secrets:
   SSH_HOST_KEY: "<sshhostkeyencrypted>"
-Variables: {}
+Variables:
+  ROBOT_NAME: "<botname>"
+  ROBOT_EMAIL: "<botemail>"
+  ROBOT_FULL_NAME: "<botfullname>"
+  ROBOT_ALIAS: "<botalias>"
+  DEFAULT_JOB_CHANNEL: "<jobchannel>"

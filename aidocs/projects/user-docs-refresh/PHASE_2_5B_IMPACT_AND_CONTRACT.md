@@ -2,15 +2,65 @@
 
 Date: 2026-09-01
 
-Status: proposed for owner approval; no implementation is authorized by this
-record.
+Status: owner-reviewed with revisions; implementation proceeds only through
+the separately approved slices recorded in `PLAN.md`.
 
-This proposal converts `PHASE_2_5A_EVIDENCE.md` into the supported new-Robot
-contract. It deliberately stops at the Phase 2.5B human gate.
+This proposal converted `PHASE_2_5A_EVIDENCE.md` into the supported new-Robot
+contract presented at the Phase 2.5B human gate. The owner-review outcome below
+is authoritative where it revises the original proposal.
+
+## Owner review outcome
+
+The owner reviewed the acceptance gate on 2026-09-04 and approved it with
+these revisions, which supersede conflicting proposal language below:
+
+- `GOPHER_ENVIRONMENT`, `GOPHER_ENCRYPTION_KEY`,
+  `GOPHER_CUSTOM_REPOSITORY`, and `GOPHER_DEPLOY_KEY` are required for a
+  configured Robot; `GOPHER_CUSTOM_BRANCH` is the optional fifth launcher
+  value and applies to initial clone selection.
+- For the Slice 4 startup boundary, blank values count as unset and an absent
+  custom repository remains demo mode even when an environment is supplied.
+  A nonempty repository requires an explicit valid environment after launcher
+  values take precedence over `.env`. Configuration-loading CLI commands have
+  the same requirement; `genkey -environment` satisfies it, and no-config CLI
+  paths remain exempt.
+- The general `env` template helper remains supported. Installed defaults and
+  `robot.skel` stop relying on historical `GOPHER_*` values for durable Robot
+  behavior, but existing custom configuration may continue reading values such
+  as `GOPHER_BOTNAME` or `GOPHER_PROTOCOL` through `env`.
+- The scaffold retains onboarding replacement placeholders, concentrated in
+  variables files. New-Robot replaces those placeholders with collected user
+  values; the mostly static `robot.yaml` and connector files consume the
+  resulting named variables rather than receiving copied identity literals.
+- Onboarding requires an actual connector-marked direct message from a
+  validated administrator. An SSH hidden command issued from a channel does
+  not satisfy this narrower onboarding rule; the welcome flow teaches `|c`.
+- The version-5 migration proposal is not accepted as written. Because setup
+  should be short, implementation should remove general partial-questionnaire
+  resumption. The separately approved replacement has one owner and only the
+  `encryption-restart`, `repository-handoff`, and `final-restart` durable
+  checkpoints; version-4 partial state is rejected rather than migrated.
+- Core onboarding has four credential roles: outer encryption key, SSH server
+  host key, human SSH public key, and Git deploy key. It does not create a
+  general outbound Robot SSH identity. Optional outbound SSH automation may be
+  documented separately later.
+- `bot-ssh` is retained as the local SSH client helper. New-Robot renames the
+  SSH connector's persistent server public key to
+  `custom/ssh-host-key.pub`; this is not a general outbound Robot key. The
+  helper retains a fallback for existing `custom/robot-ssh.pub` files.
+- The deprecated terminal connector configuration is removed from
+  `robot.skel`; existing Robots and installed engine defaults are not changed
+  by Slice 5.
+- The default/demo Robot gives interactive plugins a 35-minute warning and
+  42-minute kill window.
+  `robot.skel` must explicitly retain `TimeOuts.Plugin.Warn: 7m` and
+  `TimeOuts.Plugin.Kill: 14m`, allowing owners to change those values later.
+- Main-engine and other independent product changes proceed one at a time,
+  with an owner check-in before each slice.
 
 ## Proposed outcome
 
-`new robot` becomes a private, single-owner setup conversation with two
+`new robot` becomes a direct-message, single-owner setup conversation with two
 restart boundaries:
 
 1. initialize the outer encryption key and restart into encrypted setup; then
@@ -158,18 +208,22 @@ implementation change must be corrected in the implementation slice.
 
 `new robot` is accepted only when all of the following are true:
 
-1. the command is invoked in a connector-marked private context;
+1. the command is invoked in a connector-marked direct message;
 2. the connector supplied a validated canonical username;
 3. engine authorization recognizes that username as an administrator;
 4. no other active onboarding owner exists;
 5. no configured custom repository is already active;
 6. `custom/conf/robot.yaml` does not exist; and
-7. any existing `custom/` directory is empty or is positively identified as a
-   directory created by this same onboarding session.
+7. for a brand-new setup session, `custom/` is absent or literally empty. Any
+   entry—including hidden files, `.git`, or a symlink—is treated as existing
+   data. A resumed active session is handled separately because the first
+   restart creates session-owned encryption state under `custom/`.
 
 Failure is non-destructive and names the conflicting condition. Onboarding
 does not delete, rename, or merge an unrecognized tree. The owner may move or
-remove it outside the Robot and retry.
+remove it outside the Robot and retry. The empty-directory check runs once
+before setup state is created and again immediately before `.env` is written,
+closing the prompt-time race without claiming ownership of the directory.
 
 ### Conversation and restart sequence
 
@@ -208,49 +262,41 @@ that remains an explicit Phase 2.5E owner field test.
 
 ## Persistence, migration, cancellation, and recovery
 
-### Version-5 state
+### Version-5 checkpoint state
 
 The state file remains `.setup-state`, JSON, atomic, and mode `0600`. It has one
-active session with:
+owner and exactly one of three durable checkpoints:
 
-- schema version and status/stage;
-- initiating validated canonical username;
-- last protocol and timestamps;
-- nonsecret collected answers;
-- human, host, and deploy public keys only;
-- repository URL, expected branch, and local commit after creation; and
-- a scaffold ownership marker/fingerprint sufficient to distinguish an
-  onboarding-created tree from unrelated data.
+1. `encryption-restart`: `.env` contains the outer key and the first restart is
+   pending or complete;
+2. `repository-handoff`: scaffold creation completed and repository handoff is
+   pending; or
+3. `final-restart`: repository handoff reached the existing final-restart
+   boundary. Slice 7 will require remote verification before this checkpoint
+   can be written.
 
-It never stores the outer encryption key, deploy private key, decrypted host
-key, provider secrets, prompt transcripts, or transport IDs as security
-identity.
+Only the initiating validated canonical username and, after scaffold creation,
+the configured username needed to route the post-restart direct message are
+stored. Questionnaire answers, repository values, keys, timestamps, protocol
+details, transport IDs, and prompt transcripts are not persisted. The final
+instructions recover the nonsecret repository URL from `.env`.
 
-### Version-4 migration
-
-On first load, version 4 maps known active stages to the nearest safe version-5
-stage. In particular:
-
-- `wizard-shell` maps to encryption setup;
-- `awaiting-confirmation` maps to human SSH-key collection;
-- `scaffolded` maps to repository URL collection; and
-- `awaiting-user-git-push` and unverified `repository-ready` map to repository
-  verification, not completion.
-
-The migrated state is validated and immediately rewritten as version 5.
-Unknown/newer versions, unknown stages, conflicting active sessions, or an
-unverifiable existing scaffold stop with an actionable recovery message. The
-inline compatibility branches and obsolete constants are then removed.
+Version-4 partial-questionnaire state is intentionally not migrated. It was
+not a public v3 contract, and guessing whether old partial data owns a scaffold
+would weaken the non-destructive boundary. An unsupported version stops with
+actionable instructions to preserve or manually remove `.setup-state` and any
+existing `custom/` data.
 
 ### Interruption and cancellation
 
-- Timeout or interruption persists the current safe stage and tells the owner
-  how to resume privately.
+- Timeout or interruption retains the last durable checkpoint. The short
+  questionnaire restarts from its first question rather than persisting
+  individual answers.
 - `new robot` by the same owner resumes; another owner is refused while the
   session is active.
-- Cancellation removes only onboarding state and temporary files positively
-  owned by the session. It does not remove `.env`, `custom/`, generated public
-  keys already in the scaffold, or an upstream repository.
+- Cancellation removes only `.setup-state`. It does not remove `.env`,
+  `custom/`, generated public keys already in the scaffold, or an upstream
+  repository.
 - The cancellation response lists retained artifacts and the explicit manual
   cleanup choices. No destructive cleanup is inferred from `cancel`.
 - Completion removes `.setup-state` rather than leaving a nonempty empty-state
@@ -461,22 +507,25 @@ No privsep manual host test is required unless implementation changes privsep
 or one of its call sites. The implementation must still prove that file-backed
 onboarding receives no broadened secrets or privileges.
 
-## Owner acceptance gate
+## Owner acceptance result
 
-Approval of Phase 2.5B means accepting these product decisions:
+Phase 2.5B owner review accepted these product decisions as revised above:
 
 1. the five-name launcher contract, with `GOPHER_CUSTOM_BRANCH` limited to
    initial clone selection;
-2. retirement of `GOPHER_PROTOCOL`, `GOPHER_HTTP_DEBUG`, `GOPHER_SSH_HOST`,
-   `GOPHER_PORT`, and other environment-driven Robot behavior from the
-   supported path;
-3. private-only, validated-admin onboarding and private resume prompts;
+2. removal of historical environment-driven Robot behavior from installed
+   defaults and the new scaffold while preserving the general `env` template
+   helper for custom configuration;
+3. direct-message-only, validated-admin onboarding, with the SSH welcome
+   teaching the `|c` transition;
 4. one active setup owner and non-destructive refusal of existing custom data;
 5. two restarts, with upstream branch/commit verification before the second;
-6. version-5 single-session state with bounded version-4 migration;
+6. replacement of general partial-questionnaire resumption with the approved
+   three-checkpoint, single-owner state design and no version-4 migration;
 7. no permanent custom `resume-setup` hook;
-8. the five credential roles and the absence of a general outbound identity
-   from the core scaffold; and
+8. four core onboarding credential roles and no generated general outbound
+   Robot SSH identity; and
 9. the English YAML catalog shape and its strict code/text boundary.
 
-Implementation begins only after the owner approves or revises this gate.
+Each independent implementation slice requires an owner check-in before work
+begins and another before the next slice starts.

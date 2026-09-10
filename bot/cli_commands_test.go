@@ -465,6 +465,8 @@ func TestCLIValidateRedactedSecretsDoesNotRequireEncryptionKey(t *testing.T) {
 
 func TestCLIDumpRedactsSecretTemplatesByDefault(t *testing.T) {
 	resetConfigVariableTestState(t)
+	preserveGopherEnvMaps(t)
+	setGopherEnvValue("GOPHER_ENVIRONMENT", "development")
 	configPath = t.TempDir()
 	writeCLIDumpSecretFixture(t, configPath)
 
@@ -487,6 +489,8 @@ func TestCLIDumpRedactsSecretTemplatesByDefault(t *testing.T) {
 
 func TestCLIDumpUnredactedSecretsPrintsDecryptedTemplateValues(t *testing.T) {
 	resetConfigVariableTestState(t)
+	preserveGopherEnvMaps(t)
+	setGopherEnvValue("GOPHER_ENVIRONMENT", "development")
 	configPath = t.TempDir()
 	writeCLIDumpSecretFixture(t, configPath)
 
@@ -549,6 +553,7 @@ func resetCLIValidateTestState(t *testing.T) {
 	cliOp = true
 	gopherEnv = make(map[string]string)
 	startupEnv = make(map[string]string)
+	setGopherEnvValue("GOPHER_ENVIRONMENT", "development")
 	deployEnvironment = ""
 	configFull = ""
 	homePath = ""

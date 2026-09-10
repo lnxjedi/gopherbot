@@ -1,6 +1,6 @@
 # User Documentation Refresh Status
 
-Last updated: 2026-09-01
+Last updated: 2026-09-08
 
 This is the authoritative resume point for the active project. Verify it
 against `git status` before acting, then update it at the next handoff.
@@ -8,15 +8,116 @@ against `git status` before acting, then update it at the next handoff.
 ## Current position
 
 - Phase: 2.5 — New-Robot scaffold and setup-flow reconciliation
-- State: Phase 2B approved; Phase 2.5A evidence census complete; Phase 2.5B
-  Impact Surface Report and onboarding contract proposed; owner approval
-  pending before implementation
+- State: Phase 2.5B owner review complete with revisions; implementation
+  Slices 1 through 6D plus the separately approved demo-timeout change are
+  implemented in the uncommitted working tree; Slice 6D full validation is
+  passing and the remainder of the read-only Slice 6 audit is subdivided below
 - Next owner: human
-- Next action: review and approve or revise the nine decisions in the owner
-  acceptance gate of `PHASE_2_5B_IMPACT_AND_CONTRACT.md`
+- Next action: review completed Slice 6D and approve or revise a separate
+  Slice 6E limited to the installed default job channel; all other selectors
+  remain separate and unapproved
 - Recommended model/reasoning: GPT-5.6 Sol, high
-- Blocking condition: Phase 2.5B human approval is required before implementing
-  cross-cutting onboarding changes
+- Blocking condition: owner review is required before the next independent
+  product change
+
+The owner requires each independent product change to be implemented and
+reviewed separately. `PLAN.md` records the nine current implementation slices.
+The Phase 2.5B owner-review addendum records the revised launcher, direct
+message, checkpoint, credential, compatibility, and timeout decisions.
+
+Approved Slice 3 design: per-question persistence was replaced with one
+single-owner state document and three durable checkpoints only: encryption
+written/restart pending, scaffold complete/repository handoff pending, and the
+current final-restart boundary. Questionnaire answers are not persisted;
+interruption restarts that short questionnaire. The state file is removed
+after the configured Robot reconnects. Version-4 partial state is rejected
+with actionable manual recovery rather than migrated.
+
+Implemented Slice 4 decision: blank values count as unset; normal startup stays
+in demo mode whenever `GOPHER_CUSTOM_REPOSITORY` is absent, whether or not an
+environment is supplied. After `.env` loading, a nonempty repository requires
+a valid `GOPHER_ENVIRONMENT` before encryption/config loading.
+Configuration-loading CLI commands also require an explicit environment,
+while `genkey -environment` satisfies that command and
+help/version/syntax/script remain exempt. The internal `production` fallback is
+removed, and test-development fixtures explicitly select `development`.
+
+The separately approved timeout change gives the default/demo Robot a
+35-minute plugin warning and 42-minute kill threshold. `robot.skel` retains
+explicit configured-Robot thresholds of `Warn: 7m` and `Kill: 14m`.
+
+Implemented Slice 5 scaffold migration:
+
+- keep onboarding placeholders, but concentrate all varying scalar values in
+  `conf/variables/common.yaml`; static scaffold files consume them through
+  `variable` and `secret`;
+- use `ROBOT_NAME`, `ROBOT_FULL_NAME`, `ROBOT_EMAIL`, `ROBOT_ALIAS`, and
+  `DEFAULT_JOB_CHANNEL`, plus the existing encrypted `SSH_HOST_KEY`;
+- remove the `GOPHER_ENVIRONMENT` fallback from scaffold `robot.yaml` and make
+  SSH listen host/port intentional literals rather than durable environment
+  lookups;
+- add explicit empty development/production variables files, preserve the
+  environment policy files, explain the intended override layering in comments,
+  and retain configured-Robot plugin thresholds of 7/14 minutes;
+- remove deprecated terminal connector configuration from new scaffolds;
+- update onboarding replacement/append logic so placeholders are replaced in
+  the variables file rather than copied into static `robot.yaml` or connector
+  files;
+- retain `bot-ssh` as the local SSH client helper, rename the generated
+  persistent server public key to `custom/ssh-host-key.pub`, and preserve an
+  existing-Robot fallback for `custom/robot-ssh.pub`; and
+- keep installed-default environment-template cleanup separate as Slice 6.
+
+The Slice 6 audit found that the original slice contains multiple independent
+behavior changes and must be subdivided. Retain the three approved bootstrap
+lookups (`GOPHER_CUSTOM_REPOSITORY`, `GOPHER_DEPLOY_KEY`, and
+`GOPHER_CUSTOM_BRANCH`) and preserve the general `env` helper. Separately gate:
+
+1. configured-Robot identity for `welcome-join`/`resume-setup` triggers;
+2. ignored legacy top-level content in installed protocol files;
+3. root protocol/brain/history/message/time-zone/job-channel selectors;
+4. logging and unsafe HTTP-debug selectors;
+5. state, brain-cache, brain, and history directory selectors;
+6. SSH listener selection and the MCP launcher's current port handoff;
+7. provider/sample credential defaults; and
+8. deployment assets that still inject retired launcher values.
+
+Implemented Slice 6A is configuration-only and does not add `SelfMessage` to the
+job-trigger schema. The installed `welcome-join` and `resume-setup` jobs run
+under the fixed Floyd identity before configured startup, while configured
+variables are loaded before separately rendering enabled job files. Each
+installed onboarding job trigger can therefore choose a template-local default
+name of `floyd` in demo mode and replace it with
+`variable "ROBOT_NAME"` outside demo mode. `welcome-join` is enabled only in
+demo mode; onboarding temporarily enables `resume-setup` in the configured
+Robot, where the scaffold variable is then available. This removes the two
+`GOPHER_BOTNAME` dependencies without changing the engine, installed-variable
+loading rules, or scaffold file inventory.
+
+Implemented Slice 6B removes discarded robot-level identity, authorization,
+default-channel, alias, and job-channel keys from the installed null, SSH, and
+terminal protocol files. Their `ProtocolConfig` payloads are preserved exactly;
+no engine or connector runtime changed. Null-connector cleanup was separately
+approved after the initial SSH/terminal boundary was complete.
+
+Implemented Slice 6C replaces only the
+installed `conf/robot.yaml` lookups of `GOPHER_BOTNAME` and
+`GOPHER_BOTFULLNAME` with the fixed Floyd default identity. Configured Robots
+continue overriding `BotInfo` through the scaffold's `ROBOT_NAME` and
+`ROBOT_FULL_NAME` variables. `GOPHER_ALIAS` and every protocol, brain, history,
+message-format, time-zone, job-channel, logging, directory, listener, provider,
+credential, and deployment selector remain outside that slice.
+
+Implemented Slice 6D replaces only the
+installed `conf/robot.yaml` lookup of `GOPHER_ALIAS` with the fixed default
+alias `;`. Configured Robots continue overriding `Alias` through the
+scaffold's `ROBOT_ALIAS` variable. No other selector is included.
+
+Proposed but not approved or implemented Slice 6E would replace only the
+installed `conf/robot.yaml` lookup of `GOPHER_JOBCHANNEL` with the fixed default
+job channel `general`. Configured Robots would continue overriding
+`DefaultJobChannel` through the scaffold's `DEFAULT_JOB_CHANNEL` variable. No
+other selector is included.
 
 The owner approved the revised `NORTH_STAR_TOC.md` on 2026-08-31 as the
 starting structure for the epic, with the expectation that justified changes
@@ -64,6 +165,47 @@ Gate 1 was approved by the owner on 2026-08-17 after the correction.
 16. Produced the Phase 2.5B Impact Surface Report and proposed exact
     first-run, launcher, state, recovery, repository, credential, and English
     message-catalog contract in `PHASE_2_5B_IMPACT_AND_CONTRACT.md`.
+17. Completed Phase 2.5B owner review, divided implementation into separately
+    gated slices, and implemented Slice 1: the engine configuration requires
+    administrator/private eligibility, onboarding additionally requires an
+    actual direct message, and the SSH welcome teaches `|c` before the
+    configured-alias `new robot` command.
+18. Implemented the separately approved timeout change: installed demo-mode
+    plugin thresholds are `Warn: 35m` and `Kill: 42m`; bootstrap/non-demo
+    installed defaults and `robot.skel` remain `Warn: 7m` and `Kill: 14m`.
+19. Implemented Slice 2: brand-new onboarding accepts only an absent or
+    literally empty `custom/`, checks again before writing `.env`, refuses all
+    entries and symlinks non-destructively, and no longer calls `RemoveAll` on
+    the scaffold path.
+20. Implemented Slice 3: `.setup-state` version 5 now holds one owner and only
+    three durable checkpoints; questionnaire answers remain in memory, resume
+    messages and prompts are direct, version-4 state is rejected, and cancel or
+    successful configured-user reconnect removes the state file without
+    changing `.env` or `custom/`.
+21. Implemented Slice 4: configured startup validates the explicit
+    `GOPHER_ENVIRONMENT` after launcher/private-file precedence is resolved and
+    before encryption or config loading; demo/no-config paths remain available,
+    CLI config fixtures are explicit, and migration/user documentation records
+    the no-default boundary.
+22. Implemented Slice 5: New-Robot placeholders are concentrated in common
+    named variables, static scaffold configuration consumes those values,
+    environment-specific variables files explain their override role, SSH
+    listener values are explicit, deprecated terminal configuration is absent,
+    and the persistent SSH server public key has an unambiguous filename with a
+    compatibility fallback in `bot-ssh`.
+23. Implemented Slice 6A: installed onboarding triggers use the fixed Floyd
+    identity in demo mode and the configured `ROBOT_NAME` variable after
+    `custom/` is active. No job-trigger schema, matcher, connector, or variable
+    loader changed.
+24. Implemented Slice 6B: installed null, SSH, and terminal files now contain
+    only effective connector-owned `ProtocolConfig`; discarded robot-wide
+    settings and their otherwise-unused environment lookups were removed.
+25. Implemented Slice 6C: installed default `BotInfo` is explicitly Floyd and
+    no longer reads `GOPHER_BOTNAME` or `GOPHER_BOTFULLNAME`; configured Robot
+    identity remains an explicit custom-variable override.
+26. Implemented Slice 6D: the installed default alias is explicitly `;` and no
+    longer reads `GOPHER_ALIAS`; configured aliases remain explicit custom
+    variable values.
 
 The approved main-repository Phase 1 work is committed and pushed as
 `0efdc6b6` (`Start process of moving gopherbot-doc to docs/`). The old
@@ -96,6 +238,59 @@ Passing locally:
   `go test ./bot ./jobs/go-resume-setup ./jobs/go-welcome-join`
 - onboarding library tests from the separate `lib/` module:
   `GOWORK=off go test ./...`
+- Slice 1 focused validation:
+  `go test ./bot ./jobs/go-welcome-join ./plugins/go-new-robot`,
+  `GOWORK=off go test ./newrobotflow` from `lib/`, and
+  `./gopherbot syntax` for both changed interpreted Go extensions
+- full root-module/local-script validation for Slice 1: `make test`
+- focused timeout configuration tests covering installed demo, installed
+  bootstrap/non-demo, and expanded `robot.skel` values: `go test ./bot`
+- full root-module/local-script validation after the timeout change:
+  `make test` (the sandboxed attempt could not bind the existing Google Chat
+  test's loopback listener; the unrestricted rerun passed)
+- Slice 2 onboarding-library tests cover absent and empty paths, ordinary and
+  hidden entries, `.git`, symlink entries, a symlinked `custom` path, a regular
+  file at `custom`, refusal before state/`.env` writes, preservation of data,
+  and the second check immediately before `.env`: `GOWORK=off go test
+  ./newrobotflow` from `lib/`
+- Slice 2 interpreted-plugin and root regression validation:
+  `./gopherbot syntax plugins/go-new-robot/new_robot.go`, focused root tests,
+  and `make test`
+- Slice 3 focused validation: `GOWORK=off go test ./newrobotflow` from `lib/`,
+  `./gopherbot syntax` for `go-new-robot` and `go-resume-setup`, and focused
+  root tests for both extensions
+- Slice 3 full validation: `make test`, `make docs-check`, `mdbook build docs`,
+  and `git diff --check`
+- Slice 4 focused and full validation: `go test ./bot`, required core rebuild
+  with `make`, and `make test` (the restricted attempt could not bind the
+  existing Google Chat loopback test; the approved unrestricted rerun passed)
+- Slice 4 documentation validation: `make docs-check` and `mdbook build docs`
+- Slice 5 generated-scaffold and helper coverage: `go test ./bot .`,
+  `GOWORK=off go test ./newrobotflow` from `lib/`, `bash -n bot-ssh`, and
+  `GOPHER_ENVIRONMENT=development ./gopherbot validate -redacted-secrets
+  robot.skel`
+- Slice 5 full root regression validation: `make test`
+- Slice 6A focused validation:
+  `go test ./bot ./jobs/go-resume-setup ./jobs/go-welcome-join -count=1`
+- Slice 6A full and documentation validation: `make test`, `make docs-check`,
+  `mdbook build docs`, and `git diff --check`
+- Slice 6B focused validation: `go test ./bot -run
+  'TestInstalledProtocolDefaultsContainOnlyProtocolConfig' -count=1` and
+  `go test ./bot -count=1`
+- Slice 6B full and documentation validation: `make test`, `make docs-check`,
+  `mdbook build docs`, and `git diff --check`
+- Slice 6C focused validation: `go test ./bot -run
+  'TestInstalledRobotUsesFixedDefaultIdentity|TestInstalledOnboardingTriggers'
+  -count=1`, `rg` confirmation that installed `conf/` has no
+  `GOPHER_BOTNAME`/`GOPHER_BOTFULLNAME`, and `go test ./bot -count=1`
+- Slice 6C full and documentation validation: `make test`, `make docs-check`,
+  `mdbook build docs`, and `git diff --check`
+- Slice 6D focused validation: unrestricted `go test ./bot -run
+  'TestInstalledRobotUsesFixedDefaultAlias|TestInstalledRobotUsesFixedDefaultIdentity'
+  -count=1` after the restricted Go-cache attempt was denied, plus `rg`
+  confirmation that installed `conf/` has no `GOPHER_ALIAS`
+- Slice 6D full and documentation validation: `make test`, `make docs-check`,
+  `mdbook build docs`, and `git diff --check`
 
 Not yet run; defer to the cutover/merge workflow unless scope changes:
 
@@ -104,11 +299,11 @@ Not yet run; defer to the cutover/merge workflow unless scope changes:
 
 ## Worktree expectation
 
-The main worktree contains the committed Phase 1 import at `0efdc6b6`; it may
-also contain current project-plan or handoff-record edits awaiting normal
-review. `docs/book/` may exist after a local build but remains ignored. The
-separate documentation worktree should be clean at its cutover commit
-`908d3a6`.
+The main worktree is expected to contain the uncommitted Slices 1 through 6D,
+the separately approved timeout change, their tests, synchronized
+user/developer documentation, and project-record changes awaiting owner review.
+`docs/book/` may exist after a local build but remains ignored. The separate
+documentation worktree should be clean at its cutover commit `908d3a6`.
 
 If the actual worktree differs materially, stop and reconcile the difference
 before following the next action.

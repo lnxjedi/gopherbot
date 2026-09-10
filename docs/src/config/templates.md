@@ -15,11 +15,14 @@ Templates are most often used to:
 A scaffolded robot usually selects an environment file from `robot.yaml`:
 
 ```yaml
-{{ $environment := env "GOPHER_ENVIRONMENT" | default "production" }}
+{{ $environment := env "GOPHER_ENVIRONMENT" }}
 {{ printf "environments/%s.yaml" $environment | .Include }}
 ```
 
-With this pattern, `GOPHER_ENVIRONMENT=development` loads `conf/environments/development.yaml`; when the variable is unset, the robot loads `conf/environments/production.yaml`.
+With this pattern, `GOPHER_ENVIRONMENT=development` loads
+`conf/environments/development.yaml`. Configured Robots must set
+`GOPHER_ENVIRONMENT`; there is no implicit production or development value.
+An unconfigured Robot may omit it and start in demo mode.
 
 ## Template Helpers
 

@@ -21,29 +21,25 @@ This is the shape of a small custom `robot.yaml`:
 IgnoreUnlistedUsers: true
 SecureParameters: true
 
-{{ $environment := env "GOPHER_ENVIRONMENT" | default "production" }}
+{{ $environment := env "GOPHER_ENVIRONMENT" }}
 {{ printf "environments/%s.yaml" $environment | .Include }}
 
 BotInfo:
-  UserName: floyd
-  Email: floyd@example.com
-  FullName: Floyd Gopherbot
-  FirstName: Floyd
+  UserName: {{ variable "ROBOT_NAME" | printf "%q" }}
+  Email: {{ variable "ROBOT_EMAIL" | printf "%q" }}
+  FullName: {{ variable "ROBOT_FULL_NAME" | printf "%q" }}
+  FirstName: {{ variable "ROBOT_NAME" | printf "%q" }}
   LastName: Gopherbot
 
-Alias: ";"
+Alias: {{ variable "ROBOT_ALIAS" | printf "%q" }}
 
-DefaultMessageFormat: BasicMarkdown
-DefaultJobChannel: general
+DefaultJobChannel: {{ variable "DEFAULT_JOB_CHANNEL" | printf "%q" }}
 HistoryProvider: file
 
 TimeOuts:
   Plugin:
     Warn: 7m
     Kill: 14m
-  Job:
-    Warn: 1h
-    Kill: 2h
 
 AdminUsers:
 - alice
@@ -58,7 +54,11 @@ ScheduledJobs:
   Schedule: "0 0 8 * * *"
 ```
 
-The included environment file commonly sets `PrimaryProtocol`, `DefaultProtocol`, `Brain`, and logging for a specific environment.
+The named values in this example come from
+`conf/variables/common.yaml`. Environment-specific variables and secrets can
+override them from `conf/variables/<environment>.yaml`. The included
+environment config file separately sets `PrimaryProtocol`, `DefaultProtocol`,
+`Brain`, and logging policy for that environment.
 
 ## Loading and Merge Rules
 
@@ -545,6 +545,11 @@ Rules:
 - zero disables that threshold
 
 Plugin, job, and task configs can override these defaults with their own `TimeOuts` block.
+
+The unconfigured demo Robot is a deliberate exception: its installed defaults
+warn after 35 minutes and terminate a plugin after 42 minutes so an interactive
+first-run setup conversation is not cut off. The generated Robot skeleton
+explicitly sets the normal 7-minute warning and 14-minute kill thresholds.
 
 ## Plugins, Jobs, Tasks, Namespaces, and Parameters
 

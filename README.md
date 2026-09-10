@@ -45,8 +45,8 @@ general: Welcome to the *Gopherbot* terminal connector. Since no configuration w
 detected, you're connected to 'floyd', the default robot.
 general: If you've started the robot by mistake, just hit ctrl-D to exit and try
 'gopherbot --help'; otherwise feel free to play around with the default robot - you
-can start by typing 'help'. If you'd like to start configuring a new robot, type:
-';new robot'.
+can start by typing 'help'. When you're ready to configure a new robot, type '|c'
+to switch to a direct conversation with the robot, then type ';new robot' there.
 c:general/u:alice -> help
 ...
 ```

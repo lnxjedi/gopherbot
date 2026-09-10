@@ -1,6 +1,9 @@
 # SSH Connector (Design Notes)
 
-This document describes the planned SSH connector that replaces the terminal connector as the default for local development. It focuses on behavior, configuration, and UX.
+This document describes the SSH connector that replaces the deprecated
+terminal connector for local development. New Robot scaffolds do not include
+terminal connector configuration. It focuses on behavior, configuration, and
+UX.
 
 ## Goals
 
@@ -56,7 +59,11 @@ Any startup modes that currently force `nullconn` remain unchanged.
 
 ### Defaults
 
-The default SSH connector configuration should exist in `conf/protocols/ssh.yaml` (where no port is specified, and the engine defaults to 4221). For newly scaffolded robots, protocol config lives in `robot.skel/conf/protocols/ssh.yaml` (with `ListenPort` using env default `GOPHER_SSH_PORT` or `4221`).
+The default SSH connector configuration should exist in
+`conf/protocols/ssh.yaml`. Newly scaffolded Robots use intentional
+`ListenHost: localhost` and `ListenPort: 4221` values in
+`robot.skel/conf/protocols/ssh.yaml`; `--ssh-port` remains the one-run port
+override.
 
 ### Color
 

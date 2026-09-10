@@ -9,40 +9,30 @@ IgnoreUnlistedUsers: true
 ## and tasks must use GetParameter(secret_name) instead of environment variables.
 SecureParameters: true
 
-{{ $environment := env "GOPHER_ENVIRONMENT" | default "production" }}
+{{ $environment := env "GOPHER_ENVIRONMENT" }}
 ## Environment-specific runtime defaults (protocol/brain/log destination).
 {{ printf "environments/%s.yaml" $environment | .Include }}
 
-{{ $botname := "<botname>" }}
-{{ $botemail := "<botemail>" }}
-{{ $botfullname := "<botfullname>" }}
-{{ $botalias := "<botalias>" }}
-
 BotInfo:
-  UserName: {{ $botname }}
-  Email: {{ $botemail }}
-  FullName: {{ $botfullname }}
-  FirstName: {{ $botname }}
+  UserName: {{ variable "ROBOT_NAME" | printf "%q" }}
+  Email: {{ variable "ROBOT_EMAIL" | printf "%q" }}
+  FullName: {{ variable "ROBOT_FULL_NAME" | printf "%q" }}
+  FirstName: {{ variable "ROBOT_NAME" | printf "%q" }}
   LastName: Gopherbot
 
-Alias: '{{ $botalias }}'
+Alias: {{ variable "ROBOT_ALIAS" | printf "%q" }}
 
 # Defaults for history and workspace directories, relative to the
 # process working directory.
-{{ $workdir := "workspace" }}
-{{ if $workdir -}} WorkSpace: {{ $workdir }} {{- end }}
+WorkSpace: workspace
 
 ## Configure a history provider
-{{ $history := "file" }}
-HistoryProvider: {{ $history }}
+HistoryProvider: file
 ## Optional queue providers for UUID-triggered jobs. Configure provider
 ## settings under custom/conf/queues/<provider>.yaml, and set UUIDTrigger on
 ## jobs that should be started from queue messages.
 # QueueProviders:
 # - gcloud
-
-## Outgoing format when a plugin or job does not choose one explicitly.
-DefaultMessageFormat: BasicMarkdown
 
 ## Connector-originated messages from the robot itself are processed by
 ## default. Uncomment to make the engine ignore messages marked SelfMessage.
@@ -50,16 +40,15 @@ DefaultMessageFormat: BasicMarkdown
 
 ## Optional channel message sent after startup readiness. ReadyChannel defaults
 ## to DefaultJobChannel when unset.
-# ReadyMessage: "<botname> is ready"
+# ReadyMessage: "Robot is ready"
 # ReadyChannel: general
+
+DefaultJobChannel: {{ variable "DEFAULT_JOB_CHANNEL" | printf "%q" }}
 
 TimeOuts:
   Plugin:
     Warn: 7m
     Kill: 14m
-  Job:
-    Warn: 1h
-    Kill: 2h
 
 ## The installed engine defaults already enable a useful baseline:
 ## - built-in admin/help/history/jobcmd/logging/ping/fallback

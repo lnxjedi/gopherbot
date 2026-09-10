@@ -17,14 +17,13 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
 const (
 	StateFileName     = ".setup-state"
-	stateFileVersion  = 4
+	stateFileVersion  = 5
 	StateExclusiveTag = "new-robot-state"
 
 	// Tuning constants for setup-style conversational pacing.
@@ -35,23 +34,9 @@ const (
 	CommandStart  = "new-robot"
 	CommandCancel = "new-robot-cancel"
 
-	statusActive    = "active"
-	statusCompleted = "completed"
-
-	stageShell              = "wizard-shell" // slice-1 compatibility
-	stageAwaitingEncryption = "awaiting-encryption-key"
-	stageAwaitingBotName    = "awaiting-bot-name"
-	stageAwaitingBotAlias   = "awaiting-bot-alias"
-	stageAwaitingJobChan    = "awaiting-job-channel"
-	stageAwaitingRobotEmail = "awaiting-robot-email"
-	stageAwaitingAdminEmail = "awaiting-admin-email"
-	stageAwaitingUsername   = "awaiting-username"
-	stageAwaitingConfirm    = "awaiting-confirmation" // backward compatibility
-	stageAwaitingSSHKey     = "awaiting-ssh-key"
-	stageScaffolded         = "scaffolded"
-	stageAwaitingRepoURL    = "awaiting-repository-url"
-	stageAwaitingGitPush    = "awaiting-user-git-push" // backward compatibility
-	stageRepoReady          = "repository-ready"
+	checkpointEncryptionRestart = "encryption-restart"
+	checkpointRepositoryHandoff = "repository-handoff"
+	checkpointFinalRestart      = "final-restart"
 
 	defaultScaffoldPath     = "custom"
 	defaultEnvironment      = "development"
@@ -73,10 +58,15 @@ var (
 	sshPubKeyRe = regexp.MustCompile(`^ssh-(?:ed25519|rsa|ecdsa|dss)\s+[A-Za-z0-9+/=]+(?:\s+[-._@A-Za-z0-9]+)?$`)
 	envKeyRe    = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
-	errScaffoldExists = errors.New("scaffold already exists")
+	errScaffoldExists     = errors.New("scaffold already exists")
+	errUnsafeScaffoldPath = errors.New("custom path is not absent or empty")
+	errUnsupportedState   = errors.New("unsupported onboarding state")
+	errInvalidState       = errors.New("invalid onboarding state")
 )
 
 var StartPluginConfig = []byte(`
+RequireAdmin: true
+RequireAllCommandsPrivate: true
 Commands:
 - Command: "new-robot"
   Regex: '(?i:new(?:-|[[:space:]]+)robot)$'
@@ -97,30 +87,24 @@ Commands:
 `)
 
 type setupStateFile struct {
-	Version  int                     `json:"version"`
-	Sessions map[string]setupSession `json:"sessions"`
+	Version        int    `json:"version"`
+	Checkpoint     string `json:"checkpoint"`
+	Owner          string `json:"owner"`
+	ConfiguredUser string `json:"configuredUser,omitempty"`
 }
 
 type setupSession struct {
-	Status             string `json:"status"`
-	Stage              string `json:"stage"`
-	StartedAtUTC       string `json:"startedAtUtc"`
-	UpdatedAtUTC       string `json:"updatedAtUtc"`
-	CompletedAtUTC     string `json:"completedAtUtc,omitempty"`
-	StartedBy          string `json:"startedBy"`
-	LastCommand        string `json:"lastCommand"`
-	LastChannel        string `json:"lastChannel"`
-	LastProtocol       string `json:"lastProtocol"`
-	BotName            string `json:"botName,omitempty"`
-	BotAlias           string `json:"botAlias,omitempty"`
-	JobChannel         string `json:"jobChannel,omitempty"`
-	RobotEmail         string `json:"robotEmail,omitempty"`
-	AdminEmail         string `json:"adminEmail,omitempty"`
-	CanonicalUser      string `json:"canonicalUser,omitempty"`
-	SSHPublicKey       string `json:"sshPublicKey,omitempty"`
-	SSHPublicKeySource string `json:"sshPublicKeySource,omitempty"`
-	RepositoryURL      string `json:"repositoryUrl,omitempty"`
-	DeployPublicKey    string `json:"deployPublicKey,omitempty"`
+	StartedBy          string
+	BotName            string
+	BotAlias           string
+	JobChannel         string
+	RobotEmail         string
+	AdminEmail         string
+	CanonicalUser      string
+	SSHPublicKey       string
+	SSHPublicKeySource string
+	RepositoryURL      string
+	DeployPublicKey    string
 }
 
 type conversation struct {
@@ -184,6 +168,9 @@ func (c *conversation) FixedSay(msg string, v ...interface{}) {
 
 func (c *conversation) Prompt(regexID, prompt string, v ...interface{}) (string, robot.RetVal) {
 	if c.target {
+		if c.channel == "" {
+			return c.r.PromptUserForReply(regexID, c.user, prompt, v...)
+		}
 		return c.r.PromptUserChannelForReply(regexID, c.user, c.channel, prompt, v...)
 	}
 	return c.r.PromptForReply(regexID, prompt, v...)
@@ -233,13 +220,17 @@ func HasAnySetupState() bool {
 }
 
 func HandleStartCommand(r robot.Robot, command string) {
+	m := r.GetMessage()
+	if m == nil || m.Incoming == nil || !m.Incoming.DirectMessage {
+		r.MessageFormat(robot.BasicMarkdown).Reply("New-Robot setup must run in a direct conversation. In the SSH connector, type `|c` to switch to a direct message with me, then try again.")
+		return
+	}
 	if !r.Exclusive(StateExclusiveTag, false) {
 		r.Reply("Another onboarding command is already updating setup state. Please try again in a few seconds.")
 		return
 	}
 
-	m := r.GetMessage()
-	userName, channelName, protocol := onboardingContext(r, m)
+	userName, _, _ := onboardingContext(r, m)
 	userKey := canonicalUserKey(userName)
 	if userKey == "" {
 		r.Reply("I couldn't determine your username for onboarding state.")
@@ -248,70 +239,53 @@ func HandleStartCommand(r robot.Robot, command string) {
 
 	state, err := loadState()
 	if err != nil {
-		r.Log(robot.Error, "Loading %s: %v", StateFileName, err)
-		r.Reply("I couldn't read onboarding state from %s", StateFileName)
+		reportStateLoadError(r, err)
 		return
 	}
-
-	now := time.Now().UTC().Format(time.RFC3339)
-	session, exists := state.Sessions[userKey]
 
 	switch command {
 	case CommandCancel:
-		if !exists {
+		if state.Checkpoint == "" || !stateMatchesUser(state, userKey) {
 			r.Reply("You don't have an onboarding session to cancel.")
 			return
 		}
-		delete(state.Sessions, userKey)
-		if err := saveState(state); err != nil {
-			r.Log(robot.Error, "Saving %s: %v", StateFileName, err)
-			r.Reply("I couldn't clear onboarding state in %s", StateFileName)
+		if err := clearStateFile(); err != nil {
+			r.Log(robot.Error, "Removing %s: %v", StateFileName, err)
+			r.Reply("I couldn't remove onboarding state from %s", StateFileName)
 			return
 		}
-		if session.Status == statusCompleted {
-			r.Reply("Cleared completed onboarding state from %s.", StateFileName)
-		} else {
-			r.Reply("Canceled your onboarding session and removed it from %s.", StateFileName)
+		r.MessageFormat(robot.BasicMarkdown).Reply("Canceled onboarding and removed `%s`. I did not change `.env` or anything under `%s/`.", StateFileName, defaultScaffoldPath)
+		return
+	}
+
+	if state.Checkpoint == "" {
+		if !preflightNewSetupScaffold(r) {
+			return
 		}
+		startEncryptionSetup(contextualConversation(r), userKey)
+		return
+	}
+	if !stateMatchesUser(state, userKey) {
+		r.MessageFormat(robot.BasicMarkdown).Reply("New-Robot setup is already owned by another administrator. I won't change `%s` or `%s/`.", StateFileName, defaultScaffoldPath)
 		return
 	}
 
-	if !exists {
-		session = setupSession{
-			Status:       statusActive,
-			Stage:        stageAwaitingEncryption,
-			StartedAtUTC: now,
-			StartedBy:    userKey,
+	conv := contextualConversation(r)
+	switch state.Checkpoint {
+	case checkpointEncryptionRestart:
+		continueQuestionnaire(conv, state)
+	case checkpointRepositoryHandoff:
+		continueRepositoryHandoff(conv, state)
+	case checkpointFinalRestart:
+		if userKey != canonicalUserKey(state.ConfiguredUser) {
+			r.MessageFormat(robot.BasicMarkdown).Reply("The final restart checkpoint is saved. After the restart, reconnect as @%s and I'll finish onboarding there.", state.ConfiguredUser)
+			return
 		}
-	} else if session.Status == statusCompleted && session.Stage == stageRepoReady {
-		r.Reply("Repository handoff is already complete for %s.", session.CanonicalUser)
-		if session.RepositoryURL != "" {
-			r.Say("Configured GOPHER_CUSTOM_REPOSITORY: %s", session.RepositoryURL)
+		sendFinalBootstrapInstructions(conv, sessionFromState(state))
+		if err := ClearSession(userKey); err != nil {
+			r.Log(robot.Error, "Clearing completed onboarding state for '%s': %v", userKey, err)
 		}
-		return
-	} else if session.Status == statusActive && session.Stage != "" && session.Stage != stageAwaitingEncryption && session.Stage != stageShell {
-		r.Reply("Setup is already in progress in `%s`.", StateFileName)
-		r.Say("Reconnect as @%s and the setup resume job will pick up automatically after restart.", session.StartedBy)
-		return
 	}
-
-	session.LastCommand = command
-	session.LastChannel = channelName
-	session.LastProtocol = protocol
-	session.UpdatedAtUTC = now
-	if session.Stage == "" || session.Stage == stageShell {
-		session.Stage = stageAwaitingEncryption
-	}
-
-	state.Sessions[userKey] = session
-	if err := saveState(state); err != nil {
-		r.Log(robot.Error, "Saving %s: %v", StateFileName, err)
-		r.Reply("I couldn't update onboarding state in %s", StateFileName)
-		return
-	}
-
-	session = state.Sessions[userKey]
-	continueWizard(contextualConversation(r), &state, userKey, &session)
 }
 
 func HandleResumeJoin(r robot.Robot, user, channel, protocol string) {
@@ -330,297 +304,181 @@ func HandleResumeJoin(r robot.Robot, user, channel, protocol string) {
 		r.Log(robot.Error, "Loading %s: %v", StateFileName, err)
 		return
 	}
-	sessionKey, session, found := findSessionForJoin(state, user)
-	if !found {
+	if state.Checkpoint == "" || !stateMatchesUser(state, user) {
 		return
 	}
-	conv := targetedConversation(r, user, channel)
-	if strings.ToLower(strings.TrimSpace(session.Status)) == statusCompleted && strings.ToLower(strings.TrimSpace(session.Stage)) == stageRepoReady {
-		sendFinalBootstrapInstructions(conv, session)
+	conv := targetedConversation(r, user, "")
+	if state.Checkpoint == checkpointFinalRestart {
+		if canonicalUserKey(state.ConfiguredUser) != user {
+			return
+		}
+		sendFinalBootstrapInstructions(conv, sessionFromState(state))
 		if err := ClearSession(user); err != nil {
 			r.Log(robot.Error, "Clearing completed onboarding state for '%s': %v", user, err)
 		}
 		return
 	}
-	if session.Stage == "" || session.Stage == stageAwaitingEncryption || session.Stage == stageShell {
-		return
-	}
 	conv.Pause(SetupInitialGreetingPauseSeconds)
-	conv.Say("Welcome back. I found onboarding progress in `%s`, so I'll continue from where we left off.", StateFileName)
-	session.LastChannel = channel
-	session.LastProtocol = protocol
-	session.UpdatedAtUTC = time.Now().UTC().Format(time.RFC3339)
-	state.Sessions[sessionKey] = session
+	conv.Say("Welcome back. I found the safe onboarding checkpoint in `%s`, so I'll continue from there.", StateFileName)
+	switch state.Checkpoint {
+	case checkpointEncryptionRestart:
+		continueQuestionnaire(conv, state)
+	case checkpointRepositoryHandoff:
+		continueRepositoryHandoff(conv, state)
+	}
+}
+
+func stateMatchesUser(state setupStateFile, user string) bool {
+	user = canonicalUserKey(user)
+	return user != "" && (user == canonicalUserKey(state.Owner) || user == canonicalUserKey(state.ConfiguredUser))
+}
+
+func sessionFromState(state setupStateFile) setupSession {
+	return setupSession{
+		StartedBy:     canonicalUserKey(state.Owner),
+		CanonicalUser: canonicalUserKey(state.ConfiguredUser),
+		RepositoryURL: readEnvValue("GOPHER_CUSTOM_REPOSITORY"),
+	}
+}
+
+func startEncryptionSetup(conv *conversation, owner string) {
+	encryptionKey, ok := promptEncryptionKey(conv)
+	if !ok {
+		return
+	}
+	if !preflightNewSetupScaffold(conv.r) {
+		return
+	}
+	if err := writeInitialEnv(encryptionKey); err != nil {
+		conv.r.Log(robot.Error, "Writing initial onboarding .env: %v", err)
+		conv.Reply("I couldn't write your encryption key to .env: %v", err)
+		return
+	}
+	state := setupStateFile{
+		Checkpoint: checkpointEncryptionRestart,
+		Owner:      canonicalUserKey(owner),
+	}
 	if err := saveState(state); err != nil {
-		r.Log(robot.Error, "Saving %s: %v", StateFileName, err)
+		conv.r.Log(robot.Error, "Saving %s: %v", StateFileName, err)
+		conv.Reply("I wrote `.env`, but I couldn't save the restart checkpoint in `%s`: %v", StateFileName, err)
 		return
 	}
-	continueWizard(conv, &state, sessionKey, &session)
+	sendSetupParagraphs(conv,
+		"Done. Your encryption key is now written to `.env`, which can be used for supplying environment variables to a robot when it starts.",
+		"Keep that value safe and never commit `.env` to git.",
+		fmt.Sprintf("I'm restarting now with encryption enabled. Reconnect as @%s and the setup resume job will start the short questionnaire.", state.Owner),
+	)
+	conv.Pause(SetupRestartTransitionPauseSeconds)
+	conv.r.AddTask("restart-robot")
 }
 
-func findSessionForJoin(state setupStateFile, user string) (string, setupSession, bool) {
-	if state.Sessions == nil {
-		return "", setupSession{}, false
-	}
-	if session, ok := state.Sessions[user]; ok {
-		return user, session, true
-	}
-	for key, candidate := range state.Sessions {
-		if canonicalUserKey(candidate.CanonicalUser) == user {
-			return key, candidate, true
-		}
-	}
-	return "", setupSession{}, false
-}
-
-func continueWizard(conv *conversation, state *setupStateFile, userKey string, session *setupSession) {
-	sessionKey := userKey
-	nowUTC := func() string {
-		return time.Now().UTC().Format(time.RFC3339)
-	}
-	persist := func(saveErrorMsg string) bool {
-		state.Sessions[sessionKey] = *session
-		if err := saveState(*state); err != nil {
-			conv.r.Log(robot.Error, "Saving %s: %v", StateFileName, err)
-			conv.Reply(saveErrorMsg, StateFileName)
-			return false
-		}
-		return true
-	}
-
+func continueQuestionnaire(conv *conversation, state setupStateFile) {
+	session := setupSession{StartedBy: canonicalUserKey(state.Owner)}
 	defaultUser := preferredOnboardingUser(conv.r, session.StartedBy, conv.r.GetMessage())
-	if session.Stage == stageAwaitingConfirm {
-		// Compatibility for older session state values.
-		session.Stage = stageAwaitingSSHKey
-	}
-	defaultJobChannel := preferredJobChannel(session)
 
-	if session.Stage == stageScaffolded {
-		session.Stage = stageAwaitingRepoURL
+	name, ok := promptBotName(conv)
+	if !ok {
+		return
 	}
+	session.BotName = name
+	defaultJobChannel := preferredJobChannel(&session)
 
-	if session.Stage == stageAwaitingEncryption {
-		encryptionKey, ok := promptEncryptionKey(conv)
-		if !ok {
-			session.Stage = stageAwaitingEncryption
-			session.UpdatedAtUTC = nowUTC()
-			persist("I couldn't save onboarding progress to %s")
+	alias, ok := promptBotAlias(conv)
+	if !ok {
+		return
+	}
+	session.BotAlias = alias
+
+	jobChannel, ok := promptJobChannel(conv, defaultJobChannel)
+	if !ok {
+		return
+	}
+	session.JobChannel = jobChannel
+
+	robotEmail, ok := promptRobotEmail(conv)
+	if !ok {
+		return
+	}
+	session.RobotEmail = robotEmail
+
+	adminEmail, ok := promptAdminEmail(conv)
+	if !ok {
+		return
+	}
+	session.AdminEmail = adminEmail
+
+	configuredUser, ok := promptCanonicalUser(conv, defaultUser)
+	if !ok {
+		return
+	}
+	session.CanonicalUser = configuredUser
+
+	sshKey, source, ok := resolveSSHPublicKey(conv)
+	if !ok {
+		return
+	}
+	session.SSHPublicKey = sshKey
+	session.SSHPublicKeySource = source
+
+	if err := applyScaffold(conv.r, session); err != nil {
+		conv.r.Log(robot.Error, "Applying scaffold for user '%s': %v", session.CanonicalUser, err)
+		if errors.Is(err, errScaffoldExists) {
+			conv.Reply("I found `%s/conf/robot.yaml`, but the saved checkpoint does not prove that this scaffold finished successfully. I won't change or assume ownership of it.", defaultScaffoldPath)
+			conv.Say("Preserve or move `%s/` yourself, remove `%s`, and start `new robot` again.", defaultScaffoldPath, StateFileName)
 			return
 		}
-		if err := writeInitialEnv(encryptionKey); err != nil {
-			conv.r.Log(robot.Error, "Writing initial onboarding .env: %v", err)
-			conv.Reply("I couldn't write your encryption key to .env: %v", err)
-			return
-		}
-		if err := clearOnboardingScaffoldState(); err != nil {
-			conv.r.Log(robot.Error, "Clearing onboarding scaffold state: %v", err)
-			conv.Reply("I couldn't prepare the directory for restart: %v", err)
-			return
-		}
-		session.Status = statusActive
-		session.Stage = stageAwaitingBotName
-		session.UpdatedAtUTC = nowUTC()
-		if !persist("I couldn't save onboarding progress to %s") {
-			return
-		}
-		sendSetupParagraphs(conv,
-			"Done. Your encryption key is now written to `.env`, which can be used for supplying environment variables to a robot when it starts.",
-			"Keep that value safe and never commit `.env` to git.",
-			fmt.Sprintf("I'm restarting now with encryption enabled. Reconnect as @%s and the setup resume job will pick up automatically right where we left off.", session.StartedBy),
-		)
-		conv.Pause(SetupRestartTransitionPauseSeconds)
-		conv.r.AddTask("restart-robot")
+		conv.Reply("I couldn't apply scaffold changes: %v", err)
+		conv.Say("The questionnaire was not saved. Preserve any files you need, resolve the error, and run `new robot` to start the questionnaire again.")
 		return
 	}
 
-	if session.BotName == "" || session.Stage == stageAwaitingBotName {
-		name, ok := promptBotName(conv)
-		if !ok {
-			session.Stage = stageAwaitingBotName
-			session.UpdatedAtUTC = nowUTC()
-			persist("I couldn't save onboarding progress to %s")
-			return
-		}
-		session.BotName = name
-		session.Stage = stageAwaitingBotAlias
-		session.UpdatedAtUTC = nowUTC()
-		if !persist("I couldn't save onboarding progress to %s") {
-			return
-		}
-		defaultJobChannel = preferredJobChannel(session)
+	next := setupStateFile{
+		Checkpoint:     checkpointRepositoryHandoff,
+		Owner:          state.Owner,
+		ConfiguredUser: session.CanonicalUser,
 	}
-
-	if session.BotAlias == "" || session.Stage == stageAwaitingBotAlias {
-		alias, ok := promptBotAlias(conv)
-		if !ok {
-			session.Stage = stageAwaitingBotAlias
-			session.UpdatedAtUTC = nowUTC()
-			persist("I couldn't save onboarding progress to %s")
-			return
-		}
-		session.BotAlias = alias
-		session.Stage = stageAwaitingJobChan
-		session.UpdatedAtUTC = nowUTC()
-		if !persist("I couldn't save onboarding progress to %s") {
-			return
-		}
+	if err := saveState(next); err != nil {
+		conv.r.Log(robot.Error, "Saving repository checkpoint in %s: %v", StateFileName, err)
+		conv.Reply("The scaffold was created, but I couldn't save its repository checkpoint in `%s`: %v", StateFileName, err)
+		return
 	}
+	sendSetupParagraphs(conv,
+		fmt.Sprintf("I've created the local scaffold under `%s/` and configured a local SSH connector identity for `%s`.", defaultScaffoldPath, session.CanonicalUser),
+		fmt.Sprintf("I also saved the robot's SSH server public key to `%s/ssh-host-key.pub`.", defaultScaffoldPath),
+		"The last setup step is configuring your robot's git repository for deployment bootstrapping.",
+	)
+	continueRepositoryHandoff(conv, next)
+}
 
-	if session.JobChannel == "" || session.Stage == stageAwaitingJobChan {
-		channel, ok := promptJobChannel(conv, defaultJobChannel)
-		if !ok {
-			session.Stage = stageAwaitingJobChan
-			session.UpdatedAtUTC = nowUTC()
-			persist("I couldn't save onboarding progress to %s")
-			return
-		}
-		session.JobChannel = channel
-		session.Stage = stageAwaitingRobotEmail
-		session.UpdatedAtUTC = nowUTC()
-		if !persist("I couldn't save onboarding progress to %s") {
-			return
-		}
+func continueRepositoryHandoff(conv *conversation, state setupStateFile) {
+	session := sessionFromState(state)
+	repoURL, ok := promptRepositoryURL(conv, "")
+	if !ok {
+		return
 	}
-
-	if session.RobotEmail == "" || session.Stage == stageAwaitingRobotEmail {
-		email, ok := promptRobotEmail(conv)
-		if !ok {
-			session.Stage = stageAwaitingRobotEmail
-			session.UpdatedAtUTC = nowUTC()
-			persist("I couldn't save onboarding progress to %s")
-			return
-		}
-		session.RobotEmail = email
-		session.Stage = stageAwaitingAdminEmail
-		session.UpdatedAtUTC = nowUTC()
-		if !persist("I couldn't save onboarding progress to %s") {
-			return
-		}
+	session.RepositoryURL = repoURL
+	deployPubKey, err := applyRepositoryHandoff(session)
+	if err != nil {
+		conv.r.Log(robot.Error, "Applying repository handoff for user '%s': %v", session.CanonicalUser, err)
+		conv.Reply("I couldn't finish repository handoff: %v", err)
+		conv.Say("The repository checkpoint is preserved. Fix the issue and run `new robot` to try that step again.")
+		return
 	}
+	session.DeployPublicKey = deployPubKey
+	sendRepositoryInstructions(conv, session)
+	sendSetupParagraphs(conv,
+		fmt.Sprintf("Meanwhile, I'll restart once more from the current directory, where your new robot resides in `%s/` - after the restart, you should be able to connect as yourself with `bot-ssh %s`. Then, as administrator, you can start working on setting up a proper brain, a team chat connector, and other pieces needed for a fully functional robot.", defaultScaffoldPath, session.CanonicalUser),
+		"Have fun.",
+	)
 
-	if session.AdminEmail == "" || session.Stage == stageAwaitingAdminEmail {
-		email, ok := promptAdminEmail(conv)
-		if !ok {
-			session.Stage = stageAwaitingAdminEmail
-			session.UpdatedAtUTC = nowUTC()
-			persist("I couldn't save onboarding progress to %s")
-			return
-		}
-		session.AdminEmail = email
-		session.Stage = stageAwaitingUsername
-		session.UpdatedAtUTC = nowUTC()
-		if !persist("I couldn't save onboarding progress to %s") {
-			return
-		}
+	final := setupStateFile{
+		Checkpoint:     checkpointFinalRestart,
+		Owner:          state.Owner,
+		ConfiguredUser: state.ConfiguredUser,
 	}
-
-	if session.CanonicalUser == "" || session.Stage == stageAwaitingUsername {
-		user, ok := promptCanonicalUser(conv, defaultUser)
-		if !ok {
-			session.Stage = stageAwaitingUsername
-			session.UpdatedAtUTC = nowUTC()
-			persist("I couldn't save onboarding progress to %s")
-			return
-		}
-		session.CanonicalUser = user
-		session.Stage = stageAwaitingSSHKey
-		session.UpdatedAtUTC = nowUTC()
-		if !persist("I couldn't save onboarding progress to %s") {
-			return
-		}
-	}
-
-	if session.SSHPublicKey == "" || session.Stage == stageAwaitingSSHKey {
-		key, source, ok := resolveSSHPublicKey(conv)
-		if !ok {
-			session.Stage = stageAwaitingSSHKey
-			session.UpdatedAtUTC = nowUTC()
-			persist("I couldn't save onboarding progress to %s")
-			return
-		}
-		session.SSHPublicKey = key
-		session.SSHPublicKeySource = source
-		session.Stage = stageAwaitingSSHKey
-		session.UpdatedAtUTC = nowUTC()
-		if !persist("I couldn't save onboarding progress to %s") {
-			return
-		}
-	}
-
-	if session.Stage == stageAwaitingSSHKey {
-		if err := applyScaffold(conv.r, *session); err != nil {
-			if errors.Is(err, errScaffoldExists) {
-				sendSetupParagraphs(conv,
-					fmt.Sprintf("The local scaffold already exists under `%s`.", defaultScaffoldPath),
-					"I'll continue with the repository handoff from the existing checkout.",
-				)
-			} else {
-				conv.r.Log(robot.Error, "Applying scaffold for user '%s': %v", session.CanonicalUser, err)
-				conv.Reply("I couldn't apply scaffold changes: %v", err)
-				conv.Say("Your session is preserved. Fix the issue and reconnect with @%s so setup can continue automatically.", session.StartedBy)
-				return
-			}
-		} else {
-			sendSetupParagraphs(conv,
-				fmt.Sprintf("I've created the local scaffold under `%s/` and configured a local SSH connector identity for `%s`.", defaultScaffoldPath, session.CanonicalUser),
-				fmt.Sprintf("I also saved the robot's SSH server public key to `%s/robot-ssh.pub`.", defaultScaffoldPath),
-				"The last setup step is configuring your robot's git repository for deployment bootstrapping.",
-			)
-		}
-		session.Status = statusActive
-		session.Stage = stageAwaitingRepoURL
-		session.CompletedAtUTC = ""
-		session.UpdatedAtUTC = nowUTC()
-		if !persist("I couldn't save onboarding progress to %s") {
-			return
-		}
-	}
-
-	if session.Stage == stageScaffolded || session.Stage == stageAwaitingRepoURL || session.RepositoryURL == "" {
-		repoURL, ok := promptRepositoryURL(conv, session.RepositoryURL)
-		if !ok {
-			session.Stage = stageAwaitingRepoURL
-			session.UpdatedAtUTC = nowUTC()
-			persist("I couldn't save onboarding progress to %s")
-			return
-		}
-		session.RepositoryURL = repoURL
-		session.Stage = stageAwaitingRepoURL
-		session.UpdatedAtUTC = nowUTC()
-		if !persist("I couldn't save onboarding progress to %s") {
-			return
-		}
-	}
-
-	if session.Stage == stageAwaitingRepoURL {
-		deployPubKey, err := applyRepositoryHandoff(*session)
-		if err != nil {
-			conv.r.Log(robot.Error, "Applying repository handoff for user '%s': %v", session.CanonicalUser, err)
-			conv.Reply("I couldn't finish repository handoff: %v", err)
-			conv.Say("Your session is preserved. Reconnect with @%s after fixing the issue and setup will continue automatically.", session.StartedBy)
-			return
-		}
-		session.DeployPublicKey = deployPubKey
-		session.Stage = stageAwaitingGitPush
-		session.UpdatedAtUTC = nowUTC()
-		if !persist("I couldn't save onboarding progress to %s") {
-			return
-		}
-		sendRepositoryInstructions(conv, *session)
-	}
-
-	if session.Stage == stageAwaitingGitPush {
-		sendSetupParagraphs(conv,
-			fmt.Sprintf("Meanwhile, I'll restart once more from the current directory, where your new robot resides in `%s/` - after the restart, you should be able to connect as yourself with `bot-ssh %s`. Then, as administrator, you can start working on setting up a proper brain, a team chat connector, and other pieces needed for a fully functional robot.", defaultScaffoldPath, session.CanonicalUser),
-			"Have fun.",
-		)
-	}
-
-	session.Status = statusCompleted
-	session.Stage = stageRepoReady
-	session.CompletedAtUTC = nowUTC()
-	session.UpdatedAtUTC = session.CompletedAtUTC
-	if !persist("Repository handoff succeeded but I couldn't persist final state in %s") {
+	if err := saveState(final); err != nil {
+		conv.r.Log(robot.Error, "Saving final restart checkpoint in %s: %v", StateFileName, err)
+		conv.Reply("Repository handoff succeeded, but I couldn't save the final restart checkpoint in `%s`: %v", StateFileName, err)
 		return
 	}
 	conv.Pause(SetupRestartTransitionPauseSeconds)
@@ -1079,7 +937,7 @@ func applyRepositoryHandoff(s setupSession) (deployPubKey string, err error) {
 	if !validRepositoryURL(repo) {
 		return "", fmt.Errorf("invalid repository URL '%s'", repo)
 	}
-	deployPrivatePEM, deployPub, err := generateDeployKeyPair(robotMetaFromSession(s).botName)
+	deployPrivatePEM, deployPub, err := generateSSHKeyPair(robotMetaFromSession(s).botName)
 	if err != nil {
 		return "", fmt.Errorf("generating deploy keypair: %w", err)
 	}
@@ -1141,7 +999,7 @@ func applyScaffold(r robot.Robot, s setupSession) error {
 	}
 
 	meta := robotMetaFromSession(s)
-	hostPrivatePEM, hostPubKey, err := generateDeployKeyPair(meta.botName)
+	hostPrivatePEM, hostPubKey, err := generateSSHKeyPair(meta.botName)
 	if err != nil {
 		return fmt.Errorf("generating SSH host keypair: %w", err)
 	}
@@ -1155,19 +1013,15 @@ func applyScaffold(r robot.Robot, s setupSession) error {
 	}
 
 	replace := map[string]string{
-		"<botname>":             meta.botName,
-		"<botemail>":            meta.botEmail,
-		"<botfullname>":         meta.botFullName,
-		"<botalias>":            meta.botAlias,
-		"<sshhostkeyencrypted>": hostKeyEncrypted,
+		"<botname>":             yamlDoubleQuoteEscape(meta.botName),
+		"<botemail>":            yamlDoubleQuoteEscape(meta.botEmail),
+		"<botfullname>":         yamlDoubleQuoteEscape(meta.botFullName),
+		"<botalias>":            yamlDoubleQuoteEscape(meta.botAlias),
+		"<jobchannel>":          yamlDoubleQuoteEscape(generatedJobChannel(meta.jobChannel)),
+		"<sshhostkeyencrypted>": yamlDoubleQuoteEscape(hostKeyEncrypted),
 	}
 
-	for _, rel := range []string{
-		"conf/robot.yaml",
-		"conf/variables/common.yaml",
-		"conf/protocols/ssh.yaml",
-		"conf/protocols/terminal.yaml",
-	} {
+	for _, rel := range []string{"conf/variables/common.yaml"} {
 		fp := filepath.Join(defaultScaffoldPath, rel)
 		if err := replaceTokensInFile(fp, replace); err != nil {
 			return err
@@ -1176,8 +1030,8 @@ func applyScaffold(r robot.Robot, s setupSession) error {
 	if err := enableOnboardingHooks(filepath.Join(defaultScaffoldPath, "conf", "robot.yaml")); err != nil {
 		return err
 	}
-	if err := writePublicKey(filepath.Join(defaultScaffoldPath, "robot-ssh.pub"), hostPubKey); err != nil {
-		return fmt.Errorf("writing robot ssh public key: %w", err)
+	if err := writePublicKey(filepath.Join(defaultScaffoldPath, "ssh-host-key.pub"), hostPubKey); err != nil {
+		return fmt.Errorf("writing SSH host public key: %w", err)
 	}
 
 	if err := appendIdentityConfig(
@@ -1253,11 +1107,7 @@ func appendIdentityConfig(robotConfig, sshConfig string, meta generatedMeta, use
 	escapedMail := yamlDoubleQuoteEscape(meta.userEmail)
 	escapedFull := yamlDoubleQuoteEscape(meta.userDisplayName)
 	escapedFirst := yamlDoubleQuoteEscape(meta.userFirstName)
-	jobChannel := canonicalChannelName(meta.jobChannel)
-	if !channelRe.MatchString(jobChannel) {
-		jobChannel = "general"
-	}
-	escapedJobChannel := yamlDoubleQuoteEscape(jobChannel)
+	jobChannel := generatedJobChannel(meta.jobChannel)
 	channelList := yamlQuotedList(uniqueChannels("general", "random", jobChannel))
 
 	if err := ensureSSHProtocolChannels(sshConfig, []string{"general", "random", jobChannel}); err != nil {
@@ -1272,19 +1122,26 @@ func appendIdentityConfig(robotConfig, sshConfig string, meta generatedMeta, use
 AdminContact: "%s"
 AdminUsers: [ "%s" ]
 DefaultChannels: [ %s ]
-DefaultJobChannel: %s
 UserRoster:
 - UserName: "%s"
   Email: "%s"
   FullName: "%s"
   FirstName: "%s"
   LastName: "User"
-`, yamlDoubleQuoteEscape(meta.userEmail), escapedUser, channelList, escapedJobChannel, escapedUser, escapedMail, escapedFull, escapedFirst)
+`, yamlDoubleQuoteEscape(meta.userEmail), escapedUser, channelList, escapedUser, escapedMail, escapedFull, escapedFirst)
 	if err := appendFile(robotConfig, robotBlock); err != nil {
 		return fmt.Errorf("updating %s: %w", robotConfig, err)
 	}
 
 	return nil
+}
+
+func generatedJobChannel(value string) string {
+	channel := canonicalChannelName(value)
+	if !channelRe.MatchString(channel) {
+		return "general"
+	}
+	return channel
 }
 
 func writeInitialEnv(encryptionKey string) error {
@@ -1340,9 +1197,37 @@ func writeInitialEnv(encryptionKey string) error {
 	return nil
 }
 
-func clearOnboardingScaffoldState() error {
-	if err := os.RemoveAll(defaultScaffoldPath); err != nil {
-		return fmt.Errorf("removing %s: %w", defaultScaffoldPath, err)
+func preflightNewSetupScaffold(r robot.Robot) bool {
+	err := validateNewSetupScaffoldPath(defaultScaffoldPath)
+	if err == nil {
+		return true
+	}
+	if errors.Is(err, errUnsafeScaffoldPath) {
+		r.MessageFormat(robot.BasicMarkdown).Reply("I found existing data at `%s/`, so I won't change it or continue setup. New-Robot setup requires that directory to be absent or completely empty. Move or preserve it yourself, then run `new robot` again.", defaultScaffoldPath)
+		return false
+	}
+	r.Log(robot.Error, "Inspecting onboarding scaffold path: %v", err)
+	r.MessageFormat(robot.BasicMarkdown).Reply("I couldn't safely inspect `%s/`, so I won't change it or continue setup: %v", defaultScaffoldPath, err)
+	return false
+}
+
+func validateNewSetupScaffoldPath(path string) error {
+	info, err := os.Lstat(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("inspecting %s: %w", path, err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("%w: %s is not a directory", errUnsafeScaffoldPath, path)
+	}
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return fmt.Errorf("reading %s: %w", path, err)
+	}
+	if len(entries) != 0 {
+		return fmt.Errorf("%w: %s contains entries", errUnsafeScaffoldPath, path)
 	}
 	return nil
 }
@@ -1421,6 +1306,20 @@ func parseEnvLine(line string) (key, value string, ok bool) {
 		return "", "", false
 	}
 	return k, strings.TrimSpace(trim[i+1:]), true
+}
+
+func readEnvValue(name string) string {
+	body, err := os.ReadFile(".env")
+	if err != nil {
+		return ""
+	}
+	for _, line := range strings.Split(strings.ReplaceAll(string(body), "\r\n", "\n"), "\n") {
+		key, value, ok := parseEnvLine(line)
+		if ok && key == name {
+			return value
+		}
+	}
+	return ""
 }
 
 func valueForEnvLine(line string) string {
@@ -1656,7 +1555,7 @@ func copyFile(src, dst string, mode fs.FileMode) error {
 	return nil
 }
 
-func generateDeployKeyPair(comment string) (privatePEM string, publicLine string, err error) {
+func generateSSHKeyPair(comment string) (privatePEM string, publicLine string, err error) {
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return "", "", fmt.Errorf("generating ed25519 deploy key: %w", err)
@@ -2111,10 +2010,7 @@ func protocolName(m *robot.Message) string {
 }
 
 func loadState() (setupStateFile, error) {
-	state := setupStateFile{
-		Version:  stateFileVersion,
-		Sessions: make(map[string]setupSession),
-	}
+	state := setupStateFile{Version: stateFileVersion}
 
 	body, err := os.ReadFile(StateFileName)
 	if err != nil {
@@ -2129,17 +2025,20 @@ func loadState() (setupStateFile, error) {
 	if err := json.Unmarshal(body, &state); err != nil {
 		return state, fmt.Errorf("parsing JSON: %w", err)
 	}
-	if state.Version == 0 {
-		state.Version = stateFileVersion
+	if state.Version != stateFileVersion {
+		return setupStateFile{}, fmt.Errorf("%w: %s has version %d; expected %d", errUnsupportedState, StateFileName, state.Version, stateFileVersion)
 	}
-	if state.Sessions == nil {
-		state.Sessions = make(map[string]setupSession)
+	if err := validateState(state); err != nil {
+		return setupStateFile{}, err
 	}
 	return state, nil
 }
 
 func saveState(state setupStateFile) error {
 	state.Version = stateFileVersion
+	if err := validateState(state); err != nil {
+		return err
+	}
 	body, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshalling JSON: %w", err)
@@ -2156,23 +2055,46 @@ func saveState(state setupStateFile) error {
 	return nil
 }
 
+func validateState(state setupStateFile) error {
+	switch state.Checkpoint {
+	case checkpointEncryptionRestart:
+	case checkpointRepositoryHandoff, checkpointFinalRestart:
+		if canonicalUserKey(state.ConfiguredUser) == "" {
+			return fmt.Errorf("%w: checkpoint %q requires configuredUser", errInvalidState, state.Checkpoint)
+		}
+	default:
+		return fmt.Errorf("%w: unknown checkpoint %q", errInvalidState, state.Checkpoint)
+	}
+	if canonicalUserKey(state.Owner) == "" {
+		return fmt.Errorf("%w: checkpoint %q requires owner", errInvalidState, state.Checkpoint)
+	}
+	return nil
+}
+
+func reportStateLoadError(r robot.Robot, err error) {
+	r.Log(robot.Error, "Loading %s: %v", StateFileName, err)
+	if errors.Is(err, errUnsupportedState) {
+		r.MessageFormat(robot.BasicMarkdown).Reply("I found onboarding state in `%s` from an unsupported setup version. I won't guess how to resume it. Preserve or remove that file yourself; also preserve or move any existing `%s/` data before starting again.", StateFileName, defaultScaffoldPath)
+		return
+	}
+	r.MessageFormat(robot.BasicMarkdown).Reply("I couldn't safely read onboarding state from `%s`, so I won't continue: %v", StateFileName, err)
+}
+
+func clearStateFile() error {
+	err := os.Remove(StateFileName)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return err
+}
+
 func ClearSession(user string) error {
 	state, err := loadState()
 	if err != nil {
 		return err
 	}
-	if state.Sessions == nil {
+	if state.Checkpoint == "" || !stateMatchesUser(state, user) {
 		return nil
 	}
-	if _, ok := state.Sessions[user]; ok {
-		delete(state.Sessions, user)
-	} else {
-		for key, session := range state.Sessions {
-			if canonicalUserKey(session.CanonicalUser) == user {
-				delete(state.Sessions, key)
-				break
-			}
-		}
-	}
-	return saveState(state)
+	return clearStateFile()
 }

@@ -13,7 +13,8 @@ v3 goal is a cleaner, guided path from empty directory to a real robot using nor
 - Add `;new robot` and `;new-robot` entrypoint (same behavior).
 - In demo mode, docs should steer user to start and connect as `alice` with `bot-ssh -d alice` (or equivalent simple default).
 - Ask the user for their canonical username (chat identity), and use that for local ssh login (`bot-ssh <username>`).
-- For slice 1, persist onboarding workflow state in local `.setup-state` (not brain).
+- Persist only the three approved restart/repository boundary checkpoints in
+  local `.setup-state` (not brain); do not persist questionnaire answers.
 - Newly created robot should start with a persistent file brain by default.
 - After scaffold creation, restart automatically and provide information for pushing the robot to git and testing bootstrap in a new empty directory.
 - Keep an encrypted persistent SSH server host key for the robot, but retire legacy `BOT_SSH_PHRASE` / self-managed outbound SSH key setup from the new-robot path.
@@ -34,6 +35,9 @@ v3 goal is a cleaner, guided path from empty directory to a real robot using nor
   join announcements (triggered job path), so startup no longer emits welcome chat lines.
 - `jobs/go-resume-setup/resume_setup.go` owns reconnect-time onboarding continuation and final
   post-restart bootstrap instructions.
+- `.setup-state` has one owner and the `encryption-restart`,
+  `repository-handoff`, and `final-restart` checkpoints. Unsupported version-4
+  partial state is rejected rather than migrated.
 - Legacy answerfile setup automation has been removed from default onboarding flow.
 
 Relevant files:
@@ -106,7 +110,8 @@ Relevant files:
 - Add new plugin command handlers and minimal state machine:
   - start wizard
   - cancel wizard
-- Persist wizard state in a local `.setup-state` file in robot home.
+- Persist only boundary checkpoints in a local `.setup-state` file in robot
+  home; interrupted questionnaire answers restart from the beginning.
 - No scaffold write yet, just initial interaction plumbing and state handling.
 
 Acceptance:
@@ -153,10 +158,14 @@ Implementation notes (current):
 - Deploy keypair is generated during handoff; private key is stored only in parent `.env`
   (encoded for bootstrap), not in `custom/`.
 - Public deploy key is written to `custom/ssh/deploy_key.pub` for easy admin copy/paste.
-- The persistent SSH server host private key is stored encrypted in config; the corresponding public key is written to `custom/robot-ssh.pub`.
+- The persistent SSH server host private key is stored encrypted in config; the corresponding public key is written to `custom/ssh-host-key.pub`.
 - `custom/ssh/` is only used for the deploy public key during onboarding handoff.
 - Deploy key encoding uses legacy bootstrap-compatible format (`space -> _`, `newline -> :`).
 - A temporary onboarding resume-on-join hook is enabled during scaffold so the final post-restart bootstrap guidance can run after the robot comes back with its real configuration.
+- The installed join triggers match the fixed `floyd` username while the
+  default Robot is running, then use the generated `ROBOT_NAME` variable when
+  the configured Robot loads the temporary resume hook. They do not depend on
+  `GOPHER_BOTNAME` or a special engine trigger type.
 - Wizard replies include the deploy public key plus explicit next-step commands for:
   - manual `git init/add/commit/remote/push`
   - bootstrap verification by restarting from `.env` only.
@@ -180,12 +189,13 @@ Acceptance:
 - Remove legacy setup command references from user-facing docs and welcome text.
 - Document migration notes for teams still using answerfile-based setup.
 
-## Open questions to resolve before coding
+## Resolved safety and state decisions
 
-- Confirm exact prompt list for slice 1+2 (minimum viable questions).
-- Refine `.setup-state` locking semantics if parallel onboarding commands become common.
-- Decide explicit safety policy for non-empty directories:
-  - default: abort with guidance unless user confirms clean/overwrite path.
+- One validated administrator owns the active checkpoint state.
+- `custom/` must be absent or literally empty for a brand-new session; any
+  entry causes non-destructive refusal.
+- Questionnaire answers are in-memory only. Durable state exists solely at the
+  two restart boundaries and repository handoff boundary.
 
 ## Non-goals for this epic start
 
