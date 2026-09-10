@@ -1,0 +1,16 @@
+PrimaryProtocol: test
+SecondaryProtocols: [ slack ]
+AdminUsers: [ alice ]
+DefaultChannels: [ general ]
+DefaultJobChannel: general
+Alias: ";"
+LogLevel: debug
+BotInfo:
+  UserName: bender
+  FullName: Example Robot
+UserRoster:
+  - UserName: alice
+    UserID: u0001
+LocalPort: 0
+WorkSpace: workspace
+Brain: mem

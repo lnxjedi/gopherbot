@@ -48,6 +48,13 @@ diagnostics must go to stderr.
 - Provider configuration belongs in its provider directory
   (`conf/protocols/`, `conf/brains/`, `conf/history/`, `conf/queues/`), not in
   root `robot.yaml`.
+- Protocol configuration and load errors are stored together by protocol.
+  Missing or invalid configuration must never fall back to another protocol.
+  Primary load errors abort startup; secondary load errors remain attached to
+  that connector for initialization diagnostics and retry after correction.
+- A missing installed or custom file permits the other layer to supply defaults.
+  An existing file's read, template, YAML, or serialization error must be
+  reported rather than silently using the other layer.
 - Pre-connect load must not run external configuration/init code. Post-connect
   load may do so.
 - Primary protocol is startup-only. Reload may reconcile secondaries and queue

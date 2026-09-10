@@ -1,0 +1,29 @@
+name: TestSecondarySlackConfigError
+metadata:
+  subsystems:
+    - connector
+    - startup
+  tags:
+    - secondary-protocol
+    - slack
+  tier: focused
+config_dir: test/secondary-slack-config-error
+log_name: secondary-slack-config-error.log
+cases:
+  - input:
+      user: alice
+      channel: general
+      text: ;ping
+    replies:
+      - user: alice
+        channel: general
+        text_pattern: PONG
+    replies_only: true
+  - input:
+      user: alice
+      channel: general
+      text: ;protocol-list
+    replies:
+      - channel: general
+        text_pattern: 'slack \(secondary\): failed \(unable to retrieve slack protocol configuration: loading secondary protocol config from conf/protocols/slack.yaml:[\s\S]*mapping key "alice" already defined'
+    replies_only: true

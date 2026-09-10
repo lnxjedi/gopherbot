@@ -52,6 +52,10 @@ Notable connector/runtime changes:
   transport IDs.
 * Connector failure isolation is part of the runtime model so one connector
   failure does not cascade through the whole robot.
+* Failed protocol configuration loads retain their original diagnostic instead
+  of falling back to the primary connector's configuration. Secondary failures
+  remain isolated, and corrected configuration clears the load error on reload.
+  Read and template errors no longer silently fall back to another config layer.
 * `protocol-list` / `protocol list` can be used to inspect active connector
   state during migration and pilot testing.
 

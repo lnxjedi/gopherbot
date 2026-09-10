@@ -456,6 +456,8 @@ func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMe
 			cfg = mergemap(installed, cfg)
 			loaded = true
 		}
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("loading installed configuration %q: %w", path, err)
 	} else {
 		realerr = err
 	}
@@ -479,12 +481,19 @@ func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMe
 				cfg = mergemap(configured, cfg)
 				loaded = true
 			}
+		} else if !os.IsNotExist(err) {
+			return fmt.Errorf("loading custom configuration %q: %w", path, err)
 		} else {
 			realerr = err
 		}
 	}
-	jsonData, _ := json.Marshal(cfg)
-	json.Unmarshal(jsonData, &jsonMap)
+	jsonData, err := json.Marshal(cfg)
+	if err != nil {
+		return fmt.Errorf("serializing configuration %q: %w", filename, err)
+	}
+	if err := json.Unmarshal(jsonData, &jsonMap); err != nil {
+		return fmt.Errorf("decoding configuration %q: %w", filename, err)
+	}
 	if required && !loaded {
 		return realerr
 	}

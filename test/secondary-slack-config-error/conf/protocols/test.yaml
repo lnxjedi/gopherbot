@@ -1,0 +1,8 @@
+ProtocolConfig:
+  StartChannel: general
+  StartUser: alice
+  Channels: [ general ]
+  Users:
+    - Name: alice
+      InternalID: u0001
+      FullName: Alice User
