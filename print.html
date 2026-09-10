@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f5186057.js";
+            window.path_to_searchindex_js = "searchindex-b817d78f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b5ea2372.js"></script>
@@ -2948,10 +2948,19 @@ the process environment for integration with external scripts and tools.</p>
 <li>a value moved from <code>robot.yaml</code> into a provider or protocol file in v3</li>
 <li>an old top-level <code>UserMap</code> still exists somewhere</li>
 <li><code>ProtocolConfig</code> is missing for the active primary protocol</li>
+<li>duplicate YAML mapping keys, including repeated usernames in <code>UserMap</code></li>
 <li>a list was overridden when you meant to append, or appended when you meant to replace</li>
 <li><code>.env</code> is missing required deployment values for bootstrap mode</li>
 </ul>
 <h2 id="operational-advice"><a class="header" href="#operational-advice">Operational advice</a></h2>
+<p>If a secondary connector fails to initialize, inspect <code>protocol-list</code> and the
+startup log for its configuration error. YAML errors include the duplicate key
+and line numbers; template errors identify the failing expansion. Correct the
+reported file before reloading configuration and retrying the connector.
+The primary connector stays available when a secondary’s configuration fails.
+Each connector receives only its own configuration; a missing or invalid
+protocol file never falls back to another connector’s settings. Existing files
+with read or template errors also cannot silently fall back to installed defaults.</p>
 <p>If reload fails, treat that as a config problem first, not a plugin bug. The merge and validation tools will usually point you to the real issue faster than trial-and-error editing.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="command-authoring-reference"><a class="header" href="#command-authoring-reference">Command Authoring Reference</a></h1>
