@@ -1,0 +1,6 @@
+ProtocolConfig:
+  AcceptSlashCommands: true
+  SlashCommand: example-robot
+  UserMap:
+    alice: U123
+    alice: U123

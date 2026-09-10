@@ -14,7 +14,7 @@ import (
 
 /* conf.go - methods and types for reading and storing json configuration */
 
-var protocolConfig, brainConfig, historyConfig json.RawMessage
+var brainConfig, historyConfig json.RawMessage
 
 var queueConfigs = struct {
 	sync.RWMutex
@@ -46,12 +46,13 @@ func getQueueConfigFor(provider string) json.RawMessage {
 
 var protocolConfigs = struct {
 	sync.RWMutex
-	m map[string]json.RawMessage
+	m      map[string]json.RawMessage
+	errors map[string]error
 }{
 	m: map[string]json.RawMessage{},
 }
 
-func setProtocolConfigs(configs map[string]json.RawMessage) {
+func setProtocolConfigs(configs map[string]json.RawMessage, loadErrors map[string]error) {
 	protocolConfigs.Lock()
 	defer protocolConfigs.Unlock()
 	protocolConfigs.m = make(map[string]json.RawMessage, len(configs))
@@ -62,17 +63,28 @@ func setProtocolConfigs(configs map[string]json.RawMessage) {
 		}
 		protocolConfigs.m[p] = cfg
 	}
+	protocolConfigs.errors = make(map[string]error, len(loadErrors))
+	for protocol, err := range loadErrors {
+		if p := normalizeProtocolName(protocol); p != "" && err != nil {
+			protocolConfigs.errors[p] = err
+			delete(protocolConfigs.m, p)
+		}
+	}
 }
 
-func getProtocolConfigFor(protocol string) json.RawMessage {
+func getProtocolConfigFor(protocol string) (json.RawMessage, error) {
 	p := normalizeProtocolName(protocol)
 	protocolConfigs.RLock()
-	cfg, ok := protocolConfigs.m[p]
+	cfg := protocolConfigs.m[p]
+	err := protocolConfigs.errors[p]
 	protocolConfigs.RUnlock()
-	if ok {
-		return applyProtocolRuntimeOverrides(p, cfg)
+	if err != nil {
+		return nil, err
 	}
-	return applyProtocolRuntimeOverrides(p, protocolConfig)
+	if cfg == nil {
+		return nil, fmt.Errorf("no ProtocolConfig loaded for protocol '%s'", p)
+	}
+	return applyProtocolRuntimeOverrides(p, cfg), nil
 }
 
 func applyProtocolRuntimeOverrides(protocol string, cfg json.RawMessage) json.RawMessage {
@@ -280,30 +292,25 @@ func loadProviderFileData(providerType, providerName string, required bool) (jso
 	return raw, true, nil
 }
 
-func loadProtocolFileData(newconfig *ConfigLoader, protocol, role string, required bool) (protocolFileConfig, bool, error) {
+func loadProtocolFileData(newconfig *ConfigLoader, protocol, role string) (protocolFileConfig, error) {
 	p := normalizeProtocolName(protocol)
 	label := roleLabel(role)
 	if p == "" {
-		return protocolFileConfig{}, false, fmt.Errorf("invalid %s protocol name: %q", role, protocol)
+		return protocolFileConfig{}, fmt.Errorf("invalid %s protocol name: %q", role, protocol)
 	}
 	configFile := filepath.Join("protocols", p+".yaml")
 	protocolConfig := make(map[string]json.RawMessage)
-	if err := getConfigFile(configFile, required, protocolConfig); err != nil {
-		if required {
-			return protocolFileConfig{}, false, fmt.Errorf("loading %s protocol config from conf/%s: %v", role, configFile, err)
-		}
-		Log(robot.Warn, "Loading %s protocol config from conf/%s: %v", role, configFile, err)
-		return protocolFileConfig{}, false, nil
+	if err := getConfigFile(configFile, true, protocolConfig); err != nil {
+		return protocolFileConfig{}, fmt.Errorf("loading %s protocol config from conf/%s: %w", role, configFile, err)
 	}
 	if len(protocolConfig) == 0 {
-		if required {
-			return protocolFileConfig{}, false, fmt.Errorf("%s protocol '%s' configured but no conf/%s found", label, p, configFile)
-		}
-		Log(robot.Warn, "%s protocol '%s' configured but no conf/%s found", label, p, configFile)
-		return protocolFileConfig{}, false, nil
+		return protocolFileConfig{}, fmt.Errorf("%s protocol '%s' configured but no conf/%s found", label, p, configFile)
 	}
 	if _, ok := protocolConfig["UserMap"]; ok {
-		return protocolFileConfig{}, false, fmt.Errorf("invalid configuration key in conf/%s for %s protocol '%s': UserMap", filepath.ToSlash(configFile), role, p)
+		return protocolFileConfig{}, fmt.Errorf("invalid configuration key in conf/%s for %s protocol '%s': UserMap", filepath.ToSlash(configFile), role, p)
+	}
+	if raw := protocolConfig["ProtocolConfig"]; raw == nil || string(raw) == "null" {
+		return protocolFileConfig{}, fmt.Errorf("%s protocol '%s' has no ProtocolConfig in conf/%s", role, p, filepath.ToSlash(configFile))
 	}
 	var channels []ChannelInfo
 	if raw, ok := protocolConfig["ChannelRoster"]; ok {
@@ -318,7 +325,7 @@ func loadProtocolFileData(newconfig *ConfigLoader, protocol, role string, requir
 	}
 	return protocolFileConfig{
 		config: protocolConfig,
-	}, true, nil
+	}, nil
 }
 
 // DirectoryUser is the global user directory entry from robot.yaml UserRoster.
@@ -637,40 +644,23 @@ func loadConfig(preConnect bool) error {
 	// re-append robot.yaml channels so robot.yaml remains the override layer.
 	robotPrimaryChannels := append([]ChannelInfo(nil), newconfig.ChannelRoster...)
 	newconfig.ChannelRoster = make([]ChannelInfo, 0, len(robotPrimaryChannels))
-	primaryProtocolConfigFile, loaded, err := loadProtocolFileData(newconfig, processed.protocol, "primary", true)
+	primaryProtocolConfigFile, err := loadProtocolFileData(newconfig, processed.protocol, "primary")
 	if err != nil {
 		return err
 	}
-	primaryConfigPath := filepath.Join("protocols", processed.protocol+".yaml")
-	if !loaded {
-		return fmt.Errorf("primary protocol '%s' configured but conf/%s did not load", processed.protocol, filepath.ToSlash(primaryConfigPath))
-	}
 	newconfig.ChannelRoster = append(newconfig.ChannelRoster, robotPrimaryChannels...)
-	rawPrimaryProtocolConfig, ok := primaryProtocolConfigFile.config["ProtocolConfig"]
-	if !ok || rawPrimaryProtocolConfig == nil {
-		return fmt.Errorf("primary protocol '%s' has no ProtocolConfig in conf/%s", processed.protocol, filepath.ToSlash(primaryConfigPath))
-	}
-	perProtocolConfigs[processed.protocol] = rawPrimaryProtocolConfig
-	secondaryConfigByProtocol := make(map[string]protocolFileConfig, len(processed.secondaryProtocols))
+	perProtocolConfigs[processed.protocol] = primaryProtocolConfigFile.config["ProtocolConfig"]
+	protocolLoadErrors := make(map[string]error)
 	for _, secondary := range processed.secondaryProtocols {
-		if cfg, ok, err := loadProtocolFileData(newconfig, secondary, "secondary", false); err != nil {
-			return err
-		} else if ok {
-			secondaryConfigByProtocol[normalizeProtocolName(secondary)] = cfg
-		}
-	}
-	for _, secondary := range processed.secondaryProtocols {
-		secondaryConfig, ok := secondaryConfigByProtocol[normalizeProtocolName(secondary)]
-		if !ok {
+		cfg, err := loadProtocolFileData(newconfig, secondary, "secondary")
+		if err != nil {
+			Log(robot.Warn, "%v", err)
+			protocolLoadErrors[secondary] = err
 			continue
 		}
-		if raw, ok := secondaryConfig.config["ProtocolConfig"]; ok {
-			perProtocolConfigs[normalizeProtocolName(secondary)] = raw
-		} else {
-			Log(robot.Warn, "Secondary protocol '%s' has no ProtocolConfig in conf/protocols/%s.yaml", secondary, normalizeProtocolName(secondary))
-		}
+		perProtocolConfigs[secondary] = cfg.config["ProtocolConfig"]
 	}
-	setProtocolConfigs(perProtocolConfigs)
+	setProtocolConfigs(perProtocolConfigs, protocolLoadErrors)
 	processed.queueProviders = normalizeQueueProviders(newconfig.QueueProviders)
 	queueProviderConfigs := make(map[string]json.RawMessage, len(processed.queueProviders))
 	for _, provider := range processed.queueProviders {
@@ -991,10 +981,6 @@ func loadConfig(preConnect bool) error {
 
 	// Items only read at start-up, before multi-threaded
 	if preConnect {
-		if cfg, ok := perProtocolConfigs[processed.protocol]; ok {
-			protocolConfig = cfg
-		}
-
 		if newconfig.EncryptionKey != "" {
 			processed.encryptionKey = newconfig.EncryptionKey
 			newconfig.EncryptionKey = "XXXXXX" // too short to be valid anyway

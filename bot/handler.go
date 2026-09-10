@@ -27,9 +27,9 @@ type connectorHandler struct {
 var handle = handler{}
 
 func (h connectorHandler) GetProtocolConfig(v interface{}) error {
-	cfg := getProtocolConfigFor(h.protocol)
-	if cfg == nil {
-		return fmt.Errorf("no ProtocolConfig loaded for protocol '%s'", h.protocol)
+	cfg, err := getProtocolConfigFor(h.protocol)
+	if err != nil {
+		return err
 	}
 	return json.Unmarshal(cfg, v)
 }
@@ -497,9 +497,9 @@ func (h handler) GetProtocolConfig(v interface{}) error {
 	currentCfg.RLock()
 	protocol := currentCfg.protocol
 	currentCfg.RUnlock()
-	cfg := getProtocolConfigFor(protocol)
-	if cfg == nil {
-		return fmt.Errorf("no ProtocolConfig loaded for primary protocol '%s'", protocol)
+	cfg, err := getProtocolConfigFor(protocol)
+	if err != nil {
+		return err
 	}
 	return json.Unmarshal(cfg, v)
 }

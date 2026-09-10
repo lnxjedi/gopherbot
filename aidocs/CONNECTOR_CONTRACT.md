@@ -23,6 +23,9 @@ remain connector-local routing data.
 
 - Connector initialization reports errors to the engine. The engine decides
   fatality: primary is required; secondaries are isolated and retryable.
+- Configuration retrieval returns only the requested protocol's configuration
+  or its load error. Failed secondary configuration loads retain their original
+  diagnostic; they cannot borrow the primary connector's settings or secrets.
 - Reload only applies connector-local mutable state. Parse and normalize first,
   then swap atomically so readers see one complete version.
 - Reconnect-level settings remain restart concerns.
