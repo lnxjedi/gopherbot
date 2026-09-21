@@ -69,6 +69,8 @@ Compatibility notes:
 * Robots that depend on legacy connector-native output should explicitly set
   `DefaultMessageFormat: Raw`.
 * `Raw`, `Fixed`, and `Variable` remain supported.
+* The built-in GSH interpreter now preserves `MessageFormat` state for later
+  send calls and accepts case-insensitive format names and legacy flag aliases.
 * Slack and Google Chat rendering behavior has been tightened, but literal
   portability still varies by connector. Prefer `BasicMarkdown` for portable
   rich output and `Fixed` for stable literal-ish display.
