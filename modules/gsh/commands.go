@@ -1172,7 +1172,10 @@ func (c *shellContext) botWithOptions(ctx context.Context, args []string, direct
 	}
 	format, rest := parseFormatOption(args)
 	if format == nil {
-		format = defaultFormatFromEnv(c.envMap["GBOT_MESSAGE_FORMAT"])
+		formatVar := interp.HandlerCtx(ctx).Env.Get("GBOT_MESSAGE_FORMAT")
+		if formatVar.IsSet() {
+			format = defaultFormatFromEnv(formatVar.String())
+		}
 	}
 	bot := c.bot
 	if format != nil {
@@ -1210,17 +1213,17 @@ func parseFormatOption(args []string) (*robot.MessageFormat, []string) {
 }
 
 func defaultFormatFromEnv(value string) *robot.MessageFormat {
-	switch strings.TrimSpace(value) {
-	case "Fixed":
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "fixed", "-f":
 		f := robot.Fixed
 		return &f
-	case "Raw":
+	case "raw", "-r":
 		f := robot.Raw
 		return &f
-	case "Variable":
+	case "variable", "-v":
 		f := robot.Variable
 		return &f
-	case "BasicMarkdown":
+	case "basicmarkdown", "basic_markdown", "basic-markdown", "-m", "-b":
 		f := robot.BasicMarkdown
 		return &f
 	default:

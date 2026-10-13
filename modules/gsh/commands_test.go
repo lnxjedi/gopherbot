@@ -19,6 +19,110 @@ func writeTempScript(t *testing.T, dir, name, contents string) string {
 	return path
 }
 
+type messageFormatCaptureState struct {
+	formats []robot.MessageFormat
+}
+
+type messageFormatCaptureBot struct {
+	BotAPI
+	state  *messageFormatCaptureState
+	format robot.MessageFormat
+}
+
+func (b *messageFormatCaptureBot) MessageFormat(format robot.MessageFormat) BotAPI {
+	clone := *b
+	clone.format = format
+	return &clone
+}
+
+func (b *messageFormatCaptureBot) Say(string, ...interface{}) robot.RetVal {
+	b.state.formats = append(b.state.formats, b.format)
+	return robot.Ok
+}
+
+func TestRunScriptMessageFormatUsesLiveShellState(t *testing.T) {
+	tmp := t.TempDir()
+	script := writeTempScript(t, tmp, "message-format.gsh", `#!/bin/sh
+MessageFormat Fixed
+Say canonical
+MessageFormat fixed
+Say lowercase
+MessageFormat -f
+Say legacy-flag
+Say -r per-send-override
+Say state-preserved
+MessageFormat basic_markdown
+Say markdown-alias
+`)
+	state := &messageFormatCaptureState{}
+	bot := &messageFormatCaptureBot{state: state}
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	ret, err := runScript(
+		script,
+		"message-format-test",
+		tmp,
+		[]string{"GOPHER_INSTALLDIR=" + tmp},
+		nil,
+		bot,
+		nil,
+		&stdout,
+		&stderr,
+	)
+	if err != nil {
+		t.Fatalf("runScript() error = %v; stderr=%q", err, stderr.String())
+	}
+	if ret != robot.Normal {
+		t.Fatalf("runScript() ret = %v, want %v; stderr=%q", ret, robot.Normal, stderr.String())
+	}
+	want := []robot.MessageFormat{
+		robot.Fixed,
+		robot.Fixed,
+		robot.Fixed,
+		robot.Raw,
+		robot.Fixed,
+		robot.BasicMarkdown,
+	}
+	if len(state.formats) != len(want) {
+		t.Fatalf("formats = %v, want %v", state.formats, want)
+	}
+	for i := range want {
+		if state.formats[i] != want[i] {
+			t.Fatalf("formats = %v, want %v", state.formats, want)
+		}
+	}
+}
+
+func TestDefaultFormatFromEnvAcceptsNamesAndLegacyFlags(t *testing.T) {
+	tests := []struct {
+		name   string
+		values []string
+		want   robot.MessageFormat
+	}{
+		{name: "fixed", values: []string{"Fixed", "fixed", " -f "}, want: robot.Fixed},
+		{name: "raw", values: []string{"Raw", "raw", "-r"}, want: robot.Raw},
+		{name: "variable", values: []string{"Variable", "variable", "-v"}, want: robot.Variable},
+		{
+			name:   "basic markdown",
+			values: []string{"BasicMarkdown", "basicmarkdown", "basic_markdown", "basic-markdown", "-m", "-b"},
+			want:   robot.BasicMarkdown,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for _, value := range tt.values {
+				got := defaultFormatFromEnv(value)
+				if got == nil || *got != tt.want {
+					t.Errorf("defaultFormatFromEnv(%q) = %v, want %v", value, got, tt.want)
+				}
+			}
+		})
+	}
+	if got := defaultFormatFromEnv("unknown"); got != nil {
+		t.Fatalf("defaultFormatFromEnv(unknown) = %v, want nil", *got)
+	}
+}
+
 func TestRunScriptUtilityBuiltins(t *testing.T) {
 	tmp := t.TempDir()
 	script := writeTempScript(t, tmp, "utilities.gsh", `#!/bin/sh

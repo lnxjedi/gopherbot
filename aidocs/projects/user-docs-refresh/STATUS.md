@@ -1,6 +1,6 @@
 # User Documentation Refresh Status
 
-Last updated: 2026-09-08
+Last updated: 2026-10-13
 
 This is the authoritative resume point for the active project. Verify it
 against `git status` before acting, then update it at the next handoff.
@@ -10,15 +10,30 @@ against `git status` before acting, then update it at the next handoff.
 - Phase: 2.5 — New-Robot scaffold and setup-flow reconciliation
 - State: Phase 2.5B owner review complete with revisions; implementation
   Slices 1 through 6D plus the separately approved demo-timeout change are
-  implemented in the uncommitted working tree; Slice 6D full validation is
+  committed on `doc-dev` at `0ace8427`; Slice 6D full validation is
   passing and the remainder of the read-only Slice 6 audit is subdivided below
 - Next owner: human
-- Next action: review completed Slice 6D and approve or revise a separate
-  Slice 6E limited to the installed default job channel; all other selectors
-  remain separate and unapproved
+- Next action: settle the proposed Slice 4 environment-default reversal, then
+  review completed Slice 6D and approve or revise a separate Slice 6E limited
+  to the installed default job channel; all other selectors remain separate
+  and unapproved
 - Recommended model/reasoning: GPT-5.6 Sol, high
 - Blocking condition: owner review is required before the next independent
   product change
+
+The owner resumed work on `doc-dev` on 2026-10-13 and requested merging any
+missing `main` bugfixes. The only missing commit was `a60f877e` (GSH
+`MessageFormat`); the brain-lock pull/recovery and protocol-config error fixes
+were already included. The merge is conflict-free. Focused GSH tests,
+documentation hygiene, and the mdBook build pass; final build validation is
+recorded below.
+
+The owner also proposed reversing Slice 4's explicit-environment requirement:
+default an unset `GOPHER_ENVIRONMENT` to `production` and log that choice at
+startup. That proposal is not implemented by this branch synchronization.
+Before changing it, share the required impact report and synchronize startup,
+CLI behavior, extension metadata, tests, scaffold, and documentation. Keep
+Slice 6E and the other selector changes separate.
 
 The owner requires each independent product change to be implemented and
 reviewed separately. `PLAN.md` records the nine current implementation slices.
@@ -291,6 +306,13 @@ Passing locally:
   confirmation that installed `conf/` has no `GOPHER_ALIAS`
 - Slice 6D full and documentation validation: `make test`, `make docs-check`,
   `mdbook build docs`, and `git diff --check`
+- 2026-10-13 branch synchronization: `go test -mod readonly ./modules/gsh
+  -count=1`, `helpers/check-docs-hygiene.sh`, `mdbook build docs`, and `make`
+  pass. Focused startup/environment and installed-default tests also pass:
+  `go test -mod readonly ./bot -run
+  'Test.*(StartupEnvironment|Environment|InstalledRobot|InstalledOnboarding)'
+  -count=1`. User-documentation impact was reviewed: the merged fix restores
+  explicit message-format selection; no additional user-doc change is needed.
 
 Not yet run; defer to the cutover/merge workflow unless scope changes:
 
@@ -299,9 +321,10 @@ Not yet run; defer to the cutover/merge workflow unless scope changes:
 
 ## Worktree expectation
 
-The main worktree is expected to contain the uncommitted Slices 1 through 6D,
-the separately approved timeout change, their tests, synchronized
-user/developer documentation, and project-record changes awaiting owner review.
+The main worktree is on `doc-dev`. Slices 1 through 6D, the separately approved
+timeout change, their tests, and synchronized user/developer documentation were
+committed at `0ace8427`. The branch includes the `main` bugfix merge requested
+on 2026-10-13 and this refreshed handoff record.
 `docs/book/` may exist after a local build but remains ignored. The separate
 documentation worktree should be clean at its cutover commit `908d3a6`.
 
