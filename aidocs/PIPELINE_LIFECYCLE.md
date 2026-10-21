@@ -31,6 +31,9 @@ commands must not.
 - Catch-all selection is mode-aware; ambiguous equally specific candidates do
   not run.
 - Thread-scoped state includes protocol to prevent cross-protocol collisions.
+- The AI fallback stop command removes its thread subscription independently
+  of saved conversation history, so a failed first provider request cannot
+  leave a subscription that the user cannot stop.
 
 ## Private command model
 

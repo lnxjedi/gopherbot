@@ -97,6 +97,13 @@ Important behavior:
 
 Thread conversation cleanup is tied to the engine subscription lifecycle.
 
+An addressed `stop-ai` in a thread unsubscribes the AI plugin and deletes its
+conversation datum, index entry, and debug memory even when no successful
+exchange or summary exists. This also clears state left by a failed first API
+request. Subscription still begins before the provider request so follow-up
+messages can be received while the first reply is running. Stopping does not
+cancel a provider request already in progress.
+
 When the engine expires an inactive thread subscription, it invokes the plugin
 with `_expiresub` and sets `GOPHER_PROTOCOL`, `GOPHER_CHANNEL`, and
 `GOPHER_THREAD_ID` to the expired subscription context. The plugin derives the

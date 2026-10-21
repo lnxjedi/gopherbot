@@ -253,6 +253,10 @@ the v3 release.
 
 ## AI Add-On
 
+* `stop-ai` now unsubscribes a thread and clears its saved state even when no
+  successful exchange exists, allowing users to stop repeated API-key errors
+  after a failed first request.
+
 The old Ruby AI implementation has been replaced by a native AI add-on that
 is integrated with the v3 help/fallback direction.
 

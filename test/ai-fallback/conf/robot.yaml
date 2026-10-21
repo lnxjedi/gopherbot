@@ -1,0 +1,22 @@
+AdminContact: "AI Test, <ai-test@example.org>"
+DefaultChannels: [ "general" ]
+DefaultJobChannel: general
+JoinChannels: [ ]
+AdminUsers: [ "alice" ]
+Alias: ";"
+PrimaryProtocol: test
+BotInfo:
+  UserName: example-robot
+  FullName: Example Robot
+UserRoster:
+- UserName: "alice"
+  UserID: "u0001"
+LocalPort: 0
+Brain: mem
+WorkSpace: workspace
+ExternalPlugins:
+  "ai-fallback":
+    Disabled: false
+    Parameters:
+    - Name: AI_API_KEY
+      Value: ""

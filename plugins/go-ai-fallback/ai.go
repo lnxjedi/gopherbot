@@ -393,6 +393,13 @@ func handleStatus(r robot.Robot) robot.TaskRetVal {
 
 func handleClose(r robot.Robot) robot.TaskRetVal {
 	ctx := makeConversationContext(r)
+	if !ctx.Direct && ctx.Threaded {
+		// Subscription state is independent of saved conversation history.
+		r.Unsubscribe()
+		deleteConversationState(r, ctx)
+		r.Say("Ok, I'll forget this conversation and unsubscribe this thread.")
+		return robot.Normal
+	}
 	state, ok := loadConversationState(r, ctx)
 	if ok && (len(state.Exchanges) > 0 || strings.TrimSpace(state.Summary) != "") {
 		deleteConversationState(r, ctx)
