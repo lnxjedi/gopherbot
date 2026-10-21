@@ -14,8 +14,12 @@ Gopherbot logs can go to:
 
 ## Useful debug knobs
 
-- `GOPHER_LOGLEVEL`
-- `GOPHER_LOGDEST`
-- `GOPHER_HTTP_DEBUG`
+- `-level debug` or `-level trace` for one run; `LogLevel` in custom config for
+  durable policy
+- `-log robot.log` for one run; `LogDest` in custom config for durable policy
+- `HttpDebug: true` in custom config for low-level HTTP/JSON diagnostics
 
-Be careful with `GOPHER_HTTP_DEBUG`; it is for low-level troubleshooting and may expose sensitive request or response data.
+Installed defaults no longer read `GOPHER_LOGLEVEL`, `GOPHER_LOGDEST`, or
+`GOPHER_HTTP_DEBUG`. HTTP debugging is off by default. It does not scrub
+sensitive request or response data; when enabling it, select `LogLevel: debug`
+and a suitably private log destination explicitly.

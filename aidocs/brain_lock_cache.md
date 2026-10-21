@@ -16,6 +16,12 @@ allows writes to commit locally before metered/coalesced cloud sync.
 
 ## Ownership and startup
 
+Provider and cache location come from explicit configuration. Installed
+defaults no longer read brain/provider/storage launcher overrides; the owner
+approved documenting this pre-v3 migration without compatibility code. The
+engine does not relocate existing data. Brain ownership and recovery checks
+below continue to operate on the configured data source.
+
 Each local cache has a persistent random lineage nonce. The remote
 `bot:instance-lock` stores a lock ID tied to that lineage and is either `held`
 or `released`.

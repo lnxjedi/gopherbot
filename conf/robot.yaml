@@ -34,18 +34,18 @@
 
 ## Port to listen on for http/JSON api calls, for external plugins.
 ## By default, automatically choose a port.
-LocalPort: {{ env "GOPHER_PORT" | default "0" }}
+LocalPort: 0
 
 {{- $mode := GetStartupMode }}
 
 ## Defaults for "production" mode
-## Protocol - almost always overriden by GOPHER_PROTOCOL
-{{- $proto := env "GOPHER_PROTOCOL" | default "ssh" }}
+## Protocol - normally overridden by custom configuration
+{{- $proto := "ssh" }}
 ## Brain - normally configured in a robot's custom
 ## conf/robot.yaml
-{{- $brain := env "GOPHER_BRAIN" | default "file" }}
+{{- $brain := "file" }}
 ## Rarely overridden.
-{{- $logdest := env "GOPHER_LOGDEST" | default "stdout" }}
+{{- $logdest := "stdout" }}
 
 ## No configuration, no environment variables - demo robot
 {{- if eq $mode "demo" }}
@@ -72,21 +72,9 @@ LocalPort: {{ env "GOPHER_PORT" | default "0" }}
   {{- end }}
 {{- end }}
 
-## Possibly modified by GOPHER_HTTP_DEBUG, see below
-{{- $loglevel := env "GOPHER_LOGLEVEL" | default "info" }}
-{{- $statedir := env "GOPHER_STATE_DIRECTORY" | default "state" }}
-{{- $defcache := printf "%s/brain-cache" $statedir }}
-
-## Enable log level debug messages for localhost http JSON requests and replies
-## NOTE: For low-level debugging only - no scrubbing of secrets is performed!
-{{- $httpDebug := (eq (env "GOPHER_HTTP_DEBUG") "true") }}
-{{- if $httpDebug }}
-HttpDebug: true
-## These can be overridden by custom config, but this is sane for non-scrubbed
-## debugging output.
-  {{- $logdest = "robot.log" }}
-  {{- $loglevel = "debug" }}
-{{- end }}
+## Low-level HTTP JSON debugging is opt-in through custom configuration.
+## Request/response logs are not scrubbed; use debug level and a private log file.
+HttpDebug: false
 
 ## Terminal protocol should never log to stdout - it interferes with the UI
 {{- if and (eq $proto "terminal") (eq $logdest "stdout") }}
@@ -94,16 +82,16 @@ HttpDebug: true
 {{- end }}
 
 PrimaryProtocol: {{ $proto }}
-DefaultProtocol: {{ env "GOPHER_DEFAULT_PROTOCOL" | default $proto }}
+DefaultProtocol: {{ $proto }}
 Brain: {{ $brain }}
 BrainCache:
-  Directory: {{ env "GOPHER_BRAIN_CACHE_DIRECTORY" | default $defcache }}
+  Directory: state/brain-cache
 LogDest: {{ $logdest }}
-LogLevel: {{ $loglevel }}
+LogLevel: info
 
 AdminUsers: [ "alice" ]
 DefaultChannels: [ "general", "random" ]
-DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default "general" }}
+DefaultJobChannel: general
 ## Optional channel message sent after the startup readiness gate opens.
 ## ReadyChannel defaults to DefaultJobChannel when unset.
 # ReadyMessage: "Robot is ready"
@@ -163,8 +151,7 @@ UserRoster:
   Phone: "(555)765-0005"
 
 ## Configure a history provider
-{{ $history := env "GOPHER_HISTORY_PROVIDER" | default "mem" }}
-HistoryProvider: {{ $history }}
+HistoryProvider: mem
 ## Optional job queue providers. Provider-specific settings live under
 ## conf/queues/<provider>.yaml and jobs opt in with UUIDTrigger.
 # QueueProviders:
@@ -172,13 +159,13 @@ HistoryProvider: {{ $history }}
 ## Outgoing message format for plugins/jobs that do not override format explicitly.
 ## BasicMarkdown is the v3 default portable format. Legacy robots that need
 ## protocol-native behavior can set this to Raw.
-DefaultMessageFormat: {{ env "GOPHER_MESSAGE_FORMAT" | default "BasicMarkdown" }}
+DefaultMessageFormat: BasicMarkdown
 ## Process connector-originated messages from the robot itself. Connectors
 ## always forward recognized self messages with SelfMessage=true; the engine
 ## owns the decision to process or ignore them.
 HearSelf: true
 
-TimeZone: {{ env "GOPHER_TIMEZONE" | default "America/New_York" }}
+TimeZone: America/New_York
 
 # Default shared namespaces to allow sharing of parameters between
 # various administrative tasks/plugins/jobs

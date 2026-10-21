@@ -15,14 +15,15 @@ Templates are most often used to:
 A scaffolded robot usually selects an environment file from `robot.yaml`:
 
 ```yaml
-{{ $environment := env "GOPHER_ENVIRONMENT" }}
+{{ $environment := env "GOPHER_ENVIRONMENT" | default "production" }}
 {{ printf "environments/%s.yaml" $environment | .Include }}
 ```
 
 With this pattern, `GOPHER_ENVIRONMENT=development` loads
-`conf/environments/development.yaml`. Configured Robots must set
-`GOPHER_ENVIRONMENT`; there is no implicit production or development value.
-An unconfigured Robot may omit it and start in demo mode.
+`conf/environments/development.yaml`. An unset or blank `GOPHER_ENVIRONMENT`
+defaults to `production`, with an Info notice at startup. Development launchers
+must explicitly select `development`. An unconfigured Robot still starts in
+demo mode.
 
 ## Template Helpers
 
@@ -31,7 +32,7 @@ An unconfigured Robot may omit it and start in demo mode.
 `env` reads an environment variable.
 
 ```yaml
-PrimaryProtocol: {{ env "GOPHER_PROTOCOL" | default "ssh" }}
+{{ $environment := env "GOPHER_ENVIRONMENT" }}
 ```
 
 If the variable is unset or empty, `env` returns an empty string.
@@ -41,7 +42,7 @@ If the variable is unset or empty, `env` returns an empty string.
 `default` returns a fallback value when the piped input is empty.
 
 ```yaml
-LogLevel: {{ env "GOPHER_LOGLEVEL" | default "info" }}
+{{ $environment := env "GOPHER_ENVIRONMENT" | default "production" }}
 ```
 
 ### .Include
@@ -117,7 +118,7 @@ Installed defaults use this helper to choose safe demo, bootstrap, test, and pro
 `SetEnv` overrides an environment variable during template expansion.
 
 ```yaml
-{{ SetEnv "GOPHER_PROTOCOL" "ssh" }}
+{{ SetEnv "CUSTOM_FEATURE_FLAG" "enabled" }}
 ```
 
 This is mainly useful in installed defaults because defaults load before custom config. Use it sparingly in custom robot config; ordinary variables and environment files are usually clearer.
@@ -164,7 +165,7 @@ Password: '{{ secret "SMTP_PASSWORD" }}'
 Usually fine for simple values:
 
 ```yaml
-PrimaryProtocol: {{ env "GOPHER_PROTOCOL" | default "ssh" }}
+PrimaryProtocol: {{ variable "PRIMARY_PROTOCOL" }}
 ```
 
 When in doubt, quote the template expression.

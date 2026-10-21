@@ -296,7 +296,10 @@ func currentDeployEnvironment() string {
 	if deployEnvironment != "" {
 		return deployEnvironment
 	}
-	return getEnv("GOPHER_ENVIRONMENT")
+	if environment := strings.TrimSpace(getEnv("GOPHER_ENVIRONMENT")); environment != "" {
+		return environment
+	}
+	return "production"
 }
 
 func enforceEncryptedKeyFilePermissions(keyFile string) error {

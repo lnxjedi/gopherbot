@@ -3,7 +3,7 @@ ProtocolConfig:
   StartChannel: general
   StartUser: alice
   # when true, Fixed = ALL UPPER CASE, Variable = all lower case
-  MockFormatting: {{ eq (env "GOPHER_MOCK_FORMAT") "true" }}
+  MockFormatting: false
   Channels:
   - random
   - general

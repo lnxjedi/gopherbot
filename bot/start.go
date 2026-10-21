@@ -214,9 +214,6 @@ func Start(v VersionInfo) {
 	// Re-evaluate startup mode after private environment loading so
 	// bootstrap decisions include values from process env or .env.
 	startMode = detectStartupMode()
-	if err := validateStartupEnvironment(startMode); err != nil {
-		log.Fatalf("Invalid startup environment: %v", err)
-	}
 
 	var logger *log.Logger
 	var logOut *os.File
@@ -238,9 +235,9 @@ func Start(v VersionInfo) {
 		setLogLevel(logStrToLevel(logLevelFlag))
 	} else if cliOp {
 		setLogLevel(robot.Warn)
-	} else if elle, ok := lookupEnv("GOPHER_LOGLEVEL"); ok {
-		ele := logStrToLevel(elle)
-		setLogLevel(ele)
+	}
+	if err := initializeStartupEnvironment(); err != nil {
+		log.Fatalf("Invalid startup environment: %v", err)
 	}
 	var shortDesc string
 	switch startMode {
@@ -359,19 +356,23 @@ func Start(v VersionInfo) {
 	}
 }
 
-func validateStartupEnvironment(mode string) error {
+// initializeStartupEnvironment runs after private environment loading and logger
+// setup, before encryption or configuration loads. Keep the resolved value in
+// the engine store so templates and extension metadata use the same environment.
+func initializeStartupEnvironment() error {
 	environment := strings.TrimSpace(getEnv("GOPHER_ENVIRONMENT"))
-	if environment == "" {
-		switch mode {
-		case "demo", "cli":
-			return nil
-		case "bootstrap", "production":
-			return fmt.Errorf("GOPHER_ENVIRONMENT is required when GOPHER_CUSTOM_REPOSITORY is configured; set it in the launcher environment or .env")
-		default:
-			return fmt.Errorf("GOPHER_ENVIRONMENT is required for startup mode %q; set it in the launcher environment or private environment file", mode)
-		}
+	defaulted := environment == ""
+	if defaulted {
+		environment = "production"
 	}
-	return validateConfigTemplateEnvironment(environment)
+	if err := validateConfigTemplateEnvironment(environment); err != nil {
+		return err
+	}
+	setGopherEnvValue("GOPHER_ENVIRONMENT", environment)
+	if defaulted {
+		Log(robot.Info, "GOPHER_ENVIRONMENT isn't set, defaulting to 'production'")
+	}
+	return nil
 }
 
 func loadPrivateEnvironment(envFile string) error {

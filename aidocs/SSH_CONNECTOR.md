@@ -13,6 +13,10 @@ shim.
   duplication is intentionally absent.
 - The listener probes the configured base port plus seven successors and writes
   the actual endpoint/public key to `.ssh-connect`.
+- Installed bind settings are the literals `localhost` and `4221`; custom
+  `ProtocolConfig` or the engine's `-ssh-port` flag overrides them. The MCP
+  launcher supplies its selected port through that flag, including after
+  restart, rather than through a launcher environment variable.
 - Reload atomically replaces key indexes and closes sessions whose key is no
   longer authorized. Listener address, port, and host key require restart.
 

@@ -21,7 +21,7 @@ This is the shape of a small custom `robot.yaml`:
 IgnoreUnlistedUsers: true
 SecureParameters: true
 
-{{ $environment := env "GOPHER_ENVIRONMENT" }}
+{{ $environment := env "GOPHER_ENVIRONMENT" | default "production" }}
 {{ printf "environments/%s.yaml" $environment | .Include }}
 
 BotInfo:
@@ -357,6 +357,12 @@ Common values:
 
 Provider-specific settings belong in `conf/brains/<provider>.yaml` under `BrainConfig`.
 
+Installed configuration selects `file` for configured/CLI startup and `mem`
+for demo, bootstrap, and test mode. It does not read `GOPHER_BRAIN`. Set `Brain`
+explicitly in custom configuration or its environment include. For DynamoDB,
+the installed region is `us-east-1`; override `BrainConfig.Region` in
+`conf/brains/dynamo.yaml` rather than setting `GOPHER_BRAIN_REGION`.
+
 For `file`, Gopherbot uses the v3 local brain cache. If legacy file-brain data is present in the old brain directory and the v3 cache has not been initialized, startup asks you to run `gopherbot pull-brain`.
 
 ### BrainCache
@@ -374,7 +380,12 @@ Fields:
 
 - `Directory`: directory for local brain cache state
 
-If omitted, the directory defaults to `state/brain-cache`. Installed defaults normally derive this from `GOPHER_STATE_DIRECTORY`.
+If omitted, the directory defaults to `state/brain-cache`. Installed defaults
+use that literal path and do not read `GOPHER_STATE_DIRECTORY` or
+`GOPHER_BRAIN_CACHE_DIRECTORY`. Set `BrainCache.Directory` explicitly in custom
+configuration to use another location. Legacy file-brain migration reads
+`BrainConfig.BrainDirectory` from `conf/brains/file.yaml`, whose installed
+default is `state/brain`; it no longer reads `GOPHER_BRAIN_DIRECTORY`.
 
 ### HistoryProvider
 
@@ -392,6 +403,12 @@ Common values:
 - `file`: file-backed history
 
 Provider-specific settings belong in `conf/history/<provider>.yaml` under `HistoryConfig`.
+
+Installed configuration selects `mem` and does not read
+`GOPHER_HISTORY_PROVIDER`. For file history, set `HistoryProvider: file` in
+custom robot configuration. The installed file-history directory is `history`;
+override `HistoryConfig.Directory` in `conf/history/file.yaml` rather than
+setting `GOPHER_HISTORY_DIRECTORY`.
 
 If the configured provider is not registered or returns nil during startup, Gopherbot logs an error and falls back to `mem`.
 
@@ -422,6 +439,9 @@ Optional. Defaults to `BasicMarkdown`.
 DefaultMessageFormat: BasicMarkdown
 ```
 
+The installed configuration does not read `GOPHER_MESSAGE_FORMAT`. Override
+`DefaultMessageFormat` in custom configuration for robot-specific policy.
+
 Supported values:
 
 - `BasicMarkdown`
@@ -440,6 +460,12 @@ Optional, but recommended.
 ```yaml
 DefaultJobChannel: general
 ```
+
+The installed default is always `general`; it does not read
+`GOPHER_JOBCHANNEL`. New-Robot setup asks for the robot's job channel and writes
+`DEFAULT_JOB_CHANNEL` into `custom/conf/variables/common.yaml`. The scaffold's
+`robot.yaml` reads that variable to override the installed default. Existing
+robots can set `DefaultJobChannel` directly in custom configuration.
 
 Jobs without their own `Channel` and without a `DefaultJobChannel` can be disabled during config loading because Gopherbot has nowhere to report their activity.
 
@@ -510,6 +536,10 @@ Optional.
 ```yaml
 TimeZone: America/New_York
 ```
+
+The installed default is the literal `America/New_York`; it does not read
+`GOPHER_TIMEZONE`. Set `TimeZone` in custom configuration or its included
+environment file when the robot should use a different time zone.
 
 Use an IANA time zone name. If the value cannot be loaded, Gopherbot logs an error and uses the system default time zone.
 
@@ -784,6 +814,9 @@ LocalPort: 0
 
 `0` means choose the first available port. The listener binds to `127.0.0.1:<LocalPort>`. CLI-only operations do not start this listener.
 
+The installed value is the literal `0`; `GOPHER_PORT` no longer selects it.
+Override `LocalPort` explicitly in custom configuration if needed.
+
 ### HttpDebug
 
 Optional. Defaults to `false`.
@@ -794,7 +827,10 @@ Optional. Defaults to `false`.
 HttpDebug: true
 ```
 
-Use this only for low-level debugging. It does not scrub secrets. Installed defaults also force debug-friendly logging when `GOPHER_HTTP_DEBUG=true`.
+Use this only for low-level debugging. It does not scrub secrets. Installed
+defaults set `HttpDebug: false` and no longer read `GOPHER_HTTP_DEBUG`. If
+enabling it in custom configuration, explicitly choose `LogLevel: debug` and
+a suitably private `LogDest`; enabling `HttpDebug` does not set those fields.
 
 ### LogDest
 

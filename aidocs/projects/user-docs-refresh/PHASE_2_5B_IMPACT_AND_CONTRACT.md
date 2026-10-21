@@ -11,6 +11,23 @@ is authoritative where it revises the original proposal.
 
 ## Owner review outcome
 
+On 2026-10-14 the owner approved removing installed provider/storage
+environment reads and documenting the change in `UPGRADING-v3.md`, with no
+compatibility work for pre-release v3 Robots. Do not add translation, migration
+shims, or new startup rejection for retired launcher values. Existing explicit
+configuration and brain safety checks remain authoritative. This supersedes
+the earlier suggestion to add migration checks for removed environment inputs.
+
+On 2026-10-13 the owner reversed the Slice 4 requirement below. An unset or
+blank `GOPHER_ENVIRONMENT` defaults to `production` after private environment
+loading, with the Info notice `GOPHER_ENVIRONMENT isn't set, defaulting to
+'production'`. This applies to normal startup and configuration-loading CLI
+commands; explicit names remain validated and `genkey -environment` overrides
+key generation. Development launchers remain explicit. Onboarding can continue
+writing an explicit selector, but production deployments need not set one.
+This decision supersedes the required-environment and no-fallback language in
+the original review and proposal.
+
 The owner reviewed the acceptance gate on 2026-09-04 and approved it with
 these revisions, which supersede conflicting proposal language below:
 

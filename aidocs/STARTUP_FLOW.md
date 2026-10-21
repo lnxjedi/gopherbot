@@ -9,9 +9,10 @@ The exact call graph is in `bot/start.go`, `bot/bot_process.go`,
    normal robot initialization.
 3. Load `private/environment` or `.env` without overriding launcher values,
    then recompute effective startup mode.
-4. Validate `GOPHER_ENVIRONMENT` before encryption or configuration loading.
-   It has no configured-Robot default; omission is accepted only for demo and
-   no-config CLI paths.
+4. Resolve and validate `GOPHER_ENVIRONMENT` before encryption or configuration
+   loading. An unset or blank value becomes `production` in the engine-owned
+   environment store. Once the startup logger is ready, log that default at
+   Info level so templates and extension metadata share the same selection.
 5. Initialize encryption and load pre-connect configuration without executing
    extension code.
 6. Validate privsep, initialize the brain, prove cache/lock safety, and replay
@@ -30,17 +31,42 @@ diagnostics must go to stderr.
 
 - Launcher values beat private env-file values.
 - Blank launcher/private values are treated as unset.
-- A nonempty `GOPHER_CUSTOM_REPOSITORY` requires an explicit, valid
-  `GOPHER_ENVIRONMENT`. With no repository, omission selects demo behavior.
-- Configuration-loading CLI commands also require an explicit environment;
-  commands that do not load Robot configuration remain exempt, and an explicit
-  `genkey -environment` value satisfies that command's requirement.
+- `GOPHER_ENVIRONMENT` defaults to `production` after launcher/private-file
+  precedence is resolved. Explicit values must name a valid single path
+  segment. Development launchers must explicitly select `development`.
+- Startup mode is independent of the environment selector: with no custom
+  repository, normal startup retains demo behavior.
+- Configuration-loading CLI commands use the same production default;
+  `genkey -environment` overrides the selected environment for key generation.
+  Help/version and internal child paths bypass normal startup, while
+  syntax/script retain their configuration-free fixture behavior.
 - Installed `conf/` loads before custom `conf/`; custom values override.
 - The installed default `BotInfo` is the fixed Floyd identity. Configured
   Robots override it explicitly from custom configuration rather than through
   launcher environment values.
 - The installed default alias is the fixed `;`. Configured Robots override it
   explicitly through custom configuration, normally the `ROBOT_ALIAS` variable.
+- The installed default job channel is the fixed `general`. Configured Robots
+  override `DefaultJobChannel` explicitly, normally through the
+  `DEFAULT_JOB_CHANNEL` variable collected by New-Robot setup.
+- Installed message-format and time-zone defaults are the literals
+  `BasicMarkdown` and `America/New_York`. Custom `DefaultMessageFormat` and
+  `TimeZone` override them; installed templates do not read the corresponding
+  launcher values. Message-send overrides and scheduler semantics are preserved.
+- Installed brain/history provider and storage-directory choices are literals,
+  with the existing startup-mode overrides preserved. DynamoDB's installed
+  region is `us-east-1`. Administrators choose different providers, regions,
+  and paths explicitly in custom root/provider configuration. Retired launcher
+  values are no longer read by these templates; the owner approved documented
+  migration without compatibility translation or startup rejection.
+- Installed templates retain only repository-bootstrap reads of
+  `GOPHER_CUSTOM_REPOSITORY`, `GOPHER_DEPLOY_KEY`, and `GOPHER_CUSTOM_BRANCH`.
+  Protocols, logging, local API/SSH listeners, and HTTP-debug policy otherwise
+  come from explicit configuration, with existing startup-mode defaults
+  preserved. `-log`, `-level`, and `-ssh-port` remain one-run overrides;
+  `GOPHER_LOGLEVEL` no longer controls the early startup logger. The MCP
+  launcher passes SSH port choices through CLI arguments and persists them
+  across restart. The general `env` helper and engine-owned context remain.
 - Maps merge recursively, scalars override, lists replace unless an `Append*`
   key is used.
 - Custom `conf/variables/common.yaml` loads before

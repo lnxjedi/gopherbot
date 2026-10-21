@@ -511,11 +511,11 @@ func (s *mcpServer) tools() []mcpTool {
 					},
 					"ssh_port_min": map[string]interface{}{
 						"type":        "integer",
-						"description": "Minimum auto-assigned SSH port when GOPHER_SSH_PORT is unset (default 4222).",
+						"description": "Minimum auto-assigned SSH port when extra_args has no positive -ssh-port override (default 4222).",
 					},
 					"ssh_port_max": map[string]interface{}{
 						"type":        "integer",
-						"description": "Maximum auto-assigned SSH port when GOPHER_SSH_PORT is unset (default 4229).",
+						"description": "Maximum auto-assigned SSH port when extra_args has no positive -ssh-port override (default 4229).",
 					},
 				},
 				"required": []string{"robot_dir"},
@@ -1163,7 +1163,7 @@ func (s *mcpServer) toolStartRobot(args map[string]interface{}) (map[string]inte
 		})
 	}
 	assignedSSHPort := ""
-	extraEnv, assignedSSHPort, err = ensureSSHPortEnv(extraEnv, sshPortMin, sshPortMax)
+	extraArgs, assignedSSHPort, err = ensureSSHPortArgs(extraArgs, sshPortMin, sshPortMax)
 	if err != nil {
 		return nil, err
 	}
@@ -2576,16 +2576,35 @@ func extractExtraArgs(commandArgs []string) []string {
 	return out
 }
 
-func ensureSSHPortEnv(env map[string]string, portMin, portMax int) (map[string]string, string, error) {
-	if env == nil {
-		env = map[string]string{}
+func ensureSSHPortArgs(args []string, portMin, portMax int) ([]string, string, error) {
+	// Match the engine's flag syntax and last-value-wins behavior. Zero means
+	// no override, so the MCP launcher chooses an available port in that case.
+	portOverride := 0
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		var value string
+		switch {
+		case arg == "-ssh-port" || arg == "--ssh-port":
+			i++
+			if i == len(args) {
+				return nil, "", newToolError("INVALID_ARGUMENT", "-ssh-port requires a value", nil)
+			}
+			value = args[i]
+		case strings.HasPrefix(arg, "-ssh-port="):
+			value = strings.TrimPrefix(arg, "-ssh-port=")
+		case strings.HasPrefix(arg, "--ssh-port="):
+			value = strings.TrimPrefix(arg, "--ssh-port=")
+		default:
+			continue
+		}
+		parsed, err := strconv.ParseInt(value, 0, strconv.IntSize)
+		if err != nil || parsed < 0 || parsed > 65535 {
+			return nil, "", newToolError("INVALID_ARGUMENT", "-ssh-port must be an integer from 0 to 65535", nil)
+		}
+		portOverride = int(parsed)
 	}
-	protocol := strings.TrimSpace(strings.ToLower(env["GOPHER_PROTOCOL"]))
-	if protocol != "" && protocol != "ssh" {
-		return env, "", nil
-	}
-	if existing := strings.TrimSpace(env["GOPHER_SSH_PORT"]); existing != "" {
-		return env, existing, nil
+	if portOverride > 0 {
+		return args, strconv.Itoa(portOverride), nil
 	}
 	port, err := findAvailableTCPPort("127.0.0.1", portMin, portMax)
 	if err != nil {
@@ -2594,8 +2613,8 @@ func ensureSSHPortEnv(env map[string]string, portMin, portMax int) (map[string]s
 			"ssh_port_max": portMax,
 		})
 	}
-	env["GOPHER_SSH_PORT"] = strconv.Itoa(port)
-	return env, env["GOPHER_SSH_PORT"], nil
+	resolved := append(append([]string(nil), args...), "-ssh-port", strconv.Itoa(port))
+	return resolved, strconv.Itoa(port), nil
 }
 
 func findAvailableTCPPort(host string, portMin, portMax int) (int, error) {

@@ -1,6 +1,6 @@
 # User Documentation Refresh Status
 
-Last updated: 2026-10-13
+Last updated: 2026-10-14
 
 This is the authoritative resume point for the active project. Verify it
 against `git status` before acting, then update it at the next handoff.
@@ -10,16 +10,18 @@ against `git status` before acting, then update it at the next handoff.
 - Phase: 2.5 — New-Robot scaffold and setup-flow reconciliation
 - State: Phase 2.5B owner review complete with revisions; implementation
   Slices 1 through 6D plus the separately approved demo-timeout change are
-  committed on `doc-dev` at `0ace8427`; Slice 6D full validation is
-  passing and the remainder of the read-only Slice 6 audit is subdivided below
-- Next owner: human
-- Next action: settle the proposed Slice 4 environment-default reversal, then
-  review completed Slice 6D and approve or revise a separate Slice 6E limited
-  to the installed default job channel; all other selectors remain separate
-  and unapproved
+  committed on `doc-dev` at `0ace8427`. The approved Slice 4 reversal and
+  Slice 6 installed-template cleanup are implemented and validated in the
+  working tree. Installed templates now retain only the three approved
+  repository-bootstrap environment reads; MCP SSH port handoff uses the CLI
+- Next owner: AI
+- Next action: resume Slice 7 repository-handoff verification. Read the approved
+  conversation/checkpoint contract and current `continueRepositoryHandoff`;
+  share a bounded impact report before changing the flow so final restart waits
+  for deploy-key access, the expected remote branch/commit, and config validation
 - Recommended model/reasoning: GPT-5.6 Sol, high
-- Blocking condition: owner review is required before the next independent
-  product change
+- Blocking condition: none for resuming the approved implementation sequence;
+  full live onboarding acceptance remains the later owner field-test gate
 
 The owner resumed work on `doc-dev` on 2026-10-13 and requested merging any
 missing `main` bugfixes. The only missing commit was `a60f877e` (GSH
@@ -28,15 +30,23 @@ were already included. The merge is conflict-free. Focused GSH tests,
 documentation hygiene, and the mdBook build pass; final build validation is
 recorded below.
 
-The owner also proposed reversing Slice 4's explicit-environment requirement:
-default an unset `GOPHER_ENVIRONMENT` to `production` and log that choice at
-startup. That proposal is not implemented by this branch synchronization.
-Before changing it, share the required impact report and synchronize startup,
-CLI behavior, extension metadata, tests, scaffold, and documentation. Keep
-Slice 6E and the other selector changes separate.
+The owner approved reversing Slice 4's explicit-environment requirement on
+2026-10-13. The impact report was shared and the change is implemented in the
+working tree: unset or blank values resolve to `production` after private
+environment loading, with the exact Info notice
+`GOPHER_ENVIRONMENT isn't set, defaulting to 'production'`. Startup, CLI
+behavior, extension metadata, tests, scaffold, migration guidance, and
+documentation are synchronized. Current validation is recorded below.
 
 The owner requires each independent product change to be implemented and
-reviewed separately. `PLAN.md` records the nine current implementation slices.
+reviewed separately. On 2026-10-13 the owner approved Slice 6E and authorized
+continuing bounded cleanup until substantive input was needed. Slices 6E, 6F,
+and 6G retain separate scope and validation. On 2026-10-14 the owner settled
+the provider/storage migration policy: remove installed lookups and document
+the required explicit configuration in `UPGRADING-v3.md`, with no v3
+compatibility work or new startup checks. The remaining installed defaults,
+provider/credential sample, and deployment examples were cleaned accordingly.
+`PLAN.md` records the nine current implementation slices.
 The Phase 2.5B owner-review addendum records the revised launcher, direct
 message, checkpoint, credential, compatibility, and timeout decisions.
 
@@ -50,12 +60,13 @@ with actionable manual recovery rather than migrated.
 
 Implemented Slice 4 decision: blank values count as unset; normal startup stays
 in demo mode whenever `GOPHER_CUSTOM_REPOSITORY` is absent, whether or not an
-environment is supplied. After `.env` loading, a nonempty repository requires
-a valid `GOPHER_ENVIRONMENT` before encryption/config loading.
-Configuration-loading CLI commands also require an explicit environment,
-while `genkey -environment` satisfies that command and
-help/version/syntax/script remain exempt. The internal `production` fallback is
-removed, and test-development fixtures explicitly select `development`.
+environment is supplied. After `.env` loading, an unset or blank
+`GOPHER_ENVIRONMENT` defaults to `production` before encryption/config loading,
+and startup logs that choice at Info level. Configuration-loading CLI commands
+use the same default; `genkey -environment` overrides key generation.
+Help/version/internal-child paths bypass normal startup; syntax/script keep
+their fixture behavior. Test-development fixtures explicitly select
+`development`. This supersedes the 2026-09-04 required-environment decision.
 
 The separately approved timeout change gives the default/demo Robot a
 35-minute plugin warning and 42-minute kill threshold. `robot.skel` retains
@@ -68,9 +79,9 @@ Implemented Slice 5 scaffold migration:
   `variable` and `secret`;
 - use `ROBOT_NAME`, `ROBOT_FULL_NAME`, `ROBOT_EMAIL`, `ROBOT_ALIAS`, and
   `DEFAULT_JOB_CHANNEL`, plus the existing encrypted `SSH_HOST_KEY`;
-- remove the `GOPHER_ENVIRONMENT` fallback from scaffold `robot.yaml` and make
-  SSH listen host/port intentional literals rather than durable environment
-  lookups;
+- select the resolved environment in scaffold `robot.yaml`, with a production
+  fallback restored by the 2026-10-13 reversal, and make SSH listen host/port
+  intentional literals rather than durable environment lookups;
 - add explicit empty development/production variables files, preserve the
   environment policy files, explain the intended override layering in comments,
   and retain configured-Robot plugin thresholds of 7/14 minutes;
@@ -128,11 +139,49 @@ installed `conf/robot.yaml` lookup of `GOPHER_ALIAS` with the fixed default
 alias `;`. Configured Robots continue overriding `Alias` through the
 scaffold's `ROBOT_ALIAS` variable. No other selector is included.
 
-Proposed but not approved or implemented Slice 6E would replace only the
-installed `conf/robot.yaml` lookup of `GOPHER_JOBCHANNEL` with the fixed default
-job channel `general`. Configured Robots would continue overriding
+Implemented Slice 6E replaces only the installed `conf/robot.yaml` lookup of
+`GOPHER_JOBCHANNEL` with the fixed default job channel `general`. Configured
+Robots continue overriding
 `DefaultJobChannel` through the scaffold's `DEFAULT_JOB_CHANNEL` variable. No
 other selector is included.
+
+Implemented Slice 6F replaces only the installed `GOPHER_MESSAGE_FORMAT`
+lookup with `DefaultMessageFormat: BasicMarkdown`. Configured Robots override
+the field explicitly; per-send formatting remains unchanged.
+
+Implemented Slice 6G replaces only the installed `GOPHER_TIMEZONE` lookup with
+`TimeZone: America/New_York`, preserving the prior default. Configured Robots
+override the field explicitly; scheduler semantics remain unchanged.
+
+The remaining provider/storage audit found that ignoring a retired
+`GOPHER_BRAIN` value can select the default local file brain instead of a cloud
+brain, and ignoring `GOPHER_STATE_DIRECTORY` or `GOPHER_BRAIN_CACHE_DIRECTORY`
+can select a different cache. Legacy file-brain directory configuration also
+controls the migration-data check and import source. The existing lock proves
+ownership of the selected brain, not that it is the intended data source.
+The owner approved removal and documented migration on 2026-10-14, without
+compatibility translation or startup rejection. The full installed-template
+cleanup is now implemented:
+
+- Brain/history selectors, cache/state/legacy brain/history directories, and
+  DynamoDB region use their previous default values literally. Existing
+  demo/bootstrap/test-mode selections are preserved.
+- Primary/default protocol, logging, local API port, and HTTP-debug defaults
+  no longer read launcher selectors. Existing CLI log/level/SSH-port flags
+  remain; the early logger no longer reads `GOPHER_LOGLEVEL`.
+- Installed SSH bind defaults are `localhost:4221`. MCP automatic port choice
+  is passed as `-ssh-port`, respects positive explicit flags, and survives
+  restart. Terminal mock-format policy is explicit configuration.
+- The optional memes sample references its named variable/secret and remains
+  opt-in. Kubernetes/Helm/Heroku examples no longer inject `GOPHER_PROTOCOL`.
+- Only `GOPHER_CUSTOM_REPOSITORY`, `GOPHER_DEPLOY_KEY`, and
+  `GOPHER_CUSTOM_BRANCH` remain as environment reads under installed `conf/`.
+  The general `env` helper, engine-created protocol/brain context, encryption
+  bootstrap, and `GOPHER_ENVIRONMENT` resolution remain supported.
+
+Next, Slice 7 must replace the current immediate restart after printing git
+instructions with the approved real dependency wait and verification. No
+Slice 7 flow change has been made during this cleanup.
 
 The owner approved the revised `NORTH_STAR_TOC.md` on 2026-08-31 as the
 starting structure for the epic, with the expectation that justified changes
@@ -197,11 +246,12 @@ Gate 1 was approved by the owner on 2026-08-17 after the correction.
     messages and prompts are direct, version-4 state is rejected, and cancel or
     successful configured-user reconnect removes the state file without
     changing `.env` or `custom/`.
-21. Implemented Slice 4: configured startup validates the explicit
+21. Implemented Slice 4, revised 2026-10-13: startup resolves and validates
     `GOPHER_ENVIRONMENT` after launcher/private-file precedence is resolved and
-    before encryption or config loading; demo/no-config paths remain available,
-    CLI config fixtures are explicit, and migration/user documentation records
-    the no-default boundary.
+    before encryption or config loading, defaulting unset/blank values to
+    production with an Info notice. Demo/no-config behavior is preserved and
+    CLI config fixtures remain explicit; migration/user documentation records
+    the restored default.
 22. Implemented Slice 5: New-Robot placeholders are concentrated in common
     named variables, static scaffold configuration consumes those values,
     environment-specific variables files explain their override role, SSH
@@ -313,6 +363,40 @@ Passing locally:
   'Test.*(StartupEnvironment|Environment|InstalledRobot|InstalledOnboarding)'
   -count=1`. User-documentation impact was reviewed: the merged fix restores
   explicit message-format selection; no additional user-doc change is needed.
+- 2026-10-13 environment-default reversal: focused environment/config/key
+  tests, `go test -mod readonly ./bot -count=1`, `go test -mod readonly ./...`,
+  `make`, and `make mcp integration-build` pass. MCP suite
+  `TestShFullPipelineAdmin` passes with live output disabled. A built-binary
+  `validate -redacted-secrets robot.skel` run from an empty temporary directory
+  with `GOPHER_ENVIRONMENT` unset succeeds and emits the exact Info notice.
+  Tests cover absent/empty/whitespace selectors, normalization, invalid paths,
+  private-file precedence, production variables, `genkey` defaults/overrides,
+  extension metadata, one-time logging, and Info/Warn filtering.
+  Documentation hygiene, `mdbook build docs`, and `git diff --check` pass.
+  The scaffold test's production-fallback prohibition was a stale expectation
+  from the intentionally reversed decision and now requires the fallback.
+- Slices 6E–6G: focused installed-default/scaffold tests, full `make test`, and
+  `GOWORK=off go test ./newrobotflow` from `lib/` pass. Built CLI dumps with
+  conflicting launcher values still produce the installed literals `general`,
+  `BasicMarkdown`, and `America/New_York`. A generated custom scaffold retains
+  its selected job channel; explicit custom `TimeZone: UTC` and
+  `DefaultMessageFormat: Fixed` validate successfully. MCP suites
+  `TestShFullPipelineAdmin` and `TestPipelineTimeoutWarnAndKillAlerts` pass with
+  live output disabled. Documentation hygiene, mdBook build, and diff checks
+  pass; migration and user documentation are synchronized.
+- 2026-10-14 completed Slice 6 cleanup: focused brain/configuration tests and
+  `make test mcp` pass. The restricted MCP socket tests initially failed with
+  `operation not permitted`; their unrestricted rerun and the full test run
+  pass. Three new MCP tests verify explicit port flags and last-value-wins
+  handling, automatic assignment and restart retention, and errors for
+  occupied ranges/invalid flags. No integration assertions were changed.
+  MCP suites `TestShFullPipelineAdmin`, `TestSecondarySlackConfigError`, and
+  `TestPipelineTimeoutWarnAndKillAlerts` pass with live output disabled.
+  `GOWORK=off go test ./newrobotflow`, built CLI dumps with conflicting retired
+  launcher values, and explicit custom provider/region/cache/history validation
+  pass. Heroku helper shell syntax, documentation hygiene, mdBook build, and
+  diff checks pass. The installed-template environment-read census contains
+  exactly the three repository-bootstrap reads.
 
 Not yet run; defer to the cutover/merge workflow unless scope changes:
 
@@ -324,7 +408,9 @@ Not yet run; defer to the cutover/merge workflow unless scope changes:
 The main worktree is on `doc-dev`. Slices 1 through 6D, the separately approved
 timeout change, their tests, and synchronized user/developer documentation were
 committed at `0ace8427`. The branch includes the `main` bugfix merge requested
-on 2026-10-13 and this refreshed handoff record.
+on 2026-10-13 at `2e8060c2`. The approved environment-default reversal and its
+synchronized tests, documentation, completed Slice 6 cleanup, and handoff changes are
+uncommitted.
 `docs/book/` may exist after a local build but remains ignored. The separate
 documentation worktree should be clean at its cutover commit `908d3a6`.
 

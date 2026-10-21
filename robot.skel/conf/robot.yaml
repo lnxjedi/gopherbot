@@ -9,7 +9,7 @@ IgnoreUnlistedUsers: true
 ## and tasks must use GetParameter(secret_name) instead of environment variables.
 SecureParameters: true
 
-{{ $environment := env "GOPHER_ENVIRONMENT" }}
+{{ $environment := env "GOPHER_ENVIRONMENT" | default "production" }}
 ## Environment-specific runtime defaults (protocol/brain/log destination).
 {{ printf "environments/%s.yaml" $environment | .Include }}
 

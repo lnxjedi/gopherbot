@@ -1,12 +1,10 @@
 ---
 # You need an imgflip username and password to enable this plugin. There are
-# three primary ways to enable this plugin:
-# 1. Put values for GOPHER_MEMES_USER and GOPHER_MEMES_PASSWORD in '.env'
-#    with the connector credentials
-# 2. Create memes.yaml in custom/conf/plugins, supplying the Username, and
-#    get the robot to encrypt the password with a direct message
-#    'encrypt xxx', store the ciphertext in custom/conf/variables/<environment>.yaml
-#    Secrets, then use {{ secret "MEMES_PASSWORD" }} for the Password.
+# Enable it explicitly in custom/conf/robot.yaml, then copy this sample to
+# custom/conf/plugins/memes.yaml. Declare MEMES_USERNAME under Variables and
+# the encrypted MEMES_PASSWORD under Secrets in custom/conf/variables/*.yaml.
+# Encrypt the password with the robot's CLI or private encrypt command; never
+# put the plaintext password in the variables file.
 #
 # To add your own memes, create conf/plugins/memes.yaml in the custom
 # configuration repository, with new entries in "Commands:" including
@@ -15,12 +13,8 @@
 # See: https://api.imgflip.com/
 # For stock memes template ID: https://imgflip.com/memetemplate/<name>
 Config:
-  Username: {{ env "GOPHER_MEMES_USER" }}
-  Password: {{ env "GOPHER_MEMES_PASSWORD" }} # or 'store task parameter memes PASSWORD=xxx'
-# This just checks whether either value is defined.
-{{ if not (env "GOPHER_MEMES_USER" | default (env "GOPHER_MEMES_PASSWORD")) }}
-Disabled: true
-{{ end }}
+  Username: {{ variable "MEMES_USERNAME" | printf "%q" }}
+  Password: {{ secret "MEMES_PASSWORD" | printf "%q" }}
 Commands:
 - Command: "1509839"
   Regex: '(?i:picard omg ([^/]+)(?:/([^/]+))?)'

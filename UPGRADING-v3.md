@@ -31,26 +31,30 @@ Compatibility scope for this guide:
     for v2 import/export.
 13. Reload and verify runtime with `protocol-list` (or `protocol list`).
 
-## 2026-09-04 Required Robot Environment
+## 2026-10-13 Production Environment Default
 
-Configured Robots no longer receive an implicit `production` or `development`
-environment. A normal start with a nonempty `GOPHER_CUSTOM_REPOSITORY` must set
-`GOPHER_ENVIRONMENT` to a valid single path segment in the launcher environment
-or private environment file. Blank values count as unset.
-
-Before upgrading an existing Robot, add the intended value to its deployment
-environment or `.env`, for example:
+The pre-release requirement to set `GOPHER_ENVIRONMENT` is reversed. An unset
+or blank value defaults to `production` after private environment loading.
+Startup emits the Info notice:
 
 ```text
-GOPHER_ENVIRONMENT=production
+GOPHER_ENVIRONMENT isn't set, defaulting to 'production'
 ```
 
-Launcher values continue to take precedence over `.env`. An unconfigured Robot
-with no custom repository may omit the value and start in demo mode; setting an
-environment by itself does not take the Robot out of demo mode. CLI commands
-that load Robot configuration also require an environment. `gopherbot genkey`
-may instead receive `-environment`, while help, version, syntax, script, and
-other no-config paths remain exempt.
+Existing production deployments can leave the variable unset. Development
+launchers must explicitly set `GOPHER_ENVIRONMENT=development`. Launcher values
+continue to take precedence over `.env`, and explicit environment names must
+be valid single path segments. Configuration, variables/secrets, encrypted key
+selection, and extension metadata all use the same resolved value.
+
+The brain lock remains the ownership guard for accidental concurrent robots
+sharing a brain; it does not establish the operator's intended environment.
+With no custom repository, normal startup remains in demo mode; setting an
+environment by itself does not change that mode. Configuration-loading CLI
+commands also default to production. `gopherbot genkey -environment` overrides
+that selection for key generation. Help/version and internal child commands
+bypass normal startup; syntax/script retain their configuration-free fixture
+behavior.
 
 Fresh v3 scaffolds keep stable scalar values in
 `conf/variables/common.yaml`: `ROBOT_NAME`, `ROBOT_FULL_NAME`, `ROBOT_EMAIL`,
@@ -71,6 +75,20 @@ configured resume trigger reads `ROBOT_NAME`. Existing custom templates may
 continue to use the general `env` helper when an environment-backed value is
 intentional.
 
+The installed default job channel is now the fixed `general`; the installed
+configuration no longer reads `GOPHER_JOBCHANNEL`. Deployments that used only
+that launcher value should set `DefaultJobChannel` explicitly in
+`custom/conf/robot.yaml` or its included environment file. Fresh scaffolds
+already read the job channel collected by setup from `DEFAULT_JOB_CHANNEL` in
+`custom/conf/variables/common.yaml`.
+
+Installed message-format and time-zone defaults are now the literals
+`BasicMarkdown` and `America/New_York`. The installed configuration no longer
+reads `GOPHER_MESSAGE_FORMAT` or `GOPHER_TIMEZONE`. If a deployment relied on
+those values, move the intended settings to `DefaultMessageFormat` and
+`TimeZone` in `custom/conf/robot.yaml` or its included environment file. Explicit
+format choices on send calls continue to override the configured default.
+
 The deprecated terminal connector configuration is no longer included in new
 scaffolds. Existing `conf/protocols/terminal.yaml` files are not removed by an
 upgrade, but should not be copied forward unless an existing development flow
@@ -79,6 +97,70 @@ still requires them.
 New-Robot now writes the persistent SSH server public key to
 `custom/ssh-host-key.pub`. Existing `custom/robot-ssh.pub` files remain accepted
 by the `bot-ssh` helper, so this rename does not require an immediate migration.
+
+## 2026-10-14 Installed Configuration Uses Explicit Defaults
+
+Installed configuration no longer reads the following launcher/environment
+values. Move the intended settings into custom configuration before upgrading:
+
+| Removed installed lookup | Custom configuration location | Installed default |
+|---|---|---|
+| `GOPHER_BRAIN` | `Brain` in `conf/robot.yaml` or its environment include | `file` for configured/CLI startup; `mem` for demo/bootstrap/test mode |
+| `GOPHER_HISTORY_PROVIDER` | `HistoryProvider` in `conf/robot.yaml` or its environment include | `mem` |
+| `GOPHER_BRAIN_CACHE_DIRECTORY` | `BrainCache.Directory` in `conf/robot.yaml` | `state/brain-cache` |
+| `GOPHER_STATE_DIRECTORY` | Set cache and legacy import directories explicitly in the locations below | No shared directory-prefix selector |
+| `GOPHER_BRAIN_DIRECTORY` | `BrainConfig.BrainDirectory` in `conf/brains/file.yaml` | `state/brain` (legacy file-brain migration source) |
+| `GOPHER_HISTORY_DIRECTORY` | `HistoryConfig.Directory` in `conf/history/file.yaml` | `history` |
+| `GOPHER_BRAIN_REGION` | `BrainConfig.Region` in `conf/brains/dynamo.yaml` | `us-east-1` |
+| `GOPHER_PROTOCOL` | `PrimaryProtocol` in `conf/robot.yaml` or its environment include | `ssh`; existing bootstrap/test mode selections are preserved |
+| `GOPHER_DEFAULT_PROTOCOL` | `DefaultProtocol` in `conf/robot.yaml` or its environment include | Installed mode's primary protocol |
+| `GOPHER_LOGDEST` | `LogDest` in `conf/robot.yaml`, or `-log` for one run | `stdout`; terminal test mode uses `robot.log` |
+| `GOPHER_LOGLEVEL` | `LogLevel` in `conf/robot.yaml`, or `-level` for one run | `info` |
+| `GOPHER_HTTP_DEBUG` | `HttpDebug` in `conf/robot.yaml` | `false` |
+| `GOPHER_PORT` | `LocalPort` in `conf/robot.yaml` | `0` (automatic localhost API port) |
+| `GOPHER_SSH_HOST` | `ProtocolConfig.ListenHost` in `conf/protocols/ssh.yaml` | `localhost` |
+| `GOPHER_SSH_PORT` | `ProtocolConfig.ListenPort` in `conf/protocols/ssh.yaml`, or `-ssh-port` for one run | `4221` |
+| `GOPHER_MOCK_FORMAT` | `ProtocolConfig.MockFormatting` in test terminal configuration | `false` |
+| `GOPHER_MEMES_USER`, `GOPHER_MEMES_PASSWORD` | Named `MEMES_USERNAME` variable and `MEMES_PASSWORD` secret referenced by the optional plugin sample | Explicit configuration; the credentialed plugin remains opt-in |
+
+For example, preserve a DynamoDB provider and a nondefault cache location in
+`custom/conf/robot.yaml`:
+
+```yaml
+Brain: dynamo
+BrainCache:
+  Directory: /srv/example-robot/brain-cache
+```
+
+Put the region and table configuration in `custom/conf/brains/dynamo.yaml`:
+
+```yaml
+BrainConfig:
+  TableName: example-robot
+  Region: us-west-2
+```
+
+Use the provider, region, and paths already used by the deployment. The engine
+does not move or delete stored data, translate retired environment settings,
+or add startup checks for their presence. Those values simply no longer
+override installed defaults. Explicit custom configuration still wins, and
+the general `env` helper remains available for intentional custom templates.
+AWS SDK credential-chain behavior is unchanged; `GOPHER_BRAIN` remains
+extension runtime metadata describing the effective configured provider.
+
+The installed templates retain only the repository-bootstrap environment reads
+for `GOPHER_CUSTOM_REPOSITORY`, `GOPHER_DEPLOY_KEY`, and `GOPHER_CUSTOM_BRANCH`.
+The engine still resolves `GOPHER_ENVIRONMENT` and encryption bootstrap, and
+extensions still receive engine-created protocol/context metadata.
+Kubernetes/Helm and Heroku examples no longer inject `GOPHER_PROTOCOL` as a
+connector selector.
+
+For low-level HTTP diagnostics, explicitly set `HttpDebug: true`, debug log
+level, and an appropriate private log destination. HTTP request/response logs
+are not scrubbed; `HttpDebug` does not automatically change logging settings.
+The MCP launcher now supplies its chosen SSH port through `-ssh-port`; explicit
+port flags in `extra_args` take precedence and the choice is retained on
+restart. It no longer uses the retired SSH-port environment selector.
 
 ## 2026-09-04 Configurable Compiled-Task Privilege
 
@@ -123,11 +205,12 @@ Installed defaults now include:
 
 ```yaml
 BrainCache:
-  Directory: {{ env "GOPHER_BRAIN_CACHE_DIRECTORY" | default "<state>/brain-cache" }}
+  Directory: state/brain-cache
 ```
 
-`<state>` follows `GOPHER_STATE_DIRECTORY` and defaults to `state`.
-`GOPHER_BRAIN_CACHE_DIRECTORY` overrides the cache location directly.
+Set `BrainCache.Directory` explicitly in custom configuration to use another
+cache location. Installed defaults no longer read `GOPHER_STATE_DIRECTORY` or
+`GOPHER_BRAIN_CACHE_DIRECTORY`.
 
 Configuration responsibilities are split:
 

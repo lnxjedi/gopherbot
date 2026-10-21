@@ -1,40 +1,48 @@
 package bot
 
 import (
+	"bytes"
+	"log"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
-func TestValidateStartupEnvironmentMatrix(t *testing.T) {
+func TestInitializeStartupEnvironmentMatrix(t *testing.T) {
 	tests := []struct {
-		name        string
-		mode        string
-		environment string
-		wantError   string
+		name            string
+		unset           bool
+		environment     string
+		wantEnvironment string
+		wantError       string
 	}{
-		{name: "demo without environment", mode: "demo"},
-		{name: "demo with environment", mode: "demo", environment: "development"},
-		{name: "cli defers configuration requirement", mode: "cli"},
-		{name: "bootstrap requires environment", mode: "bootstrap", wantError: "required when GOPHER_CUSTOM_REPOSITORY is configured"},
-		{name: "production requires environment", mode: "production", wantError: "required when GOPHER_CUSTOM_REPOSITORY is configured"},
-		{name: "test development requires environment", mode: "test-dev", wantError: "required for startup mode"},
-		{name: "configured environment must be valid", mode: "production", environment: "../production", wantError: "single path segment"},
-		{name: "configured environment is accepted", mode: "production", environment: "production"},
+		{name: "unset defaults to production", unset: true, wantEnvironment: "production"},
+		{name: "empty defaults to production", wantEnvironment: "production"},
+		{name: "whitespace defaults to production", environment: "   ", wantEnvironment: "production"},
+		{name: "explicit value is normalized", environment: " development ", wantEnvironment: "development"},
+		{name: "configured environment must be valid", environment: "../production", wantError: "single path segment"},
+		{name: "configured environment is accepted", environment: "production", wantEnvironment: "production"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			preserveGopherEnvMaps(t)
 			unsetProcessEnvForTest(t, "GOPHER_ENVIRONMENT")
-			if tt.environment != "" {
+			if !tt.unset {
 				setGopherEnvValue("GOPHER_ENVIRONMENT", tt.environment)
 			}
-			err := validateStartupEnvironment(tt.mode)
+			err := initializeStartupEnvironment()
 			if tt.wantError == "" && err != nil {
-				t.Fatalf("validateStartupEnvironment(%q) error = %v, want nil", tt.mode, err)
+				t.Fatalf("initializeStartupEnvironment() error = %v, want nil", err)
 			}
 			if tt.wantError != "" && (err == nil || !strings.Contains(err.Error(), tt.wantError)) {
-				t.Fatalf("validateStartupEnvironment(%q) error = %v, want substring %q", tt.mode, err, tt.wantError)
+				t.Fatalf("initializeStartupEnvironment() error = %v, want substring %q", err, tt.wantError)
+			}
+			if err == nil && getEnv("GOPHER_ENVIRONMENT") != tt.wantEnvironment {
+				t.Fatalf("GOPHER_ENVIRONMENT = %q, want %q", getEnv("GOPHER_ENVIRONMENT"), tt.wantEnvironment)
 			}
 		})
 	}
@@ -63,13 +71,13 @@ func TestDetectStartupModeEnvironmentAloneRemainsDemo(t *testing.T) {
 	}
 }
 
-func TestConfigTemplateEnvironmentHasNoProductionFallback(t *testing.T) {
+func TestConfigTemplateEnvironmentDefaultsToProduction(t *testing.T) {
 	preserveGopherEnvMaps(t)
 	preserveDeployEnvironment(t)
 	unsetProcessEnvForTest(t, "GOPHER_ENVIRONMENT")
 
-	if got := currentConfigTemplateEnvironment(); got != "" {
-		t.Fatalf("currentConfigTemplateEnvironment() = %q, want empty", got)
+	if got := currentConfigTemplateEnvironment(); got != "production" {
+		t.Fatalf("currentConfigTemplateEnvironment() = %q, want production", got)
 	}
 }
 
@@ -89,28 +97,108 @@ func TestLoadConfigVariablesAllowsEnvironmentlessDemo(t *testing.T) {
 	}
 }
 
-func TestLoadConfigVariablesRequiresEnvironmentForCLIConfig(t *testing.T) {
+func TestLoadConfigVariablesDefaultsToProductionForCLIConfig(t *testing.T) {
 	preserveGopherEnvMaps(t)
 	preserveStartupModeGlobals(t)
 	preserveDeployEnvironment(t)
 	unsetProcessEnvForTest(t, "GOPHER_ENVIRONMENT")
 	cliOp = true
+	varDir := filepath.Join(configPath, "conf", "variables")
+	if err := os.MkdirAll(varDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	for _, environment := range []string{"common", "production", "development"} {
+		if err := os.WriteFile(filepath.Join(varDir, environment+".yaml"), []byte("Variables:\n  SOURCE: "+environment+"\n"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
 
-	_, err := loadConfigVariables()
-	if err == nil || !strings.Contains(err.Error(), "required and has no default") {
-		t.Fatalf("loadConfigVariables() error = %v, want required environment error", err)
+	values, err := loadConfigVariables()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := values.Variables["SOURCE"]; got != "production" {
+		t.Fatalf("SOURCE = %q, want production", got)
 	}
 }
 
-func TestCliGenKeyRequiresEnvironmentOrFlag(t *testing.T) {
+func TestCliGenKeyDefaultsToProductionAndAllowsExplicitEnvironment(t *testing.T) {
 	preserveGopherEnvMaps(t)
+	preserveStartupModeGlobals(t)
 	preserveDeployEnvironment(t)
 	unsetProcessEnvForTest(t, "GOPHER_ENVIRONMENT")
 	setGopherEnvValue("GOPHER_ENCRYPTION_KEY", "12345678901234567890123456789012")
 
-	err := cliGenKey("", false, false)
-	if err == nil || !strings.Contains(err.Error(), "required and has no default") {
-		t.Fatalf("cliGenKey() error = %v, want required environment error", err)
+	for _, environment := range []string{"", "development"} {
+		if err := cliGenKey(environment, true, false); err != nil {
+			t.Fatalf("cliGenKey(%q) error = %v", environment, err)
+		}
+		filename := encryptedKeyFile
+		if environment != "" {
+			filename += "." + environment
+		}
+		if _, err := os.Stat(filepath.Join(configPath, filename)); err != nil {
+			t.Fatalf("generated key %s: %v", filename, err)
+		}
+	}
+}
+
+func TestStartupEnvironmentDefaultNoticeIsInfoAndEmittedOnce(t *testing.T) {
+	for _, level := range []robot.LogLevel{robot.Info, robot.Warn} {
+		t.Run(logLevelToStr(level), func(t *testing.T) {
+			preserveGopherEnvMaps(t)
+			unsetProcessEnvForTest(t, "GOPHER_ENVIRONMENT")
+			state := snapshotLogState()
+			var output bytes.Buffer
+			botLogger.Lock()
+			oldLogger, oldLevel := botLogger.logger, botLogger.level
+			botLogger.logger, botLogger.level = log.New(&output, "", 0), level
+			botLogger.Unlock()
+			t.Cleanup(func() {
+				botLogger.Lock()
+				botLogger.logger, botLogger.level = oldLogger, oldLevel
+				botLogger.Unlock()
+				restoreLogState(state)
+			})
+			for i := 0; i < 2; i++ {
+				if err := initializeStartupEnvironment(); err != nil {
+					t.Fatal(err)
+				}
+			}
+			want := ""
+			if level == robot.Info {
+				want = "Info: GOPHER_ENVIRONMENT isn't set, defaulting to 'production'\n"
+			}
+			if output.String() != want {
+				t.Fatalf("startup log = %q, want %q", output.String(), want)
+			}
+			w := &worker{Incoming: &robot.ConnectorMessage{}, cfg: &configuration{}, pipeContext: &pipeContext{}}
+			env, _ := w.getEnvironment(&Task{})
+			if got := env["GOPHER_ENVIRONMENT"]; got != "production" {
+				t.Fatalf("extension environment = %q, want production", got)
+			}
+		})
+	}
+}
+
+func TestStartupEnvironmentPreservesPrivateFileSelection(t *testing.T) {
+	preserveGopherEnvMaps(t)
+	unsetProcessEnvForTest(t, "GOPHER_ENVIRONMENT")
+	envFile := filepath.Join(t.TempDir(), ".env")
+	if err := os.WriteFile(envFile, []byte("GOPHER_ENVIRONMENT=development\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := loadPrivateEnvironment(envFile); err != nil {
+		t.Fatal(err)
+	}
+	if err := initializeStartupEnvironment(); err != nil {
+		t.Fatal(err)
+	}
+	if got := getEnv("GOPHER_ENVIRONMENT"); got != "development" {
+		t.Fatalf("GOPHER_ENVIRONMENT = %q, want development from private file", got)
+	}
+	if got := os.Getenv("GOPHER_ENVIRONMENT"); got != "" {
+		t.Fatalf("GOPHER_ENVIRONMENT leaked into process environment: %q", got)
 	}
 }
 

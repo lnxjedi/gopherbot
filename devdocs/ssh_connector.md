@@ -26,7 +26,7 @@ UX.
 
 ## Default Selection (Startup Modes)
 
-When the engine selects a default connector (no `GOPHER_PROTOCOL` provided), SSH should be the default for:
+When custom configuration does not select a connector, SSH is the default for:
 
 - `demo`
 - `ide`
@@ -45,7 +45,7 @@ Any startup modes that currently force `nullconn` remain unchanged.
 - `ListenHost` (default: `localhost`)
   - Accepts `localhost`, IPv4 address, IPv6 address, or `all`.
 - `ListenPort` (default: `4221`)
-  - Overridden by CLI `--ssh-port` and env `GOPHER_SSH_PORT`.
+  - Overridden by CLI `--ssh-port`; installed config does not read `GOPHER_SSH_PORT`.
 - `HostKey`
   - Optional encrypted host key (private key). If absent, generate ephemeral host key per run.
 - `ReplayBufferSize` (default: `42`)
@@ -71,10 +71,12 @@ The stock config enables ANSI 256 colors. User input stays in the terminal defau
 
 Message headers (timestamp/user/channel) are colorized per segment to improve scanability.
 
-## CLI and Environment Overrides
+## CLI Overrides
 
-- Add `--ssh-port` to CLI.
-- `GOPHER_SSH_PORT` should influence default config.
+- `--ssh-port` supplies a one-run override.
+- Installed bind defaults are the literals `localhost` and `4221`; durable
+  alternatives belong in custom `ProtocolConfig`.
+- The MCP launcher passes its automatic port choice through `-ssh-port`.
 
 ## .ssh-connect File
 

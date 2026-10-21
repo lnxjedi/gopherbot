@@ -3,7 +3,12 @@
 The most straight-forward and widely available way to set up a development environment for your robot is to take advantage of the [gopherbot-dev](https://quay.io/repository/lnxjedi/gopherbot-dev?tab=info) container used in [Quick Setup](../botsetup/Plugin.md):
 
 **1.** Create a new `<botname>-dev` directory and copy the robot's `.env` file to `<botname>-dev/environment`
-> I think I've repeated this at least a dozen times, but be sure `GOPHER_PROTOCOL` is commented out (or missing altogether) in the environment file. Not only does this prevent connecting a second robot with the same name and credentials to your team chat, but if you examine the default distributed configuration `yaml` files, you'll see that it disables certain scheduled jobs and modifies the robot's behavior in other ways more suitable for a dev environment.
+Select `GOPHER_ENVIRONMENT=development` for local work, and put the intended
+`PrimaryProtocol`, `DefaultProtocol`, and brain settings in development
+configuration. Installed defaults no longer use `GOPHER_PROTOCOL` as a
+launcher selector. The brain lock guards ownership of the selected brain;
+development configuration should select the intended development data and
+connector accounts explicitly.
 
 **2.** From this directory, run the `gopherbot-dev` container, this time supplying the robot's environment. Using "clu" as an example:
 ```

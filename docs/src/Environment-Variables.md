@@ -9,10 +9,10 @@ Environment variables influence both startup and task execution.
 - `GOPHER_DEPLOY_KEY`
 - `GOPHER_CUSTOM_BRANCH`
 - `GOPHER_ENVIRONMENT`
-- `GOPHER_LOGDEST`
-- `GOPHER_LOGLEVEL`
-- `GOPHER_SSH_PORT`
-- `GOPHER_MESSAGE_FORMAT`
+
+Installed configuration reads launcher values only for repository bootstrap.
+Robot policy belongs in custom configuration and named variables/secrets. For
+one-run operational overrides, use `-log`, `-level`, and `-ssh-port`.
 
 ## Task and pipeline environment
 
@@ -32,9 +32,11 @@ Tasks receive a cleaned environment plus pipeline-specific values. Common exampl
 - `GOPHER_START_USER`
 
 `GOPHER_ENVIRONMENT` selects environment-specific robot configuration at
-startup. It is required, with no default, when `GOPHER_CUSTOM_REPOSITORY`
-configures a Robot. An unconfigured Robot may omit it and start in demo mode.
-It is also exposed to extensions as runtime metadata. The standard v3 authoring
+startup. An unset or blank value defaults to `production` after private
+environment loading, with the Info notice
+`GOPHER_ENVIRONMENT isn't set, defaulting to 'production'`. Extensions receive
+the same resolved value as runtime metadata. An unconfigured Robot still
+starts in demo mode regardless of this environment selector. The standard v3 authoring
 convention is to treat `GOPHER_ENVIRONMENT=development` as a local prove-it
 mode: plugins that manage host state, cloud resources, firewall rules, or
 persistent robot memory should validate inputs and report intended actions

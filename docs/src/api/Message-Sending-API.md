@@ -23,9 +23,12 @@ For the actual `BasicMarkdown` syntax contract, see [BasicMarkdown Reference](..
 Outgoing format is chosen in this order:
 
 1. an explicit format on the send call or helper Robot
-2. `GOPHER_MESSAGE_FORMAT` if set
-3. `DefaultMessageFormat`
-4. the v3 default of `BasicMarkdown`
+2. `DefaultMessageFormat`
+3. the v3 default of `BasicMarkdown`
+
+The installed default is the literal `BasicMarkdown`; it does not read
+`GOPHER_MESSAGE_FORMAT`. Set `DefaultMessageFormat` in custom configuration to
+choose another default.
 
 The usual helpers are:
 

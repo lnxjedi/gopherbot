@@ -54,9 +54,13 @@ report and the exact owner-approval gate before implementation.
 Phase 1 is complete. The owner approved the Phase 2A greenfield north-star
 table of contents on 2026-08-31. The pre-v3 compatibility policy is updated,
 and the owner approved the Phase 2B corpus reconciliation on 2026-08-31. Phase
-2.5A established the new-Robot evidence baseline, and 2.5B proposes the impact
-surface and supported contract. The project is waiting for owner approval of
-that contract before implementation.
+2.5A established the new-Robot evidence baseline, and the owner approved the
+2.5B contract with revisions. Implementation Slices 1 through 6D are committed;
+the environment-default reversal and full installed-template Slice 6 cleanup
+are implemented and validated in the working tree. The owner approved removing
+provider/storage launcher reads with documented migration and no compatibility
+code. The next implementation action is Slice 7 repository-handoff verification.
+See `STATUS.md` for the exact next owner/action and validation.
 
 ## Exit criteria
 

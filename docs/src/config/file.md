@@ -138,10 +138,11 @@ See [Config Templates](templates.md) for the helper reference, examples, and sec
 ## Example
 
 ```yaml
-{{ $environment := env "GOPHER_ENVIRONMENT" }}
+{{ $environment := env "GOPHER_ENVIRONMENT" | default "production" }}
 {{ printf "environments/%s.yaml" $environment | .Include }}
 ```
 
 That is the standard v3 pattern for selecting environment-specific defaults in
-a scaffolded Robot. `GOPHER_ENVIRONMENT` is required for configured Robots and
-has no default.
+a scaffolded Robot. An unset or blank `GOPHER_ENVIRONMENT` defaults to
+`production`, with an Info notice at startup. Development launchers must
+explicitly select `development`.

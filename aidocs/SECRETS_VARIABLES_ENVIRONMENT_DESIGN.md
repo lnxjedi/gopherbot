@@ -5,7 +5,10 @@ Deployment data belongs only to the custom robot:
 - `custom/conf/variables/common.yaml`
 - `custom/conf/variables/<GOPHER_ENVIRONMENT>.yaml`
 
-Common loads first; the selected environment overrides it. There is no
+Common loads first; the selected environment overrides it. An unset or blank
+`GOPHER_ENVIRONMENT` defaults to `production` after private environment loading;
+startup records that choice at Info level. Development launchers explicitly
+select `development`. There is no
 installed variables layer because engine defaults must not own deployment
 secrets.
 

@@ -214,7 +214,7 @@ func cliCommands() []cliCommandSpec {
 				"By default the encrypted key is printed to stdout.",
 				"",
 				"Options:",
-				"  -e, -environment <name>  environment name; defaults to GOPHER_ENVIRONMENT (required if omitted)",
+				"  -e, -environment <name>  environment name; defaults to GOPHER_ENVIRONMENT or production",
 				"  -w, -write               write binary-encrypted-key[.<environment>] under the custom config dir",
 				"  -force                   allow -write to replace an existing key file",
 				"",

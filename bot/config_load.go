@@ -176,10 +176,7 @@ func currentConfigTemplateEnvironment() string {
 }
 
 func validateConfigTemplateEnvironment(env string) error {
-	if env == "" {
-		return fmt.Errorf("GOPHER_ENVIRONMENT is required and has no default")
-	}
-	if env == "." || env == ".." {
+	if env == "" || env == "." || env == ".." {
 		return fmt.Errorf("invalid GOPHER_ENVIRONMENT %q", env)
 	}
 	if strings.ContainsAny(env, `/\`) {
@@ -206,9 +203,6 @@ func loadConfigVariables() (*configVariableSet, error) {
 		return values, nil
 	}
 	env := currentConfigTemplateEnvironment()
-	if env == "" && detectStartupMode() == "demo" {
-		return values, nil
-	}
 	if err := validateConfigTemplateEnvironment(env); err != nil {
 		return nil, err
 	}

@@ -31,6 +31,7 @@ func TestRobotSkeletonKeepsGeneratedValuesInVariables(t *testing.T) {
 		`variable "ROBOT_FULL_NAME"`,
 		`variable "ROBOT_ALIAS"`,
 		`variable "DEFAULT_JOB_CHANNEL"`,
+		`env "GOPHER_ENVIRONMENT" | default "production"`,
 	} {
 		if !strings.Contains(robotConfig, want) {
 			t.Errorf("robot.yaml missing %q", want)
@@ -38,7 +39,7 @@ func TestRobotSkeletonKeepsGeneratedValuesInVariables(t *testing.T) {
 	}
 	for _, unwanted := range []string{
 		`<botname>`, `<botemail>`, `<botfullname>`, `<botalias>`,
-		`default "production"`, "DefaultMessageFormat:", "  Job:",
+		"DefaultMessageFormat:", "  Job:",
 	} {
 		if strings.Contains(robotConfig, unwanted) {
 			t.Errorf("robot.yaml contains unwanted %q", unwanted)

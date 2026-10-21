@@ -5,8 +5,9 @@ This directory is copied into `custom/` by onboarding workflows (for example `ne
 v3 layout notes:
 
 - `conf/robot.yaml` is the main robot config and includes one environment file:
-  `conf/environments/<environment>.yaml`, selected by the required
-  `GOPHER_ENVIRONMENT` value. There is no configured-Robot default.
+  `conf/environments/<environment>.yaml`, selected by `GOPHER_ENVIRONMENT`.
+  An unset or blank value defaults to `production`, with an Info notice at
+  startup. Development launchers should explicitly select `development`.
 - Environment-scoped secrets and deployment values live in
   `conf/variables/common.yaml` and `conf/variables/<environment>.yaml`; these
   files are custom robot data and are not layered from installed defaults.

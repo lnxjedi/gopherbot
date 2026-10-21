@@ -4,10 +4,6 @@ These are the environment variables you are most likely to care about when movin
 
 ## Usually required in deployed environments
 
-- `GOPHER_ENVIRONMENT`
-  - Selects `custom/conf/environments/<environment>.yaml`.
-  - Required, with no default, when `GOPHER_CUSTOM_REPOSITORY` configures a
-    Robot.
 - `GOPHER_ENCRYPTION_KEY`
   - Unlocks encrypted config values and encrypted robot keys.
 - `GOPHER_CUSTOM_REPOSITORY`
@@ -17,28 +13,32 @@ These are the environment variables you are most likely to care about when movin
 
 ## Commonly useful
 
+- `GOPHER_ENVIRONMENT`
+  - Selects `custom/conf/environments/<environment>.yaml` and environment-scoped
+    variables and secrets.
+  - Defaults to `production` when unset or blank. Startup logs
+    `GOPHER_ENVIRONMENT isn't set, defaulting to 'production'` at Info level.
 - `GOPHER_CUSTOM_BRANCH`
   - Overrides the branch used for custom config checkout and update flows.
-- `GOPHER_SSH_PORT`
-  - Overrides the SSH connector listen port.
-- `GOPHER_LOGDEST`
-  - Overrides the log destination, for example `stdout` or `robot.log`.
-- `GOPHER_LOGLEVEL`
-  - Sets the runtime log level.
-- `GOPHER_MESSAGE_FORMAT`
-  - Overrides the default outgoing format. If unset, v3 defaults to `BasicMarkdown`.
 
 ## Variables that matter mostly during local development
 
 - `GOPHER_ENVIRONMENT=development`
-  - Explicitly pins the development environment if you maintain several.
-- `GOPHER_SSH_PORT`
-  - Helpful when you run more than one local robot.
-- `GOPHER_DEFAULT_PROTOCOL`
-  - Useful only for special multi-protocol routing cases.
+  - Explicitly selects development; omitting the value selects production.
+
+For one-run overrides, use `-ssh-port`, `-log`, and `-level`. Durable connector,
+logging, storage, and routing choices belong in custom configuration.
 
 ## Practical advice
 
+- Put job channel, message format, and time-zone policy in custom
+  configuration: `DefaultJobChannel`, `DefaultMessageFormat`, and `TimeZone`.
+  Installed defaults are `general`, `BasicMarkdown`, and `America/New_York`;
+  they no longer read `GOPHER_JOBCHANNEL`, `GOPHER_MESSAGE_FORMAT`, or
+  `GOPHER_TIMEZONE`.
 - Keep `.env` mode-restricted and out of casual reach.
 - Prefer putting deployment-specific values in `.env` and stable robot behavior in `custom/conf/`.
-- Do not depend on old top-level `GOPHER_PROTOCOL` habits as your main environment selector; v3 expects `GOPHER_ENVIRONMENT` to drive environment-specific config.
+- Set `PrimaryProtocol` and `DefaultProtocol` in the selected environment's
+  configuration; `GOPHER_PROTOCOL` and `GOPHER_DEFAULT_PROTOCOL` no longer
+  select installed connector defaults. Runtime `GOPHER_PROTOCOL` still tells
+  extensions which connector handled the current message.

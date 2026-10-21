@@ -82,9 +82,10 @@ customization.
 
 Major changes:
 
-* `GOPHER_ENVIRONMENT` selects the robot environment and is required, with no
-  default, when `GOPHER_CUSTOM_REPOSITORY` configures a Robot. With no custom
-  repository, an omitted environment remains valid demo startup.
+* `GOPHER_ENVIRONMENT` selects the robot environment and defaults to
+  `production` when unset or blank. Startup logs the default at Info level;
+  configuration, key selection, CLI operations, and extensions share that
+  value. Development launchers must explicitly select `development`.
 * Environment-specific robot settings belong under
   `custom/conf/environments/`.
 * Installed defaults under `gopherbot/conf/` define baseline engine behavior.
@@ -92,6 +93,20 @@ Major changes:
 * Provider config moved out of root `robot.yaml`; brain config lives in
   `conf/brains/<Brain>.yaml`, and history config lives in
   `conf/history/<HistoryProvider>.yaml`.
+* Installed brain/history provider, storage-path, and DynamoDB region defaults
+  no longer read `GOPHER_BRAIN`, `GOPHER_HISTORY_PROVIDER`,
+  `GOPHER_STATE_DIRECTORY`, `GOPHER_BRAIN_CACHE_DIRECTORY`,
+  `GOPHER_BRAIN_DIRECTORY`, `GOPHER_HISTORY_DIRECTORY`, or `GOPHER_BRAIN_REGION`.
+  Set the corresponding fields explicitly in custom configuration; see the
+  migration table in `UPGRADING-v3.md`. No compatibility translation or new
+  startup rejection is added for retired launcher settings.
+* Remaining installed protocol, logging, HTTP-listener/debug, and SSH-bind
+  settings now use explicit defaults. Use custom root/provider/connector
+  configuration for durable choices, or existing `-log`, `-level`, and
+  `-ssh-port` flags for one run. The MCP launcher passes its selected SSH port
+  through the CLI and preserves explicit port flags and restart state.
+  Deployment examples no longer inject `GOPHER_PROTOCOL`; the optional memes
+  sample references named variables/secrets rather than launcher credentials.
 * Git-based file brain backup/restore support has been removed from the v3
   direction.
 * Custom-only `conf/variables/common.yaml` and
@@ -129,6 +144,15 @@ Major changes:
 * Installed null, SSH, and terminal connector files now contain only their
   effective `ProtocolConfig`; discarded copies of robot-wide identity,
   authorization, channel, and job-channel settings have been removed.
+* The installed default job channel is fixed at `general` and no longer reads
+  `GOPHER_JOBCHANNEL`. Configured Robots override `DefaultJobChannel` in custom
+  configuration; New-Robot setup supplies the scaffold's `DEFAULT_JOB_CHANNEL`
+  variable.
+* Installed message-format and time-zone defaults are fixed at `BasicMarkdown`
+  and `America/New_York`, rather than reading `GOPHER_MESSAGE_FORMAT` or
+  `GOPHER_TIMEZONE`. Use `DefaultMessageFormat` and `TimeZone` in custom
+  configuration for robot-specific policy; per-send format overrides remain
+  supported.
 * New-Robot writes the persistent SSH server public key as
   `custom/ssh-host-key.pub`. The `bot-ssh` client helper prefers that clear name
   while retaining a fallback for existing `custom/robot-ssh.pub` files.

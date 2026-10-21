@@ -34,6 +34,10 @@ For AI validation:
 
 `make integration-mcp TEST=<selector>` is the local wrapper.
 
+The MCP robot launcher supplies an automatically selected SSH port through
+`-ssh-port`; a positive port flag in `extra_args` takes precedence. It does not
+inject `GOPHER_SSH_PORT`. The selected CLI argument is retained for restart.
+
 Each suite has a case timeout (normally 14 seconds). A timeout hard-exits the
 suite after saving artifacts so the goroutine dump reflects the hang. A
 shutdown timeout is recorded separately.

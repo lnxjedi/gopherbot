@@ -1,6 +1,6 @@
 BrainConfig:
   TableName: "your table name here"
-  Region: {{ env "GOPHER_BRAIN_REGION" | default "us-east-1" }}
+  Region: us-east-1
   # Optional static credentials may be added in custom config as AccessKeyID
   # and SecretAccessKey. When they are omitted, the AWS SDK default credential
   # chain is used, including local shared credentials/profiles and EC2 instance

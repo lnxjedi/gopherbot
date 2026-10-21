@@ -70,11 +70,6 @@ spec:
             secretKeyRef:
               name: {{ .Values.robotSecrets }}
               key: GOPHER_DEPLOY_KEY
-        - name: GOPHER_PROTOCOL
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Values.robotSecrets }}
-              key: GOPHER_PROTOCOL
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

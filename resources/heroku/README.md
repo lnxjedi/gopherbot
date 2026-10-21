@@ -6,7 +6,11 @@
 
 This document assumes you already have a [Heroku](https://heroku.com) account and the [Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli) installed. Note that at the time of this writing, a personal unverified Heroku account gives you 550 dyno hours per month - not enough to run a full-time robot. Verifying the account by adding a credit card gives an additional 450 hours.
 
-You should have already set up your robot, and have an environment file (e.g. `.env`) with all the `GOPHER_*` vars.
+You should have already set up your robot and have an environment file (e.g.
+`.env`) containing `GOPHER_ENCRYPTION_KEY`, `GOPHER_CUSTOM_REPOSITORY`, and
+`GOPHER_DEPLOY_KEY`. `GOPHER_ENVIRONMENT` and `GOPHER_CUSTOM_BRANCH` are optional;
+the environment defaults to production. Configure `PrimaryProtocol` and other
+robot behavior in custom configuration, rather than setting `GOPHER_PROTOCOL`.
 
 The steps assume you have the gopherbot dist archive unzipped in `/opt/gopherbot`; if not, grab the contents of `github.com/lnxjedi/gopherbot/resources/heroku` and stick it somewhere convenient.
 
@@ -29,8 +33,6 @@ Setting GOPHER_ENCRYPTION_KEY and restarting ⬢ linux-jedi-clu... done, v3
 GOPHER_ENCRYPTION_KEY: <redacted>
 Setting GOPHER_CUSTOM_REPOSITORY and restarting ⬢ linux-jedi-clu... done, v4
 GOPHER_CUSTOM_REPOSITORY: git@github.com:parsley42/clu-gopherbot.git
-Setting GOPHER_PROTOCOL and restarting ⬢ linux-jedi-clu... done, v5
-GOPHER_PROTOCOL: slack
 Setting GOPHER_DEPLOY_KEY and restarting ⬢ linux-jedi-clu... done, v6
 GOPHER_DEPLOY_KEY: -----BEGIN_OPENSSH_PRIVATE_KEY-----:<redacted ...>
 ```

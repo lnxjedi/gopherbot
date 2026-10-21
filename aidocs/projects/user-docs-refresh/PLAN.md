@@ -134,15 +134,23 @@ AI work:
 Implementation is divided into owner-gated logical slices. Never combine two
 independent product changes without checking in with the owner:
 
+The owner authorized bounded continuation on 2026-10-13 until substantive
+input was needed. Preserve distinct scope and validation for each selector.
+On 2026-10-14 the owner approved removing provider/storage environment reads
+and documenting explicit-configuration migration without compatibility code
+or startup rejection. `STATUS.md` records the completed Slice 6 cleanup and
+the exact next implementation action.
+
 1. require validated-admin direct-message onboarding and teach the SSH `|c`
    transition in the welcome flow;
 2. add non-destructive setup preflight and remove automatic cleanup of unknown
    `custom/` data;
 3. replace general partial-questionnaire resumption with the smallest safe
    checkpoint model for restart and repository-verification boundaries;
-4. define and enforce the required `GOPHER_ENVIRONMENT` boundary as a dedicated
-   main-engine startup change, while retaining demo startup when no custom
-   repository is configured;
+4. resolve and validate `GOPHER_ENVIRONMENT` in the main engine, defaulting
+   unset or blank values to `production` with an Info notice (owner reversal
+   approved 2026-10-13), while retaining demo startup when no custom repository
+   is configured;
 5. migrate the new-Robot scaffold to explicit environment selection,
    delta-only configuration, named variables, and four onboarding credential
    roles;

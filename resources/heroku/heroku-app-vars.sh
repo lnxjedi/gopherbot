@@ -31,7 +31,16 @@ fi
 echo "Using '$ENV_FILE' for env vars ..."
 source "$ENV_FILE"
 
-for VAR in GOPHER_ENCRYPTION_KEY GOPHER_CUSTOM_REPOSITORY GOPHER_PROTOCOL GOPHER_DEPLOY_KEY
+for VAR in GOPHER_ENCRYPTION_KEY GOPHER_CUSTOM_REPOSITORY GOPHER_DEPLOY_KEY
 do
     heroku config:set $VAR="${!VAR}"
+done
+
+# Production is the environment default; branch selection is optional.
+for VAR in GOPHER_ENVIRONMENT GOPHER_CUSTOM_BRANCH
+do
+    if [ -n "${!VAR}" ]
+    then
+        heroku config:set $VAR="${!VAR}"
+    fi
 done
