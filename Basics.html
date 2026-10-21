@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b817d78f.js";
+            window.path_to_searchindex_js = "searchindex-3bc2ee39.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b5ea2372.js"></script>
@@ -184,6 +184,12 @@
 <li>how threads and direct messages affect replies</li>
 </ul>
 <p>This section covers those user-facing behaviors rather than the internal implementation details.</p>
+<h2 id="stopping-an-ai-conversation"><a class="header" href="#stopping-an-ai-conversation">Stopping an AI conversation</a></h2>
+<p>If the optional AI plugin is enabled, address the robot with <code>stop-ai</code> in the
+conversation thread, for example <code>;stop-ai</code>. It stops listening to that thread
+and clears its saved conversation, even if an API error prevented the first
+reply. A reply already in progress may still finish. In a direct message,
+<code>stop-ai</code> clears the existing AI conversation memory.</p>
 
                     </main>
 
