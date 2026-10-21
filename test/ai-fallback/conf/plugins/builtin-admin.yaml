@@ -1,0 +1,4 @@
+# Accept the integration runner's fixed-name shutdown command in this fixture.
+MessageMatchers:
+- Command: quit
+  Regex: '^\S+ quit$'

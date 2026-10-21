@@ -1,0 +1,59 @@
+name: TestAIFallbackClose
+metadata:
+  subsystems: [ routing, memory ]
+  tags: [ ai, subscriptions ]
+  runtimes: [ go ]
+  tier: smoke
+config_dir: test/ai-fallback
+log_name: bottest.log
+cases:
+  - name: first request fails without an API key
+    input:
+      user: alice
+      channel: general
+      threaded: true
+      text: example-robot, tell me about test coverage
+    replies:
+      - channel: general
+        threaded: true
+        text_pattern: 'Sorry, there was an error contacting the AI: no AI_API_KEY set'
+    events: [ CatchAllsRan, CatchAllTaskRan, GoPluginRan ]
+  - name: subscription remains active after the failed request
+    input:
+      user: alice
+      channel: general
+      threaded: true
+      text: ordinary follow-up
+    replies:
+      - channel: general
+        threaded: true
+        text_pattern: 'Sorry, there was an error contacting the AI: no AI_API_KEY set'
+    events: [ GoPluginRan ]
+  - name: stop unsubscribes despite no successful exchange
+    input:
+      user: alice
+      channel: general
+      threaded: true
+      text: ;stop-ai
+    replies:
+      - channel: general
+        threaded: true
+        text_pattern: "Ok, I'll forget this conversation and unsubscribe this thread."
+    events: [ CommandTaskRan, GoPluginRan ]
+  - name: ordinary messages no longer reach the AI
+    input:
+      user: alice
+      channel: general
+      threaded: true
+      text: ordinary follow-up after stopping
+  - name: stopping again without history is harmless
+    input:
+      user: alice
+      channel: general
+      threaded: true
+      text: ;stop-ai
+    replies:
+      - channel: general
+        threaded: true
+        text_pattern: "Ok, I'll forget this conversation and unsubscribe this thread."
+    events: [ CommandTaskRan, GoPluginRan ]

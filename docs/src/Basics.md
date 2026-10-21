@@ -10,3 +10,11 @@ In practice, most users mainly need to know four things:
 - how threads and direct messages affect replies
 
 This section covers those user-facing behaviors rather than the internal implementation details.
+
+## Stopping an AI conversation
+
+If the optional AI plugin is enabled, address the robot with `stop-ai` in the
+conversation thread, for example `;stop-ai`. It stops listening to that thread
+and clears its saved conversation, even if an API error prevented the first
+reply. A reply already in progress may still finish. In a direct message,
+`stop-ai` clears the existing AI conversation memory.
